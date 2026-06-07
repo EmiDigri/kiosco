@@ -3,13 +3,16 @@
     "api/webhook.js": {
       "memory": 128,
       "maxDuration": 10
+    },
+    "api/cron.js": {
+      "memory": 128,
+      "maxDuration": 30
     }
   },
-  "routes": [
+  "crons": [
     {
-      "src": "/api/webhook",
-      "methods": ["GET", "POST"],
-      "dest": "/api/webhook.js"
+      "path": "/api/cron",
+      "schedule": "*/2 * * * *"
     }
   ]
 }
