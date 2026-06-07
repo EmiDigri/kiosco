@@ -10,10 +10,28 @@ function turnoDeHora(hora) {
   return 'Fuera de horario';
 }
 
+function ahoraArgentina() {
+  // Argentina es UTC-3
+  const utc = new Date();
+  return new Date(utc.getTime() - 3 * 60 * 60 * 1000);
+}
+
+function fechaLocalStr(d) {
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;
+}
+
 async function fetchYGuardar(desdeH, desdeM, hastaH, hastaM) {
-  const hoy = new Date();
-  const desde = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate(), desdeH, desdeM, 0);
-  const hasta = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate(), hastaH, hastaM, 59);
+  const ahora = ahoraArgentina();
+  
+  // construir fechas en UTC pero representando hora argentina
+  const desde = new Date(Date.UTC(
+    ahora.getUTCFullYear(), ahora.getUTCMonth(), ahora.getUTCDate(),
+    desdeH + 3, desdeM, 0  // sumar 3 para convertir AR a UTC
+  ));
+  const hasta = new Date(Date.UTC(
+    ahora.getUTCFullYear(), ahora.getUTCMonth(), ahora.getUTCDate(),
+    hastaH + 3, hastaM, 59
+  ));
 
   const params = new URLSearchParams({
     begin_date: desde.toISOString(),
@@ -28,17 +46,20 @@ async function fetchYGuardar(desdeH, desdeM, hastaH, hastaM) {
   const res = await fetch(`https://api.mercadopago.com/v1/payments/search?${params}`, {
     headers: { Authorization: `Bearer ${MP_TOKEN}` }
   });
-  if (!res.ok) return;
+  if (!res.ok) return 0;
   const data = await res.json();
   const pagos = (data.results || []).filter(p => {
     const aprobado = new Date(p.date_approved);
     return aprobado >= desde && aprobado <= hasta;
   });
 
+  console.log(`Turno ${desdeH}-${hastaH}: ${pagos.length} pagos encontrados`);
+
   for (const pago of pagos) {
-    const d = new Date(pago.date_approved);
-    const fecha = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-    const hora = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    // convertir date_approved a hora argentina
+    const d = new Date(new Date(pago.date_approved).getTime() - 3 * 60 * 60 * 1000);
+    const fecha = fechaLocalStr(d);
+    const hora = `${String(d.getUTCHours()).padStart(2,'0')}:${String(d.getUTCMinutes()).padStart(2,'0')}`;
 
     let nombre = '';
     if (pago.operation_type === 'pos_payment') {
@@ -55,7 +76,7 @@ async function fetchYGuardar(desdeH, desdeM, hastaH, hastaM) {
 
     const tipo = pago.operation_type === 'pos_payment' ? 'Venta Point' : 'Transferencia recibida';
 
-    await fetch(`${SUPABASE_URL}/rest/v1/pagos`, {
+    const sbRes = await fetch(`${SUPABASE_URL}/rest/v1/pagos`, {
       method: 'POST',
       headers: {
         'apikey': SUPABASE_KEY,
@@ -75,24 +96,30 @@ async function fetchYGuardar(desdeH, desdeM, hastaH, hastaM) {
         operation_type: pago.operation_type
       })
     });
+    
+    if (!sbRes.ok) {
+      console.error('Supabase error:', await sbRes.text());
+    }
   }
   return pagos.length;
 }
 
 export default async function handler(req, res) {
   try {
-    const hoy = new Date();
-    const h = hoy.getHours();
+    const ahora = ahoraArgentina();
+    const h = ahora.getUTCHours();
+    
+    console.log(`Cron corriendo. Hora Argentina: ${h}:${String(ahora.getUTCMinutes()).padStart(2,'0')}`);
 
     let procesados = 0;
     if (h >= 7 && h < 12) procesados = await fetchYGuardar(7, 0, 11, 59);
     else if (h >= 12 && h < 17) procesados = await fetchYGuardar(12, 1, 16, 59);
     else if (h >= 17 && h < 23) procesados = await fetchYGuardar(17, 1, 22, 59);
+    else console.log('Fuera de horario del kiosco');
 
-    console.log('Cron ejecutado:', procesados, 'pagos procesados');
-    return res.status(200).json({ ok: true, procesados });
+    return res.status(200).json({ ok: true, procesados, hora: h });
   } catch (err) {
     console.error('Cron error:', err.message);
-    return res.status(200).json({ ok: true });
+    return res.status(200).json({ ok: true, error: err.message });
   }
 }
