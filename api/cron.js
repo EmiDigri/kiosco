@@ -56,7 +56,7 @@ async function fetchYGuardar(desdeH, desdeM, hastaH, hastaM) {
 
   for (const pago of pagos) {
     // hora en Argentina
-    const d = new Date(new Date(pago.date_approved).getTime() - 3 * 60 * 60 * 1000);
+    const d = new Date(pago.date_approved);
     const pagoFecha = `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;
     const hora = `${String(d.getUTCHours()).padStart(2,'0')}:${String(d.getUTCMinutes()).padStart(2,'0')}`;
 
