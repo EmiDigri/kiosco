@@ -53,6 +53,7 @@ async function fetchYGuardar(desdeH, desdeM, hastaH, hastaM) {
   const data = await res.json();
   const pagos = data.results || [];
   console.log(`MP devolvió ${pagos.length} pagos (total: ${data.paging?.total})`);
+  if (pagos.length > 0) console.log('date_approved ejemplo:', pagos[0].date_approved);
 
   for (const pago of pagos) {
     // hora en Argentina
