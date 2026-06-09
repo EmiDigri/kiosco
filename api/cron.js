@@ -24,7 +24,12 @@ function ahoraAR() {
 
 // Construye ISO con offset -03:00 para que MP filtre correctamente
 function toISO_AR(yyyy, mm, dd, h, m, s) {
-  return `${yyyy}-${mm}-${dd}T${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}-03:00`;
+  // Convertir hora AR a UTC sumando 3 horas
+  const d = new Date(Date.UTC(
+    parseInt(yyyy), parseInt(mm)-1, parseInt(dd),
+    h + 3, m, s
+  ));
+  return d.toISOString();
 }
 
 async function fetchYGuardar(desdeH, desdeM, hastaH, hastaM) {
