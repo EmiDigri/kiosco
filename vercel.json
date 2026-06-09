@@ -4,15 +4,9 @@
       "memory": 128,
       "maxDuration": 10
     },
-    "api/cron.js": { 
+    "api/cron.js": {
       "memory": 128,
       "maxDuration": 30
     }
-  },
-  "crons": [
-    {
-      "path": "/api/cron",
-      "schedule": "*/2 * * * *"
-    }
-  ]
+  }
 }
