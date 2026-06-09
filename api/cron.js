@@ -61,10 +61,17 @@ async function fetchYGuardar(desdeH, desdeM, hastaH, hastaM) {
   if (pagos.length > 0) console.log('date_approved ejemplo:', pagos[0].date_approved);
 
   for (const pago of pagos) {
-    // hora en Argentina
-    const d = new Date(pago.date_approved);
-    const pagoFecha = `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;
-    const hora = `${String(d.getUTCHours()).padStart(2,'0')}:${String(d.getUTCMinutes()).padStart(2,'0')}`;
+   // Extraer fecha y hora directamente del string de MP sin conversión de timezone
+const match = pago.date_approved.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/);
+const rawFecha = match[1];
+const rawHora = match[2];
+// Ajustar por el offset de MP (-04:00 = sumar 1 hora para llegar a AR -03:00)
+const offsetMatch = pago.date_approved.match(/([+-])(\d{2}):(\d{2})$/);
+const offsetHoras = offsetMatch ? (offsetMatch[1]==='-'?-1:1) * parseInt(offsetMatch[2]) : 0;
+const diffAR = -3 - offsetHoras; // diferencia entre AR y el offset de MP
+const dAjustada = new Date(new Date(pago.date_approved).getTime() + diffAR * 60 * 60 * 1000);
+const pagoFecha = `${dAjustada.getUTCFullYear()}-${String(dAjustada.getUTCMonth()+1).padStart(2,'0')}-${String(dAjustada.getUTCDate()).padStart(2,'0')}`;
+const hora = `${String(dAjustada.getUTCHours()).padStart(2,'0')}:${String(dAjustada.getUTCMinutes()).padStart(2,'0')}`;
 
     let nombre = '';
     if (pago.operation_type === 'pos_payment') {
