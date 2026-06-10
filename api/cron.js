@@ -22,13 +22,27 @@ function ahoraAR() {
   const dd = String(ar.getUTCDate()).padStart(2, '0');
   const hh = ar.getUTCHours();
   const min = ar.getUTCMinutes();
-  const diaSemana = ar.getUTCDay(); // 0=domingo
+  const diaSemana = ar.getUTCDay();
   return { yyyy, mm, dd, hh, min, fecha: `${yyyy}-${mm}-${dd}`, esDomingo: diaSemana === 0 };
 }
 
 function toISO_UTC(yyyy, mm, dd, h, m, s) {
   const d = new Date(Date.UTC(parseInt(yyyy), parseInt(mm)-1, parseInt(dd), h + 3, m, s));
   return d.toISOString();
+}
+
+async function guardarEnSupabase(registro) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/pagos`, {
+    method: 'POST',
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'resolution=merge-duplicates'
+    },
+    body: JSON.stringify(registro)
+  });
+  if (!res.ok) console.error('Supabase error:', await res.text());
 }
 
 async function fetchYGuardar(desdeH, desdeM, hastaH, hastaM, esDomingo) {
@@ -42,7 +56,6 @@ async function fetchYGuardar(desdeH, desdeM, hastaH, hastaM, esDomingo) {
   const params = new URLSearchParams({
     begin_date: begin,
     end_date:   end,
-    status:     'approved',
     sort:       'date_approved',
     criteria:   'asc',
     limit:      100,
@@ -59,11 +72,13 @@ async function fetchYGuardar(desdeH, desdeM, hastaH, hastaM, esDomingo) {
   console.log(`MP devolvió ${pagos.length} pagos (total: ${data.paging?.total})`);
 
   for (const pago of pagos) {
-    const d = new Date(pago.date_approved);
+    const d = new Date(pago.date_approved || pago.date_created);
     const dAR = new Date(d.getTime() - 3 * 60 * 60 * 1000);
     const pagoFecha = `${dAR.getUTCFullYear()}-${String(dAR.getUTCMonth()+1).padStart(2,'0')}-${String(dAR.getUTCDate()).padStart(2,'0')}`;
     const hora = `${String(dAR.getUTCHours()).padStart(2,'0')}:${String(dAR.getUTCMinutes()).padStart(2,'0')}`;
     const hNum = parseInt(hora.split(':')[0]);
+
+    const esEnviada = pago.transaction_amount < 0 || pago.operation_type === 'money_transfer_send';
 
     let nombre = '';
     if (pago.operation_type === 'pos_payment') {
@@ -75,30 +90,23 @@ async function fetchYGuardar(desdeH, desdeM, hastaH, hastaM, esDomingo) {
     } else {
       nombre = pago.payer?.first_name
         ? `${pago.payer.first_name} ${pago.payer.last_name || ''}`.trim()
-        : 'Transferencia recibida';
+        : esEnviada ? 'Transferencia enviada' : 'Transferencia recibida';
     }
 
-    const tipo = pago.operation_type === 'pos_payment' ? 'Venta Point' : 'Transferencia recibida';
+    const tipo = pago.operation_type === 'pos_payment' ? 'Venta Point' :
+                 esEnviada ? 'Transferencia enviada' : 'Transferencia recibida';
 
-    await fetch(`${SUPABASE_URL}/rest/v1/pagos`, {
-      method: 'POST',
-      headers: {
-        'apikey': SUPABASE_KEY,
-        'Authorization': `Bearer ${SUPABASE_KEY}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'resolution=merge-duplicates'
-      },
-      body: JSON.stringify({
-        pago_id: pago.id,
-        fecha: pagoFecha,
-        hora,
-        nombre,
-        tipo,
-        monto: pago.transaction_amount,
-        turno: turnoDeHora(hNum, esDomingo),
-        status: pago.status,
-        operation_type: pago.operation_type
-      })
+    await guardarEnSupabase({
+      pago_id: pago.id,
+      fecha: pagoFecha,
+      hora,
+      nombre,
+      tipo,
+      monto: Math.abs(pago.transaction_amount),
+      turno: turnoDeHora(hNum, esDomingo),
+      status: pago.status || 'approved',
+      operation_type: pago.operation_type,
+      es_enviada: esEnviada
     });
   }
   return pagos.length;
