@@ -78,7 +78,35 @@ async function fetchYGuardar(desdeH, desdeM, hastaH, hastaM, esDomingo) {
     const hora = `${String(dAR.getUTCHours()).padStart(2,'0')}:${String(dAR.getUTCMinutes()).padStart(2,'0')}`;
     const hNum = parseInt(hora.split(':')[0]);
 
+    // Transferencias enviadas (pagos a proveedores) — guardar aparte
     const esEnviada = pago.transaction_amount < 0 || pago.operation_type === 'money_transfer_send';
+
+    if (esEnviada) {
+      const nombre = pago.collector?.email || 'Transferencia enviada';
+      await guardarEnSupabase({
+        pago_id: pago.id,
+        fecha: pagoFecha,
+        hora,
+        nombre,
+        tipo: 'Transferencia enviada',
+        monto: Math.abs(pago.transaction_amount),
+        turno: turnoDeHora(hNum, esDomingo),
+        status: pago.status || 'approved',
+        operation_type: pago.operation_type,
+        es_enviada: true
+      });
+      continue;
+    }
+
+    // Solo aceptar transferencias recibidas y ventas Point
+    const esValido = ['money_transfer', 'pos_payment', 'account_fund'].includes(pago.operation_type);
+    if (!esValido) {
+      console.log(`Excluido: ${pago.operation_type} $${pago.transaction_amount}`);
+      continue;
+    }
+
+    // Solo approved
+    if (pago.status !== 'approved') continue;
 
     let nombre = '';
     if (pago.operation_type === 'pos_payment') {
@@ -90,11 +118,10 @@ async function fetchYGuardar(desdeH, desdeM, hastaH, hastaM, esDomingo) {
     } else {
       nombre = pago.payer?.first_name
         ? `${pago.payer.first_name} ${pago.payer.last_name || ''}`.trim()
-        : esEnviada ? 'Transferencia enviada' : 'Transferencia recibida';
+        : 'Transferencia recibida';
     }
 
-    const tipo = pago.operation_type === 'pos_payment' ? 'Venta Point' :
-                 esEnviada ? 'Transferencia enviada' : 'Transferencia recibida';
+    const tipo = pago.operation_type === 'pos_payment' ? 'Venta Point' : 'Transferencia recibida';
 
     await guardarEnSupabase({
       pago_id: pago.id,
@@ -102,11 +129,11 @@ async function fetchYGuardar(desdeH, desdeM, hastaH, hastaM, esDomingo) {
       hora,
       nombre,
       tipo,
-      monto: Math.abs(pago.transaction_amount),
+      monto: pago.transaction_amount,
       turno: turnoDeHora(hNum, esDomingo),
-      status: pago.status || 'approved',
+      status: pago.status,
       operation_type: pago.operation_type,
-      es_enviada: esEnviada
+      es_enviada: false
     });
   }
   return pagos.length;
