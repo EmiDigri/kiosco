@@ -83,6 +83,7 @@ async function fetchTransferencias(begin, end, esDomingo) {
   const params = new URLSearchParams({
     begin_date: begin,
     end_date: end,
+    status: 'approved',
     sort: 'date_approved',
     criteria: 'asc',
     limit: 100,
