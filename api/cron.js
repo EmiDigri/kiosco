@@ -32,17 +32,21 @@ function toISO_UTC(yyyy, mm, dd, h, m, s) {
 }
 
 async function guardarEnSupabase(registro) {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/pagos`, {
+  // Usar upsert via POST con on_conflict
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/pagos?on_conflict=pago_id`, {
     method: 'POST',
     headers: {
       'apikey': SUPABASE_KEY,
       'Authorization': `Bearer ${SUPABASE_KEY}`,
       'Content-Type': 'application/json',
-      'Prefer': 'resolution=merge-duplicates'
+      'Prefer': 'resolution=merge-duplicates,return=minimal'
     },
     body: JSON.stringify(registro)
   });
-  if (!res.ok) console.error('Supabase error:', await res.text());
+  if (!res.ok) {
+    const txt = await res.text();
+    if (!txt.includes('23505')) console.error('Supabase error:', txt);
+  }
 }
 
 function parsearPago(pago, esDomingo) {
@@ -79,7 +83,14 @@ function parsearPago(pago, esDomingo) {
   };
 }
 
-async function fetchTransferencias(begin, end, esDomingo) {
+async function fetchYGuardar(desdeH, desdeM, hastaH, hastaM, esDomingo) {
+  const { yyyy, mm, dd } = ahoraAR();
+  const begin = toISO_UTC(yyyy, mm, dd, desdeH, desdeM, 0);
+  const end   = toISO_UTC(yyyy, mm, dd, hastaH, hastaM, 59);
+
+  console.log(`Buscando: ${begin} → ${end}`);
+
+  // Buscar todos los pagos sin filtro de status para incluir Point
   const params = new URLSearchParams({
     begin_date: begin,
     end_date: end,
@@ -93,15 +104,16 @@ async function fetchTransferencias(begin, end, esDomingo) {
   const res = await fetch(`https://api.mercadopago.com/v1/payments/search?${params}`, {
     headers: { Authorization: `Bearer ${MP_TOKEN}` }
   });
-  if (!res.ok) { console.error('MP search error', res.status); return 0; }
+  if (!res.ok) { console.error('MP error', res.status); return 0; }
 
   const data = await res.json();
   const pagos = data.results || [];
-  console.log(`Transferencias: ${pagos.length} (total: ${data.paging?.total})`);
+  console.log(`MP devolvió ${pagos.length} (total: ${data.paging?.total})`);
 
   let count = 0;
   for (const pago of pagos) {
     const esEnviada = pago.transaction_amount < 0 || pago.operation_type === 'money_transfer_send';
+
     if (esEnviada) {
       const d = new Date(pago.date_approved || pago.date_created);
       const dAR = new Date(d.getTime() - 3 * 60 * 60 * 1000);
@@ -121,77 +133,45 @@ async function fetchTransferencias(begin, end, esDomingo) {
       count++;
       continue;
     }
-    const esValido = ['money_transfer', 'account_fund'].includes(pago.operation_type);
-    if (!esValido || pago.status !== 'approved') continue;
+
+    // Aceptar transferencias y ventas Point
+    const esValido = ['money_transfer', 'pos_payment', 'account_fund'].includes(pago.operation_type);
+    if (!esValido) {
+      console.log(`Excluido: ${pago.operation_type} $${pago.transaction_amount}`);
+      continue;
+    }
+
     await guardarEnSupabase(parsearPago(pago, esDomingo));
     count++;
   }
+
+  // Buscar ventas Point específicamente (a veces no aparecen en search general)
+  const paramsPoint = new URLSearchParams({
+    begin_date: begin,
+    end_date: end,
+    status: 'approved',
+    operation_type: 'pos_payment',
+    sort: 'date_approved',
+    criteria: 'asc',
+    limit: 100,
+    offset: 0,
+  });
+
+  const resPoint = await fetch(`https://api.mercadopago.com/v1/payments/search?${paramsPoint}`, {
+    headers: { Authorization: `Bearer ${MP_TOKEN}` }
+  });
+
+  if (resPoint.ok) {
+    const dataPoint = await resPoint.json();
+    const pagosPoint = dataPoint.results || [];
+    console.log(`Ventas Point específicas: ${pagosPoint.length}`);
+    for (const pago of pagosPoint) {
+      await guardarEnSupabase(parsearPago(pago, esDomingo));
+      count++;
+    }
+  }
+
   return count;
-}
-
-async function fetchPointSales(begin, end, esDomingo) {
-  // Ventas Point usan payment_type_id debit_card o credit_card con pos_payment
-  const params = new URLSearchParams({
-    begin_date: begin,
-    end_date: end,
-    payment_type: 'debit_card',
-    status: 'approved',
-    sort: 'date_approved',
-    criteria: 'asc',
-    limit: 100,
-    offset: 0,
-  });
-
-  const res = await fetch(`https://api.mercadopago.com/v1/payments/search?${params}`, {
-    headers: { Authorization: `Bearer ${MP_TOKEN}` }
-  });
-  if (!res.ok) { console.error('MP point error', res.status); return 0; }
-
-  const data = await res.json();
-  const pagos = (data.results || []).filter(p => p.operation_type === 'pos_payment' && p.status === 'approved');
-  console.log(`Ventas Point (debit): ${pagos.length}`);
-
-  for (const pago of pagos) {
-    await guardarEnSupabase(parsearPago(pago, esDomingo));
-  }
-
-  // También crédito
-  const params2 = new URLSearchParams({
-    begin_date: begin,
-    end_date: end,
-    payment_type: 'credit_card',
-    status: 'approved',
-    sort: 'date_approved',
-    criteria: 'asc',
-    limit: 100,
-    offset: 0,
-  });
-
-  const res2 = await fetch(`https://api.mercadopago.com/v1/payments/search?${params2}`, {
-    headers: { Authorization: `Bearer ${MP_TOKEN}` }
-  });
-  if (!res2.ok) return pagos.length;
-  const data2 = await res2.json();
-  const pagos2 = (data2.results || []).filter(p => p.operation_type === 'pos_payment' && p.status === 'approved');
-  console.log(`Ventas Point (credit): ${pagos2.length}`);
-
-  for (const pago of pagos2) {
-    await guardarEnSupabase(parsearPago(pago, esDomingo));
-  }
-
-  return pagos.length + pagos2.length;
-}
-
-async function fetchYGuardar(desdeH, desdeM, hastaH, hastaM, esDomingo) {
-  const { yyyy, mm, dd } = ahoraAR();
-  const begin = toISO_UTC(yyyy, mm, dd, desdeH, desdeM, 0);
-  const end   = toISO_UTC(yyyy, mm, dd, hastaH, hastaM, 59);
-
-  console.log(`Buscando turno: ${begin} → ${end}`);
-
-  const t = await fetchTransferencias(begin, end, esDomingo);
-  const p = await fetchPointSales(begin, end, esDomingo);
-  return t + p;
 }
 
 export default async function handler(req, res) {
