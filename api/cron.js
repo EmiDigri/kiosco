@@ -107,7 +107,9 @@ async function fetchYGuardar(esDomingo) {
 
   let count = 0;
   for (const pago of pagos) {
-    const esEnviada = pago.transaction_amount < 0 || pago.operation_type === 'money_transfer_send';
+    const esEnviada = pago.transaction_amount < 0
+      || pago.operation_type === 'money_transfer_send'
+      || pago.point_of_interaction?.business_info?.sub_unit === 'money_outflows';
 
     if (esEnviada) {
       const d = new Date(pago.date_approved || pago.date_created);
