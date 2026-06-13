@@ -26,13 +26,7 @@ function ahoraAR() {
   return { yyyy, mm, dd, hh, min, fecha: `${yyyy}-${mm}-${dd}`, esDomingo: diaSemana === 0 };
 }
 
-function toISO_UTC(yyyy, mm, dd, h, m, s) {
-  const d = new Date(Date.UTC(parseInt(yyyy), parseInt(mm)-1, parseInt(dd), h + 3, m, s));
-  return d.toISOString();
-}
-
 async function guardarEnSupabase(registro) {
-  // Usar upsert via POST con on_conflict
   const res = await fetch(`${SUPABASE_URL}/rest/v1/pagos?on_conflict=pago_id`, {
     method: 'POST',
     headers: {
@@ -83,17 +77,18 @@ function parsearPago(pago, esDomingo) {
   };
 }
 
-async function fetchYGuardar(desdeH, desdeM, hastaH, hastaM, esDomingo) {
-  const { yyyy, mm, dd } = ahoraAR();
-  const begin = toISO_UTC(yyyy, mm, dd, desdeH, desdeM, 0);
-  const end   = toISO_UTC(yyyy, mm, dd, hastaH, hastaM, 59);
+async function fetchYGuardar(esDomingo) {
+  const now = new Date();
 
-  console.log(`Buscando: ${begin} → ${end}`);
+  // Ventana: últimos 30 minutos → ahora
+  const begin = new Date(now.getTime() - 30 * 60 * 1000);
+  const end   = now;
 
-  // Buscar todos los pagos sin filtro de status para incluir Point
+  console.log(`Buscando: ${begin.toISOString()} → ${end.toISOString()}`);
+
   const params = new URLSearchParams({
-    begin_date: begin,
-    end_date: end,
+    begin_date: begin.toISOString(),
+    end_date:   end.toISOString(),
     status: 'approved',
     sort: 'date_approved',
     criteria: 'asc',
@@ -134,7 +129,6 @@ async function fetchYGuardar(desdeH, desdeM, hastaH, hastaM, esDomingo) {
       continue;
     }
 
-    // Aceptar transferencias y ventas Point
     const esValido = ['money_transfer', 'pos_payment', 'account_fund'].includes(pago.operation_type);
     if (!esValido) {
       console.log(`Excluido: ${pago.operation_type} $${pago.transaction_amount}`);
@@ -147,8 +141,8 @@ async function fetchYGuardar(desdeH, desdeM, hastaH, hastaM, esDomingo) {
 
   // Buscar ventas Point específicamente (a veces no aparecen en search general)
   const paramsPoint = new URLSearchParams({
-    begin_date: begin,
-    end_date: end,
+    begin_date: begin.toISOString(),
+    end_date:   end.toISOString(),
     status: 'approved',
     operation_type: 'pos_payment',
     sort: 'date_approved',
@@ -179,15 +173,16 @@ export default async function handler(req, res) {
     const { hh, min, fecha, esDomingo } = ahoraAR();
     console.log(`Cron - Hora AR: ${hh}:${String(min).padStart(2,'0')} fecha: ${fecha} domingo: ${esDomingo}`);
 
-    let procesados = 0;
+    // Solo correr durante horario del kiosco (7am - 11pm hora AR)
+    const enHorario = esDomingo
+      ? (hh >= 9 && hh < 23)
+      : (hh >= 7 && hh < 23);
 
-    if (esDomingo) {
-      if      (hh >= 9  && hh < 16) procesados = await fetchYGuardar(9,  30, 16,  0, true);
-      else if (hh >= 16 && hh < 23) procesados = await fetchYGuardar(16,  1, 23,  0, true);
+    let procesados = 0;
+    if (enHorario) {
+      procesados = await fetchYGuardar(esDomingo);
     } else {
-      if      (hh >= 7  && hh < 12) procesados = await fetchYGuardar(7,  0, 11, 59, false);
-      else if (hh >= 12 && hh < 17) procesados = await fetchYGuardar(12, 1, 16, 59, false);
-      else if (hh >= 17 && hh < 23) procesados = await fetchYGuardar(17, 1, 22, 59, false);
+      console.log('Fuera de horario, no se busca');
     }
 
     console.log(`Cron ejecutado: ${procesados} pagos procesados`);
