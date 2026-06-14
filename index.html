@@ -518,15 +518,24 @@ html{overflow-x:hidden}
 <div class="toast" id="toast"></div>
 
 <script>
-const esDomingo = new Date().getDay() === 0;
-const TURNOS = esDomingo ? [
+const TURNOS_DOMINGO = [
   {nombre:'Turno 1',desdeH:9,desdeM:30,hastaH:16,hastaM:0,label:'9:30 am → 4:00 pm',color:'#3D5AFE'},
   {nombre:'Turno 2',desdeH:16,desdeM:1,hastaH:23,hastaM:0,label:'4:01 pm → 11:00 pm',color:'#6B7FFF'},
-] : [
+];
+const TURNOS_SEMANA = [
   {nombre:'Vale',desdeH:7,desdeM:0,hastaH:12,hastaM:0,label:'7:00 am → 12:00 pm',color:'#3D5AFE'},
   {nombre:'Ani',desdeH:12,desdeM:1,hastaH:17,hastaM:0,label:'12:01 pm → 5:00 pm',color:'#6B7FFF'},
   {nombre:'Marta',desdeH:17,desdeM:1,hastaH:23,hastaM:0,label:'5:01 pm → 11:00 pm',color:'#2541CC'},
 ];
+const esDomingo = new Date().getDay() === 0;
+const TURNOS = esDomingo ? TURNOS_DOMINGO : TURNOS_SEMANA;
+
+// Devuelve la lista de turnos correcta segun el dia de la semana de una fecha ISO (yyyy-mm-dd)
+function turnosDelDia(isoDate){
+  const [y,m,d]=isoDate.split('-').map(Number);
+  const dow=new Date(y,m-1,d).getDay();
+  return dow===0 ? TURNOS_DOMINGO : TURNOS_SEMANA;
+}
 
 function turnoActual(){
   const now=new Date(),mins=now.getHours()*60+now.getMinutes();
@@ -831,9 +840,9 @@ function mostrarListaDias(){
     const cantTurnos=Object.keys(turnos).length;
     const totalMovs=Object.values(turnos).reduce((a,t)=>a+(t.movs||[]).length,0);
 
-    // chips de turnos con sus totales
+    // chips de turnos con sus totales (usando los turnos correctos segun el dia de la semana)
     let chipsHTML='';
-    TURNOS.forEach(t=>{
+    turnosDelDia(dia).forEach(t=>{
       if(!turnos[t.nombre])return;
       const totT=(turnos[t.nombre].movs||[]).reduce((a,m)=>a+m.monto,0);
       chipsHTML+=`<div class="hist-turno-chip"><span class="hist-turno-chip-dot" style="background:${t.color}"></span>${t.nombre} · $${totT.toLocaleString('es-AR')}</div>`;
@@ -873,7 +882,8 @@ function mostrarDetalleDia(dia){
   const cont=document.getElementById('histTurnosDetalle');
   cont.innerHTML='';
 
-  TURNOS.forEach(t=>{
+  // usar los turnos correctos segun el dia de la semana de "dia" (no los de hoy)
+  turnosDelDia(dia).forEach(t=>{
     const datos=datosDia[t.nombre];
     if(!datos)return;
 
