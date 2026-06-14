@@ -1,6 +1,7 @@
 const SUPABASE_URL = 'https://pilfeptwylgufhbmmday.supabase.co';
 const SUPABASE_KEY = 'sb_secret_I-zc6YWn33cDY6jfIZwyAA_lJEDHXVu';
 const MP_TOKEN = 'APP_USR-2677690000928530-060419-6c49e8560bd0de2e71129377f502b62a-443581160';
+const MP_USER_ID = 443581160; // ID de cuenta del kiosco (último segmento del token)
 
 function turnoDeHora(h, esDomingo) {
   if (esDomingo) {
@@ -109,7 +110,7 @@ async function fetchYGuardar(esDomingo) {
   for (const pago of pagos) {
     const esEnviada = pago.transaction_amount < 0
       || pago.operation_type === 'money_transfer_send'
-      || pago.point_of_interaction?.business_info?.sub_unit === 'money_outflows';
+      || (pago.point_of_interaction?.business_info?.sub_unit === 'money_outflows' && pago.payer_id === MP_USER_ID);
 
     if (esEnviada) {
       const d = new Date(pago.date_approved || pago.date_created);
