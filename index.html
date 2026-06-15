@@ -1164,6 +1164,112 @@ body{
   .historial-title{font-size:27px!important}
 }
 
+
+
+/* ─── LAYOUT ANCHO + AMABLE + LIVIANO ─── */
+@media(min-width:901px){
+  .app{
+    width:min(1180px, calc(100vw - 48px))!important;
+    max-width:none!important;
+    padding:24px 0 80px!important;
+  }
+  .historial-panel{
+    width:min(980px, calc(100vw - 48px))!important;
+    max-width:none!important;
+    padding:24px 0 80px!important;
+  }
+  #cierreManualOverlay .historial-panel{
+    width:min(860px, calc(100vw - 48px))!important;
+  }
+  .header{align-items:flex-start!important}
+  .hero-card{
+    display:grid!important;
+    grid-template-columns:minmax(0,1.15fr) minmax(280px,.85fr)!important;
+    gap:22px!important;
+    align-items:stretch!important;
+    min-height:230px!important;
+  }
+  .hero-main{min-width:0!important;display:flex!important;flex-direction:column!important;align-items:flex-start!important}
+  .hero-main .status-row{margin-top:auto!important;padding-top:12px!important}
+  .hero-side{display:flex!important;flex-direction:column!important;gap:12px!important;min-width:0!important}
+  .hero-side-card{
+    background:var(--surface)!important;
+    border:1px solid var(--border)!important;
+    border-radius:var(--radius-sm)!important;
+    padding:15px 16px!important;
+    box-shadow:var(--shadow-sm)!important;
+  }
+  .hero-side-card-total{
+    background:var(--accent-soft)!important;
+    border-color:rgba(124,144,255,.26)!important;
+  }
+  .hero-side-label{
+    font-size:10px!important;
+    font-weight:800!important;
+    letter-spacing:.12em!important;
+    text-transform:uppercase!important;
+    color:var(--text-soft)!important;
+    margin-bottom:8px!important;
+  }
+  .hero-side-kpi{
+    font-family:'Instrument Serif',serif!important;
+    font-size:34px!important;
+    line-height:1!important;
+    color:var(--accent)!important;
+  }
+  .hero-side-note{font-size:12px!important;color:var(--text-soft)!important;margin-top:6px!important;line-height:1.35!important}
+  .hero-side-list{display:flex!important;flex-direction:column!important;gap:9px!important}
+  .hero-side-item{display:flex!important;justify-content:space-between!important;gap:12px!important;font-size:12.5px!important;color:var(--text-soft)!important}
+  .hero-side-item strong{color:var(--text)!important;font-weight:700!important;text-align:right!important}
+  .hero-side-actions{display:grid!important;grid-template-columns:1fr 1fr!important;gap:10px!important;margin-top:auto!important}
+  .hero-soft-btn{
+    background:var(--glass)!important;
+    border:1px solid var(--glass-border)!important;
+    color:var(--text-mid)!important;
+    border-radius:999px!important;
+    padding:10px 12px!important;
+    font-family:'Inter',sans-serif!important;
+    font-size:12px!important;
+    font-weight:800!important;
+    cursor:pointer!important;
+    box-shadow:var(--shadow-sm)!important;
+  }
+  .hero-soft-btn:hover{color:var(--accent)!important;border-color:rgba(124,144,255,.35)!important}
+
+  .otros-turnos-row{
+    display:grid!important;
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:12px!important;
+  }
+  .total-card{min-height:128px!important}
+  #turnoSection > .metrics-row:not(#donutRow){grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:14px!important}
+  #donutRow{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:14px!important}
+  .dashboard-grid{
+    display:grid!important;
+    grid-template-columns:minmax(0,.95fr) minmax(430px,1.05fr)!important;
+    gap:16px!important;
+    align-items:start!important;
+    margin-top:4px!important;
+  }
+  .dashboard-col{display:flex!important;flex-direction:column!important;gap:14px!important;min-width:0!important}
+  .dashboard-extra{display:grid!important;grid-template-columns:1fr 1fr!important;gap:14px!important;margin-top:14px!important}
+  .table-card{max-height:720px!important;overflow:auto!important}
+  .table-card .t-row{grid-template-columns:54px minmax(0,1fr) 112px 92px!important}
+  .spark-card,.horas-card,.table-card{margin-bottom:0!important}
+}
+
+@media(min-width:1200px){
+  .hero-card{grid-template-columns:minmax(0,1.3fr) 360px!important}
+  .dashboard-grid{grid-template-columns:minmax(0,520px) minmax(0,1fr)!important}
+}
+
+@media(max-width:900px){
+  .hero-card{display:block!important}
+  .hero-side{display:none!important}
+  .dashboard-grid,.dashboard-extra{display:block!important}
+  .spark-card,.horas-card,.table-card,.exc-card,.env-card{margin-bottom:12px!important}
+}
+
 </style>
 </head>
 <body>
@@ -1201,24 +1307,45 @@ body{
 
   <div class="hero-tilt-wrap" id="heroTiltWrap">
     <div class="hero-card" id="heroCard">
-      
-      <div class="hero-top-row">
-        <div class="turno-chip"><div class="dot"></div><span id="turnoChip">Turno activo</span></div>
-        <div class="hero-reloj" id="heroReloj">--:--</div>
+      <div class="hero-main">
+        <div class="hero-top-row">
+          <div class="turno-chip"><div class="dot"></div><span id="turnoChip">Turno activo</span></div>
+          <div class="hero-reloj" id="heroReloj">--:--</div>
+        </div>
+        <div class="turno-nombre" id="turnoNombre">—</div>
+        <div class="turno-horario" id="turnoHorario">—</div>
+        <button class="btn-cargar" id="btnCargar">
+          <svg class="btn-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+            <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+          </svg>
+          <span id="btnTxt">Cargar mi turno</span>
+        </button>
+        <div class="status-row">
+          <div class="s-dot" id="sDot"></div>
+          <span class="s-txt" id="sTxt">Esperando conexión con MercadoPago</span>
+        </div>
       </div>
-      <div class="turno-nombre" id="turnoNombre">—</div>
-      <div class="turno-horario" id="turnoHorario">—</div>
-      <button class="btn-cargar" id="btnCargar">
-        <svg class="btn-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
-          <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
-        </svg>
-        <span id="btnTxt">Cargar mi turno</span>
-      </button>
-      <div class="status-row">
-        <div class="s-dot" id="sDot"></div>
-        <span class="s-txt" id="sTxt">Esperando conexión con MercadoPago</span>
-      </div>
+
+      <aside class="hero-side" aria-label="Resumen rápido">
+        <div class="hero-side-card hero-side-card-total">
+          <div class="hero-side-label">Resumen rápido</div>
+          <div class="hero-side-kpi" id="heroMiniTotal">$0</div>
+          <div class="hero-side-note" id="heroMiniSub">Cargá un turno para ver el total</div>
+        </div>
+        <div class="hero-side-card">
+          <div class="hero-side-label">Estado del turno</div>
+          <div class="hero-side-list">
+            <div class="hero-side-item"><span>Turno</span><strong id="heroMiniTurno">—</strong></div>
+            <div class="hero-side-item"><span>Horario</span><strong id="heroMiniHorario">—</strong></div>
+            <div class="hero-side-item"><span>Estado</span><strong id="heroMiniEstado">Esperando carga</strong></div>
+          </div>
+        </div>
+        <div class="hero-side-actions">
+          <button type="button" class="hero-soft-btn" id="heroBtnCierre">Abrir cierre manual</button>
+          <button type="button" class="hero-soft-btn" id="heroBtnHistorial2">Ver historial</button>
+        </div>
+      </aside>
     </div>
   </div>
 
@@ -1258,44 +1385,54 @@ body{
         </div>
       </div>
       <div class="metrics-row" id="donutRow"></div>
-      <div class="spark-card" id="sparkCard">
-        <div class="spark-header">
-          <span class="spark-title">Actividad del turno</span>
-          <span class="spark-total" id="sparkLabel"></span>
+      <div class="dashboard-grid">
+        <div class="dashboard-col">
+          <div class="spark-card" id="sparkCard">
+            <div class="spark-header">
+              <span class="spark-title">Actividad del turno</span>
+              <span class="spark-total" id="sparkLabel"></span>
+            </div>
+            <canvas id="sparkCanvas" height="70"></canvas>
+          </div>
+          <div class="glass-card horas-card" id="horasCard">
+            <div class="spark-header">
+              <span class="spark-title">Recaudación por hora</span>
+              <span class="spark-total" id="horasLabel"></span>
+            </div>
+            <div id="horasBody"></div>
+          </div>
         </div>
-        <canvas id="sparkCanvas" height="70"></canvas>
+
+        <div class="dashboard-col">
+          <div class="table-card" id="tableCard">
+            <div class="table-head">
+              <span class="table-title">Movimientos válidos</span>
+              <span class="count-pill" id="countPill">0</span>
+            </div>
+            <div id="tablaBody"></div>
+          </div>
+        </div>
       </div>
-      <div class="glass-card horas-card" id="horasCard">
-        <div class="spark-header">
-          <span class="spark-title">Recaudación por hora</span>
-          <span class="spark-total" id="horasLabel"></span>
+
+      <div class="dashboard-extra">
+        <div class="exc-card" id="excCard">
+          <div class="exc-head">
+            <span class="exc-title">Excluidos</span>
+            <span class="exc-pill" id="excPill">0</span>
+          </div>
+          <div id="excBody"></div>
         </div>
-        <div id="horasBody"></div>
-      </div>
-      <div class="table-card" id="tableCard">
-        <div class="table-head">
-          <span class="table-title">Movimientos válidos</span>
-          <span class="count-pill" id="countPill">0</span>
+        <div class="env-card" id="envCard" style="display:none">
+          <div class="env-head">
+            <span class="env-title">Transferencias enviadas</span>
+            <span class="env-pill" id="envPill">0</span>
+          </div>
+          <div class="env-total-row">
+            <span class="env-total-label">Total enviado</span>
+            <span class="env-total-val" id="envTotal">$0</span>
+          </div>
+          <div id="envBody"></div>
         </div>
-        <div id="tablaBody"></div>
-      </div>
-      <div class="exc-card" id="excCard">
-        <div class="exc-head">
-          <span class="exc-title">Excluidos</span>
-          <span class="exc-pill" id="excPill">0</span>
-        </div>
-        <div id="excBody"></div>
-      </div>
-      <div class="env-card" id="envCard" style="display:none">
-        <div class="env-head">
-          <span class="env-title">Transferencias enviadas</span>
-          <span class="env-pill" id="envPill">0</span>
-        </div>
-        <div class="env-total-row">
-          <span class="env-total-label">Total enviado</span>
-          <span class="env-total-val" id="envTotal">$0</span>
-        </div>
-        <div id="envBody"></div>
       </div>
       <div id="turnosHoySection" style="display:none">
         <div class="seccion-titulo" style="margin-top:32px">
@@ -1623,6 +1760,7 @@ function renderHorasChart(movs,bodyId){
 
 function renderTurno(movs,excluidos,enviadas){
   enviadas=enviadas||[];
+  actualizarHeroSide(movs);
   document.getElementById('cierreSection').style.display='none';
   document.getElementById('turnoSection').style.display='block';
   const total=movs.reduce((a,m)=>a+m.monto,0);
@@ -2030,7 +2168,10 @@ function renderOtrosTurnos(){
     btn.innerHTML=`<span class="t-dot" style="background:${t.color}"></span>Ver turno de ${t.nombre}`;
     btn.addEventListener('click',async()=>{
       btn.disabled=true;btn.innerHTML=`<span class="t-dot" style="background:${t.color}"></span>Cargando...`;
-      try{const results=await fetchMovimientos(t.desdeH,t.desdeM,t.hastaH,t.hastaM);const parsed=parsearMovimientos(results);guardarTurno(t.nombre,parsed.movs,parsed.excluidos);const tNombreActual=(turno||turnoReciente||{nombre:''}).nombre;renderTurnosHoy(tNombreActual);setTimeout(()=>{const portada=document.getElementById('turnosHoyPortada');if(portada)portada.scrollIntoView({behavior:'auto',block:'start'});},200);showToast('Turno de '+t.nombre+' cargado ✓');}
+      try{const results=await fetchMovimientos(t.desdeH,t.desdeM,t.hastaH,t.hastaM);const parsed=parsearMovimientos(results);guardarTurno(t.nombre,parsed.movs,parsed.excluidos);const tNombreActual=(turno||turnoReciente||{nombre:''}).nombre;renderTurnosHoy(tNombreActual);
+actualizarHeroSide();
+const heroBtnCierre=document.getElementById('heroBtnCierre');if(heroBtnCierre)heroBtnCierre.addEventListener('click',cmAbrir);
+const heroBtnHistorial2=document.getElementById('heroBtnHistorial2');if(heroBtnHistorial2)heroBtnHistorial2.addEventListener('click',()=>document.getElementById('btnHistorial')?.click());setTimeout(()=>{const portada=document.getElementById('turnosHoyPortada');if(portada)portada.scrollIntoView({behavior:'auto',block:'start'});},200);showToast('Turno de '+t.nombre+' cargado ✓');}
       catch(err){showToast('No se pudo conectar con MercadoPago');console.error(err);}
       btn.disabled=false;btn.innerHTML=`<span class="t-dot" style="background:${t.color}"></span>Ver turno de ${t.nombre}`;
     });
@@ -2072,9 +2213,44 @@ const cmGastoMonto=document.getElementById('cmGastoMonto');if(cmGastoMonto)cmGas
 const cmGastoNombre=document.getElementById('cmGastoNombre');if(cmGastoNombre)cmGastoNombre.addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('cmGastoMonto').focus();});
 document.querySelectorAll('.cm-caja-btn').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('.cm-caja-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');cmCajaSeleccionada=btn.dataset.caja||'';}));
 
+
+function actualizarHeroSide(movs){
+  const miniTurno=document.getElementById('heroMiniTurno');
+  const miniHorario=document.getElementById('heroMiniHorario');
+  const miniEstado=document.getElementById('heroMiniEstado');
+  const miniTotal=document.getElementById('heroMiniTotal');
+  const miniSub=document.getElementById('heroMiniSub');
+  const t=turno||turnoReciente||null;
+  if(miniTurno)miniTurno.textContent=t?t.nombre:'Cierre';
+  if(miniHorario)miniHorario.textContent=t?t.label:'Día completo';
+  if(Array.isArray(movs)){
+    const total=movs.reduce((a,m)=>a+(Number(m.monto)||0),0);
+    if(miniTotal)miniTotal.textContent='$'+total.toLocaleString('es-AR');
+    if(miniSub)miniSub.textContent=movs.length+' movimientos cargados';
+    if(miniEstado)miniEstado.textContent='Cargado';
+  }else{
+    const hist=leerHistorial();
+    const datos=t&&hist[fechaHoy()]?hist[fechaHoy()][t.nombre]:null;
+    const movsHist=datos&&Array.isArray(datos.movs)?datos.movs:null;
+    if(movsHist){
+      const total=movsHist.reduce((a,m)=>a+(Number(m.monto)||0),0);
+      if(miniTotal)miniTotal.textContent='$'+total.toLocaleString('es-AR');
+      if(miniSub)miniSub.textContent=movsHist.length+' movimientos cargados';
+      if(miniEstado)miniEstado.textContent='Cargado';
+    }else{
+      if(miniTotal)miniTotal.textContent='$0';
+      if(miniSub)miniSub.textContent='Cargá un turno para ver el total';
+      if(miniEstado)miniEstado.textContent='Esperando carga';
+    }
+  }
+}
+
 // ─── INIT ───
 const tNombreActual=(turno||turnoReciente||{nombre:''}).nombre;
 renderTurnosHoy(tNombreActual);
+actualizarHeroSide();
+const heroBtnCierre=document.getElementById('heroBtnCierre');if(heroBtnCierre)heroBtnCierre.addEventListener('click',cmAbrir);
+const heroBtnHistorial2=document.getElementById('heroBtnHistorial2');if(heroBtnHistorial2)heroBtnHistorial2.addEventListener('click',()=>document.getElementById('btnHistorial')?.click());
 
 // ─── TEMA ───
 const btnTheme=document.getElementById('btnTheme');
