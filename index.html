@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Kiosco</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -316,16 +316,858 @@ html{overflow-x:hidden}
   .metrics-row{grid-template-columns:1fr 1fr}
   .total-value{font-size:40px}
 }
+
+
+/* ─── CIERRE MANUAL — estilo amable tipo libreta de caja ─── */
+#btnCierreManual{
+  background:rgba(240,184,96,.13);
+  border-color:rgba(240,184,96,.28);
+  color:#F0B860;
+}
+#btnCierreManual:hover{background:rgba(240,184,96,.20);color:#FFD18A}
+
+#cierreManualOverlay{
+  --cm-bg:#1B1B1D;
+  --cm-surface:#242426;
+  --cm-surface-2:#2A2A2D;
+  --cm-border:#343437;
+  --cm-border-soft:#2C2C2F;
+  --cm-ink:#F2F1ED;
+  --cm-ink-mid:#A8A7A4;
+  --cm-ink-soft:#75747A;
+  --cm-accent:#7C90FF;
+  --cm-accent-soft:#2A2E4D;
+  --cm-amber:#F0B860;
+  --cm-amber-soft:#3A301E;
+  --cm-teal:#4FCCBE;
+  --cm-violet:#A78BFA;
+  --cm-green:#5FD68A;
+  --cm-red:#FF8A8A;
+  --cm-radius:18px;
+  --cm-radius-sm:12px;
+  background:var(--cm-bg);
+  color:var(--cm-ink);
+}
+#cierreManualOverlay::before{
+  content:'';
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  background:
+    radial-gradient(circle at 18% -8%,rgba(124,144,255,.18),transparent 34%),
+    radial-gradient(circle at 92% 14%,rgba(79,204,190,.12),transparent 30%),
+    radial-gradient(circle at 50% 110%,rgba(240,184,96,.10),transparent 34%);
+}
+#cierreManualOverlay .cm-panel{
+  position:relative;
+  max-width:640px;
+  margin:0 auto;
+  padding:24px 18px 70px;
+  background:transparent;
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  color:var(--cm-ink);
+}
+#cierreManualOverlay .historial-header{
+  align-items:flex-start;
+  margin-bottom:18px;
+  padding:0 2px;
+}
+#cierreManualOverlay .historial-title,
+.cm-title-soft{
+  display:block;
+  font-family:'Instrument Serif',serif;
+  font-size:34px;
+  line-height:1;
+  font-weight:400;
+  letter-spacing:-.5px;
+  color:var(--cm-ink);
+}
+.cm-header-sub{
+  font-size:12.5px;
+  color:var(--cm-ink-soft);
+  margin-top:5px;
+}
+#cierreManualOverlay .btn-cerrar-hist{
+  background:var(--cm-surface);
+  border:1px solid var(--cm-border);
+  color:var(--cm-ink-mid);
+  box-shadow:0 1px 2px rgba(0,0,0,.28);
+}
+#cierreManualOverlay .btn-cerrar-hist:hover{
+  color:var(--cm-ink);
+  background:var(--cm-surface-2);
+}
+.cm-tabs{
+  display:flex;
+  gap:6px;
+  background:var(--cm-surface);
+  border:1px solid var(--cm-border);
+  border-radius:999px;
+  padding:4px;
+  margin:18px 0;
+  box-shadow:0 1px 2px rgba(0,0,0,.30);
+}
+.cm-tab{
+  flex:1;
+  border:none;
+  border-radius:999px;
+  padding:10px 8px;
+  background:transparent;
+  color:var(--cm-ink-soft);
+  font-family:'Inter',sans-serif;
+  font-size:12.5px;
+  font-weight:700;
+  cursor:pointer;
+  transition:color .15s ease,background .15s ease,transform .15s ease;
+}
+.cm-tab.active{
+  background:var(--cm-ink);
+  color:var(--cm-bg);
+}
+.cm-tab:active{transform:scale(.98)}
+.cm-view{display:none;animation:cmFade .24s ease}
+.cm-view.active{display:block}
+@keyframes cmFade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+.cm-turno-row{
+  display:flex;
+  gap:8px;
+  margin-bottom:16px;
+}
+.cm-turno-btn{
+  flex:1;
+  padding:12px 8px;
+  border-radius:var(--cm-radius-sm);
+  border:1px solid var(--cm-border);
+  background:var(--cm-surface);
+  color:var(--cm-ink-mid);
+  font-family:'Inter',sans-serif;
+  font-weight:700;
+  font-size:13.5px;
+  cursor:pointer;
+  text-align:center;
+  transition:all .15s ease;
+  box-shadow:0 1px 2px rgba(0,0,0,.30);
+}
+.cm-turno-btn.active{
+  color:var(--cm-bg);
+  border-color:transparent;
+  transform:translateY(-1px);
+}
+.cm-card,
+.cm-total-card,
+.cm-resumen-turno{
+  background:var(--cm-surface);
+  border:1px solid var(--cm-border);
+  border-radius:var(--cm-radius);
+  padding:18px 20px;
+  margin-bottom:12px;
+  box-shadow:0 1px 2px rgba(0,0,0,.30);
+}
+.cm-mp-card{
+  border-color:rgba(124,144,255,.30);
+  background:var(--cm-accent-soft);
+}
+.cm-mp-card .cm-label,
+.cm-mp-card .cm-value{color:var(--cm-accent)}
+.cm-label{
+  font-size:10.5px;
+  font-weight:800;
+  letter-spacing:.11em;
+  text-transform:uppercase;
+  color:var(--cm-ink-soft);
+  margin-bottom:8px;
+}
+.cm-value,
+.cm-total-value{
+  font-family:'Instrument Serif',serif;
+  font-size:42px;
+  line-height:1;
+  font-weight:400;
+  letter-spacing:-.8px;
+  color:var(--cm-ink);
+}
+.cm-mini-value{
+  font-family:'Instrument Serif',serif;
+  font-size:26px;
+  line-height:1;
+  font-weight:400;
+  letter-spacing:-.4px;
+  color:var(--cm-ink);
+}
+.cm-sub,
+.cm-hint{
+  font-size:11.8px;
+  color:var(--cm-ink-soft);
+  line-height:1.5;
+  margin-top:6px;
+}
+.cm-field{margin-bottom:12px}
+.cm-field label{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  font-size:12.5px;
+  font-weight:700;
+  color:var(--cm-ink);
+  margin-bottom:6px;
+}
+.cm-field label small{
+  color:var(--cm-ink-soft);
+  font-weight:400;
+  text-align:right;
+}
+.cm-field input,
+.cm-gasto-form input{
+  width:100%;
+  background:var(--cm-surface);
+  border:1px solid var(--cm-border);
+  border-radius:var(--cm-radius-sm);
+  padding:13px 14px;
+  color:var(--cm-ink);
+  font-family:'Inter',sans-serif;
+  font-size:17px;
+  font-weight:700;
+  outline:none;
+  transition:border-color .15s ease,background .15s ease;
+  box-shadow:0 1px 2px rgba(0,0,0,.30);
+}
+.cm-field input::placeholder,
+.cm-gasto-form input::placeholder{color:var(--cm-ink-soft)}
+.cm-field input:focus,
+.cm-gasto-form input:focus{
+  border-color:var(--cm-accent);
+  background:#28282B;
+}
+.cm-total-card{
+  padding:22px;
+  margin:18px 0;
+  box-shadow:0 1px 2px rgba(0,0,0,.30),0 8px 24px rgba(0,0,0,.35);
+  position:relative;
+  overflow:hidden;
+}
+.cm-total-card::before{
+  content:'';
+  position:absolute;
+  top:0;
+  left:22px;
+  right:22px;
+  height:2px;
+  background:var(--cm-accent);
+}
+.cm-breakdown{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px 14px;
+  margin-top:12px;
+  font-size:12px;
+  color:var(--cm-ink-mid);
+  font-variant-numeric:tabular-nums;
+}
+.cm-breakdown span{display:flex;align-items:center;gap:5px}
+.cm-breakdown b{color:var(--cm-ink);font-weight:800}
+.cm-save-btn{
+  width:100%;
+  justify-content:center;
+  background:var(--cm-ink)!important;
+  color:var(--cm-bg)!important;
+  border:none!important;
+  border-radius:999px!important;
+  padding:15px!important;
+  font-family:'Inter',sans-serif!important;
+  font-size:14px!important;
+  font-weight:800!important;
+  box-shadow:0 2px 8px rgba(0,0,0,.35)!important;
+}
+.cm-save-btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(0,0,0,.40)!important}
+.cm-gasto-form{
+  display:grid;
+  grid-template-columns:1fr 116px 46px;
+  gap:8px;
+  margin-bottom:14px;
+}
+.cm-gasto-form input{font-size:14px}
+.cm-gasto-form button{
+  border:none;
+  border-radius:var(--cm-radius-sm);
+  background:var(--cm-ink);
+  color:var(--cm-bg);
+  font-size:20px;
+  font-weight:800;
+  cursor:pointer;
+  box-shadow:0 1px 2px rgba(0,0,0,.30);
+}
+.cm-gasto-form button:active{transform:scale(.96)}
+.cm-caja-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-bottom:6px;
+  font-size:12.5px;
+  color:var(--cm-ink-mid);
+}
+.cm-caja-btns{display:flex;gap:6px;flex-wrap:wrap}
+.cm-caja-btn{
+  background:var(--cm-surface);
+  border:1px solid var(--cm-border);
+  color:var(--cm-ink-mid);
+  font-size:12px;
+  font-weight:700;
+  font-family:'Inter',sans-serif;
+  border-radius:999px;
+  padding:6px 13px;
+  cursor:pointer;
+  transition:all .15s ease;
+  box-shadow:0 1px 2px rgba(0,0,0,.30);
+}
+.cm-caja-btn.active{
+  background:var(--cm-ink);
+  color:var(--cm-bg);
+  border-color:transparent;
+}
+.cm-gasto-list{
+  background:var(--cm-surface);
+  border:1px solid var(--cm-border);
+  border-radius:var(--cm-radius);
+  overflow:hidden;
+  margin-top:14px;
+  margin-bottom:12px;
+  box-shadow:0 1px 2px rgba(0,0,0,.30);
+}
+.cm-gasto-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:14px 18px;
+  border-bottom:1px solid var(--cm-border-soft);
+}
+.cm-gasto-row:last-child{border-bottom:none}
+.cm-gasto-nombre{
+  font-size:14px;
+  color:var(--cm-ink);
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.cm-gasto-pill{
+  display:inline-block;
+  margin-left:8px;
+  font-size:10.5px;
+  font-weight:800;
+  color:var(--cm-accent);
+  background:var(--cm-accent-soft);
+  border-radius:999px;
+  padding:2px 8px;
+  vertical-align:middle;
+}
+.cm-gasto-right{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  flex-shrink:0;
+  font-variant-numeric:tabular-nums;
+}
+.cm-gasto-del{
+  background:none;
+  border:none;
+  color:var(--cm-ink-soft);
+  cursor:pointer;
+  font-size:17px;
+  padding:0;
+  line-height:1;
+}
+.cm-gasto-del:hover{color:var(--cm-red)}
+.cm-gasto-total{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:14px 18px;
+  background:var(--cm-amber-soft);
+  border:1px solid rgba(240,184,96,.28);
+  border-radius:var(--cm-radius);
+  margin-top:12px;
+  color:var(--cm-amber);
+  font-size:13px;
+  font-weight:800;
+}
+.cm-gasto-total span{
+  font-size:10.5px;
+  font-weight:800;
+  letter-spacing:.10em;
+  text-transform:uppercase;
+}
+.cm-gasto-total b{
+  font-size:18px;
+  font-variant-numeric:tabular-nums;
+}
+.cm-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-bottom:12px;
+}
+.cm-resumen-turno{padding:17px 18px}
+.cm-resumen-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:10px;
+}
+.cm-resumen-name{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-weight:800;
+  font-size:14.5px;
+  color:var(--cm-ink);
+}
+.cm-resumen-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.cm-resumen-total{
+  font-family:'Instrument Serif',serif;
+  font-size:26px;
+  font-weight:400;
+  color:var(--cm-ink);
+}
+.cm-resumen-detail{
+  display:flex;
+  gap:8px 12px;
+  font-size:11.8px;
+  color:var(--cm-ink-soft);
+  flex-wrap:wrap;
+  font-variant-numeric:tabular-nums;
+}
+.cm-pendiente{font-size:12px;color:var(--cm-ink-soft);font-style:italic}
+#cierreManualOverlay .empty{
+  padding:32px 18px;
+  text-align:center;
+  color:var(--cm-ink-soft);
+  font-size:13px;
+}
+
+@media(max-width:600px){
+  #cierreManualOverlay .cm-panel{padding:22px 16px 70px}
+  #cierreManualOverlay .historial-title,.cm-title-soft{font-size:30px}
+  .cm-turno-row{flex-direction:column}
+  .cm-gasto-form{grid-template-columns:1fr}
+  .cm-grid{grid-template-columns:1fr 1fr}
+  .cm-value,.cm-total-value{font-size:36px}
+  .cm-field label{flex-direction:column;align-items:flex-start;gap:2px}
+  .cm-field label small{text-align:left}
+  .cm-caja-row{align-items:flex-start}
+  .cm-caja-btns{width:100%}
+  .cm-caja-btn{flex:1}
+}
+@media(max-width:420px){
+  .cm-value,.cm-total-value{font-size:32px}
+  #cierreManualOverlay .historial-title,.cm-title-soft{font-size:28px}
+}
+
+
+
+/* =========================================================
+   MODO AMABLE Y LIVIANO — aplicado a toda la app
+   - sin blobs, emojis flotantes, tilt, blur pesado ni shimmer
+   - misma estética del cierre de caja de Claude
+   ========================================================= */
+:root{
+  --bg1:#1B1B1D!important;
+  --bg2:#1B1B1D!important;
+  --bg3:#1B1B1D!important;
+  --mesh1:transparent!important;
+  --mesh2:transparent!important;
+  --mesh3:transparent!important;
+  --glass:#242426!important;
+  --glass-border:#343437!important;
+  --glass-hover:#2A2A2D!important;
+  --text:#F2F1ED!important;
+  --text-mid:#A8A7A4!important;
+  --text-soft:#75747A!important;
+  --accent:#7C90FF!important;
+  --accent-dim:#6376E8!important;
+  --amber:#F0B860!important;
+  --amber-dim:#3A301E!important;
+  --red:#FF8A8A!important;
+  --red-dim:rgba(255,138,138,.12)!important;
+  --green:#5FD68A!important;
+  --teal:#4FCCBE!important;
+  --violet:#A78BFA!important;
+  --surface:#242426!important;
+  --border:#343437!important;
+  --border-soft:#2C2C2F!important;
+  --ink:#F2F1ED!important;
+  --ink-mid:#A8A7A4!important;
+  --ink-soft:#75747A!important;
+  --accent-soft:#2A2E4D!important;
+  --amber-soft:#3A301E!important;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.28)!important;
+  --shadow-md:0 1px 2px rgba(0,0,0,.28),0 8px 20px rgba(0,0,0,.22)!important;
+  --radius:18px!important;
+  --radius-sm:12px!important;
+}
+
+body.light{
+  --bg1:#F4F1E8!important;
+  --bg2:#F4F1E8!important;
+  --bg3:#F4F1E8!important;
+  --glass:#FFFFFF!important;
+  --glass-border:#DED8C9!important;
+  --glass-hover:#F8F4EA!important;
+  --text:#25231F!important;
+  --text-mid:#6E675C!important;
+  --text-soft:#948B7E!important;
+  --accent:#6376E8!important;
+  --accent-dim:#4F61CE!important;
+  --amber:#B87924!important;
+  --amber-dim:#FFF0D9!important;
+  --red:#C75050!important;
+  --red-dim:#FFE6E6!important;
+}
+
+*,*::before,*::after{
+  animation:none!important;
+  transition:none!important;
+  scroll-behavior:auto!important;
+}
+
+html{overflow-x:hidden!important;background:var(--bg1)!important}
+body{
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif!important;
+  background:var(--bg1)!important;
+  color:var(--text)!important;
+  max-width:none!important;
+  overflow-x:hidden!important;
+  -webkit-font-smoothing:antialiased;
+}
+
+.mesh-bg,.mesh-blob,.grain,.emojis-bg,.emoji-float,.cursor-glow,.hero-shimmer{
+  display:none!important;
+}
+
+.app{
+  position:relative!important;
+  z-index:2!important;
+  max-width:720px!important;
+  margin:0 auto!important;
+  padding:22px 18px 64px!important;
+}
+
+/* Header inicial */
+.header{
+  padding:0!important;
+  margin-bottom:18px!important;
+  display:flex!important;
+  align-items:flex-start!important;
+  justify-content:space-between!important;
+  gap:14px!important;
+}
+.logo{gap:10px!important;align-items:flex-start!important}
+.logo-dot{
+  width:9px!important;height:9px!important;margin-top:10px!important;
+  background:var(--accent)!important;box-shadow:none!important;
+}
+.logo-name{
+  font-family:'Instrument Serif',serif!important;
+  font-size:31px!important;
+  line-height:1!important;
+  font-weight:400!important;
+  letter-spacing:-.4px!important;
+  color:var(--text)!important;
+}
+.logo-sub{
+  font-size:12.5px!important;
+  color:var(--text-soft)!important;
+  margin-top:4px!important;
+}
+.mp-badge{
+  background:var(--glass)!important;
+  border:1px solid var(--glass-border)!important;
+  padding:3px 8px!important;
+  box-shadow:var(--shadow-sm)!important;
+}
+.mp-logo{height:34px!important;max-width:110px!important;object-fit:contain!important}
+.fecha-chip,.btn-toggle-theme,.btn-historial,#btnCierreManual{
+  background:var(--glass)!important;
+  border:1px solid var(--glass-border)!important;
+  color:var(--text-mid)!important;
+  box-shadow:var(--shadow-sm)!important;
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+}
+.btn-historial,#btnCierreManual{
+  min-height:34px!important;
+  padding:7px 12px!important;
+  font-size:12px!important;
+  border-radius:999px!important;
+  font-weight:600!important;
+}
+#btnCierreManual{
+  color:var(--amber)!important;
+  background:var(--amber-dim)!important;
+  border-color:rgba(240,184,96,.26)!important;
+}
+.btn-toggle-theme{width:34px!important;height:34px!important;border-radius:999px!important}
+.fecha-chip{padding:7px 10px!important;font-size:11.5px!important;border-radius:999px!important}
+
+/* Aviso */
+.aviso-banner{
+  background:var(--glass)!important;
+  border:1px solid var(--glass-border)!important;
+  color:var(--text-mid)!important;
+  border-radius:var(--radius-sm)!important;
+  box-shadow:var(--shadow-sm)!important;
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+}
+.aviso-cerrar{color:var(--text-soft)!important}
+
+/* Hero / inicio MercadoPago */
+.hero-tilt-wrap{perspective:none!important;margin-bottom:14px!important}
+.hero-card{
+  transform:none!important;
+  will-change:auto!important;
+  background:var(--glass)!important;
+  border:1px solid var(--glass-border)!important;
+  border-radius:var(--radius)!important;
+  padding:20px!important;
+  box-shadow:var(--shadow-md)!important;
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+  overflow:hidden!important;
+}
+.hero-card::before{display:none!important}
+.hero-top-row{margin-bottom:12px!important}
+.hero-reloj{
+  font-family:'Inter',sans-serif!important;
+  color:var(--text-soft)!important;
+  font-size:12px!important;
+  font-weight:600!important;
+  letter-spacing:.04em!important;
+}
+.turno-chip{
+  background:var(--accent-soft)!important;
+  border:1px solid rgba(124,144,255,.28)!important;
+  color:var(--accent)!important;
+  border-radius:999px!important;
+  font-size:10.5px!important;
+  font-weight:700!important;
+  margin-bottom:12px!important;
+}
+.turno-chip .dot{box-shadow:none!important;background:var(--accent)!important}
+.turno-nombre{
+  font-family:'Instrument Serif',serif!important;
+  font-size:38px!important;
+  line-height:1.03!important;
+  font-weight:400!important;
+  letter-spacing:-.6px!important;
+  color:var(--text)!important;
+  background:none!important;
+  -webkit-text-fill-color:currentColor!important;
+}
+.turno-horario{
+  color:var(--text-soft)!important;
+  font-size:13px!important;
+  margin-bottom:18px!important;
+}
+.btn-cargar{
+  background:var(--text)!important;
+  color:var(--bg1)!important;
+  border:none!important;
+  border-radius:999px!important;
+  padding:13px 18px!important;
+  font-family:'Inter',sans-serif!important;
+  font-size:14px!important;
+  font-weight:700!important;
+  box-shadow:var(--shadow-sm)!important;
+  transform:none!important;
+}
+.btn-cargar:hover,.btn-cargar:active{transform:none!important;box-shadow:var(--shadow-sm)!important}
+.btn-cargar .btn-icon{transform:none!important}
+.status-row{margin-top:12px!important}
+.s-dot{box-shadow:none!important;background:var(--text-soft)!important}
+.s-dot.activo{background:var(--green)!important;box-shadow:none!important}
+.s-txt{color:var(--text-soft)!important;font-size:11.5px!important}
+
+/* Botones turnos */
+.otros-turnos-row{gap:8px!important;margin-top:12px!important}
+.btn-ver-turno{
+  background:var(--glass)!important;
+  border:1px solid var(--glass-border)!important;
+  color:var(--text-mid)!important;
+  border-radius:var(--radius-sm)!important;
+  padding:11px 14px!important;
+  box-shadow:var(--shadow-sm)!important;
+  backdrop-filter:none!important;
+}
+.btn-ver-turno:hover,.btn-ver-turno:active{transform:none!important;background:var(--glass-hover)!important}
+
+/* Tarjetas y métricas */
+.total-card,.glass-card,.donut-card,.spark-card,.table-card,.exc-card,.env-card,.turno-resumen-card,.hist-dia-card,.hist-turno-card,.hist-detalle-total-card,.cm-card,.cm-total-card,.cm-resumen-turno,.cm-gasto-list{
+  background:var(--glass)!important;
+  border:1px solid var(--glass-border)!important;
+  border-radius:var(--radius)!important;
+  box-shadow:var(--shadow-sm)!important;
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+  opacity:1!important;
+  transform:none!important;
+}
+.total-card::after,.hist-detalle-total-card::after{display:none!important}
+.total-label,.gc-label,.dc-label,.table-title,.spark-title,.cierre-label,.hist-detalle-total-label,.hist-horas-title,.hist-movs-title,.cm-label{
+  color:var(--text-soft)!important;
+  font-family:'Inter',sans-serif!important;
+}
+.total-value,.gc-value,.dc-value,.trc-total,.hist-dia-total,.hist-detalle-total-val,.hist-turno-total,.cm-value,.cm-total-value,.cm-mini-value,.cm-resumen-total{
+  font-family:'Instrument Serif',serif!important;
+  font-weight:400!important;
+  letter-spacing:-.5px!important;
+  color:var(--text)!important;
+  background:none!important;
+  -webkit-text-fill-color:currentColor!important;
+}
+.total-value,.hist-detalle-total-val,.cm-total-value{font-size:42px!important}
+.gc-value,.dc-value,.cm-mini-value{font-size:25px!important}
+.total-sub,.gc-sub,.dc-count,.trc-detail,.hist-dia-sub,.hist-turno-horario,.hist-stat-chip,.cm-sub,.cm-hint,.cm-resumen-detail{
+  color:var(--text-soft)!important;
+}
+.metrics-row{gap:10px!important;margin-bottom:10px!important}
+.count-pill,.tipo-pill,.hist-turno-chip,.hist-stat-chip,.exc-pill,.env-pill,.cm-gasto-pill{
+  border-radius:999px!important;
+  box-shadow:none!important;
+}
+.tp-t{background:var(--accent-soft)!important;color:var(--accent)!important;border-color:rgba(124,144,255,.25)!important}
+.tp-p{background:var(--amber-dim)!important;color:var(--amber)!important;border-color:rgba(240,184,96,.25)!important}
+.table-card,.exc-card,.env-card{overflow:hidden!important}
+.table-head,.exc-head,.env-head{border-bottom:1px solid var(--glass-border)!important}
+.t-row{
+  animation:none!important;
+  border-bottom:1px solid var(--border-soft)!important;
+}
+.t-row:hover{background:var(--glass-hover)!important}
+.t-hora{color:var(--text-soft)!important}
+.t-nombre,.t-monto{color:var(--text)!important}
+.empty{color:var(--text-soft)!important}
+.hora-track,.trc-bar{background:var(--border-soft)!important}
+.hora-bar-t,.trc-bar-fill{background:var(--accent)!important}
+.hora-bar-p{background:var(--amber)!important}
+.seccion-linea{background:var(--glass-border)!important}
+.seccion-label{color:var(--text-soft)!important}
+
+/* Historial y overlays */
+.historial-overlay{
+  background:var(--bg1)!important;
+}
+.historial-panel{
+  max-width:720px!important;
+  margin:0 auto!important;
+  background:var(--bg1)!important;
+  padding:22px 18px 70px!important;
+}
+.historial-title{
+  font-family:'Instrument Serif',serif!important;
+  font-size:30px!important;
+  font-weight:400!important;
+  color:var(--text)!important;
+}
+.btn-cerrar-hist{
+  background:var(--glass)!important;
+  border:1px solid var(--glass-border)!important;
+  color:var(--text-mid)!important;
+  box-shadow:var(--shadow-sm)!important;
+}
+.btn-volver{color:var(--accent)!important}
+.hist-dia-card:hover{transform:none!important;background:var(--glass-hover)!important}
+.hist-dia-fecha,.hist-dia-titulo,.hist-turno-nombre,.trc-name{color:var(--text)!important}
+
+/* Cierre manual: mismo estilo libreta */
+.cm-tabs{
+  background:var(--glass)!important;
+  border:1px solid var(--glass-border)!important;
+  box-shadow:var(--shadow-sm)!important;
+}
+.cm-tab{font-family:'Inter',sans-serif!important;color:var(--text-soft)!important}
+.cm-tab.active{background:var(--text)!important;color:var(--bg1)!important}
+.cm-turno-btn{
+  background:var(--glass)!important;
+  border:1px solid var(--glass-border)!important;
+  color:var(--text-mid)!important;
+  box-shadow:var(--shadow-sm)!important;
+}
+.cm-turno-btn.active{color:var(--bg1)!important;border-color:transparent!important}
+.cm-mp-card{
+  background:var(--accent-soft)!important;
+  border-color:rgba(124,144,255,.28)!important;
+}
+.cm-mp-card .cm-value,.cm-mp-card .cm-label{color:var(--accent)!important}
+.cm-field input,.cm-gasto-form input{
+  background:var(--glass)!important;
+  border:1px solid var(--glass-border)!important;
+  color:var(--text)!important;
+  box-shadow:var(--shadow-sm)!important;
+  border-radius:var(--radius-sm)!important;
+  font-family:'Inter',sans-serif!important;
+}
+.cm-field input:focus,.cm-gasto-form input:focus{border-color:var(--accent)!important}
+.cm-field label{color:var(--text)!important}
+.cm-field label small{color:var(--text-soft)!important}
+.cm-gasto-form button,.cm-save-btn{
+  background:var(--text)!important;
+  color:var(--bg1)!important;
+  box-shadow:var(--shadow-sm)!important;
+}
+.cm-caja-row{color:var(--text-mid)!important}
+.cm-caja-btn{
+  background:var(--glass)!important;
+  border:1px solid var(--glass-border)!important;
+  color:var(--text-mid)!important;
+}
+.cm-caja-btn.active{background:var(--text)!important;color:var(--bg1)!important;border-color:transparent!important}
+.cm-gasto-total{
+  background:var(--amber-dim)!important;
+  border:1px solid rgba(240,184,96,.28)!important;
+  color:var(--amber)!important;
+  border-radius:var(--radius)!important;
+}
+.cm-breakdown,.cm-resumen-detail{color:var(--text-mid)!important}
+.cm-pendiente{color:var(--text-soft)!important;font-style:italic!important}
+
+/* Toast */
+.toast{
+  background:var(--text)!important;
+  color:var(--bg1)!important;
+  border:1px solid var(--glass-border)!important;
+  box-shadow:var(--shadow-md)!important;
+  backdrop-filter:none!important;
+}
+
+@media(max-width:600px){
+  .app,.historial-panel{padding:14px 12px 60px!important;max-width:100%!important}
+  .header{align-items:flex-start!important;gap:10px!important}
+  .header>div:last-child{gap:6px!important;flex-wrap:wrap!important;justify-content:flex-end!important}
+  .logo-name{font-size:27px!important}
+  .logo-sub{font-size:11.5px!important}
+  .fecha-chip{display:none!important}
+  .mp-badge{display:none!important}
+  .btn-historial,#btnCierreManual{font-size:11px!important;padding:7px 9px!important}
+  .hero-card{padding:18px!important;border-radius:16px!important}
+  .turno-nombre{font-size:31px!important}
+  .total-value,.hist-detalle-total-val,.cm-total-value{font-size:35px!important}
+  .metrics-row{grid-template-columns:1fr 1fr!important;gap:8px!important}
+  .t-row{grid-template-columns:42px 1fr 82px!important;padding:11px 14px!important;gap:6px!important}
+  .tipo-pill{display:none!important}
+  .otros-turnos-row{flex-direction:column!important}
+  .historial-title{font-size:27px!important}
+}
+
 </style>
 </head>
 <body>
-<div class="mesh-bg">
-  <div class="mesh-blob blob1"></div>
-  <div class="mesh-blob blob2"></div>
-  <div class="mesh-blob blob3"></div>
-</div>
-<div class="grain"></div>
-<div class="emojis-bg" id="emojisBg"></div>
+<!-- Fondo liviano: sin blobs, grano ni emojis flotantes -->
 
 <div class="app">
   <div class="header">
@@ -344,6 +1186,7 @@ html{overflow-x:hidden}
     <div style="display:flex;align-items:center;gap:10px">
       <span class="fecha-chip" id="fechaHoy"></span>
       <button class="btn-toggle-theme" id="btnTheme" title="Cambiar tema">🌙</button>
+      <button class="btn-historial" id="btnCierreManual">🧾 Cierre manual</button>
       <button class="btn-historial" id="btnHistorial">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
         Historial
@@ -358,7 +1201,7 @@ html{overflow-x:hidden}
 
   <div class="hero-tilt-wrap" id="heroTiltWrap">
     <div class="hero-card" id="heroCard">
-      <div class="hero-shimmer"></div>
+      
       <div class="hero-top-row">
         <div class="turno-chip"><div class="dot"></div><span id="turnoChip">Turno activo</span></div>
         <div class="hero-reloj" id="heroReloj">--:--</div>
@@ -379,7 +1222,7 @@ html{overflow-x:hidden}
     </div>
   </div>
 
-  <div class="cursor-glow" id="cursorGlow"></div>
+  <!-- cursor glow desactivado para mejor rendimiento -->
   <div class="otros-turnos-row" id="otrosTurnosRow"></div>
   <div id="turnosHoyPortada" style="margin-top:24px"></div>
 
@@ -515,6 +1358,122 @@ html{overflow-x:hidden}
   </div>
 </div>
 
+
+
+<!-- ─── CIERRE MANUAL OVERLAY ─── -->
+<div class="historial-overlay" id="cierreManualOverlay">
+  <div class="historial-panel cm-panel">
+    <div class="historial-header">
+      <div>
+        <span class="historial-title">Cierre de Caja</span>
+        <div class="cm-header-sub" id="cmHeaderFecha">Hoy</div>
+      </div>
+      <button class="btn-cerrar-hist" id="btnCerrarCierreManual" title="Cerrar">✕</button>
+    </div>
+
+    <div class="cm-tabs">
+      <button class="cm-tab active" data-cm-view="turno">Mi turno</button>
+      <button class="cm-tab" data-cm-view="gastos">Gastos</button>
+      <button class="cm-tab" data-cm-view="resumen">Resumen</button>
+    </div>
+
+    <div class="cm-view active" id="cm-view-turno">
+      <div class="cm-turno-row" id="cmTurnoRow"></div>
+
+      <div class="cm-card cm-mp-card">
+        <div class="cm-label">MercadoPago — turno <span id="cmMpTurnoNombre">Vale</span></div>
+        <div class="cm-value" id="cmMpValor">$0</div>
+        <div class="cm-sub">Sale de los movimientos que ya cargaste en la app.</div>
+      </div>
+
+      <div class="cm-field">
+        <label>Apertura <small>plata con la que arrancó la caja</small></label>
+        <input type="number" id="cmApertura" value="10000" inputmode="numeric">
+      </div>
+
+      <div class="cm-field">
+        <label>Efectivo contado <small>lo que dio la máquina</small></label>
+        <input type="number" id="cmEfectivo" placeholder="0" inputmode="numeric">
+      </div>
+
+      <div class="cm-field">
+        <label>Once <small>sobre aparte, si hubo</small></label>
+        <input type="number" id="cmOnce" placeholder="0" value="0" inputmode="numeric">
+      </div>
+
+      <div class="cm-field">
+        <label>MPO <small>cuánto del MP fue juguetería</small></label>
+        <input type="number" id="cmMpo" placeholder="0" value="0" inputmode="numeric">
+        <div class="cm-hint">MPO no se suma de nuevo: ya está incluido dentro de MercadoPago.</div>
+      </div>
+
+      <div class="cm-total-card">
+        <div class="cm-label">Total del turno</div>
+        <div class="cm-total-value" id="cmTotalTurno">$0</div>
+        <div class="cm-breakdown">
+          <span>MP <b id="cmBdMp">$0</b></span>
+          <span>Efectivo <b id="cmBdEfectivo">$0</b></span>
+          <span>Once <b id="cmBdOnce">$0</b></span>
+          <span id="cmBdGastosCaja" style="display:none">Gastos caja <b>$0</b></span>
+        </div>
+      </div>
+
+      <button class="btn-cargar cm-save-btn" id="cmBtnGuardar">Guardar cierre</button>
+    </div>
+
+    <div class="cm-view" id="cm-view-gastos">
+      <div class="cm-gasto-form">
+        <input type="text" id="cmGastoNombre" placeholder="Proveedor o concepto">
+        <input type="number" id="cmGastoMonto" placeholder="$ monto" inputmode="numeric">
+        <button id="cmBtnAddGasto" type="button">+</button>
+      </div>
+
+      <div class="cm-caja-row">
+        <span>¿Se pagó con plata de alguna caja?</span>
+        <div class="cm-caja-btns">
+          <button type="button" class="cm-caja-btn active" data-caja="">No</button>
+          <button type="button" class="cm-caja-btn" data-caja="CM">CM</button>
+          <button type="button" class="cm-caja-btn" data-caja="CT">CT</button>
+          <button type="button" class="cm-caja-btn" data-caja="CN">CN</button>
+        </div>
+      </div>
+
+      <div class="cm-hint">CM = Vale · CT = Ani · CN = Marta. Si marcás una caja, ese gasto se suma de nuevo al total de ese turno.</div>
+
+      <div class="cm-gasto-list" id="cmGastoList">
+        <div class="empty">Todavía no se cargó ningún gasto hoy.</div>
+      </div>
+
+      <div class="cm-gasto-total">
+        <span>Total gastos del día</span>
+        <b id="cmGastoTotal">$0</b>
+      </div>
+    </div>
+
+    <div class="cm-view" id="cm-view-resumen">
+      <div id="cmResumenTurnos"></div>
+
+      <div class="cm-total-card">
+        <div class="cm-label">Total del día</div>
+        <div class="cm-total-value" id="cmTotalDia">$0</div>
+        <div class="cm-sub" id="cmTotalDiaSub">0 de 3 turnos cerrados</div>
+      </div>
+
+      <div class="cm-grid">
+        <div class="cm-card"><div class="cm-label">MercadoPago</div><div class="cm-mini-value" id="cmTotMp">$0</div></div>
+        <div class="cm-card"><div class="cm-label">Efectivo</div><div class="cm-mini-value" id="cmTotEfectivo">$0</div></div>
+        <div class="cm-card"><div class="cm-label">Once</div><div class="cm-mini-value" id="cmTotOnce">$0</div></div>
+        <div class="cm-card"><div class="cm-label">MPO</div><div class="cm-mini-value" id="cmTotMpo">$0</div></div>
+      </div>
+
+      <div class="cm-gasto-total">
+        <span>Gastos del día</span>
+        <b id="cmResumenGastos">$0</b>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -580,17 +1539,8 @@ function showToast(msg){
 }
 
 function springCount(el,end,prefix,dur){
-  dur=dur||900;
-  const t0=performance.now();
-  function step(now){
-    const p=Math.min((now-t0)/dur,1);
-    const spring=1-Math.pow(1-p,4)*(1+2.5*p);
-    const clamped=Math.min(Math.max(spring,0),1);
-    el.textContent=prefix+Math.round(end*clamped).toLocaleString('es-AR');
-    if(p<1)requestAnimationFrame(step);
-    else el.textContent=prefix+end.toLocaleString('es-AR');
-  }
-  requestAnimationFrame(step);
+  if(!el)return;
+  el.textContent=prefix+(Number(end)||0).toLocaleString('es-AR');
 }
 
 function donutSVG(color,bg,id){
@@ -1062,7 +2012,7 @@ document.getElementById('btnCargar').addEventListener('click',async()=>{
     }
     const portada=document.getElementById('turnosHoyPortada');
     if(portada)portada.style.display='none';
-    setTimeout(()=>document.getElementById('resultados').scrollIntoView({behavior:'smooth',block:'start'}),80);
+    setTimeout(()=>document.getElementById('resultados').scrollIntoView({behavior:'auto',block:'start'}),80);
   }catch(err){
     dot.classList.remove('activo');txt.textContent='Error al conectar — revisá el wifi';btn.disabled=false;btxt.textContent=esCierre?'Ver resumen del día':'Cargar mi turno';
     showToast('No se pudo conectar con MercadoPago');console.error(err);
@@ -1080,7 +2030,7 @@ function renderOtrosTurnos(){
     btn.innerHTML=`<span class="t-dot" style="background:${t.color}"></span>Ver turno de ${t.nombre}`;
     btn.addEventListener('click',async()=>{
       btn.disabled=true;btn.innerHTML=`<span class="t-dot" style="background:${t.color}"></span>Cargando...`;
-      try{const results=await fetchMovimientos(t.desdeH,t.desdeM,t.hastaH,t.hastaM);const parsed=parsearMovimientos(results);guardarTurno(t.nombre,parsed.movs,parsed.excluidos);const tNombreActual=(turno||turnoReciente||{nombre:''}).nombre;renderTurnosHoy(tNombreActual);setTimeout(()=>{const portada=document.getElementById('turnosHoyPortada');if(portada)portada.scrollIntoView({behavior:'smooth',block:'start'});},200);showToast('Turno de '+t.nombre+' cargado ✓');}
+      try{const results=await fetchMovimientos(t.desdeH,t.desdeM,t.hastaH,t.hastaM);const parsed=parsearMovimientos(results);guardarTurno(t.nombre,parsed.movs,parsed.excluidos);const tNombreActual=(turno||turnoReciente||{nombre:''}).nombre;renderTurnosHoy(tNombreActual);setTimeout(()=>{const portada=document.getElementById('turnosHoyPortada');if(portada)portada.scrollIntoView({behavior:'auto',block:'start'});},200);showToast('Turno de '+t.nombre+' cargado ✓');}
       catch(err){showToast('No se pudo conectar con MercadoPago');console.error(err);}
       btn.disabled=false;btn.innerHTML=`<span class="t-dot" style="background:${t.color}"></span>Ver turno de ${t.nombre}`;
     });
@@ -1088,6 +2038,39 @@ function renderOtrosTurnos(){
   });
 }
 renderOtrosTurnos();
+
+
+// ─── CIERRE MANUAL ───
+const CM_TURNOS=['Vale','Ani','Marta'];
+const CM_COLORS={Vale:'#7C90FF',Ani:'#A78BFA',Marta:'#4FCCBE'};
+const CM_TURNO_CAJA={Vale:'CM',Ani:'CT',Marta:'CN'};
+const CM_STORAGE_KEY='kiosco_cierre_manual';
+let cmTurnoActivo='Vale',cmCierres={},cmGastos=[],cmCajaSeleccionada='';
+const cmFmt=n=>'$'+(Number(n)||0).toLocaleString('es-AR');
+function cmEsc(s){return String(s||'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
+function cmLeerData(){try{const all=JSON.parse(localStorage.getItem(CM_STORAGE_KEY)||'{}');const data=all[fechaHoy()]||{};cmCierres=data.cierres||{};cmGastos=data.gastos||[];}catch(e){cmCierres={};cmGastos=[];}}
+function cmGuardarData(){let all={};try{all=JSON.parse(localStorage.getItem(CM_STORAGE_KEY)||'{}');}catch(e){}all[fechaHoy()]={cierres:cmCierres,gastos:cmGastos,guardadoEn:new Date().toISOString()};localStorage.setItem(CM_STORAGE_KEY,JSON.stringify(all));}
+function cmMpTurno(nombreTurno){const hist=leerHistorial();const datosDia=hist[fechaHoy()]||{};const datosTurno=datosDia[nombreTurno];if(!datosTurno||!Array.isArray(datosTurno.movs))return 0;return datosTurno.movs.reduce((a,m)=>a+(Number(m.monto)||0),0);}
+function cmGastosDeCaja(nombreTurno){const caja=CM_TURNO_CAJA[nombreTurno];return cmGastos.filter(g=>g.caja===caja).reduce((a,g)=>a+(Number(g.monto)||0),0);}
+function cmRenderTurnoBtns(){const row=document.getElementById('cmTurnoRow');if(!row)return;row.innerHTML=CM_TURNOS.map(t=>`<button class="cm-turno-btn ${t===cmTurnoActivo?'active':''}" data-turno="${t}" style="${t===cmTurnoActivo?'background:'+CM_COLORS[t]:''}">${t}</button>`).join('');row.querySelectorAll('.cm-turno-btn').forEach(btn=>btn.addEventListener('click',()=>{cmTurnoActivo=btn.dataset.turno;cmCargarFormularioTurno();}));}
+function cmCargarFormularioTurno(){cmRenderTurnoBtns();const c=cmCierres[cmTurnoActivo],mp=cmMpTurno(cmTurnoActivo);document.getElementById('cmMpTurnoNombre').textContent=cmTurnoActivo;document.getElementById('cmMpValor').textContent=cmFmt(mp);document.getElementById('cmBdMp').textContent=cmFmt(mp);document.getElementById('cmBtnGuardar').textContent='Guardar cierre de '+cmTurnoActivo;document.getElementById('cmApertura').value=c?c.apertura:10000;document.getElementById('cmEfectivo').value=c?c.efectivo:'';document.getElementById('cmOnce').value=c?c.once:0;document.getElementById('cmMpo').value=c?c.mpo:0;cmCalcularTotalTurno();}
+function cmCalcularTotalTurno(){const efectivo=Number(document.getElementById('cmEfectivo').value)||0,once=Number(document.getElementById('cmOnce').value)||0,mp=cmMpTurno(cmTurnoActivo),gastosCaja=cmGastosDeCaja(cmTurnoActivo),total=mp+efectivo+once+gastosCaja;document.getElementById('cmTotalTurno').textContent=cmFmt(total);document.getElementById('cmBdMp').textContent=cmFmt(mp);document.getElementById('cmBdEfectivo').textContent=cmFmt(efectivo);document.getElementById('cmBdOnce').textContent=cmFmt(once);const bd=document.getElementById('cmBdGastosCaja');if(gastosCaja>0){bd.style.display='inline';bd.querySelector('b').textContent=cmFmt(gastosCaja);}else bd.style.display='none';}
+function cmGuardarCierreTurno(){const apertura=Number(document.getElementById('cmApertura').value)||0,efectivo=Number(document.getElementById('cmEfectivo').value)||0,once=Number(document.getElementById('cmOnce').value)||0,mpo=Number(document.getElementById('cmMpo').value)||0,mp=cmMpTurno(cmTurnoActivo);cmCierres[cmTurnoActivo]={apertura,efectivo,once,mpo,mp,guardadoEn:new Date().toISOString()};cmGuardarData();cmRenderResumen();showToast('Cierre de '+cmTurnoActivo+' guardado ✓');}
+function cmRenderGastos(){const list=document.getElementById('cmGastoList');if(!list)return;if(!cmGastos.length){list.innerHTML='<div class="empty">Todavía no se cargó ningún gasto hoy.</div>';}else{list.innerHTML=cmGastos.map((g,i)=>`<div class="cm-gasto-row"><span class="cm-gasto-nombre">${cmEsc(g.nombre)}${g.caja?`<span class="cm-gasto-pill">${cmEsc(g.caja)}</span>`:''}</span><span class="cm-gasto-right"><b>${cmFmt(g.monto)}</b><button class="cm-gasto-del" data-i="${i}">✕</button></span></div>`).join('');list.querySelectorAll('.cm-gasto-del').forEach(btn=>btn.addEventListener('click',()=>{cmGastos.splice(Number(btn.dataset.i),1);cmGuardarData();cmRenderGastos();cmCalcularTotalTurno();cmRenderResumen();}));}const total=cmGastos.reduce((a,g)=>a+(Number(g.monto)||0),0);document.getElementById('cmGastoTotal').textContent=cmFmt(total);document.getElementById('cmResumenGastos').textContent=cmFmt(total);}
+function cmAgregarGasto(){const nombre=document.getElementById('cmGastoNombre').value.trim(),monto=Number(document.getElementById('cmGastoMonto').value)||0;if(!nombre||!monto){showToast('Cargá concepto y monto');return;}cmGastos.push({nombre,monto,caja:cmCajaSeleccionada,creadoEn:new Date().toISOString()});document.getElementById('cmGastoNombre').value='';document.getElementById('cmGastoMonto').value='';cmCajaSeleccionada='';document.querySelectorAll('.cm-caja-btn').forEach(b=>b.classList.remove('active'));const noBtn=document.querySelector('.cm-caja-btn[data-caja=""]');if(noBtn)noBtn.classList.add('active');cmGuardarData();cmRenderGastos();cmCalcularTotalTurno();cmRenderResumen();showToast('Gasto agregado ✓');}
+function cmRenderResumen(){const cont=document.getElementById('cmResumenTurnos');if(!cont)return;let totalDia=0,cerrados=0,sumMp=0,sumEf=0,sumOnce=0,sumMpo=0;cont.innerHTML=CM_TURNOS.map(t=>{const c=cmCierres[t];if(!c){return `<div class="cm-resumen-turno"><div class="cm-resumen-head"><div class="cm-resumen-name"><span class="cm-resumen-dot" style="background:${CM_COLORS[t]}"></span>${t}</div><div class="cm-pendiente">Sin cerrar</div></div></div>`;}cerrados++;const mp=Number(c.mp)||cmMpTurno(t),gCaja=cmGastosDeCaja(t),total=mp+(Number(c.efectivo)||0)+(Number(c.once)||0)+gCaja;totalDia+=total;sumMp+=mp;sumEf+=Number(c.efectivo)||0;sumOnce+=Number(c.once)||0;sumMpo+=Number(c.mpo)||0;return `<div class="cm-resumen-turno"><div class="cm-resumen-head"><div class="cm-resumen-name"><span class="cm-resumen-dot" style="background:${CM_COLORS[t]}"></span>${t}</div><div class="cm-resumen-total">${cmFmt(total)}</div></div><div class="cm-resumen-detail"><span>Apertura ${cmFmt(c.apertura)}</span><span>MP ${cmFmt(mp)}</span><span>Efectivo ${cmFmt(c.efectivo)}</span>${Number(c.once)>0?`<span>Once ${cmFmt(c.once)}</span>`:''}${Number(c.mpo)>0?`<span>MPO ${cmFmt(c.mpo)}</span>`:''}${gCaja>0?`<span>Gastos caja ${cmFmt(gCaja)}</span>`:''}</div></div>`;}).join('');document.getElementById('cmTotalDia').textContent=cmFmt(totalDia);document.getElementById('cmTotalDiaSub').textContent=cerrados+' de '+CM_TURNOS.length+' turnos cerrados';document.getElementById('cmTotMp').textContent=cmFmt(sumMp);document.getElementById('cmTotEfectivo').textContent=cmFmt(sumEf);document.getElementById('cmTotOnce').textContent=cmFmt(sumOnce);document.getElementById('cmTotMpo').textContent=cmFmt(sumMpo);document.getElementById('cmResumenGastos').textContent=cmFmt(cmGastos.reduce((a,g)=>a+(Number(g.monto)||0),0));}
+function cmCambiarVista(view){document.querySelectorAll('.cm-tab').forEach(t=>t.classList.toggle('active',t.dataset.cmView===view));document.querySelectorAll('.cm-view').forEach(v=>v.classList.remove('active'));const el=document.getElementById('cm-view-'+view);if(el)el.classList.add('active');if(view==='resumen')cmRenderResumen();if(view==='gastos')cmRenderGastos();}
+function cmAbrir(){cmLeerData();const t=(turno||turnoReciente||{}).nombre;if(CM_TURNOS.includes(t))cmTurnoActivo=t;const fh=document.getElementById('cmHeaderFecha');if(fh)fh.textContent=new Date().toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'});document.getElementById('cierreManualOverlay').classList.add('open');cmCambiarVista('turno');cmCargarFormularioTurno();cmRenderGastos();cmRenderResumen();}
+function cmCerrar(){document.getElementById('cierreManualOverlay').classList.remove('open');}
+const btnCierreManual=document.getElementById('btnCierreManual');if(btnCierreManual)btnCierreManual.addEventListener('click',cmAbrir);
+const btnCerrarCierreManual=document.getElementById('btnCerrarCierreManual');if(btnCerrarCierreManual)btnCerrarCierreManual.addEventListener('click',cmCerrar);
+document.querySelectorAll('.cm-tab').forEach(tab=>tab.addEventListener('click',()=>cmCambiarVista(tab.dataset.cmView)));
+['cmApertura','cmEfectivo','cmOnce','cmMpo'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('input',cmCalcularTotalTurno);});
+const cmBtnGuardar=document.getElementById('cmBtnGuardar');if(cmBtnGuardar)cmBtnGuardar.addEventListener('click',cmGuardarCierreTurno);
+const cmBtnAddGasto=document.getElementById('cmBtnAddGasto');if(cmBtnAddGasto)cmBtnAddGasto.addEventListener('click',cmAgregarGasto);
+const cmGastoMonto=document.getElementById('cmGastoMonto');if(cmGastoMonto)cmGastoMonto.addEventListener('keydown',e=>{if(e.key==='Enter')cmAgregarGasto();});
+const cmGastoNombre=document.getElementById('cmGastoNombre');if(cmGastoNombre)cmGastoNombre.addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('cmGastoMonto').focus();});
+document.querySelectorAll('.cm-caja-btn').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('.cm-caja-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');cmCajaSeleccionada=btn.dataset.caja||'';}));
 
 // ─── INIT ───
 const tNombreActual=(turno||turnoReciente||{nombre:''}).nombre;
@@ -1099,28 +2082,15 @@ const savedTheme=localStorage.getItem('kiosco_theme')||'dark';
 if(savedTheme==='light'){document.body.classList.add('light');btnTheme.textContent='☀️';}
 btnTheme.addEventListener('click',()=>{const isLight=document.body.classList.toggle('light');btnTheme.textContent=isLight?'☀️':'🌙';localStorage.setItem('kiosco_theme',isLight?'light':'dark');});
 
-// ─── EMOJIS ───
-const EMOJIS=['🚬','🚬','🍫','🍫','🍬','🍬','🍭','🍩','🧃','🍪','⭐','🃏','🎴'];
-const emojisBg=document.getElementById('emojisBg');
-for(let i=0;i<22;i++){const el=document.createElement('span');el.className='emoji-float';el.textContent=EMOJIS[Math.floor(Math.random()*EMOJIS.length)];const x=Math.random()*100,y=10+Math.random()*85,dur=6+Math.random()*10,delay=Math.random()*-12,size=16+Math.random()*16;el.style.cssText=`left:${x}%;top:${y}%;--dur:${dur}s;--delay:${delay}s;font-size:${size}px`;emojisBg.appendChild(el);}
+// ─── EMOJIS DESACTIVADOS PARA MEJOR RENDIMIENTO ───
 
 // ─── RELOJ ───
 function tickReloj(){const now=new Date();const h=String(now.getHours()).padStart(2,'0'),m=String(now.getMinutes()).padStart(2,'0'),s=String(now.getSeconds()).padStart(2,'0');const el=document.getElementById('heroReloj');if(el)el.textContent=h+':'+m+':'+s;}
 tickReloj();setInterval(tickReloj,1000);
 
-// ─── CURSOR GLOW ───
-if(window.innerWidth>600){
-  const glow=document.getElementById('cursorGlow');let glowVisible=false;
-  document.addEventListener('mousemove',e=>{glow.style.left=e.clientX+'px';glow.style.top=e.clientY+'px';if(!glowVisible){glow.style.opacity='1';glowVisible=true;}});
-  document.addEventListener('mouseleave',()=>{glow.style.opacity='0';glowVisible=false;});
-}
+// ─── CURSOR GLOW DESACTIVADO PARA MEJOR RENDIMIENTO ───
 
-// ─── TILT 3D ───
-if(window.innerWidth>600){
-  const tiltWrap=document.getElementById('heroTiltWrap'),tiltCard=document.getElementById('heroCard'),MAX_TILT=12;
-  tiltWrap.addEventListener('mousemove',e=>{const rect=tiltWrap.getBoundingClientRect();const cx=rect.left+rect.width/2,cy=rect.top+rect.height/2;const dx=(e.clientX-cx)/rect.width,dy=(e.clientY-cy)/rect.height;tiltCard.style.transform=`rotateX(${dy*MAX_TILT*-1}deg) rotateY(${dx*MAX_TILT}deg) scale(1.02)`;});
-  tiltWrap.addEventListener('mouseleave',()=>{tiltCard.style.transform='rotateX(0deg) rotateY(0deg) scale(1)';});
-}
+// ─── TILT 3D DESACTIVADO PARA MEJOR RENDIMIENTO ───
 
 window.addEventListener('resize',()=>{
   const sc=document.getElementById('sparkCard');
