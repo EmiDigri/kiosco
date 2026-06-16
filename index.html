@@ -1270,6 +1270,261 @@ body{
   .spark-card,.horas-card,.table-card,.exc-card,.env-card{margin-bottom:12px!important}
 }
 
+
+/* ─── HISTORIAL CALENDARIO ─── */
+.hist-calendar-card{
+  background:var(--glass);
+  border:1px solid var(--glass-border);
+  border-radius:var(--radius);
+  padding:18px;
+  margin-bottom:14px;
+}
+.hist-calendar-toolbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:14px;
+}
+.hist-month-title{
+  font-family:'Instrument Serif',serif;
+  font-size:31px;
+  font-weight:400;
+  letter-spacing:-.5px;
+  text-transform:capitalize;
+  color:var(--text);
+}
+.hist-month-sub{
+  font-size:12px;
+  color:var(--text-soft);
+  margin-top:2px;
+}
+.hist-cal-nav{
+  display:flex;
+  gap:8px;
+}
+.hist-cal-btn{
+  border:1px solid var(--glass-border);
+  background:var(--surface,#242426);
+  color:var(--text);
+  border-radius:999px;
+  padding:9px 13px;
+  font-family:'Outfit',sans-serif;
+  font-weight:700;
+  cursor:pointer;
+}
+.hist-cal-btn:hover{border-color:var(--accent);color:var(--accent)}
+.hist-calendar-summary{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:10px;
+  margin-bottom:14px;
+}
+.hist-sum-card{
+  background:rgba(255,255,255,.035);
+  border:1px solid var(--glass-border);
+  border-radius:14px;
+  padding:12px 14px;
+}
+.hist-sum-label{
+  font-size:10px;
+  letter-spacing:.11em;
+  text-transform:uppercase;
+  color:var(--text-soft);
+  font-weight:800;
+  margin-bottom:5px;
+}
+.hist-sum-value{
+  font-family:'Space Grotesk',sans-serif;
+  font-weight:800;
+  font-size:20px;
+  color:var(--text);
+}
+.hist-weekdays,.hist-calendar-grid{
+  display:grid;
+  grid-template-columns:repeat(7,minmax(0,1fr));
+  gap:8px;
+}
+.hist-weekdays{
+  margin-bottom:8px;
+}
+.hist-weekdays span{
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:var(--text-soft);
+  text-align:center;
+}
+.hist-day-cell{
+  min-height:96px;
+  background:rgba(255,255,255,.035);
+  border:1px solid var(--glass-border);
+  border-radius:15px;
+  padding:10px;
+  cursor:pointer;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  transition:border-color .12s ease,background .12s ease,transform .12s ease;
+}
+.hist-day-cell:hover{
+  border-color:rgba(124,144,255,.55);
+  background:rgba(124,144,255,.08);
+  transform:translateY(-1px);
+}
+.hist-day-cell.empty{
+  cursor:default;
+  opacity:.25;
+  background:transparent;
+  border-style:dashed;
+}
+.hist-day-cell.empty:hover{transform:none;border-color:var(--glass-border);background:transparent}
+.hist-day-cell.today{
+  border-color:rgba(124,144,255,.7);
+}
+.hist-day-cell.has-cierre{
+  background:rgba(95,214,138,.07);
+  border-color:rgba(95,214,138,.28);
+}
+.hist-day-num{
+  font-family:'Space Grotesk',sans-serif;
+  font-size:14px;
+  font-weight:800;
+  color:var(--text);
+}
+.hist-day-kpis{
+  display:flex;
+  flex-direction:column;
+  gap:3px;
+}
+.hist-day-main{
+  font-family:'Space Grotesk',sans-serif;
+  font-weight:800;
+  font-size:13px;
+  color:var(--text);
+  white-space:nowrap;
+}
+.hist-day-sub{
+  font-size:10.5px;
+  color:var(--text-soft);
+  white-space:nowrap;
+}
+.hist-day-badges{
+  display:flex;
+  gap:4px;
+  flex-wrap:wrap;
+  margin-top:5px;
+}
+.hist-day-badge{
+  font-size:9.5px;
+  font-weight:800;
+  color:var(--accent);
+  background:rgba(124,144,255,.12);
+  border:1px solid rgba(124,144,255,.22);
+  border-radius:999px;
+  padding:2px 6px;
+}
+.hist-month-list-title{
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color:var(--text-soft);
+  margin:18px 4px 10px;
+}
+.hist-detail-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+  margin-bottom:14px;
+}
+.hist-detail-card{
+  background:var(--glass);
+  border:1px solid var(--glass-border);
+  border-radius:16px;
+  padding:14px 16px;
+}
+.hist-detail-label{
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.11em;
+  text-transform:uppercase;
+  color:var(--text-soft);
+  margin-bottom:6px;
+}
+.hist-detail-value{
+  font-family:'Space Grotesk',sans-serif;
+  font-size:22px;
+  font-weight:800;
+  color:var(--text);
+}
+.hist-cierre-block{
+  background:rgba(95,214,138,.06);
+  border:1px solid rgba(95,214,138,.22);
+  border-radius:16px;
+  padding:14px 16px;
+  margin-bottom:12px;
+}
+.hist-cierre-title{
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color:var(--green,#5FD68A);
+  margin-bottom:10px;
+}
+.hist-cierre-row{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  color:var(--text-mid);
+  font-size:13px;
+  padding:6px 0;
+  border-bottom:1px solid rgba(255,255,255,.05);
+}
+.hist-cierre-row:last-child{border-bottom:none}
+.hist-cierre-row strong{color:var(--text)}
+.hist-gasto-line{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  font-size:12px;
+  color:var(--text-mid);
+  padding:7px 0;
+  border-bottom:1px solid rgba(255,255,255,.05);
+}
+.hist-gasto-line:last-child{border-bottom:none}
+.hist-loading{
+  padding:28px 12px;
+  text-align:center;
+  color:var(--text-soft);
+  font-size:13px;
+}
+.hist-source-note{
+  font-size:11.5px;
+  color:var(--text-soft);
+  line-height:1.5;
+  margin:10px 4px 0;
+}
+@media(max-width:900px){
+  .hist-calendar-summary{grid-template-columns:1fr 1fr}
+  .hist-detail-grid{grid-template-columns:1fr}
+  .hist-day-cell{min-height:84px;padding:8px}
+  .hist-day-main{font-size:12px}
+}
+@media(max-width:620px){
+  .hist-calendar-card{padding:12px}
+  .hist-calendar-toolbar{align-items:flex-start;flex-direction:column}
+  .hist-cal-nav{width:100%}
+  .hist-cal-btn{flex:1}
+  .hist-weekdays,.hist-calendar-grid{gap:5px}
+  .hist-weekdays span{font-size:9px}
+  .hist-day-cell{min-height:72px;border-radius:11px;padding:7px}
+  .hist-day-sub,.hist-day-badge{display:none}
+  .hist-month-title{font-size:28px}
+}
+
 </style>
 </head>
 <body>
@@ -1473,8 +1728,28 @@ body{
       </button>
     </div>
 
-    <!-- Vista lista de días -->
+    <!-- Vista calendario mensual -->
     <div id="histVistaLista">
+      <div class="hist-calendar-card">
+        <div class="hist-calendar-toolbar">
+          <div>
+            <div class="hist-month-title" id="histMonthTitle">Mes</div>
+            <div class="hist-month-sub" id="histMonthSub">Facturación, MercadoPago y cierres de caja</div>
+          </div>
+          <div class="hist-cal-nav">
+            <button class="hist-cal-btn" id="histPrevMonth">← Mes anterior</button>
+            <button class="hist-cal-btn" id="histThisMonth">Hoy</button>
+            <button class="hist-cal-btn" id="histNextMonth">Mes siguiente →</button>
+          </div>
+        </div>
+        <div class="hist-calendar-summary" id="histCalendarSummary"></div>
+        <div class="hist-weekdays">
+          <span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span><span>Dom</span>
+        </div>
+        <div class="hist-calendar-grid" id="histCalendarGrid"></div>
+        <div class="hist-source-note" id="histSourceNote"></div>
+      </div>
+      <div class="hist-month-list-title">Días del mes</div>
       <div id="historialDias"></div>
     </div>
 
@@ -1899,182 +2174,292 @@ document.getElementById('btnCerrarHist').addEventListener('click',()=>{
   document.getElementById('historialOverlay').classList.remove('open');
 });
 document.getElementById('btnVolverHist').addEventListener('click',()=>{
-  document.getElementById('histVistaDetalle').style.display='none';
-  document.getElementById('histVistaLista').style.display='block';
-  document.getElementById('histTitleText').textContent='Historial';
+  mostrarListaDias();
 });
 document.getElementById('historialOverlay').addEventListener('click',e=>{
   if(e.target===document.getElementById('historialOverlay'))
     document.getElementById('historialOverlay').classList.remove('open');
 });
 
-function mostrarListaDias(){
-  document.getElementById('histVistaDetalle').style.display='none';
-  document.getElementById('histVistaLista').style.display='block';
-  document.getElementById('histTitleText').textContent='Historial';
-  const hist=leerHistorial();
-  const dias=Object.keys(hist).sort((a,b)=>b.localeCompare(a));
-  const cont=document.getElementById('historialDias');
+let histMesActual=new Date();
+histMesActual.setDate(1);
+let histResumenMes={};
+let histRowsPagosMes=[];
+let histRowsCierresMes=[];
+let histRowsGastosMes=[];
 
-  if(!dias.length){
-    cont.innerHTML='<div class="hist-empty">Todavía no hay datos guardados.<br>Cargá un turno para que aparezca aquí.</div>';
-    return;
+function histMoney(n){return '$'+(Number(n)||0).toLocaleString('es-AR');}
+function histMesNombre(d){return d.toLocaleDateString('es-AR',{month:'long',year:'numeric'});}
+function histIso(y,m,d){return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;}
+function histPrimerYUltimoDiaMes(date){
+  const y=date.getFullYear(),m=date.getMonth()+1;
+  const last=new Date(y,m,0).getDate();
+  return {desde:histIso(y,m,1),hasta:histIso(y,m,last),y,m,last};
+}
+function histGetLocalCierreDia(dia){
+  try{
+    const all=JSON.parse(localStorage.getItem('kiosco_cierre_manual')||'{}');
+    return all[dia]||{cierres:{},gastos:[]};
+  }catch(e){return {cierres:{},gastos:[]};}
+}
+function histNormalizarCierreLocal(dia){
+  const local=histGetLocalCierreDia(dia);
+  const cierres=[];
+  Object.entries(local.cierres||{}).forEach(([turno,c])=>{
+    const gastos=(local.gastos||[]).filter(g=>({Vale:'CM',Ani:'CT',Marta:'CN'}[turno])===g.caja).reduce((a,g)=>a+(Number(g.monto)||0),0);
+    const mp=Number(c.mp)||0, efectivo=Number(c.efectivo)||0, once=Number(c.once)||0;
+    cierres.push({fecha:dia,turno,apertura:Number(c.apertura)||0,efectivo,once_monto:once,mpo:Number(c.mpo)||0,mp,gastos_caja:gastos,total_turno:mp+efectivo+once+gastos});
+  });
+  const gastos=(local.gastos||[]).map(g=>({fecha:dia,nombre:g.nombre,monto:Number(g.monto)||0,caja:g.caja,turno:{CM:'Vale',CT:'Ani',CN:'Marta'}[g.caja]||null,uid:g.uid||''}));
+  return {cierres,gastos};
+}
+async function histSbSelect(path){
+  const res=await fetch(`${SUPABASE_URL}/rest/v1/${path}`,{headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`}});
+  if(!res.ok){throw new Error(await res.text());}
+  return await res.json();
+}
+function histAgruparPorDia(pagos,cierres,gastos){
+  const out={};
+  const ensure=dia=>out[dia]||(out[dia]={pagos:[],cierres:[],gastos:[],mpTotal:0,cajaTotal:0,movs:0,enviadas:0,turnos:{}});
+  pagos.forEach(r=>{
+    const dia=r.fecha;if(!dia)return;
+    const d=ensure(dia);
+    d.pagos.push(r);
+    const monto=Number(r.monto)||0;
+    if(r.es_enviada){d.enviadas+=monto;return;}
+    d.mpTotal+=monto;d.movs++;
+    const t=r.turno||'Sin turno';
+    if(!d.turnos[t])d.turnos[t]={mp:0,movs:0};
+    d.turnos[t].mp+=monto;d.turnos[t].movs++;
+  });
+  cierres.forEach(c=>{
+    const dia=c.fecha;if(!dia)return;
+    const d=ensure(dia);
+    d.cierres.push(c);
+    d.cajaTotal+=Number(c.total_turno)||0;
+  });
+  gastos.forEach(g=>{if(g.fecha)ensure(g.fecha).gastos.push(g);});
+  return out;
+}
+async function histCargarMes(){
+  const {desde,hasta,y,m,last}=histPrimerYUltimoDiaMes(histMesActual);
+  const title=document.getElementById('histMonthTitle');
+  if(title)title.textContent=histMesNombre(histMesActual);
+  document.getElementById('histCalendarGrid').innerHTML='<div class="hist-loading" style="grid-column:1/-1">Cargando calendario…</div>';
+  document.getElementById('historialDias').innerHTML='';
+  let fuente='Supabase';
+  let pagos=[],cierres=[],gastos=[];
+  try{
+    [pagos,cierres,gastos]=await Promise.all([
+      histSbSelect(`pagos?fecha=gte.${desde}&fecha=lte.${hasta}&order=fecha.asc,hora.asc&limit=10000`),
+      histSbSelect(`cierres_caja?fecha=gte.${desde}&fecha=lte.${hasta}&order=fecha.asc,turno.asc&limit=1000`),
+      histSbSelect(`gastos_caja?fecha=gte.${desde}&fecha=lte.${hasta}&order=fecha.asc,created_at.asc&limit=2000`)
+    ]);
+  }catch(e){
+    fuente='datos locales del navegador';
+    console.warn('No pude leer todo el histórico desde Supabase. Uso localStorage:',e.message);
+    const hist=leerHistorial();
+    Object.entries(hist).forEach(([dia,turnos])=>{
+      if(dia<desde||dia>hasta)return;
+      Object.entries(turnos||{}).forEach(([turno,d])=>{
+        (d.movs||[]).forEach(mov=>pagos.push({fecha:dia,hora:mov.hora,nombre:mov.nombre,tipo:mov.tipo,monto:mov.monto,turno,es_enviada:false}));
+      });
+      const loc=histNormalizarCierreLocal(dia);
+      cierres.push(...loc.cierres);gastos.push(...loc.gastos);
+    });
   }
-
+  // Completa cierres/gastos locales si todavía no estaban sincronizados a Supabase.
+  for(let d=1;d<=last;d++){
+    const dia=histIso(y,m,d);
+    const loc=histNormalizarCierreLocal(dia);
+    const tieneRemoto=cierres.some(c=>c.fecha===dia);
+    if(!tieneRemoto&&loc.cierres.length)cierres.push(...loc.cierres);
+    const tieneGastosRemotos=gastos.some(g=>g.fecha===dia);
+    if(!tieneGastosRemotos&&loc.gastos.length)gastos.push(...loc.gastos);
+  }
+  histRowsPagosMes=pagos;histRowsCierresMes=cierres;histRowsGastosMes=gastos;
+  histResumenMes=histAgruparPorDia(pagos,cierres,gastos);
+  renderCalendarioMes();
+  renderListaDiasMes(fuente);
+}
+function renderCalendarioMes(){
+  const {y,m,last}=histPrimerYUltimoDiaMes(histMesActual);
+  const grid=document.getElementById('histCalendarGrid');
+  const summary=document.getElementById('histCalendarSummary');
+  const today=fechaHoy();
+  const firstDow=new Date(y,m-1,1).getDay();
+  const blanks=(firstDow+6)%7;
+  const totalMP=Object.values(histResumenMes).reduce((a,d)=>a+d.mpTotal,0);
+  const totalCaja=Object.values(histResumenMes).reduce((a,d)=>a+d.cajaTotal,0);
+  const diasConMP=Object.values(histResumenMes).filter(d=>d.mpTotal>0).length;
+  const movs=Object.values(histResumenMes).reduce((a,d)=>a+d.movs,0);
+  summary.innerHTML=`
+    <div class="hist-sum-card"><div class="hist-sum-label">Caja cerrada</div><div class="hist-sum-value">${histMoney(totalCaja)}</div></div>
+    <div class="hist-sum-card"><div class="hist-sum-label">MercadoPago</div><div class="hist-sum-value">${histMoney(totalMP)}</div></div>
+    <div class="hist-sum-card"><div class="hist-sum-label">Días con MP</div><div class="hist-sum-value">${diasConMP}</div></div>
+    <div class="hist-sum-card"><div class="hist-sum-label">Movimientos</div><div class="hist-sum-value">${movs}</div></div>`;
+  let html='';
+  for(let i=0;i<blanks;i++)html+='<div class="hist-day-cell empty"></div>';
+  for(let d=1;d<=last;d++){
+    const dia=histIso(y,m,d);
+    const data=histResumenMes[dia]||{mpTotal:0,cajaTotal:0,movs:0,cierres:[],gastos:[],turnos:{}};
+    const principal=data.cajaTotal>0?data.cajaTotal:data.mpTotal;
+    const badges=[];
+    if(data.cierres.length)badges.push('Caja');
+    if(data.mpTotal>0)badges.push('MP');
+    if(data.gastos.length)badges.push('Gastos');
+    const cls=['hist-day-cell'];
+    if(dia===today)cls.push('today');
+    if(data.cierres.length)cls.push('has-cierre');
+    html+=`<div class="${cls.join(' ')}" data-dia="${dia}">
+      <div><div class="hist-day-num">${d}</div>${badges.length?`<div class="hist-day-badges">${badges.map(b=>`<span class="hist-day-badge">${b}</span>`).join('')}</div>`:''}</div>
+      <div class="hist-day-kpis">
+        <div class="hist-day-main">${principal?histMoney(principal):'—'}</div>
+        <div class="hist-day-sub">${data.movs?`${data.movs} movs · MP ${histMoney(data.mpTotal)}`:'sin movimientos'}</div>
+      </div>
+    </div>`;
+  }
+  grid.innerHTML=html;
+  grid.querySelectorAll('.hist-day-cell[data-dia]').forEach(cell=>cell.addEventListener('click',()=>mostrarDetalleDia(cell.dataset.dia)));
+}
+function renderListaDiasMes(fuente){
+  const cont=document.getElementById('historialDias');
+  const note=document.getElementById('histSourceNote');
+  if(note)note.textContent=fuente==='Supabase'?'Leyendo pagos, cierres y gastos desde Supabase. Si un cierre no aparece, guardalo desde Cierre manual.':'Mostrando respaldo local de este navegador. Para histórico completo, creá las tablas de cierres/gastos en Supabase.';
+  const dias=Object.keys(histResumenMes).filter(d=>histResumenMes[d].mpTotal>0||histResumenMes[d].cajaTotal>0||histResumenMes[d].gastos.length).sort((a,b)=>b.localeCompare(a));
+  if(!dias.length){cont.innerHTML='<div class="hist-empty">Este mes todavía no tiene movimientos ni cierres guardados.</div>';return;}
   cont.innerHTML='';
   dias.forEach(dia=>{
-    const turnos=hist[dia];
-    const totalDia=Object.values(turnos).reduce((a,t)=>a+(t.movs||[]).reduce((b,m)=>b+m.monto,0),0);
-    const cantTurnos=Object.keys(turnos).length;
-    const totalMovs=Object.values(turnos).reduce((a,t)=>a+(t.movs||[]).length,0);
-
-    // chips de turnos con sus totales (usando los turnos correctos segun el dia de la semana)
+    const data=histResumenMes[dia];
+    const totalMostrar=data.cajaTotal>0?data.cajaTotal:data.mpTotal;
     let chipsHTML='';
     turnosDelDia(dia).forEach(t=>{
-      if(!turnos[t.nombre])return;
-      const totT=(turnos[t.nombre].movs||[]).reduce((a,m)=>a+m.monto,0);
-      chipsHTML+=`<div class="hist-turno-chip"><span class="hist-turno-chip-dot" style="background:${t.color}"></span>${t.nombre} · $${totT.toLocaleString('es-AR')}</div>`;
+      const cierre=data.cierres.find(c=>c.turno===t.nombre);
+      const mp=data.turnos[t.nombre]?.mp||0;
+      if(!cierre&&!mp)return;
+      const val=cierre?(Number(cierre.total_turno)||0):mp;
+      chipsHTML+=`<div class="hist-turno-chip"><span class="hist-turno-chip-dot" style="background:${t.color}"></span>${t.nombre} · ${histMoney(val)}</div>`;
     });
-
     const card=document.createElement('div');
     card.className='hist-dia-card';
-    card.innerHTML=`
-      <div class="hist-dia-fecha">${formatFecha(dia)}</div>
-      <div class="hist-dia-sub">${cantTurnos} turno${cantTurnos>1?'s':''} · ${totalMovs} movimiento${totalMovs>1?'s':''}</div>
+    card.innerHTML=`<div class="hist-dia-fecha">${formatFecha(dia)}</div>
+      <div class="hist-dia-sub">MP ${histMoney(data.mpTotal)} · ${data.movs} movimiento${data.movs!==1?'s':''}${data.cajaTotal>0?` · caja ${histMoney(data.cajaTotal)}`:''}</div>
       <div class="hist-dia-turnos-preview">${chipsHTML}</div>
-      <div class="hist-dia-total-row">
-        <span class="hist-dia-total-lbl">Total del día</span>
-        <span class="hist-dia-total">$${totalDia.toLocaleString('es-AR')}</span>
-      </div>`;
+      <div class="hist-dia-total-row"><span class="hist-dia-total-lbl">${data.cajaTotal>0?'Total caja':'Total MP'}</span><span class="hist-dia-total">${histMoney(totalMostrar)}</span></div>`;
     card.addEventListener('click',()=>mostrarDetalleDia(dia));
     cont.appendChild(card);
   });
 }
-
-function mostrarDetalleDia(dia){
+async function mostrarListaDias(){
+  document.getElementById('histVistaDetalle').style.display='none';
+  document.getElementById('histVistaLista').style.display='block';
+  document.getElementById('histTitleText').textContent='Historial';
+  const title=document.getElementById('histMonthTitle');
+  if(title)title.textContent=histMesNombre(histMesActual);
+  await histCargarMes();
+  const prev=document.getElementById('histPrevMonth'),next=document.getElementById('histNextMonth'),today=document.getElementById('histThisMonth');
+  if(prev&&!prev.dataset.ready){prev.dataset.ready='1';prev.addEventListener('click',()=>{histMesActual.setMonth(histMesActual.getMonth()-1);mostrarListaDias();});}
+  if(next&&!next.dataset.ready){next.dataset.ready='1';next.addEventListener('click',()=>{histMesActual.setMonth(histMesActual.getMonth()+1);mostrarListaDias();});}
+  if(today&&!today.dataset.ready){today.dataset.ready='1';today.addEventListener('click',()=>{histMesActual=new Date();histMesActual.setDate(1);mostrarListaDias();});}
+}
+async function histFetchDia(dia){
+  let pagos=[],cierres=[],gastos=[];
+  try{
+    [pagos,cierres,gastos]=await Promise.all([
+      histSbSelect(`pagos?fecha=eq.${dia}&order=hora.asc&limit=1000`),
+      histSbSelect(`cierres_caja?fecha=eq.${dia}&order=turno.asc&limit=50`),
+      histSbSelect(`gastos_caja?fecha=eq.${dia}&order=created_at.asc&limit=200`)
+    ]);
+  }catch(e){
+    console.warn('Detalle desde Supabase falló, uso localStorage:',e.message);
+    const hist=leerHistorial(),datosDia=hist[dia]||{};
+    Object.entries(datosDia).forEach(([turno,d])=>{
+      (d.movs||[]).forEach(m=>pagos.push({fecha:dia,hora:m.hora,nombre:m.nombre,tipo:m.tipo,monto:m.monto,turno,es_enviada:false}));
+      (d.excluidos||[]).forEach(m=>pagos.push({fecha:dia,hora:m.hora,nombre:m.nombre,tipo:m.tipo,monto:m.monto,turno,es_enviada:false,excluido:true}));
+    });
+  }
+  const loc=histNormalizarCierreLocal(dia);
+  if(!cierres.length&&loc.cierres.length)cierres=loc.cierres;
+  if(!gastos.length&&loc.gastos.length)gastos=loc.gastos;
+  return {pagos,cierres,gastos};
+}
+async function mostrarDetalleDia(dia){
   document.getElementById('histVistaLista').style.display='none';
   document.getElementById('histVistaDetalle').style.display='block';
   document.getElementById('histTitleText').textContent=formatFechaCorta(dia);
-
-  const hist=leerHistorial();
-  const datosDia=hist[dia];
   document.getElementById('histDiaTitulo').textContent=formatFecha(dia);
-
-  const totalGlobal=Object.values(datosDia).reduce((a,t)=>a+(t.movs||[]).reduce((b,m)=>b+m.monto,0),0);
-  const totalMovs=Object.values(datosDia).reduce((a,t)=>a+(t.movs||[]).length,0);
-  const cantTurnos=Object.keys(datosDia).length;
-
-  document.getElementById('histTotalGlobal').textContent='$'+totalGlobal.toLocaleString('es-AR');
-  document.getElementById('histTotalSub').textContent=totalMovs+' movimientos en '+cantTurnos+' turno'+(cantTurnos>1?'s':'');
-
   const cont=document.getElementById('histTurnosDetalle');
-  cont.innerHTML='';
-
-  // usar los turnos correctos segun el dia de la semana de "dia" (no los de hoy)
+  cont.innerHTML='<div class="hist-loading">Cargando detalle del día…</div>';
+  const {pagos,cierres,gastos}=await histFetchDia(dia);
+  const pagosValidos=pagos.filter(p=>!p.es_enviada&&!p.excluido);
+  const totalMP=pagosValidos.reduce((a,p)=>a+(Number(p.monto)||0),0);
+  const totalCaja=cierres.reduce((a,c)=>a+(Number(c.total_turno)||0),0);
+  const totalMovs=pagosValidos.length;
+  document.getElementById('histTotalGlobal').textContent=histMoney(totalCaja>0?totalCaja:totalMP);
+  document.getElementById('histTotalSub').textContent=`Caja ${histMoney(totalCaja)} · MercadoPago ${histMoney(totalMP)} · ${totalMovs} movimientos`;
+  let html=`<div class="hist-detail-grid">
+    <div class="hist-detail-card"><div class="hist-detail-label">Cierre de caja</div><div class="hist-detail-value">${histMoney(totalCaja)}</div></div>
+    <div class="hist-detail-card"><div class="hist-detail-label">MercadoPago</div><div class="hist-detail-value">${histMoney(totalMP)}</div></div>
+    <div class="hist-detail-card"><div class="hist-detail-label">Efectivo</div><div class="hist-detail-value">${histMoney(cierres.reduce((a,c)=>a+(Number(c.efectivo)||0),0))}</div></div>
+    <div class="hist-detail-card"><div class="hist-detail-label">Gastos</div><div class="hist-detail-value">${histMoney(gastos.reduce((a,g)=>a+(Number(g.monto)||0),0))}</div></div>
+  </div>`;
+  if(gastos.length){
+    html+=`<div class="hist-cierre-block"><div class="hist-cierre-title">Gastos del día</div>${gastos.map(g=>`<div class="hist-gasto-line"><span>${cmEsc?cmEsc(g.nombre):g.nombre}${g.caja?` · ${g.caja}`:''}</span><strong>${histMoney(g.monto)}</strong></div>`).join('')}</div>`;
+  }
+  let huboAlgo=false;
   turnosDelDia(dia).forEach(t=>{
-    const datos=datosDia[t.nombre];
-    if(!datos)return;
-
-    const movs=[...datos.movs].sort((a,b)=>{
-      const pa=a.hora.split(':').map(Number),pb=b.hora.split(':').map(Number);
-      return(pa[0]*60+pa[1])-(pb[0]*60+pb[1]);
-    });
-
-    if(!movs.length)return;
-
-    const tot=movs.reduce((a,m)=>a+m.monto,0);
-    const transfT=movs.filter(m=>m.tipo==='Transferencia recibida').reduce((a,m)=>a+m.monto,0);
-    const pointT=movs.filter(m=>m.tipo==='Venta Point').reduce((a,m)=>a+m.monto,0);
-    const ticket=Math.round(tot/movs.length);
-    const excCount=(datos.excluidos||[]).length;
-
-    // horas
-    const horaMap={};
-    movs.forEach(m=>{const h=m.hora.split(':')[0];if(!horaMap[h])horaMap[h]={t:0,p:0};if(m.tipo==='Transferencia recibida')horaMap[h].t+=m.monto;else horaMap[h].p+=m.monto;});
-    const horas=Object.keys(horaMap).sort((a,b)=>+a-+b);
-    const maxM=Math.max(...horas.map(h=>horaMap[h].t+horaMap[h].p));
-    const picoHora=horas.reduce((a,b)=>(horaMap[a].t+horaMap[a].p)>(horaMap[b].t+horaMap[b].p)?a:b,'0');
-
-    const cardId='histcard-'+t.nombre.replace(/\s/g,'');
-
-    const card=document.createElement('div');
-    card.className='hist-turno-card';
-    card.id=cardId;
-
-    // header clickeable
-    const header=document.createElement('div');
-    header.className='hist-turno-header';
-    header.innerHTML=`
-      <div class="hist-turno-left">
-        <span class="hist-turno-dot" style="background:${t.color}"></span>
-        <div>
-          <div class="hist-turno-nombre">${t.nombre}</div>
-          <div class="hist-turno-horario">${t.label||''}</div>
-        </div>
-      </div>
-      <div style="display:flex;align-items:center;gap:8px">
-        <div class="hist-turno-right">
-          <div class="hist-turno-total">$${tot.toLocaleString('es-AR')}</div>
-        </div>
-        <svg class="hist-turno-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+    const cierre=cierres.find(c=>c.turno===t.nombre);
+    const movs=pagosValidos.filter(p=>p.turno===t.nombre).sort((a,b)=>(a.hora||'').localeCompare(b.hora||''));
+    const enviados=pagos.filter(p=>p.es_enviada&&p.turno===t.nombre);
+    const gastosTurno=gastos.filter(g=>g.turno===t.nombre||({Vale:'CM',Ani:'CT',Marta:'CN'}[t.nombre]===g.caja));
+    if(!cierre&&!movs.length&&!gastosTurno.length&&!enviados.length)return;
+    huboAlgo=true;
+    const mpTot=movs.reduce((a,m)=>a+(Number(m.monto)||0),0);
+    const transf=movs.filter(m=>m.tipo==='Transferencia recibida').reduce((a,m)=>a+(Number(m.monto)||0),0);
+    const point=movs.filter(m=>m.tipo==='Venta Point').reduce((a,m)=>a+(Number(m.monto)||0),0);
+    const totalTurno=cierre?(Number(cierre.total_turno)||0):mpTot;
+    const cardId='hist-dia-'+t.nombre.replace(/\s/g,'');
+    let cierreHTML='';
+    if(cierre){
+      cierreHTML=`<div class="hist-cierre-block"><div class="hist-cierre-title">Cierre manual</div>
+        <div class="hist-cierre-row"><span>Apertura</span><strong>${histMoney(cierre.apertura)}</strong></div>
+        <div class="hist-cierre-row"><span>MercadoPago</span><strong>${histMoney(cierre.mp)}</strong></div>
+        <div class="hist-cierre-row"><span>Efectivo</span><strong>${histMoney(cierre.efectivo)}</strong></div>
+        <div class="hist-cierre-row"><span>Once</span><strong>${histMoney(cierre.once_monto)}</strong></div>
+        <div class="hist-cierre-row"><span>MPO</span><strong>${histMoney(cierre.mpo)}</strong></div>
+        <div class="hist-cierre-row"><span>Gastos caja</span><strong>${histMoney(cierre.gastos_caja)}</strong></div>
+        <div class="hist-cierre-row"><span>Total turno</span><strong>${histMoney(totalTurno)}</strong></div>
       </div>`;
-
-    // body expandible
-    const body=document.createElement('div');
-    body.className='hist-turno-body';
-
-    // stats chips
-    let statsHTML=`
-      <div class="hist-turno-stats">
-        <div class="hist-stat-chip"><span style="color:#3D5AFE">●</span> Transf. $${transfT.toLocaleString('es-AR')}</div>
-        <div class="hist-stat-chip"><span style="color:#f4a435">●</span> Point $${pointT.toLocaleString('es-AR')}</div>
-        <div class="hist-stat-chip">🎯 Ticket $${ticket.toLocaleString('es-AR')}</div>
-        <div class="hist-stat-chip">⏰ Pico ${picoHora}:00 hs</div>
-        ${excCount>0?`<div class="hist-stat-chip" style="color:var(--red)">⚠ ${excCount} excluido${excCount>1?'s':''}</div>`:''}
-      </div>`;
-
-    // horas chart
-    let horasHTML='<div class="hist-horas-section"><div class="hist-horas-title">Recaudación por hora</div>';
-    horas.forEach(h=>{
-      const pctT=horaMap[h].t/maxM*100,pctP=horaMap[h].p/maxM*100;
-      const esPico=h===picoHora;
-      horasHTML+=`<div class="hora-row${esPico?' hora-pico':''}"><span class="hora-lbl">${h}:00</span><div class="hora-track"><div class="hora-bar-t" style="width:${pctT}%"></div><div class="hora-bar-p" style="left:${pctT}%;width:${pctP}%"></div></div><span class="hora-monto">$${((horaMap[h].t+horaMap[h].p)/1000).toFixed(1)}k</span></div>`;
-    });
-    horasHTML+='</div>';
-
-    // movimientos
-    let movsHTML='<div class="hist-movs-title">'+movs.length+' movimientos</div>';
-    movs.forEach(m=>{
-      const pill=m.tipo==='Venta Point'?'<span class="tipo-pill tp-p">Point Smart</span>':'<span class="tipo-pill tp-t">Transferencia</span>';
-      movsHTML+=`<div class="t-row"><span class="t-hora">${m.hora}</span><span class="t-nombre">${m.nombre}</span>${pill}<span class="t-monto">$${m.monto.toLocaleString('es-AR')}</span></div>`;
-    });
-
-    // excluidos
-    if(excCount>0){
-      movsHTML+=`<div class="hist-movs-title" style="color:var(--red)">${excCount} excluido${excCount>1?'s':''}</div>`;
-      (datos.excluidos||[]).forEach(m=>{
-        movsHTML+=`<div class="t-row"><span class="t-hora">${m.hora}</span><span class="t-nombre">${m.nombre}</span><span class="tipo-pill" style="background:rgba(244,85,85,.12);color:#f45555;border:1px solid rgba(244,85,85,.25)">Excluido</span><span class="t-monto" style="color:#f45555">$${m.monto.toLocaleString('es-AR')}</span></div>`;
-      });
+    }else{
+      cierreHTML='<div class="hist-cierre-block"><div class="hist-cierre-title">Cierre manual</div><div class="hist-cierre-row"><span>Este turno todavía no tiene cierre manual guardado.</span><strong>—</strong></div></div>';
     }
-
-    const inner=document.createElement('div');
-    inner.className='hist-turno-body-inner';
-    inner.innerHTML=statsHTML+horasHTML+movsHTML;
-    body.appendChild(inner);
-
-    card.appendChild(header);
-    card.appendChild(body);
-    cont.appendChild(card);
-
-    // toggle
-    header.addEventListener('click',()=>{
-      card.classList.toggle('open');
-      body.style.maxHeight=card.classList.contains('open')?body.scrollHeight+'px':'0';
-    });
+    const ticket=movs.length?Math.round(mpTot/movs.length):0;
+    let movsHTML=`<div class="hist-turno-stats">
+      <div class="hist-stat-chip"><span style="color:#7C90FF">●</span> Transf. ${histMoney(transf)}</div>
+      <div class="hist-stat-chip"><span style="color:#F0B860">●</span> Point ${histMoney(point)}</div>
+      <div class="hist-stat-chip">🎯 Ticket ${histMoney(ticket)}</div>
+      ${enviados.length?`<div class="hist-stat-chip" style="color:var(--amber)">↗ Enviadas ${histMoney(enviados.reduce((a,e)=>a+(Number(e.monto)||0),0))}</div>`:''}
+    </div><div class="hist-movs-title">${movs.length} movimientos MercadoPago</div>`;
+    if(movs.length){
+      movs.forEach(m=>{const pill=m.tipo==='Venta Point'?'<span class="tipo-pill tp-p">Point Smart</span>':'<span class="tipo-pill tp-t">Transferencia</span>';movsHTML+=`<div class="t-row"><span class="t-hora">${m.hora||'--:--'}</span><span class="t-nombre">${cmEsc?cmEsc(m.nombre):m.nombre}</span>${pill}<span class="t-monto">${histMoney(m.monto)}</span></div>`;});
+    }else{movsHTML+='<div class="empty">Sin movimientos de MercadoPago en este turno.</div>';}
+    if(gastosTurno.length){
+      movsHTML+=`<div class="hist-movs-title">Gastos de esta caja</div>${gastosTurno.map(g=>`<div class="hist-gasto-line"><span>${cmEsc?cmEsc(g.nombre):g.nombre}${g.caja?` · ${g.caja}`:''}</span><strong>${histMoney(g.monto)}</strong></div>`).join('')}`;
+    }
+    html+=`<div class="hist-turno-card" id="${cardId}">
+      <div class="hist-turno-header">
+        <div class="hist-turno-left"><span class="hist-turno-dot" style="background:${t.color}"></span><div><div class="hist-turno-nombre">${t.nombre}</div><div class="hist-turno-horario">${t.label||''}</div></div></div>
+        <div style="display:flex;align-items:center;gap:8px"><div class="hist-turno-right"><div class="hist-turno-total">${histMoney(totalTurno)}</div></div><svg class="hist-turno-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+      </div>
+      <div class="hist-turno-body"><div class="hist-turno-body-inner">${cierreHTML}${movsHTML}</div></div>
+    </div>`;
   });
-
-  // scroll al top del detalle
-  document.getElementById('histVistaDetalle').scrollTop=0;
+  if(!huboAlgo)html+='<div class="hist-empty">No hay cierres ni movimientos guardados para este día.</div>';
+  cont.innerHTML=html;
+  cont.querySelectorAll('.hist-turno-card').forEach(card=>{
+    const header=card.querySelector('.hist-turno-header'),body=card.querySelector('.hist-turno-body');
+    header.addEventListener('click',()=>{card.classList.toggle('open');body.style.maxHeight=card.classList.contains('open')?body.scrollHeight+'px':'0';});
+  });
   document.getElementById('historialOverlay').scrollTop=0;
 }
 
@@ -2185,23 +2570,70 @@ renderOtrosTurnos();
 const CM_TURNOS=['Vale','Ani','Marta'];
 const CM_COLORS={Vale:'#7C90FF',Ani:'#A78BFA',Marta:'#4FCCBE'};
 const CM_TURNO_CAJA={Vale:'CM',Ani:'CT',Marta:'CN'};
+const CM_CAJA_TURNO={CM:'Vale',CT:'Ani',CN:'Marta'};
 const CM_STORAGE_KEY='kiosco_cierre_manual';
 let cmTurnoActivo='Vale',cmCierres={},cmGastos=[],cmCajaSeleccionada='';
 const cmFmt=n=>'$'+(Number(n)||0).toLocaleString('es-AR');
 function cmEsc(s){return String(s||'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
 function cmLeerData(){try{const all=JSON.parse(localStorage.getItem(CM_STORAGE_KEY)||'{}');const data=all[fechaHoy()]||{};cmCierres=data.cierres||{};cmGastos=data.gastos||[];}catch(e){cmCierres={};cmGastos=[];}}
 function cmGuardarData(){let all={};try{all=JSON.parse(localStorage.getItem(CM_STORAGE_KEY)||'{}');}catch(e){}all[fechaHoy()]={cierres:cmCierres,gastos:cmGastos,guardadoEn:new Date().toISOString()};localStorage.setItem(CM_STORAGE_KEY,JSON.stringify(all));}
+function cmUid(){return 'g_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,9);}
+async function cmSbWrite(path,method,body,prefer){
+  const headers={'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json'};
+  if(prefer)headers.Prefer=prefer;
+  const res=await fetch(`${SUPABASE_URL}/rest/v1/${path}`,{method,headers,body:body!==undefined?JSON.stringify(body):undefined});
+  if(!res.ok)throw new Error(await res.text());
+  return res;
+}
+async function cmGuardarCierreRemoto(turno,data){
+  const gastosCaja=cmGastosDeCaja(turno);
+  const payload={
+    fecha:fechaHoy(),turno,
+    apertura:Number(data.apertura)||0,
+    efectivo:Number(data.efectivo)||0,
+    once_monto:Number(data.once)||0,
+    mpo:Number(data.mpo)||0,
+    mp:Number(data.mp)||0,
+    gastos_caja:gastosCaja,
+    total_turno:(Number(data.mp)||0)+(Number(data.efectivo)||0)+(Number(data.once)||0)+gastosCaja,
+    updated_at:new Date().toISOString()
+  };
+  await cmSbWrite('cierres_caja?on_conflict=fecha,turno','POST',payload,'resolution=merge-duplicates,return=minimal');
+}
+async function cmGuardarGastoRemoto(g){
+  if(!g.uid)g.uid=cmUid();
+  const payload={uid:g.uid,fecha:fechaHoy(),nombre:g.nombre,monto:Number(g.monto)||0,caja:g.caja||null,turno:g.turno||CM_CAJA_TURNO[g.caja]||null};
+  await cmSbWrite('gastos_caja?on_conflict=uid','POST',payload,'resolution=merge-duplicates,return=minimal');
+}
+async function cmEliminarGastoRemoto(g){
+  if(!g||!g.uid)return;
+  await cmSbWrite(`gastos_caja?uid=eq.${encodeURIComponent(g.uid)}`,'DELETE',undefined,'return=minimal');
+}
+async function cmCargarDataRemotaHoy(){
+  try{
+    const dia=fechaHoy();
+    const [cierres,gastos]=await Promise.all([
+      histSbSelect(`cierres_caja?fecha=eq.${dia}&order=turno.asc&limit=50`),
+      histSbSelect(`gastos_caja?fecha=eq.${dia}&order=created_at.asc&limit=300`)
+    ]);
+    if(Array.isArray(cierres)&&cierres.length){
+      cierres.forEach(c=>{cmCierres[c.turno]={apertura:Number(c.apertura)||0,efectivo:Number(c.efectivo)||0,once:Number(c.once_monto)||0,mpo:Number(c.mpo)||0,mp:Number(c.mp)||0,total_turno:Number(c.total_turno)||0,guardadoEn:c.updated_at||c.created_at||new Date().toISOString()};});
+    }
+    if(Array.isArray(gastos)&&gastos.length){cmGastos=gastos.map(g=>({uid:g.uid,nombre:g.nombre,monto:Number(g.monto)||0,caja:g.caja||'',turno:g.turno||CM_CAJA_TURNO[g.caja]||'',creadoEn:g.created_at}));}
+    cmGuardarData();
+  }catch(e){console.warn('No pude cargar cierre remoto de hoy:',e.message);}
+}
 function cmMpTurno(nombreTurno){const hist=leerHistorial();const datosDia=hist[fechaHoy()]||{};const datosTurno=datosDia[nombreTurno];if(!datosTurno||!Array.isArray(datosTurno.movs))return 0;return datosTurno.movs.reduce((a,m)=>a+(Number(m.monto)||0),0);}
 function cmGastosDeCaja(nombreTurno){const caja=CM_TURNO_CAJA[nombreTurno];return cmGastos.filter(g=>g.caja===caja).reduce((a,g)=>a+(Number(g.monto)||0),0);}
 function cmRenderTurnoBtns(){const row=document.getElementById('cmTurnoRow');if(!row)return;row.innerHTML=CM_TURNOS.map(t=>`<button class="cm-turno-btn ${t===cmTurnoActivo?'active':''}" data-turno="${t}" style="${t===cmTurnoActivo?'background:'+CM_COLORS[t]:''}">${t}</button>`).join('');row.querySelectorAll('.cm-turno-btn').forEach(btn=>btn.addEventListener('click',()=>{cmTurnoActivo=btn.dataset.turno;cmCargarFormularioTurno();}));}
 function cmCargarFormularioTurno(){cmRenderTurnoBtns();const c=cmCierres[cmTurnoActivo],mp=cmMpTurno(cmTurnoActivo);document.getElementById('cmMpTurnoNombre').textContent=cmTurnoActivo;document.getElementById('cmMpValor').textContent=cmFmt(mp);document.getElementById('cmBdMp').textContent=cmFmt(mp);document.getElementById('cmBtnGuardar').textContent='Guardar cierre de '+cmTurnoActivo;document.getElementById('cmApertura').value=c?c.apertura:10000;document.getElementById('cmEfectivo').value=c?c.efectivo:'';document.getElementById('cmOnce').value=c?c.once:0;document.getElementById('cmMpo').value=c?c.mpo:0;cmCalcularTotalTurno();}
 function cmCalcularTotalTurno(){const efectivo=Number(document.getElementById('cmEfectivo').value)||0,once=Number(document.getElementById('cmOnce').value)||0,mp=cmMpTurno(cmTurnoActivo),gastosCaja=cmGastosDeCaja(cmTurnoActivo),total=mp+efectivo+once+gastosCaja;document.getElementById('cmTotalTurno').textContent=cmFmt(total);document.getElementById('cmBdMp').textContent=cmFmt(mp);document.getElementById('cmBdEfectivo').textContent=cmFmt(efectivo);document.getElementById('cmBdOnce').textContent=cmFmt(once);const bd=document.getElementById('cmBdGastosCaja');if(gastosCaja>0){bd.style.display='inline';bd.querySelector('b').textContent=cmFmt(gastosCaja);}else bd.style.display='none';}
-function cmGuardarCierreTurno(){const apertura=Number(document.getElementById('cmApertura').value)||0,efectivo=Number(document.getElementById('cmEfectivo').value)||0,once=Number(document.getElementById('cmOnce').value)||0,mpo=Number(document.getElementById('cmMpo').value)||0,mp=cmMpTurno(cmTurnoActivo);cmCierres[cmTurnoActivo]={apertura,efectivo,once,mpo,mp,guardadoEn:new Date().toISOString()};cmGuardarData();cmRenderResumen();showToast('Cierre de '+cmTurnoActivo+' guardado ✓');}
-function cmRenderGastos(){const list=document.getElementById('cmGastoList');if(!list)return;if(!cmGastos.length){list.innerHTML='<div class="empty">Todavía no se cargó ningún gasto hoy.</div>';}else{list.innerHTML=cmGastos.map((g,i)=>`<div class="cm-gasto-row"><span class="cm-gasto-nombre">${cmEsc(g.nombre)}${g.caja?`<span class="cm-gasto-pill">${cmEsc(g.caja)}</span>`:''}</span><span class="cm-gasto-right"><b>${cmFmt(g.monto)}</b><button class="cm-gasto-del" data-i="${i}">✕</button></span></div>`).join('');list.querySelectorAll('.cm-gasto-del').forEach(btn=>btn.addEventListener('click',()=>{cmGastos.splice(Number(btn.dataset.i),1);cmGuardarData();cmRenderGastos();cmCalcularTotalTurno();cmRenderResumen();}));}const total=cmGastos.reduce((a,g)=>a+(Number(g.monto)||0),0);document.getElementById('cmGastoTotal').textContent=cmFmt(total);document.getElementById('cmResumenGastos').textContent=cmFmt(total);}
+function cmGuardarCierreTurno(){const apertura=Number(document.getElementById('cmApertura').value)||0,efectivo=Number(document.getElementById('cmEfectivo').value)||0,once=Number(document.getElementById('cmOnce').value)||0,mpo=Number(document.getElementById('cmMpo').value)||0,mp=cmMpTurno(cmTurnoActivo);const gCaja=cmGastosDeCaja(cmTurnoActivo);cmCierres[cmTurnoActivo]={apertura,efectivo,once,mpo,mp,total_turno:mp+efectivo+once+gCaja,guardadoEn:new Date().toISOString()};cmGuardarData();cmRenderResumen();showToast('Cierre de '+cmTurnoActivo+' guardado ✓');cmGuardarCierreRemoto(cmTurnoActivo,cmCierres[cmTurnoActivo]).catch(e=>showToast('Guardado local. Supabase falló.'));}
+function cmRenderGastos(){const list=document.getElementById('cmGastoList');if(!list)return;if(!cmGastos.length){list.innerHTML='<div class="empty">Todavía no se cargó ningún gasto hoy.</div>';}else{list.innerHTML=cmGastos.map((g,i)=>`<div class="cm-gasto-row"><span class="cm-gasto-nombre">${cmEsc(g.nombre)}${g.caja?`<span class="cm-gasto-pill">${cmEsc(g.caja)}</span>`:''}</span><span class="cm-gasto-right"><b>${cmFmt(g.monto)}</b><button class="cm-gasto-del" data-i="${i}">✕</button></span></div>`).join('');list.querySelectorAll('.cm-gasto-del').forEach(btn=>btn.addEventListener('click',()=>{const idx=Number(btn.dataset.i),g=cmGastos[idx];cmGastos.splice(idx,1);cmGuardarData();cmRenderGastos();cmCalcularTotalTurno();cmRenderResumen();cmEliminarGastoRemoto(g).catch(e=>showToast('Borrado local. Supabase falló.'));}));}const total=cmGastos.reduce((a,g)=>a+(Number(g.monto)||0),0);document.getElementById('cmGastoTotal').textContent=cmFmt(total);document.getElementById('cmResumenGastos').textContent=cmFmt(total);}
 function cmAgregarGasto(){const nombre=document.getElementById('cmGastoNombre').value.trim(),monto=Number(document.getElementById('cmGastoMonto').value)||0;if(!nombre||!monto){showToast('Cargá concepto y monto');return;}cmGastos.push({nombre,monto,caja:cmCajaSeleccionada,creadoEn:new Date().toISOString()});document.getElementById('cmGastoNombre').value='';document.getElementById('cmGastoMonto').value='';cmCajaSeleccionada='';document.querySelectorAll('.cm-caja-btn').forEach(b=>b.classList.remove('active'));const noBtn=document.querySelector('.cm-caja-btn[data-caja=""]');if(noBtn)noBtn.classList.add('active');cmGuardarData();cmRenderGastos();cmCalcularTotalTurno();cmRenderResumen();showToast('Gasto agregado ✓');}
 function cmRenderResumen(){const cont=document.getElementById('cmResumenTurnos');if(!cont)return;let totalDia=0,cerrados=0,sumMp=0,sumEf=0,sumOnce=0,sumMpo=0;cont.innerHTML=CM_TURNOS.map(t=>{const c=cmCierres[t];if(!c){return `<div class="cm-resumen-turno"><div class="cm-resumen-head"><div class="cm-resumen-name"><span class="cm-resumen-dot" style="background:${CM_COLORS[t]}"></span>${t}</div><div class="cm-pendiente">Sin cerrar</div></div></div>`;}cerrados++;const mp=Number(c.mp)||cmMpTurno(t),gCaja=cmGastosDeCaja(t),total=mp+(Number(c.efectivo)||0)+(Number(c.once)||0)+gCaja;totalDia+=total;sumMp+=mp;sumEf+=Number(c.efectivo)||0;sumOnce+=Number(c.once)||0;sumMpo+=Number(c.mpo)||0;return `<div class="cm-resumen-turno"><div class="cm-resumen-head"><div class="cm-resumen-name"><span class="cm-resumen-dot" style="background:${CM_COLORS[t]}"></span>${t}</div><div class="cm-resumen-total">${cmFmt(total)}</div></div><div class="cm-resumen-detail"><span>Apertura ${cmFmt(c.apertura)}</span><span>MP ${cmFmt(mp)}</span><span>Efectivo ${cmFmt(c.efectivo)}</span>${Number(c.once)>0?`<span>Once ${cmFmt(c.once)}</span>`:''}${Number(c.mpo)>0?`<span>MPO ${cmFmt(c.mpo)}</span>`:''}${gCaja>0?`<span>Gastos caja ${cmFmt(gCaja)}</span>`:''}</div></div>`;}).join('');document.getElementById('cmTotalDia').textContent=cmFmt(totalDia);document.getElementById('cmTotalDiaSub').textContent=cerrados+' de '+CM_TURNOS.length+' turnos cerrados';document.getElementById('cmTotMp').textContent=cmFmt(sumMp);document.getElementById('cmTotEfectivo').textContent=cmFmt(sumEf);document.getElementById('cmTotOnce').textContent=cmFmt(sumOnce);document.getElementById('cmTotMpo').textContent=cmFmt(sumMpo);document.getElementById('cmResumenGastos').textContent=cmFmt(cmGastos.reduce((a,g)=>a+(Number(g.monto)||0),0));}
 function cmCambiarVista(view){document.querySelectorAll('.cm-tab').forEach(t=>t.classList.toggle('active',t.dataset.cmView===view));document.querySelectorAll('.cm-view').forEach(v=>v.classList.remove('active'));const el=document.getElementById('cm-view-'+view);if(el)el.classList.add('active');if(view==='resumen')cmRenderResumen();if(view==='gastos')cmRenderGastos();}
-function cmAbrir(){cmLeerData();const t=(turno||turnoReciente||{}).nombre;if(CM_TURNOS.includes(t))cmTurnoActivo=t;const fh=document.getElementById('cmHeaderFecha');if(fh)fh.textContent=new Date().toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'});document.getElementById('cierreManualOverlay').classList.add('open');cmCambiarVista('turno');cmCargarFormularioTurno();cmRenderGastos();cmRenderResumen();}
+async function cmAbrir(){cmLeerData();await cmCargarDataRemotaHoy();const t=(turno||turnoReciente||{}).nombre;if(CM_TURNOS.includes(t))cmTurnoActivo=t;const fh=document.getElementById('cmHeaderFecha');if(fh)fh.textContent=new Date().toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'});document.getElementById('cierreManualOverlay').classList.add('open');cmCambiarVista('turno');cmCargarFormularioTurno();cmRenderGastos();cmRenderResumen();}
 function cmCerrar(){document.getElementById('cierreManualOverlay').classList.remove('open');}
 const btnCierreManual=document.getElementById('btnCierreManual');if(btnCierreManual)btnCierreManual.addEventListener('click',cmAbrir);
 const btnCerrarCierreManual=document.getElementById('btnCerrarCierreManual');if(btnCerrarCierreManual)btnCerrarCierreManual.addEventListener('click',cmCerrar);
