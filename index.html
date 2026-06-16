@@ -1525,6 +1525,35 @@ body{
   .hist-month-title{font-size:28px}
 }
 
+
+/* Logo mini Mercado Pago al lado de Kiosco */
+.mp-mini-badge{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  background:#F2F1ED;
+  border:1px solid var(--border);
+  border-radius:999px;
+  padding:3px 8px;
+  margin-left:4px;
+  height:26px;
+  line-height:1;
+}
+.mp-mini-logo{
+  height:18px;
+  width:auto;
+  display:block;
+}
+body.light .mp-mini-badge{
+  background:#FFFFFF;
+  border-color:rgba(61,90,254,.18);
+}
+@media(max-width:600px){
+  .logo-name-row{gap:7px}
+  .mp-mini-badge{height:23px;padding:2px 7px;margin-left:2px}
+  .mp-mini-logo{height:15px}
+}
+
 </style>
 </head>
 <body>
@@ -1537,11 +1566,11 @@ body{
         <div class="logo-name-row">
           <div class="logo-dot"></div>
           <span class="logo-name">Kiosco</span>
+          <span class="mp-mini-badge">
+            <img src="https://http2.mlstatic.com/frontend-assets/mp-web-navigation/ui-navigation/5.21.22/mercadopago/logo__large@2x.png" alt="Mercado Pago" class="mp-mini-logo" onerror="this.parentElement.style.display='none'">
+          </span>
         </div>
         <div class="logo-sub">Seguimiento de turnos y cobros</div>
-      </div>
-      <div class="mp-badge">
-        <img src="https://http2.mlstatic.com/frontend-assets/mp-web-navigation/ui-navigation/5.21.22/mercadopago/logo__large@2x.png" class="mp-logo" alt="mercado pago" onerror="this.style.display='none'">
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:10px">
