@@ -1773,6 +1773,155 @@ img,svg,canvas{max-width:100%}
   .hero-card{display:block!important}
 }
 
+
+
+/* ─── CALENDARIO MOBILE LIMPIO ─── */
+.hist-day-cell.has-mp:not(.has-cierre){background:rgba(124,144,255,.055);border-color:rgba(124,144,255,.20)}
+.hist-day-cell.has-data .hist-day-num{color:var(--text)}
+
+@media(max-width:600px){
+  /* El historial en celular tiene que ser calendario compacto, no tablero gigante */
+  .historial-panel{
+    padding:14px 10px 70px!important;
+  }
+  .hist-calendar-card{
+    padding:12px!important;
+    border-radius:18px!important;
+  }
+  .hist-calendar-toolbar{
+    gap:12px!important;
+  }
+  .hist-month-title{
+    font-size:22px!important;
+    line-height:1.1!important;
+  }
+  .hist-month-sub{
+    font-size:11px!important;
+    line-height:1.35!important;
+  }
+  .hist-cal-nav{
+    display:grid!important;
+    grid-template-columns:1fr .65fr 1fr!important;
+    gap:6px!important;
+  }
+  .hist-cal-btn{
+    min-width:0!important;
+    width:100%!important;
+    padding:9px 6px!important;
+    font-size:11px!important;
+    border-radius:999px!important;
+    white-space:nowrap!important;
+  }
+
+  /* Resumen mensual: compacto y sin números partidos */
+  .hist-calendar-summary{
+    grid-template-columns:1fr 1fr!important;
+    gap:8px!important;
+    margin-bottom:12px!important;
+  }
+  .hist-sum-card{
+    padding:11px 12px!important;
+    border-radius:14px!important;
+    min-width:0!important;
+  }
+  .hist-sum-label{
+    font-size:9px!important;
+    letter-spacing:.08em!important;
+    margin-bottom:6px!important;
+  }
+  .hist-sum-value{
+    font-size:20px!important;
+    line-height:1.05!important;
+    white-space:normal!important;
+    overflow-wrap:anywhere!important;
+    font-variant-numeric:tabular-nums!important;
+  }
+
+  /* Calendario real: 7 columnas, celdas bajas, montos abreviados */
+  .hist-weekdays,
+  .hist-calendar-grid{
+    grid-template-columns:repeat(7,minmax(0,1fr))!important;
+    gap:5px!important;
+  }
+  .hist-weekdays{
+    margin:10px 0 6px!important;
+  }
+  .hist-weekdays span{
+    font-size:9px!important;
+    letter-spacing:0!important;
+    color:rgba(242,241,237,.52)!important;
+  }
+  .hist-day-cell{
+    min-height:54px!important;
+    height:54px!important;
+    padding:6px 5px!important;
+    border-radius:12px!important;
+    justify-content:space-between!important;
+    gap:2px!important;
+    overflow:hidden!important;
+  }
+  .hist-day-cell.empty{
+    opacity:.12!important;
+  }
+  .hist-day-cell.today{
+    box-shadow:0 0 0 1px rgba(95,214,138,.28) inset!important;
+  }
+  .hist-day-cell.has-cierre{
+    background:rgba(95,214,138,.10)!important;
+    border-color:rgba(95,214,138,.32)!important;
+  }
+  .hist-day-cell.has-mp:not(.has-cierre){
+    background:rgba(124,144,255,.08)!important;
+    border-color:rgba(124,144,255,.22)!important;
+  }
+  .hist-day-num{
+    font-size:12px!important;
+    line-height:1!important;
+  }
+  .hist-day-badges,
+  .hist-day-badge,
+  .hist-day-sub{
+    display:none!important;
+  }
+  .hist-day-kpis{
+    gap:0!important;
+    min-width:0!important;
+  }
+  .hist-day-main{
+    display:block!important;
+    font-size:9.7px!important;
+    line-height:1.05!important;
+    letter-spacing:-.2px!important;
+    white-space:nowrap!important;
+    overflow:visible!important;
+    text-overflow:clip!important;
+    font-variant-numeric:tabular-nums!important;
+  }
+  .hist-day-cell:not(.has-data) .hist-day-main{
+    color:rgba(242,241,237,.58)!important;
+    font-size:16px!important;
+    line-height:1!important;
+  }
+
+  /* En mobile el listado de abajo repite el calendario y ensucia: lo ocultamos */
+  .hist-month-list-title,
+  #historialDias{
+    display:none!important;
+  }
+  .hist-source-note{
+    font-size:11px!important;
+    line-height:1.35!important;
+    margin-top:12px!important;
+  }
+}
+
+@media(max-width:380px){
+  .hist-calendar-grid,.hist-weekdays{gap:4px!important}
+  .hist-day-cell{height:50px!important;min-height:50px!important;padding:5px 4px!important;border-radius:10px!important}
+  .hist-day-main{font-size:9px!important;letter-spacing:-.35px!important}
+  .hist-sum-value{font-size:18px!important}
+}
+
 </style>
 </head>
 <body>
@@ -1985,9 +2134,9 @@ img,svg,canvas{max-width:100%}
             <div class="hist-month-sub" id="histMonthSub">Facturación, MercadoPago y cierres de caja</div>
           </div>
           <div class="hist-cal-nav">
-            <button class="hist-cal-btn" id="histPrevMonth">← Mes anterior</button>
+            <button class="hist-cal-btn" id="histPrevMonth">← Anterior</button>
             <button class="hist-cal-btn" id="histThisMonth">Hoy</button>
-            <button class="hist-cal-btn" id="histNextMonth">Mes siguiente →</button>
+            <button class="hist-cal-btn" id="histNextMonth">Siguiente →</button>
           </div>
         </div>
         <div class="hist-calendar-summary" id="histCalendarSummary"></div>
@@ -2436,7 +2585,17 @@ let histRowsPagosMes=[];
 let histRowsCierresMes=[];
 let histRowsGastosMes=[];
 
-function histMoney(n){return '$'+(Number(n)||0).toLocaleString('es-AR');}
+function histMoney(n){return '$'+Math.round(Number(n)||0).toLocaleString('es-AR');}
+function histCellMoney(n){
+  n=Math.round(Number(n)||0);
+  if(!n)return '—';
+  if(n>=1000000){
+    const v=n/1000000;
+    return '$'+(v>=10?Math.round(v):Math.round(v*10)/10).toLocaleString('es-AR',{maximumFractionDigits:1})+'M';
+  }
+  if(n>=1000)return '$'+Math.round(n/1000).toLocaleString('es-AR')+'k';
+  return '$'+n.toLocaleString('es-AR');
+}
 function histMesNombre(d){return d.toLocaleDateString('es-AR',{month:'long',year:'numeric'});}
 function histIso(y,m,d){return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;}
 function histPrimerYUltimoDiaMes(date){
@@ -2559,10 +2718,12 @@ function renderCalendarioMes(){
     const cls=['hist-day-cell'];
     if(dia===today)cls.push('today');
     if(data.cierres.length)cls.push('has-cierre');
-    html+=`<div class="${cls.join(' ')}" data-dia="${dia}">
+    if(data.mpTotal>0)cls.push('has-mp');
+    if(principal>0)cls.push('has-data');
+    html+=`<div class="${cls.join(' ')}" data-dia="${dia}" title="${data.movs?`MP ${histMoney(data.mpTotal)} · ${data.movs} movimientos`:''}">
       <div><div class="hist-day-num">${d}</div>${badges.length?`<div class="hist-day-badges">${badges.map(b=>`<span class="hist-day-badge">${b}</span>`).join('')}</div>`:''}</div>
       <div class="hist-day-kpis">
-        <div class="hist-day-main">${principal?histMoney(principal):'—'}</div>
+        <div class="hist-day-main">${principal?histCellMoney(principal):'—'}</div>
         <div class="hist-day-sub">${data.movs?`${data.movs} movs · MP ${histMoney(data.mpTotal)}`:'sin movimientos'}</div>
       </div>
     </div>`;
