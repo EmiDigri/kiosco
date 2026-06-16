@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Kiosco</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -48,7 +48,7 @@ body.light .toast{background:rgba(13,16,64,.92);color:#f0f4ff}
   cursor:pointer;color:var(--text-soft);transition:all .2s ease;font-size:16px;flex-shrink:0;
 }
 body{
-  font-family:'Outfit',sans-serif;background:var(--bg1);color:var(--text);
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg1);color:var(--text);
   min-height:100vh;overflow-x:hidden;max-width:100vw;position:relative;
 }
 html{overflow-x:hidden}
@@ -87,7 +87,7 @@ html{overflow-x:hidden}
 /* HERO */
 .hero-tilt-wrap{position:relative;margin-bottom:16px;perspective:1000px}
 .hero-top-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
-.hero-reloj{font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;color:#fff;letter-spacing:.05em;opacity:.8}
+.hero-reloj{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;font-weight:600;color:#fff;letter-spacing:.05em;opacity:.8}
 .cursor-glow{pointer-events:none;position:fixed;width:340px;height:340px;border-radius:50%;background:radial-gradient(circle,rgba(61,90,254,.1) 0%,transparent 70%);transform:translate(-50%,-50%);top:0;left:0;z-index:0;transition:opacity .3s ease;opacity:0}
 .hero-card{position:relative;z-index:1;transition:transform .08s ease;will-change:transform;margin-bottom:0!important;background:var(--glass);border:1px solid var(--glass-border);border-radius:28px;padding:28px 26px 24px;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);overflow:hidden}
 .hero-card::before{content:'';position:absolute;inset:0;border-radius:28px;background:linear-gradient(135deg,rgba(61,90,254,.08) 0%,transparent 60%);pointer-events:none}
@@ -97,7 +97,7 @@ html{overflow-x:hidden}
 .turno-chip .dot{width:5px;height:5px;border-radius:50%;background:var(--accent);animation:glow 2s infinite}
 .turno-nombre{font-size:36px;font-weight:800;letter-spacing:-1.2px;line-height:1;margin-bottom:5px;background:linear-gradient(135deg,#fff 30%,rgba(255,255,255,.6));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .turno-horario{font-size:13px;color:var(--text-soft);margin-bottom:22px;font-weight:400}
-.btn-cargar{display:inline-flex;align-items:center;gap:10px;background:var(--accent);color:#05071A;border:none;border-radius:var(--radius-sm);padding:13px 22px;font-size:14px;font-weight:700;font-family:'Outfit',sans-serif;cursor:pointer;transition:all .2s cubic-bezier(.34,1.56,.64,1);position:relative;z-index:1;letter-spacing:-.1px}
+.btn-cargar{display:inline-flex;align-items:center;gap:10px;background:var(--accent);color:#05071A;border:none;border-radius:var(--radius-sm);padding:13px 22px;font-size:14px;font-weight:700;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;cursor:pointer;transition:all .2s cubic-bezier(.34,1.56,.64,1);position:relative;z-index:1;letter-spacing:-.1px}
 .btn-cargar:hover{background:#6B7FFF;transform:translateY(-3px) scale(1.02);box-shadow:0 12px 32px rgba(61,90,254,.35)}
 .btn-cargar:active{transform:scale(.97)}
 .btn-cargar .btn-icon{transition:transform .35s cubic-bezier(.34,1.56,.64,1)}
@@ -112,7 +112,7 @@ html{overflow-x:hidden}
 .total-card::after{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--accent),transparent);opacity:.4}
 .total-card.visible{opacity:1;transform:translateY(0)}
 .total-label{font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:6px}
-.total-value{font-family:'Space Grotesk',sans-serif;font-size:48px;font-weight:700;letter-spacing:-2px;line-height:1;background:linear-gradient(135deg,#fff,rgba(255,255,255,.75));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.total-value{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:48px;font-weight:700;letter-spacing:-2px;line-height:1;background:linear-gradient(135deg,#fff,rgba(255,255,255,.75));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .total-sub{font-size:12px;color:var(--text-soft);margin-top:6px}
 .total-icon{width:56px;height:56px;border-radius:18px;background:rgba(61,90,254,.12);border:1px solid rgba(61,90,254,.2);display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .metrics-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
@@ -120,21 +120,21 @@ html{overflow-x:hidden}
 .glass-card:hover{background:var(--glass-hover)}
 .glass-card.visible{opacity:1;transform:translateY(0)}
 .gc-label{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text-soft);margin-bottom:10px}
-.gc-value{font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:700;letter-spacing:-.5px;color:var(--text)}
+.gc-value{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:26px;font-weight:700;letter-spacing:-.5px;color:var(--text)}
 .gc-sub{font-size:11px;color:var(--text-soft);margin-top:4px}
 .donut-card{background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius);padding:18px 20px;backdrop-filter:blur(20px);display:flex;align-items:center;gap:16px;opacity:0;transform:translateY(20px);transition:opacity .5s ease,transform .5s cubic-bezier(.34,1.56,.64,1)}
 .donut-card.visible{opacity:1;transform:translateY(0)}
 .donut-wrap{position:relative;width:60px;height:60px;flex-shrink:0}
 .donut-wrap svg{transform:rotate(-90deg)}
-.donut-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:700;color:var(--text)}
+.donut-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:12px;font-weight:700;color:var(--text)}
 .dc-label{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text-soft);margin-bottom:5px}
-.dc-value{font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700;letter-spacing:-.3px;color:var(--text)}
+.dc-value{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:20px;font-weight:700;letter-spacing:-.3px;color:var(--text)}
 .dc-count{font-size:11px;color:var(--text-soft);margin-top:2px}
 .spark-card{background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius);padding:18px 20px;backdrop-filter:blur(20px);margin-bottom:12px;opacity:0;transform:translateY(20px);transition:opacity .5s ease,transform .5s cubic-bezier(.34,1.56,.64,1)}
 .spark-card.visible{opacity:1;transform:translateY(0)}
 .spark-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
 .spark-title{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text-soft)}
-.spark-total{font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;color:var(--accent)}
+.spark-total{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;font-weight:700;color:var(--accent)}
 .table-card{background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius);overflow:hidden;margin-bottom:12px;backdrop-filter:blur(20px);opacity:0;transform:translateY(20px);transition:opacity .5s ease,transform .5s cubic-bezier(.34,1.56,.64,1)}
 .table-card.visible{opacity:1;transform:translateY(0)}
 .table-head{padding:16px 20px;border-bottom:1px solid var(--glass-border);display:flex;align-items:center;justify-content:space-between}
@@ -144,12 +144,12 @@ html{overflow-x:hidden}
 .t-row:last-child{border-bottom:none}
 .t-row:hover{background:rgba(255,255,255,.04)}
 @keyframes rowIn{from{opacity:0;transform:translateX(-14px)}to{opacity:1;transform:translateX(0)}}
-.t-hora{font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:500;color:var(--text-soft)}
+.t-hora{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:12px;font-weight:500;color:var(--text-soft)}
 .t-nombre{font-size:13px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tipo-pill{font-size:10px;font-weight:600;padding:4px 9px;border-radius:999px;white-space:nowrap;display:inline-block;letter-spacing:.02em}
 .tp-t{background:rgba(61,90,254,.12);color:var(--accent);border:1px solid rgba(61,90,254,.2)}
 .tp-p{background:var(--amber-dim);color:var(--amber);border:1px solid rgba(244,164,53,.25)}
-.t-monto{font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;color:var(--text);text-align:right;letter-spacing:-.2px}
+.t-monto{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;font-weight:700;color:var(--text);text-align:right;letter-spacing:-.2px}
 .exc-card{background:var(--glass);border:1px solid rgba(244,85,85,.2);border-radius:var(--radius);overflow:hidden;margin-bottom:12px;backdrop-filter:blur(20px);opacity:0;transform:translateY(20px);transition:opacity .5s ease,transform .5s cubic-bezier(.34,1.56,.64,1)}
 .exc-card.visible{opacity:1;transform:translateY(0)}
 .exc-head{padding:14px 20px;border-bottom:1px solid rgba(244,85,85,.15);display:flex;align-items:center;gap:8px}
@@ -162,7 +162,7 @@ html{overflow-x:hidden}
 .env-pill{font-size:11px;font-weight:600;background:var(--amber-dim);color:var(--amber);border:1px solid rgba(244,164,53,.25);padding:3px 10px;border-radius:999px}
 .env-total-row{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-bottom:1px solid rgba(244,164,53,.1)}
 .env-total-label{font-size:12px;color:var(--text-soft)}
-.env-total-val{font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;color:var(--amber)}
+.env-total-val{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:16px;font-weight:700;color:var(--amber)}
 .empty{padding:32px 20px;text-align:center;color:var(--text-soft);font-size:13px;line-height:1.7}
 .cierre-total .total-value{background:linear-gradient(135deg,var(--accent),#6B7FFF);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .cierre-label{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--text-soft);margin:20px 4px 12px}
@@ -172,11 +172,11 @@ html{overflow-x:hidden}
 .trc-name{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:600;color:var(--text)}
 .trc-dot{width:9px;height:9px;border-radius:50%}
 .trc-right{display:flex;align-items:center;gap:8px}
-.trc-pct{font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;color:var(--text-soft)}
+.trc-pct{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;font-weight:600;color:var(--text-soft)}
 .trc-chevron{color:var(--text-soft);transition:transform .3s ease}
 .turno-resumen-card.open .trc-chevron{transform:rotate(180deg)}
 .trc-clickable{cursor:pointer;user-select:none}
-.trc-total{font-family:'Space Grotesk',sans-serif;font-size:28px;font-weight:700;letter-spacing:-.6px;color:var(--text);margin-bottom:12px}
+.trc-total{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:28px;font-weight:700;letter-spacing:-.6px;color:var(--text);margin-bottom:12px}
 .trc-bar{height:6px;background:rgba(255,255,255,.08);border-radius:999px;overflow:hidden;margin-bottom:12px}
 .trc-bar-fill{height:100%;width:0;border-radius:999px;transition:width .9s cubic-bezier(.34,1.56,.64,1)}
 .trc-detail{display:flex;gap:16px;font-size:12px;color:var(--text-mid);align-items:center;flex-wrap:wrap}
@@ -188,24 +188,24 @@ html{overflow-x:hidden}
 .horas-card{margin-bottom:12px;padding:18px 20px}
 .hora-row{display:grid;grid-template-columns:44px 1fr 72px;align-items:center;gap:10px;margin-bottom:10px}
 .hora-row:last-child{margin-bottom:0}
-.hora-lbl{font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:500;color:var(--text-soft);text-align:right}
+.hora-lbl{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:11px;font-weight:500;color:var(--text-soft);text-align:right}
 .hora-track{height:8px;background:rgba(255,255,255,.06);border-radius:999px;overflow:visible;position:relative}
 .hora-bar-t{position:absolute;top:0;left:0;height:100%;border-radius:999px;background:#3D5AFE;width:0;transition:width .8s cubic-bezier(.34,1.56,.64,1)}
 .hora-bar-p{position:absolute;top:0;height:100%;border-radius:999px;background:#f4a435;width:0;transition:width .8s cubic-bezier(.34,1.56,.64,1) .1s}
-.hora-monto{font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:600;color:var(--text-mid);text-align:right}
+.hora-monto{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:11px;font-weight:600;color:var(--text-mid);text-align:right}
 .hora-pico .hora-lbl{color:var(--accent)}
 .hora-pico .hora-monto{color:var(--accent)}
 .seccion-titulo{display:flex;align-items:center;gap:12px;margin:28px 0 16px}
 .seccion-linea{flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--glass-border),transparent)}
 .seccion-label{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--text-soft);white-space:nowrap}
 .otros-turnos-row{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
-.btn-ver-turno{flex:1;min-width:120px;display:flex;align-items:center;justify-content:center;gap:8px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);padding:12px 16px;font-size:13px;font-weight:600;font-family:'Outfit',sans-serif;color:var(--text-mid);cursor:pointer;backdrop-filter:blur(10px);transition:all .2s ease}
+.btn-ver-turno{flex:1;min-width:120px;display:flex;align-items:center;justify-content:center;gap:8px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);padding:12px 16px;font-size:13px;font-weight:600;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:var(--text-mid);cursor:pointer;backdrop-filter:blur(10px);transition:all .2s ease}
 .btn-ver-turno:hover{background:var(--glass-hover);color:var(--text);transform:translateY(-2px)}
 .btn-ver-turno:active{transform:scale(.97)}
 .btn-ver-turno .t-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 
 /* ─── HISTORIAL ─── */
-.btn-historial{display:inline-flex;align-items:center;gap:6px;background:var(--glass);border:1px solid var(--glass-border);border-radius:999px;color:var(--text-mid);font-size:12px;font-weight:500;font-family:'Outfit',sans-serif;padding:5px 12px;cursor:pointer;backdrop-filter:blur(10px);transition:all .2s ease}
+.btn-historial{display:inline-flex;align-items:center;gap:6px;background:var(--glass);border:1px solid var(--glass-border);border-radius:999px;color:var(--text-mid);font-size:12px;font-weight:500;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;padding:5px 12px;cursor:pointer;backdrop-filter:blur(10px);transition:all .2s ease}
 .btn-historial:hover{background:var(--glass-hover);color:var(--text)}
 .historial-overlay{position:fixed;inset:0;z-index:1000;background:var(--bg1);display:none;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
 .historial-overlay.open{display:block}
@@ -222,19 +222,19 @@ html{overflow-x:hidden}
 .hist-dia-sub{font-size:12px;color:var(--text-soft);margin-top:3px}
 .hist-dia-total-row{display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding-top:12px;border-top:1px solid var(--glass-border)}
 .hist-dia-total-lbl{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text-soft)}
-.hist-dia-total{font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;color:var(--accent);letter-spacing:-.5px}
+.hist-dia-total{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:22px;font-weight:700;color:var(--accent);letter-spacing:-.5px}
 .hist-dia-turnos-preview{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
 .hist-turno-chip{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.05);border:1px solid var(--glass-border);border-radius:999px;padding:4px 10px;font-size:11px;color:var(--text-mid)}
 .hist-turno-chip-dot{width:6px;height:6px;border-radius:50%}
 .hist-empty{padding:40px 0;text-align:center;color:var(--text-soft);font-size:13px;line-height:1.8}
 
 /* Detalle día */
-.btn-volver{display:inline-flex;align-items:center;gap:6px;background:none;border:none;color:var(--accent);font-size:13px;font-weight:600;font-family:'Outfit',sans-serif;cursor:pointer;padding:0;margin-bottom:20px}
+.btn-volver{display:inline-flex;align-items:center;gap:6px;background:none;border:none;color:var(--accent);font-size:13px;font-weight:600;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;cursor:pointer;padding:0;margin-bottom:20px}
 .hist-dia-titulo{font-size:20px;font-weight:700;color:var(--text);letter-spacing:-.4px;margin-bottom:4px;text-transform:capitalize}
 .hist-detalle-total-card{background:linear-gradient(135deg,rgba(61,90,254,.12),rgba(107,127,255,.06));border:1px solid rgba(61,90,254,.25);border-radius:var(--radius);padding:20px 22px;margin-bottom:20px;position:relative;overflow:hidden}
 .hist-detalle-total-card::after{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--accent),transparent);opacity:.5}
 .hist-detalle-total-label{font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:6px}
-.hist-detalle-total-val{font-family:'Space Grotesk',sans-serif;font-size:44px;font-weight:700;letter-spacing:-1.5px;background:linear-gradient(135deg,#fff,rgba(255,255,255,.7));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hist-detalle-total-val{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:44px;font-weight:700;letter-spacing:-1.5px;background:linear-gradient(135deg,#fff,rgba(255,255,255,.7));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .hist-detalle-total-sub{font-size:12px;color:var(--text-soft);margin-top:6px}
 
 /* Tarjetas de turno en detalle */
@@ -246,7 +246,7 @@ html{overflow-x:hidden}
 .hist-turno-nombre{font-size:15px;font-weight:600;color:var(--text)}
 .hist-turno-horario{font-size:11px;color:var(--text-soft);margin-top:2px}
 .hist-turno-right{text-align:right}
-.hist-turno-total{font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700;color:var(--text);letter-spacing:-.4px}
+.hist-turno-total{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:20px;font-weight:700;color:var(--text);letter-spacing:-.4px}
 .hist-turno-chevron{color:var(--text-soft);transition:transform .3s ease;margin-left:8px;flex-shrink:0}
 .hist-turno-card.open .hist-turno-chevron{transform:rotate(180deg)}
 .hist-turno-body{max-height:0;overflow:hidden;transition:max-height .4s ease}
@@ -375,7 +375,7 @@ html{overflow-x:hidden}
 #cierreManualOverlay .historial-title,
 .cm-title-soft{
   display:block;
-  font-family:'Instrument Serif',serif;
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   font-size:34px;
   line-height:1;
   font-weight:400;
@@ -414,7 +414,7 @@ html{overflow-x:hidden}
   padding:10px 8px;
   background:transparent;
   color:var(--cm-ink-soft);
-  font-family:'Inter',sans-serif;
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   font-size:12.5px;
   font-weight:700;
   cursor:pointer;
@@ -441,7 +441,7 @@ html{overflow-x:hidden}
   border:1px solid var(--cm-border);
   background:var(--cm-surface);
   color:var(--cm-ink-mid);
-  font-family:'Inter',sans-serif;
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   font-weight:700;
   font-size:13.5px;
   cursor:pointer;
@@ -480,7 +480,7 @@ html{overflow-x:hidden}
 }
 .cm-value,
 .cm-total-value{
-  font-family:'Instrument Serif',serif;
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   font-size:42px;
   line-height:1;
   font-weight:400;
@@ -488,7 +488,7 @@ html{overflow-x:hidden}
   color:var(--cm-ink);
 }
 .cm-mini-value{
-  font-family:'Instrument Serif',serif;
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   font-size:26px;
   line-height:1;
   font-weight:400;
@@ -526,7 +526,7 @@ html{overflow-x:hidden}
   border-radius:var(--cm-radius-sm);
   padding:13px 14px;
   color:var(--cm-ink);
-  font-family:'Inter',sans-serif;
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   font-size:17px;
   font-weight:700;
   outline:none;
@@ -575,7 +575,7 @@ html{overflow-x:hidden}
   border:none!important;
   border-radius:999px!important;
   padding:15px!important;
-  font-family:'Inter',sans-serif!important;
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif!important;
   font-size:14px!important;
   font-weight:800!important;
   box-shadow:0 2px 8px rgba(0,0,0,.35)!important;
@@ -616,7 +616,7 @@ html{overflow-x:hidden}
   color:var(--cm-ink-mid);
   font-size:12px;
   font-weight:700;
-  font-family:'Inter',sans-serif;
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   border-radius:999px;
   padding:6px 13px;
   cursor:pointer;
@@ -729,7 +729,7 @@ html{overflow-x:hidden}
 }
 .cm-resumen-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
 .cm-resumen-total{
-  font-family:'Instrument Serif',serif;
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   font-size:26px;
   font-weight:400;
   color:var(--cm-ink);
@@ -872,7 +872,7 @@ body{
   background:var(--accent)!important;box-shadow:none!important;
 }
 .logo-name{
-  font-family:'Instrument Serif',serif!important;
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif!important;
   font-size:31px!important;
   line-height:1!important;
   font-weight:400!important;
@@ -943,7 +943,7 @@ body{
 .hero-card::before{display:none!important}
 .hero-top-row{margin-bottom:12px!important}
 .hero-reloj{
-  font-family:'Inter',sans-serif!important;
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif!important;
   color:var(--text-soft)!important;
   font-size:12px!important;
   font-weight:600!important;
@@ -960,7 +960,7 @@ body{
 }
 .turno-chip .dot{box-shadow:none!important;background:var(--accent)!important}
 .turno-nombre{
-  font-family:'Instrument Serif',serif!important;
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif!important;
   font-size:38px!important;
   line-height:1.03!important;
   font-weight:400!important;
@@ -980,7 +980,7 @@ body{
   border:none!important;
   border-radius:999px!important;
   padding:13px 18px!important;
-  font-family:'Inter',sans-serif!important;
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif!important;
   font-size:14px!important;
   font-weight:700!important;
   box-shadow:var(--shadow-sm)!important;
@@ -1020,10 +1020,10 @@ body{
 .total-card::after,.hist-detalle-total-card::after{display:none!important}
 .total-label,.gc-label,.dc-label,.table-title,.spark-title,.cierre-label,.hist-detalle-total-label,.hist-horas-title,.hist-movs-title,.cm-label{
   color:var(--text-soft)!important;
-  font-family:'Inter',sans-serif!important;
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif!important;
 }
 .total-value,.gc-value,.dc-value,.trc-total,.hist-dia-total,.hist-detalle-total-val,.hist-turno-total,.cm-value,.cm-total-value,.cm-mini-value,.cm-resumen-total{
-  font-family:'Instrument Serif',serif!important;
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif!important;
   font-weight:400!important;
   letter-spacing:-.5px!important;
   color:var(--text)!important;
@@ -1069,7 +1069,7 @@ body{
   padding:22px 18px 70px!important;
 }
 .historial-title{
-  font-family:'Instrument Serif',serif!important;
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif!important;
   font-size:30px!important;
   font-weight:400!important;
   color:var(--text)!important;
@@ -1090,7 +1090,7 @@ body{
   border:1px solid var(--glass-border)!important;
   box-shadow:var(--shadow-sm)!important;
 }
-.cm-tab{font-family:'Inter',sans-serif!important;color:var(--text-soft)!important}
+.cm-tab{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif!important;color:var(--text-soft)!important}
 .cm-tab.active{background:var(--text)!important;color:var(--bg1)!important}
 .cm-turno-btn{
   background:var(--glass)!important;
@@ -1110,7 +1110,7 @@ body{
   color:var(--text)!important;
   box-shadow:var(--shadow-sm)!important;
   border-radius:var(--radius-sm)!important;
-  font-family:'Inter',sans-serif!important;
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif!important;
 }
 .cm-field input:focus,.cm-gasto-form input:focus{border-color:var(--accent)!important}
 .cm-field label{color:var(--text)!important}
@@ -1212,7 +1212,7 @@ body{
     margin-bottom:8px!important;
   }
   .hero-side-kpi{
-    font-family:'Instrument Serif',serif!important;
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif!important;
     font-size:34px!important;
     line-height:1!important;
     color:var(--accent)!important;
@@ -1228,7 +1228,7 @@ body{
     color:var(--text-mid)!important;
     border-radius:999px!important;
     padding:10px 12px!important;
-    font-family:'Inter',sans-serif!important;
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif!important;
     font-size:12px!important;
     font-weight:800!important;
     cursor:pointer!important;
@@ -1287,7 +1287,7 @@ body{
   margin-bottom:14px;
 }
 .hist-month-title{
-  font-family:'Instrument Serif',serif;
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   font-size:31px;
   font-weight:400;
   letter-spacing:-.5px;
@@ -1309,7 +1309,7 @@ body{
   color:var(--text);
   border-radius:999px;
   padding:9px 13px;
-  font-family:'Outfit',sans-serif;
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   font-weight:700;
   cursor:pointer;
 }
@@ -1335,7 +1335,7 @@ body{
   margin-bottom:5px;
 }
 .hist-sum-value{
-  font-family:'Space Grotesk',sans-serif;
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   font-weight:800;
   font-size:20px;
   color:var(--text);
@@ -1388,7 +1388,7 @@ body{
   border-color:rgba(95,214,138,.28);
 }
 .hist-day-num{
-  font-family:'Space Grotesk',sans-serif;
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   font-size:14px;
   font-weight:800;
   color:var(--text);
@@ -1399,7 +1399,7 @@ body{
   gap:3px;
 }
 .hist-day-main{
-  font-family:'Space Grotesk',sans-serif;
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   font-weight:800;
   font-size:13px;
   color:var(--text);
@@ -1454,7 +1454,7 @@ body{
   margin-bottom:6px;
 }
 .hist-detail-value{
-  font-family:'Space Grotesk',sans-serif;
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   font-size:22px;
   font-weight:800;
   color:var(--text);
@@ -1552,6 +1552,87 @@ body.light .mp-mini-badge{
   .logo-name-row{gap:7px}
   .mp-mini-badge{height:32px;padding:3px 7px;margin-left:2px}
   .mp-mini-logo{height:25px}
+}
+
+
+
+/* ─── TIPOGRAFÍA PROFESIONAL ───
+   Inter para toda la app + números tabulares para importes, horas y tablas.
+   Esto evita que los montos "bailen" cuando cambian los dígitos. */
+body,
+button,
+input,
+select,
+textarea{
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif!important;
+  font-feature-settings:'cv11' 1;
+  text-rendering:optimizeLegibility;
+}
+
+.logo-name,
+.turno-nombre,
+.total-value,
+.gc-value,
+.dc-value,
+.t-monto,
+.trc-total,
+.hist-dia-total,
+.hist-detalle-total-val,
+.hist-turno-total,
+.cm-value,
+.cm-total-value,
+.cm-mini-value,
+.card-value,
+.resumen-total,
+.totales-value{
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif!important;
+  font-weight:700!important;
+  letter-spacing:-0.045em;
+}
+
+.total-value,
+.gc-value,
+.dc-value,
+.t-monto,
+.trc-total,
+.hist-dia-total,
+.hist-detalle-total-val,
+.hist-turno-total,
+.cm-value,
+.cm-total-value,
+.cm-mini-value,
+.card-value,
+.resumen-total,
+.totales-value,
+.hora-monto,
+.hora-lbl,
+.hero-reloj,
+.fecha-chip,
+.cm-breakdown,
+.resumen-detail,
+.hist-stat-chip{
+  font-variant-numeric:tabular-nums;
+  font-feature-settings:'tnum' 1,'lnum' 1,'cv11' 1;
+}
+
+.turno-nombre{
+  font-size:34px;
+  line-height:1.05;
+}
+
+.total-value{
+  font-size:42px;
+  line-height:1;
+}
+
+.hist-detalle-total-val{
+  font-size:40px;
+}
+
+@media(max-width:600px){
+  .turno-nombre{font-size:28px;}
+  .total-value{font-size:34px;}
+  .hist-detalle-total-val{font-size:32px;}
 }
 
 </style>
