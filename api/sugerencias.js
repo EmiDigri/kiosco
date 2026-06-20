@@ -1,6 +1,8 @@
-// Paso 2 — API propia de autosugerencias para Vercel.
+// Paso 3 — API propia de autosugerencias para Vercel.
 // Endpoint: /api/sugerencias?q=oreo
-// Por ahora usa un catálogo simulado. En el próximo paso este endpoint se conecta a proveedores reales.
+// Ahora mezcla catálogo simulado + primer proveedor real: Mayorista 12 de Octubre.
+
+const { searchMayorista12 } = require('./lib/mayorista12');
 
 const PRODUCTS = [
   {
@@ -115,6 +117,112 @@ const PRODUCTS = [
       { name: 'Masivos', logo: 'Mas', price: 2390, best: true },
       { name: 'Mercado Libre ref.', logo: 'ML', price: 2700 }
     ]
+  },
+  {
+    id: 'cocaLata354', kind: 'coca', title: 'Coca-Cola Lata 354ml', meta: 'Bebidas · Lata', providersCount: 3,
+    tags: ['Bebidas', 'Gaseosas', 'Coca-Cola'], pack: 'Lata 354ml', keys: ['coca', 'coca cola', 'coca-cola', 'lata', '354', '354ml', 'bebida', 'gaseosa'],
+    prices: [
+      { name: 'Distribuidora OKS', logo: 'OKS', price: 890, best: true },
+      { name: 'Masivos', logo: 'Mas', price: 930 },
+      { name: 'Mercado Libre ref.', logo: 'ML', price: 1050 }
+    ]
+  },
+  {
+    id: 'cocaMini220', kind: 'coca', title: 'Coca-Cola Mini 220ml', meta: 'Bebidas · Mini', providersCount: 2,
+    tags: ['Bebidas', 'Gaseosas', 'Coca-Cola'], pack: 'Botellita / lata 220ml', keys: ['coca', 'coca cola', 'mini', '220', '220ml', 'bebida', 'gaseosa'],
+    prices: [
+      { name: 'Distribuidora OKS', logo: 'OKS', price: 620, best: true },
+      { name: 'Masivos', logo: 'Mas', price: 690 }
+    ]
+  },
+  {
+    id: 'coca600', kind: 'coca', title: 'Coca-Cola 600ml', meta: 'Bebidas · Botella', providersCount: 3,
+    tags: ['Bebidas', 'Gaseosas', 'Coca-Cola'], pack: 'Botella 600ml', keys: ['coca', 'coca cola', '600', '600ml', 'bebida', 'gaseosa'],
+    prices: [
+      { name: 'Distribuidora OKS', logo: 'OKS', price: 1120, best: true },
+      { name: 'Masivos', logo: 'Mas', price: 1180 },
+      { name: 'Mercado Libre ref.', logo: 'ML', price: 1300 }
+    ]
+  },
+  {
+    id: 'coca1L', kind: 'coca', title: 'Coca-Cola 1L', meta: 'Bebidas · Botella', providersCount: 3,
+    tags: ['Bebidas', 'Gaseosas', 'Coca-Cola'], pack: 'Botella 1L', keys: ['coca', 'coca cola', '1l', '1 litro', '1000', 'bebida', 'gaseosa'],
+    prices: [
+      { name: 'Distribuidora OKS', logo: 'OKS', price: 1480, best: true },
+      { name: 'Masivos', logo: 'Mas', price: 1560 },
+      { name: 'Mercado Libre ref.', logo: 'ML', price: 1700 }
+    ]
+  },
+  {
+    id: 'coca125', kind: 'coca', title: 'Coca-Cola 1.25L', meta: 'Bebidas · Botella', providersCount: 3,
+    tags: ['Bebidas', 'Gaseosas', 'Coca-Cola'], pack: 'Botella 1.25L', keys: ['coca', 'coca cola', '1.25', '125', '1,25', 'bebida', 'gaseosa'],
+    prices: [
+      { name: 'Distribuidora OKS', logo: 'OKS', price: 1760, best: true },
+      { name: 'Masivos', logo: 'Mas', price: 1830 },
+      { name: 'Mercado Libre ref.', logo: 'ML', price: 1990 }
+    ]
+  },
+  {
+    id: 'coca15', kind: 'coca', title: 'Coca-Cola 1.5L', meta: 'Bebidas · Botella', providersCount: 3,
+    tags: ['Bebidas', 'Gaseosas', 'Coca-Cola'], pack: 'Botella 1.5L', keys: ['coca', 'coca cola', '1.5', '1,5', '1500', 'litro y medio', 'bebida', 'gaseosa'],
+    prices: [
+      { name: 'Distribuidora OKS', logo: 'OKS', price: 1980, best: true },
+      { name: 'Masivos', logo: 'Mas', price: 2070 },
+      { name: 'Mercado Libre ref.', logo: 'ML', price: 2250 }
+    ]
+  },
+  {
+    id: 'coca175', kind: 'coca', title: 'Coca-Cola 1.75L', meta: 'Bebidas · Botella', providersCount: 2,
+    tags: ['Bebidas', 'Gaseosas', 'Coca-Cola'], pack: 'Botella 1.75L', keys: ['coca', 'coca cola', '1.75', '1,75', '1750', 'bebida', 'gaseosa'],
+    prices: [
+      { name: 'Distribuidora OKS', logo: 'OKS', price: 2180, best: true },
+      { name: 'Masivos', logo: 'Mas', price: 2290 }
+    ]
+  },
+  {
+    id: 'coca2L', kind: 'coca', title: 'Coca-Cola 2L', meta: 'Bebidas · Botella', providersCount: 3,
+    tags: ['Bebidas', 'Gaseosas', 'Coca-Cola'], pack: 'Botella 2L', keys: ['coca', 'coca cola', '2l', '2 litros', '2000', 'bebida', 'gaseosa'],
+    prices: [
+      { name: 'Distribuidora OKS', logo: 'OKS', price: 2280 },
+      { name: 'Masivos', logo: 'Mas', price: 2220, best: true },
+      { name: 'Mercado Libre ref.', logo: 'ML', price: 2500 }
+    ]
+  },
+  {
+    id: 'coca3L', kind: 'coca', title: 'Coca-Cola 3L', meta: 'Bebidas · Botella familiar', providersCount: 3,
+    tags: ['Bebidas', 'Gaseosas', 'Coca-Cola'], pack: 'Botella 3L', keys: ['coca', 'coca cola', '3l', '3 litros', '3000', 'familiar', 'bebida', 'gaseosa'],
+    prices: [
+      { name: 'Distribuidora OKS', logo: 'OKS', price: 3180 },
+      { name: 'Masivos', logo: 'Mas', price: 3090, best: true },
+      { name: 'Mercado Libre ref.', logo: 'ML', price: 3500 }
+    ]
+  },
+  {
+    id: 'cocaZero500', kind: 'coca', title: 'Coca-Cola Zero 500ml', meta: 'Bebidas · Sin azúcar', providersCount: 3,
+    tags: ['Bebidas', 'Gaseosas', 'Coca-Cola Zero'], pack: 'Botella 500ml', keys: ['coca', 'coca cola', 'zero', 'sin azucar', 'sin azúcar', '500', '500ml', 'bebida', 'gaseosa'],
+    prices: [
+      { name: 'Distribuidora OKS', logo: 'OKS', price: 1010, best: true },
+      { name: 'Masivos', logo: 'Mas', price: 1060 },
+      { name: 'Mercado Libre ref.', logo: 'ML', price: 1180 }
+    ]
+  },
+  {
+    id: 'cocaZero15', kind: 'coca', title: 'Coca-Cola Zero 1.5L', meta: 'Bebidas · Sin azúcar', providersCount: 3,
+    tags: ['Bebidas', 'Gaseosas', 'Coca-Cola Zero'], pack: 'Botella 1.5L', keys: ['coca', 'coca cola', 'zero', 'sin azucar', 'sin azúcar', '1.5', '1,5', '1500', 'bebida', 'gaseosa'],
+    prices: [
+      { name: 'Distribuidora OKS', logo: 'OKS', price: 2050 },
+      { name: 'Masivos', logo: 'Mas', price: 1990, best: true },
+      { name: 'Mercado Libre ref.', logo: 'ML', price: 2300 }
+    ]
+  },
+  {
+    id: 'cocaZero225', kind: 'coca', title: 'Coca-Cola Zero 2.25L', meta: 'Bebidas · Sin azúcar', providersCount: 3,
+    tags: ['Bebidas', 'Gaseosas', 'Coca-Cola Zero'], pack: 'Botella 2.25L', keys: ['coca', 'coca cola', 'zero', 'sin azucar', 'sin azúcar', '2.25', '2,25', '2250', 'bebida', 'gaseosa'],
+    prices: [
+      { name: 'Distribuidora OKS', logo: 'OKS', price: 2490 },
+      { name: 'Masivos', logo: 'Mas', price: 2420, best: true },
+      { name: 'Mercado Libre ref.', logo: 'ML', price: 2760 }
+    ]
   }
 ];
 
@@ -139,19 +247,59 @@ function matches(product, q) {
   return haystack.includes(nq) || (product.keys || []).some(k => nq.includes(normalize(k)));
 }
 
-module.exports = function handler(req, res) {
+function mergeItems(realItems, fallbackItems, limit = 15) {
+  const seen = new Set();
+  const merged = [];
+  for (const item of [...realItems, ...fallbackItems]) {
+    const key = normalize(item.url || item.title || item.id);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    merged.push(item);
+    if (merged.length >= limit) break;
+  }
+  return merged;
+}
+
+module.exports = async function handler(req, res) {
   const q = String(req.query.q || '').trim();
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
-  res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=300');
+  res.setHeader('Cache-Control', 's-maxage=90, stale-while-revalidate=600');
 
   if (!q) {
-    return res.status(200).json({ ok: true, q, count: 0, items: [] });
+    return res.status(200).json({ ok: true, step: 3, q, count: 0, items: [] });
   }
 
-  const items = PRODUCTS
+  const fallbackItems = PRODUCTS
     .filter(product => matches(product, q))
-    .slice(0, 8)
+    .slice(0, 15)
     .map(product => ({ ...product, source: 'catalogo_simulado_api' }));
 
-  return res.status(200).json({ ok: true, q, count: items.length, items });
+  let realItems = [];
+  let providerErrors = [];
+
+  try {
+    const live = await searchMayorista12(q, { limit: 12 });
+    realItems = (live.items || []).map(item => ({
+      ...item,
+      source: 'proveedor_real_mayorista12',
+      providersCount: 1
+    }));
+    providerErrors = live.errors || [];
+  } catch (err) {
+    providerErrors = [{ provider: 'Mayorista 12 de Octubre', error: String(err && err.message || err) }];
+  }
+
+  const items = mergeItems(realItems, fallbackItems, 15);
+
+  return res.status(200).json({
+    ok: true,
+    step: 3,
+    q,
+    count: items.length,
+    realCount: realItems.length,
+    fallbackCount: fallbackItems.length,
+    provider: 'Mayorista 12 de Octubre',
+    items,
+    errors: providerErrors
+  });
 };
