@@ -2271,7 +2271,7 @@ img,svg,canvas{max-width:100%}
     <div class="historial-header">
       <div>
         <span class="historial-title">Buscar precios</span>
-        <div class="bp-head-sub">Autosugerencias y comparación simulada. Paso 1 visual.</div>
+        <div class="bp-head-sub">Autosugerencias servidas desde API propia. Paso 2.</div>
       </div>
       <button class="btn-cerrar-hist" id="btnCerrarBuscarPrecios" title="Cerrar">✕</button>
     </div>
@@ -2326,7 +2326,7 @@ img,svg,canvas{max-width:100%}
         </div>
       </div>
 
-      <div class="bp-note">Los precios de este paso son simulados. La versión real se conectaría a proveedores desde una API backend y traería imagen real, link y precio actualizado.</div>
+      <div class="bp-note">Paso 2: las autosugerencias ya salen de /api/sugerencias.js. Los precios siguen simulados hasta conectar proveedores reales.</div>
     </div>
   </div>
 </div>
@@ -3208,7 +3208,7 @@ document.querySelectorAll('.cm-caja-btn').forEach(btn=>btn.addEventListener('cli
 
 
 // ─── BUSCAR PRECIOS MVP SIMULADO ───
-const BP_DATA=[
+const BP_FALLBACK_DATA=[
   {id:'oreo118',kind:'oreo',title:'Oreo Original 118g',meta:'Galletitas dulces · Mondelez',providersCount:3,tags:['Golosinas','Galletitas','Mondelez'],pack:'Paquete x 118g',keys:['oreo','galletita'],prices:[
     {name:'El Goloso',logo:'El Goloso',price:1790,best:true},{name:'Distribuidora OKS',logo:'OKS',price:1850},{name:'Golomax',logo:'Golomax',price:1920}
   ]},
@@ -3248,16 +3248,18 @@ const BP_DATA=[
 ];
 const bpFmt=n=>'$'+Math.round(Number(n)||0).toLocaleString('es-AR');
 function bpPack(kind,big=false){const cls=big?'bp-big-pack':'bp-pack';const txt=kind==='oreo'?'OREO':kind==='bic'?'BIC':kind==='coca'?'Coca':'PROD';return `<div class="${cls} ${kind}">${txt}</div>`;}
-function bpMatches(term){term=(term||'').trim().toLowerCase();if(!term)return[];return BP_DATA.filter(p=>p.title.toLowerCase().includes(term)||p.keys.some(k=>k.includes(term)||term.includes(k))).slice(0,7);}
-function bpRenderSuggestions(){const input=document.getElementById('bpInput'),box=document.getElementById('bpSuggestions');if(!input||!box)return;const list=bpMatches(input.value);if(!input.value.trim()){box.classList.remove('open');box.innerHTML='';return;}if(!list.length){box.innerHTML='<div class="bp-sug-head"><span>Sugerencias</span><span>0</span></div><div style="padding:16px;color:var(--ink-soft)">No encontré sugerencias. Probá “oreo”, “bic” o “coca”.</div>';box.classList.add('open');return;}box.innerHTML=`<div class="bp-sug-head"><span>Sugerencias</span><span>${list.length} encontradas</span></div>`+list.map(p=>`<div class="bp-sug-item" data-id="${p.id}"><div class="bp-thumb">${bpPack(p.kind)}</div><div><div class="bp-sug-name">${p.title}</div><div class="bp-sug-meta">${p.meta}</div></div><div class="bp-provider-count">${p.providersCount} proveedores</div></div>`).join('');box.classList.add('open');box.querySelectorAll('.bp-sug-item').forEach(el=>el.addEventListener('click',()=>bpSelect(el.dataset.id)));}
-function bpSelect(id){const p=BP_DATA.find(x=>x.id===id)||bpMatches(document.getElementById('bpInput')?.value)[0];if(!p)return;document.getElementById('bpInput').value=p.title;document.getElementById('bpSuggestions').classList.remove('open');bpRenderResults(p);}
+let bpCurrentSuggestions=[];
+function bpFallbackMatches(term){term=(term||'').trim().toLowerCase();if(!term)return[];return BP_FALLBACK_DATA.filter(p=>p.title.toLowerCase().includes(term)||p.keys.some(k=>k.includes(term)||term.includes(k))).slice(0,8);}
+async function bpFetchSuggestions(term){term=(term||'').trim();if(!term)return[];try{const res=await fetch('/api/sugerencias?q='+encodeURIComponent(term),{headers:{'Accept':'application/json'}});if(res.ok){const data=await res.json();const items=Array.isArray(data)?data:Array.isArray(data.items)?data.items:[];if(items.length)return items;}}catch(err){console.warn('API sugerencias no disponible, usando fallback local',err);}return bpFallbackMatches(term);}
+async function bpRenderSuggestions(){const input=document.getElementById('bpInput'),box=document.getElementById('bpSuggestions');if(!input||!box)return;const term=input.value;if(!term.trim()){bpCurrentSuggestions=[];box.classList.remove('open');box.innerHTML='';return;}box.innerHTML='<div class="bp-sug-head"><span>Sugerencias</span><span>buscando…</span></div><div style="padding:16px;color:var(--ink-soft)">Consultando /api/sugerencias.js</div>';box.classList.add('open');const list=await bpFetchSuggestions(term);bpCurrentSuggestions=list;if(!input.value.trim())return;if(!list.length){box.innerHTML='<div class="bp-sug-head"><span>Sugerencias</span><span>0</span></div><div style="padding:16px;color:var(--ink-soft)">No encontré sugerencias. Probá “oreo”, “bic” o “coca”.</div>';box.classList.add('open');return;}box.innerHTML=`<div class="bp-sug-head"><span>Sugerencias</span><span>${list.length} encontradas · API</span></div>`+list.map(p=>`<div class="bp-sug-item" data-id="${p.id}"><div class="bp-thumb">${bpPack(p.kind)}</div><div><div class="bp-sug-name">${p.title}</div><div class="bp-sug-meta">${p.meta||''}</div></div><div class="bp-provider-count">${p.providersCount||0} proveedores</div></div>`).join('');box.classList.add('open');box.querySelectorAll('.bp-sug-item').forEach(el=>el.addEventListener('click',()=>bpSelect(el.dataset.id)));}
+function bpSelect(id){const p=bpCurrentSuggestions.find(x=>x.id===id)||BP_FALLBACK_DATA.find(x=>x.id===id)||bpFallbackMatches(document.getElementById('bpInput')?.value)[0];if(!p)return;document.getElementById('bpInput').value=p.title;document.getElementById('bpSuggestions').classList.remove('open');bpRenderResults(p);}
 function bpRenderResults(p){const res=document.getElementById('bpResults');if(!res)return;res.classList.add('visible');document.getElementById('bpBigImg').innerHTML=bpPack(p.kind,true);document.getElementById('bpProductTitle').textContent=p.title;document.getElementById('bpProductSub').textContent=`${p.providersCount} proveedores encontrados · ${p.meta}`;document.getElementById('bpTags').innerHTML=p.tags.map(t=>`<span class="bp-tag">${t}</span>`).join('');const prices=p.prices.map(x=>Number(x.price)||0),min=Math.min(...prices),max=Math.max(...prices),avg=prices.reduce((a,b)=>a+b,0)/prices.length;document.getElementById('bpAvg').textContent=bpFmt(avg);document.getElementById('bpMin').textContent=bpFmt(min);document.getElementById('bpSave').textContent=bpFmt(max-min);document.getElementById('bpPriceGrid').innerHTML=p.prices.map(r=>`<div class="bp-price-card ${r.best?'best':''}">${r.best?'<div class="bp-best">★ Mejor precio</div>':''}<div class="bp-supplier"><div class="bp-supplier-logo">${r.logo}</div><div><div class="bp-supplier-name">${r.name}</div><div class="bp-supplier-type">Mayorista online</div></div></div><div class="bp-item"><div class="bp-mini">${bpPack(p.kind)}</div><div><div class="bp-item-name">${p.title}</div><div class="bp-item-pack">${p.pack}</div></div></div><div class="bp-price">${bpFmt(r.price)}</div><div class="bp-stock">● En stock</div><button class="bp-open">Ver producto ↗</button></div>`).join('');res.scrollIntoView({behavior:'smooth',block:'start'});}
 function bpAbrir(){const overlay=document.getElementById('buscarPreciosOverlay');if(!overlay)return;overlay.classList.add('open');setTimeout(()=>document.getElementById('bpInput')?.focus(),100);}
 function bpCerrar(){document.getElementById('buscarPreciosOverlay')?.classList.remove('open');}
 const bpBtn=document.getElementById('btnBuscarPrecios');if(bpBtn)bpBtn.addEventListener('click',bpAbrir);
 const bpClose=document.getElementById('btnCerrarBuscarPrecios');if(bpClose)bpClose.addEventListener('click',bpCerrar);
-const bpInput=document.getElementById('bpInput');if(bpInput){let bpTimer;bpInput.addEventListener('input',()=>{clearTimeout(bpTimer);bpTimer=setTimeout(bpRenderSuggestions,160);});bpInput.addEventListener('keydown',e=>{if(e.key==='Enter')bpSelect((bpMatches(bpInput.value)[0]||{}).id);});}
-const bpSearch=document.getElementById('bpSearchBtn');if(bpSearch)bpSearch.addEventListener('click',()=>bpSelect((bpMatches(document.getElementById('bpInput')?.value)[0]||{}).id));
+const bpInput=document.getElementById('bpInput');if(bpInput){let bpTimer;bpInput.addEventListener('input',()=>{clearTimeout(bpTimer);bpTimer=setTimeout(bpRenderSuggestions,160);});bpInput.addEventListener('keydown',async e=>{if(e.key==='Enter'){const list=bpCurrentSuggestions.length?bpCurrentSuggestions:await bpFetchSuggestions(bpInput.value);if(list[0])bpSelect(list[0].id);}});}
+const bpSearch=document.getElementById('bpSearchBtn');if(bpSearch)bpSearch.addEventListener('click',async()=>{const i=document.getElementById('bpInput');const list=bpCurrentSuggestions.length?bpCurrentSuggestions:await bpFetchSuggestions(i?.value);if(list[0])bpSelect(list[0].id);});
 const bpClear=document.getElementById('bpClear');if(bpClear)bpClear.addEventListener('click',()=>{const i=document.getElementById('bpInput');if(i)i.value='';document.getElementById('bpSuggestions')?.classList.remove('open');i?.focus();});
 document.querySelectorAll('.bp-hint').forEach(btn=>btn.addEventListener('click',()=>{const i=document.getElementById('bpInput');i.value=btn.dataset.bpQ;bpRenderSuggestions();i.focus();}));
 const buscarPreciosOverlay=document.getElementById('buscarPreciosOverlay');if(buscarPreciosOverlay)buscarPreciosOverlay.addEventListener('click',e=>{if(e.target===buscarPreciosOverlay)bpCerrar();});
