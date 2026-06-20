@@ -1774,52 +1774,246 @@ img,svg,canvas{max-width:100%}
 }
 
 
-
-/* ─── FIX DESKTOP: MOVIMIENTOS SIN SCROLL INTERNO ─── */
-@media(min-width:901px){
-  .dashboard-grid{
-    display:block!important;
-    margin-top:4px!important;
-  }
-  .dashboard-col{
-    width:100%!important;
-    max-width:100%!important;
-    display:flex!important;
-    flex-direction:column!important;
-    gap:14px!important;
-    min-width:0!important;
-  }
-  .dashboard-grid .dashboard-col + .dashboard-col{
-    margin-top:14px!important;
-  }
-  #tableCard,
-  .table-card{
-    max-height:none!important;
-    overflow:visible!important;
-    width:100%!important;
-  }
-  #tablaBody{
-    max-height:none!important;
-    overflow:visible!important;
-  }
-  .table-card .t-row{
-    grid-template-columns:72px minmax(0,1fr) 140px 120px!important;
-    padding:12px 20px!important;
-  }
-  .spark-card,
-  .horas-card{
-    width:100%!important;
-  }
-  .spark-card canvas{
-    max-width:100%!important;
-  }
+/* ─── BUSCAR PRECIOS MVP ─── */
+.bp-panel{max-width:1180px;margin:0 auto}
+.bp-head-sub{font-size:12px;color:var(--ink-soft);margin-top:3px}
+.bp-intro{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:24px;
+  padding:20px;
+  margin-bottom:14px;
+  box-shadow:var(--shadow-sm);
 }
-
-@media(min-width:1200px){
-  .dashboard-grid{
-    display:grid!important;
-    grid-template-columns:minmax(0,1fr)!important;
-  }
+.bp-overline{
+  display:inline-flex;align-items:center;gap:7px;
+  background:var(--accent-soft);
+  color:var(--accent);
+  border:1px solid rgba(124,144,255,.25);
+  border-radius:999px;
+  padding:6px 10px;
+  font-size:10px;font-weight:800;
+  text-transform:uppercase;letter-spacing:.10em;
+  margin-bottom:10px;
+}
+.bp-title{
+  font-size:28px;
+  line-height:1.05;
+  font-weight:850;
+  letter-spacing:-.8px;
+  margin:0 0 6px;
+  color:var(--ink);
+}
+.bp-sub{
+  color:var(--ink-mid);
+  font-size:14px;
+  line-height:1.45;
+  margin-bottom:16px;
+}
+.bp-search-row{
+  display:grid;
+  grid-template-columns:1fr 150px;
+  gap:10px;
+}
+.bp-search-box{position:relative}
+.bp-search-box input{
+  width:100%;
+  border:1px solid var(--border);
+  background:#18181A;
+  color:var(--ink);
+  border-radius:16px;
+  padding:15px 44px 15px 42px;
+  outline:none;
+  font-size:16px;
+  font-weight:750;
+}
+.bp-search-box input:focus{border-color:var(--accent);box-shadow:0 0 0 4px rgba(124,144,255,.12)}
+.bp-search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--accent);font-size:18px}
+.bp-clear{
+  position:absolute;right:9px;top:50%;transform:translateY(-50%);
+  border:1px solid var(--border);
+  background:var(--surface);
+  color:var(--ink-soft);
+  width:30px;height:30px;border-radius:999px;
+  cursor:pointer;
+}
+.bp-btn{
+  border:none;
+  border-radius:16px;
+  background:var(--ink);
+  color:var(--bg);
+  font-size:13px;
+  font-weight:800;
+  cursor:pointer;
+}
+.bp-hints{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.bp-hint{
+  border:1px solid var(--border);
+  background:#18181A;
+  color:var(--ink-mid);
+  border-radius:999px;
+  padding:8px 11px;
+  font-size:12px;
+  font-weight:750;
+  cursor:pointer;
+}
+.bp-suggestions{
+  display:none;
+  margin-top:12px;
+  background:#18181A;
+  border:1px solid var(--border);
+  border-radius:18px;
+  overflow:hidden;
+}
+.bp-suggestions.open{display:block}
+.bp-sug-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:11px 14px;
+  border-bottom:1px solid var(--border-soft);
+  color:var(--accent);
+  font-size:10.5px;
+  font-weight:850;
+  letter-spacing:.10em;
+  text-transform:uppercase;
+}
+.bp-sug-item{
+  display:grid;
+  grid-template-columns:54px 1fr auto;
+  gap:12px;
+  align-items:center;
+  padding:11px 14px;
+  border-bottom:1px solid var(--border-soft);
+  cursor:pointer;
+}
+.bp-sug-item:last-child{border-bottom:none}
+.bp-sug-item:hover{background:rgba(124,144,255,.07)}
+.bp-thumb{
+  width:54px;height:42px;border-radius:12px;
+  background:#101114;
+  border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  overflow:hidden;
+}
+.bp-pack{
+  width:45px;height:25px;border-radius:6px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;font-weight:900;
+  box-shadow:0 8px 14px rgba(0,0,0,.25);
+}
+.bp-pack.oreo{background:linear-gradient(135deg,#0731A7,#1580FF);color:white}
+.bp-pack.bic{background:linear-gradient(135deg,#F8A91C,#FFE171);color:#161616}
+.bp-pack.coca{background:#D91919;color:white}
+.bp-sug-name{font-size:14px;font-weight:850;color:var(--ink)}
+.bp-sug-meta{font-size:11.5px;color:var(--ink-soft);margin-top:2px}
+.bp-provider-count{font-size:11.5px;color:var(--accent);font-weight:850;white-space:nowrap}
+.bp-results{display:none;margin-top:14px}
+.bp-results.visible{display:block}
+.bp-product-card{
+  display:grid;
+  grid-template-columns:180px 1fr;
+  gap:18px;
+  align-items:center;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:24px;
+  padding:18px;
+  margin-bottom:14px;
+}
+.bp-big-img{
+  min-height:132px;
+  border:1px solid var(--border);
+  border-radius:20px;
+  background:radial-gradient(circle at center,rgba(124,144,255,.18),transparent 60%),#131316;
+  display:flex;align-items:center;justify-content:center;
+}
+.bp-big-pack{
+  width:142px;height:80px;border-radius:16px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:30px;font-weight:900;
+  letter-spacing:-1px;
+  transform:rotate(-3deg);
+  box-shadow:0 18px 35px rgba(0,0,0,.35);
+}
+.bp-big-pack.oreo{background:linear-gradient(135deg,#0731A7,#1580FF);color:white}
+.bp-big-pack.bic{background:linear-gradient(135deg,#F8A91C,#FFE171);color:#161616}
+.bp-big-pack.coca{background:#D91919;color:white}
+.bp-product-title{font-size:26px;font-weight:850;letter-spacing:-.5px;margin-bottom:4px}
+.bp-product-sub{font-size:13px;color:var(--ink-soft);margin-bottom:10px}
+.bp-tags{display:flex;gap:7px;flex-wrap:wrap}
+.bp-tag{font-size:11px;font-weight:800;color:var(--ink-mid);background:#18181A;border:1px solid var(--border);border-radius:999px;padding:6px 9px}
+.bp-price-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:14px}
+.bp-price-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:20px;
+  padding:16px;
+  position:relative;
+}
+.bp-price-card.best{border-color:rgba(95,214,138,.55);box-shadow:0 0 0 1px rgba(95,214,138,.18)}
+.bp-best{
+  position:absolute;top:-11px;right:12px;
+  background:var(--green);
+  color:#102315;
+  border-radius:999px;
+  padding:5px 9px;
+  font-size:10.5px;font-weight:900;
+}
+.bp-supplier{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.bp-supplier-logo{
+  width:42px;height:42px;border-radius:999px;background:#F2F1ED;color:#111;
+  display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;
+}
+.bp-supplier-name{font-size:14px;font-weight:850}
+.bp-supplier-type{font-size:11px;color:var(--ink-soft);margin-top:2px}
+.bp-item{display:flex;gap:10px;align-items:center;margin-bottom:12px}
+.bp-mini{width:54px;height:42px;border-radius:12px;border:1px solid var(--border);background:#131316;display:flex;align-items:center;justify-content:center}
+.bp-item-name{font-size:12.5px;font-weight:800}
+.bp-item-pack{font-size:11px;color:var(--ink-soft);margin-top:2px}
+.bp-price{font-size:28px;font-weight:900;letter-spacing:-.7px;margin-bottom:4px}
+.bp-stock{font-size:12px;color:var(--green);font-weight:850;margin-bottom:10px}
+.bp-open{
+  width:100%;
+  border:1px solid var(--border);
+  background:#18181A;
+  color:var(--ink);
+  border-radius:13px;
+  padding:10px;
+  font-size:12px;
+  font-weight:850;
+  cursor:pointer;
+}
+.bp-price-card.best .bp-open{background:var(--green);color:#102315;border-color:transparent}
+.bp-insight{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:10px;
+}
+.bp-insight-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:18px;
+  padding:14px 16px;
+}
+.bp-insight-label{font-size:10px;font-weight:850;letter-spacing:.10em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:6px}
+.bp-insight-value{font-size:22px;font-weight:900}
+.bp-note{
+  margin-top:12px;
+  font-size:12px;
+  color:var(--ink-soft);
+  line-height:1.45;
+}
+@media(max-width:900px){
+  .bp-search-row,.bp-product-card,.bp-price-grid,.bp-insight{grid-template-columns:1fr}
+  .bp-sug-item{grid-template-columns:48px 1fr}
+  .bp-provider-count{grid-column:2;justify-self:start}
+  .bp-thumb{width:48px;height:38px}
+  .bp-title{font-size:24px}
+}
+@media(max-width:520px){
+  .bp-intro{padding:16px;border-radius:20px}
+  .bp-search-box input{font-size:14px;padding:14px 42px 14px 40px}
+  .bp-product-title{font-size:22px}
+  .bp-price{font-size:25px}
 }
 
 </style>
@@ -1844,6 +2038,7 @@ img,svg,canvas{max-width:100%}
     <div style="display:flex;align-items:center;gap:10px">
       <span class="fecha-chip" id="fechaHoy"></span>
       <button class="btn-toggle-theme" id="btnTheme" title="Cambiar tema">🌙</button>
+      <button class="btn-historial" id="btnBuscarPrecios">🔎 Buscar precios</button>
       <button class="btn-historial" id="btnCierreManual">🧾 Cierre manual</button>
       <button class="btn-historial" id="btnHistorial">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
@@ -2067,6 +2262,74 @@ img,svg,canvas{max-width:100%}
   </div>
 </div>
 
+
+
+
+<!-- ─── BUSCAR PRECIOS OVERLAY / MVP SIMULADO ─── -->
+<div class="historial-overlay" id="buscarPreciosOverlay">
+  <div class="historial-panel bp-panel">
+    <div class="historial-header">
+      <div>
+        <span class="historial-title">Buscar precios</span>
+        <div class="bp-head-sub">Autosugerencias y comparación simulada. Paso 1 visual.</div>
+      </div>
+      <button class="btn-cerrar-hist" id="btnCerrarBuscarPrecios" title="Cerrar">✕</button>
+    </div>
+
+    <div class="bp-intro">
+      <div class="bp-overline">Comparador de proveedores</div>
+      <div class="bp-title">Buscá cualquier producto</div>
+      <div class="bp-sub">Probá con <b>oreo</b>, <b>bic</b> o <b>coca</b>. Mientras escribís aparecen variantes y presentaciones. Después elegís una y ves tres precios simulados.</div>
+
+      <div class="bp-search-row">
+        <div class="bp-search-box">
+          <span class="bp-search-icon">⌕</span>
+          <input id="bpInput" autocomplete="off" placeholder="Ej: Oreo, Bic Cristal, Coca-Cola 500ml">
+          <button class="bp-clear" id="bpClear" title="Borrar">×</button>
+        </div>
+        <button class="bp-btn" id="bpSearchBtn">Buscar</button>
+      </div>
+
+      <div class="bp-hints">
+        <button class="bp-hint" data-bp-q="oreo">Probar “oreo”</button>
+        <button class="bp-hint" data-bp-q="bic">Probar “bic”</button>
+        <button class="bp-hint" data-bp-q="coca">Probar “coca”</button>
+      </div>
+
+      <div class="bp-suggestions" id="bpSuggestions"></div>
+    </div>
+
+    <div class="bp-results" id="bpResults">
+      <div class="bp-product-card">
+        <div class="bp-big-img" id="bpBigImg"></div>
+        <div>
+          <div class="bp-product-title" id="bpProductTitle">—</div>
+          <div class="bp-product-sub" id="bpProductSub">—</div>
+          <div class="bp-tags" id="bpTags"></div>
+        </div>
+      </div>
+
+      <div class="bp-price-grid" id="bpPriceGrid"></div>
+
+      <div class="bp-insight">
+        <div class="bp-insight-card">
+          <div class="bp-insight-label">Precio promedio</div>
+          <div class="bp-insight-value" id="bpAvg">$0</div>
+        </div>
+        <div class="bp-insight-card">
+          <div class="bp-insight-label">Mejor precio</div>
+          <div class="bp-insight-value" id="bpMin">$0</div>
+        </div>
+        <div class="bp-insight-card">
+          <div class="bp-insight-label">Ahorro posible</div>
+          <div class="bp-insight-value" id="bpSave">$0</div>
+        </div>
+      </div>
+
+      <div class="bp-note">Los precios de este paso son simulados. La versión real se conectaría a proveedores desde una API backend y traería imagen real, link y precio actualizado.</div>
+    </div>
+  </div>
+</div>
 
 
 <!-- ─── CIERRE MANUAL OVERLAY ─── -->
@@ -2941,6 +3204,63 @@ const cmBtnAddGasto=document.getElementById('cmBtnAddGasto');if(cmBtnAddGasto)cm
 const cmGastoMonto=document.getElementById('cmGastoMonto');if(cmGastoMonto)cmGastoMonto.addEventListener('keydown',e=>{if(e.key==='Enter')cmAgregarGasto();});
 const cmGastoNombre=document.getElementById('cmGastoNombre');if(cmGastoNombre)cmGastoNombre.addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('cmGastoMonto').focus();});
 document.querySelectorAll('.cm-caja-btn').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('.cm-caja-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');cmCajaSeleccionada=btn.dataset.caja||'';}));
+
+
+
+// ─── BUSCAR PRECIOS MVP SIMULADO ───
+const BP_DATA=[
+  {id:'oreo118',kind:'oreo',title:'Oreo Original 118g',meta:'Galletitas dulces · Mondelez',providersCount:3,tags:['Golosinas','Galletitas','Mondelez'],pack:'Paquete x 118g',keys:['oreo','galletita'],prices:[
+    {name:'El Goloso',logo:'El Goloso',price:1790,best:true},{name:'Distribuidora OKS',logo:'OKS',price:1850},{name:'Golomax',logo:'Golomax',price:1920}
+  ]},
+  {id:'oreo36',kind:'oreo',title:'Oreo Original 36g',meta:'Presentación chica',providersCount:3,tags:['Golosinas','Galletitas','Unidad'],pack:'Paquete x 36g',keys:['oreo'],prices:[
+    {name:'El Goloso',logo:'El Goloso',price:620,best:true},{name:'Distribuidora OKS',logo:'OKS',price:650},{name:'Golomax',logo:'Golomax',price:690}
+  ]},
+  {id:'oreo220',kind:'oreo',title:'Oreo 220g',meta:'Pack familiar',providersCount:3,tags:['Golosinas','Galletitas','Familiar'],pack:'Paquete x 220g',keys:['oreo'],prices:[
+    {name:'El Goloso',logo:'El Goloso',price:3220},{name:'Distribuidora OKS',logo:'OKS',price:3140,best:true},{name:'Golomax',logo:'Golomax',price:3370}
+  ]},
+  {id:'oreoBlanca',kind:'oreo',title:'Oreo Bañada Chocolate Blanco',meta:'Chocolate blanco',providersCount:2,tags:['Golosinas','Chocolate','Oreo'],pack:'Unidad',keys:['oreo'],prices:[
+    {name:'El Goloso',logo:'El Goloso',price:1450,best:true},{name:'Golomax',logo:'Golomax',price:1530}
+  ]},
+  {id:'milkaOreo',kind:'oreo',title:'Milka Oreo 100g',meta:'Chocolate Milka',providersCount:2,tags:['Chocolate','Milka','Oreo'],pack:'Tableta x 100g',keys:['oreo','milka'],prices:[
+    {name:'Distribuidora OKS',logo:'OKS',price:2300,best:true},{name:'Golomax',logo:'Golomax',price:2450}
+  ]},
+  {id:'kitkatOreo',kind:'oreo',title:'Kit Kat Oreo',meta:'Chocolate',providersCount:2,tags:['Chocolate','Kit Kat','Oreo'],pack:'Unidad',keys:['oreo','kit kat'],prices:[
+    {name:'El Goloso',logo:'El Goloso',price:1850,best:true},{name:'Golomax',logo:'Golomax',price:1930}
+  ]},
+  {id:'bicAzul',kind:'bic',title:'Bic Cristal Azul x50',meta:'Librería · Caja x50',providersCount:3,tags:['Librería','Biromes','Bic'],pack:'Caja x 50 unidades',keys:['bic','lapicera','birome'],prices:[
+    {name:'Casa Paso',logo:'Paso',price:18400,best:true},{name:'SASA Mayorista',logo:'SASA',price:19150},{name:'Mercado Libre ref.',logo:'ML',price:20500}
+  ]},
+  {id:'bicNegra',kind:'bic',title:'Bic Cristal Negra x50',meta:'Librería · Caja x50',providersCount:3,tags:['Librería','Biromes','Bic'],pack:'Caja x 50 unidades',keys:['bic','lapicera','birome'],prices:[
+    {name:'Casa Paso',logo:'Paso',price:18400,best:true},{name:'SASA Mayorista',logo:'SASA',price:19300},{name:'Mercado Libre ref.',logo:'ML',price:20900}
+  ]},
+  {id:'lapizBic',kind:'bic',title:'Lápiz Bic Evolution',meta:'Librería escolar',providersCount:2,tags:['Librería','Escolar','Bic'],pack:'Pack / caja',keys:['bic','lapiz','lápiz'],prices:[
+    {name:'Casa Paso',logo:'Paso',price:8900,best:true},{name:'SASA Mayorista',logo:'SASA',price:9400}
+  ]},
+  {id:'resaltadorBic',kind:'bic',title:'Resaltador Bic',meta:'Librería',providersCount:3,tags:['Librería','Resaltadores','Bic'],pack:'Unidad / pack',keys:['bic','resaltador'],prices:[
+    {name:'Casa Paso',logo:'Paso',price:1250,best:true},{name:'SASA Mayorista',logo:'SASA',price:1320},{name:'Mercado Libre ref.',logo:'ML',price:1500}
+  ]},
+  {id:'coca500',kind:'coca',title:'Coca-Cola 500ml',meta:'Bebidas',providersCount:3,tags:['Bebidas','Gaseosas','Coca-Cola'],pack:'Botella 500ml',keys:['coca','coca cola','bebida'],prices:[
+    {name:'Distribuidora OKS',logo:'OKS',price:980,best:true},{name:'Masivos',logo:'Mas',price:1030},{name:'Mercado Libre ref.',logo:'ML',price:1150}
+  ]},
+  {id:'coca225',kind:'coca',title:'Coca-Cola 2.25L',meta:'Bebidas',providersCount:3,tags:['Bebidas','Gaseosas','Coca-Cola'],pack:'Botella 2.25L',keys:['coca','coca cola','bebida'],prices:[
+    {name:'Distribuidora OKS',logo:'OKS',price:2450},{name:'Masivos',logo:'Mas',price:2390,best:true},{name:'Mercado Libre ref.',logo:'ML',price:2700}
+  ]}
+];
+const bpFmt=n=>'$'+Math.round(Number(n)||0).toLocaleString('es-AR');
+function bpPack(kind,big=false){const cls=big?'bp-big-pack':'bp-pack';const txt=kind==='oreo'?'OREO':kind==='bic'?'BIC':kind==='coca'?'Coca':'PROD';return `<div class="${cls} ${kind}">${txt}</div>`;}
+function bpMatches(term){term=(term||'').trim().toLowerCase();if(!term)return[];return BP_DATA.filter(p=>p.title.toLowerCase().includes(term)||p.keys.some(k=>k.includes(term)||term.includes(k))).slice(0,7);}
+function bpRenderSuggestions(){const input=document.getElementById('bpInput'),box=document.getElementById('bpSuggestions');if(!input||!box)return;const list=bpMatches(input.value);if(!input.value.trim()){box.classList.remove('open');box.innerHTML='';return;}if(!list.length){box.innerHTML='<div class="bp-sug-head"><span>Sugerencias</span><span>0</span></div><div style="padding:16px;color:var(--ink-soft)">No encontré sugerencias. Probá “oreo”, “bic” o “coca”.</div>';box.classList.add('open');return;}box.innerHTML=`<div class="bp-sug-head"><span>Sugerencias</span><span>${list.length} encontradas</span></div>`+list.map(p=>`<div class="bp-sug-item" data-id="${p.id}"><div class="bp-thumb">${bpPack(p.kind)}</div><div><div class="bp-sug-name">${p.title}</div><div class="bp-sug-meta">${p.meta}</div></div><div class="bp-provider-count">${p.providersCount} proveedores</div></div>`).join('');box.classList.add('open');box.querySelectorAll('.bp-sug-item').forEach(el=>el.addEventListener('click',()=>bpSelect(el.dataset.id)));}
+function bpSelect(id){const p=BP_DATA.find(x=>x.id===id)||bpMatches(document.getElementById('bpInput')?.value)[0];if(!p)return;document.getElementById('bpInput').value=p.title;document.getElementById('bpSuggestions').classList.remove('open');bpRenderResults(p);}
+function bpRenderResults(p){const res=document.getElementById('bpResults');if(!res)return;res.classList.add('visible');document.getElementById('bpBigImg').innerHTML=bpPack(p.kind,true);document.getElementById('bpProductTitle').textContent=p.title;document.getElementById('bpProductSub').textContent=`${p.providersCount} proveedores encontrados · ${p.meta}`;document.getElementById('bpTags').innerHTML=p.tags.map(t=>`<span class="bp-tag">${t}</span>`).join('');const prices=p.prices.map(x=>Number(x.price)||0),min=Math.min(...prices),max=Math.max(...prices),avg=prices.reduce((a,b)=>a+b,0)/prices.length;document.getElementById('bpAvg').textContent=bpFmt(avg);document.getElementById('bpMin').textContent=bpFmt(min);document.getElementById('bpSave').textContent=bpFmt(max-min);document.getElementById('bpPriceGrid').innerHTML=p.prices.map(r=>`<div class="bp-price-card ${r.best?'best':''}">${r.best?'<div class="bp-best">★ Mejor precio</div>':''}<div class="bp-supplier"><div class="bp-supplier-logo">${r.logo}</div><div><div class="bp-supplier-name">${r.name}</div><div class="bp-supplier-type">Mayorista online</div></div></div><div class="bp-item"><div class="bp-mini">${bpPack(p.kind)}</div><div><div class="bp-item-name">${p.title}</div><div class="bp-item-pack">${p.pack}</div></div></div><div class="bp-price">${bpFmt(r.price)}</div><div class="bp-stock">● En stock</div><button class="bp-open">Ver producto ↗</button></div>`).join('');res.scrollIntoView({behavior:'smooth',block:'start'});}
+function bpAbrir(){const overlay=document.getElementById('buscarPreciosOverlay');if(!overlay)return;overlay.classList.add('open');setTimeout(()=>document.getElementById('bpInput')?.focus(),100);}
+function bpCerrar(){document.getElementById('buscarPreciosOverlay')?.classList.remove('open');}
+const bpBtn=document.getElementById('btnBuscarPrecios');if(bpBtn)bpBtn.addEventListener('click',bpAbrir);
+const bpClose=document.getElementById('btnCerrarBuscarPrecios');if(bpClose)bpClose.addEventListener('click',bpCerrar);
+const bpInput=document.getElementById('bpInput');if(bpInput){let bpTimer;bpInput.addEventListener('input',()=>{clearTimeout(bpTimer);bpTimer=setTimeout(bpRenderSuggestions,160);});bpInput.addEventListener('keydown',e=>{if(e.key==='Enter')bpSelect((bpMatches(bpInput.value)[0]||{}).id);});}
+const bpSearch=document.getElementById('bpSearchBtn');if(bpSearch)bpSearch.addEventListener('click',()=>bpSelect((bpMatches(document.getElementById('bpInput')?.value)[0]||{}).id));
+const bpClear=document.getElementById('bpClear');if(bpClear)bpClear.addEventListener('click',()=>{const i=document.getElementById('bpInput');if(i)i.value='';document.getElementById('bpSuggestions')?.classList.remove('open');i?.focus();});
+document.querySelectorAll('.bp-hint').forEach(btn=>btn.addEventListener('click',()=>{const i=document.getElementById('bpInput');i.value=btn.dataset.bpQ;bpRenderSuggestions();i.focus();}));
+const buscarPreciosOverlay=document.getElementById('buscarPreciosOverlay');if(buscarPreciosOverlay)buscarPreciosOverlay.addEventListener('click',e=>{if(e.target===buscarPreciosOverlay)bpCerrar();});
 
 
 function actualizarHeroSide(movs){
