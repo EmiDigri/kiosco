@@ -87,7 +87,19 @@ html{overflow-x:hidden}
 /* HERO */
 .hero-tilt-wrap{position:relative;margin-bottom:16px;perspective:1000px}
 .hero-top-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
-.hero-reloj{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;font-weight:600;color:#fff;letter-spacing:.05em;opacity:.8}
+.hero-reloj{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:22px;font-weight:800;color:var(--text);letter-spacing:0;font-variant-numeric:tabular-nums;line-height:1}
+.hero-time-widget{min-width:190px;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.11);border-radius:18px;padding:10px 12px 11px;box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 16px 30px rgba(0,0,0,.14)}
+.hero-time-top{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;margin-bottom:9px}
+.hero-time-label{font-size:9px;font-weight:850;letter-spacing:.14em;color:var(--accent);text-transform:uppercase}
+.hero-time-icon{width:20px;height:20px;border-radius:999px;background:rgba(61,90,254,.16);border:1px solid rgba(61,90,254,.28);position:relative;flex-shrink:0}
+.hero-time-icon::before{content:'';position:absolute;left:9px;top:4px;width:1.5px;height:6px;border-radius:2px;background:var(--accent)}
+.hero-time-icon::after{content:'';position:absolute;left:9px;top:9px;width:5px;height:1.5px;border-radius:2px;background:var(--accent);transform-origin:left center;transform:rotate(35deg)}
+.hero-time-label-row{display:flex;align-items:center;gap:6px}
+.shift-progress{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:8px}
+.shift-progress-time{font-size:10px;font-weight:650;color:var(--text-soft);font-variant-numeric:tabular-nums;white-space:nowrap}
+.shift-progress-track{position:relative;height:6px;background:rgba(255,255,255,.09);border-radius:999px;overflow:visible}
+.shift-progress-fill{position:absolute;left:0;top:0;height:100%;width:0;border-radius:999px;background:linear-gradient(90deg,var(--accent),#8C9BFF);box-shadow:0 0 14px rgba(124,144,255,.28);transition:width .35s ease}
+.shift-progress-dot{position:absolute;right:-5px;top:50%;width:10px;height:10px;border-radius:999px;background:#f4f1ed;border:2px solid var(--accent);transform:translateY(-50%);box-shadow:0 0 0 4px rgba(124,144,255,.12)}
 .cursor-glow{pointer-events:none;position:fixed;width:340px;height:340px;border-radius:50%;background:radial-gradient(circle,rgba(61,90,254,.1) 0%,transparent 70%);transform:translate(-50%,-50%);top:0;left:0;z-index:0;transition:opacity .3s ease;opacity:0}
 .hero-card{position:relative;z-index:1;transition:transform .08s ease;will-change:transform;margin-bottom:0!important;background:var(--glass);border:1px solid var(--glass-border);border-radius:28px;padding:28px 26px 24px;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);overflow:hidden}
 .hero-card::before{content:'';position:absolute;inset:0;border-radius:28px;background:linear-gradient(135deg,rgba(61,90,254,.08) 0%,transparent 60%);pointer-events:none}
@@ -277,7 +289,7 @@ html{overflow-x:hidden}
   .btn-historial{font-size:11px;padding:5px 8px}
   .btn-toggle-theme{width:28px;height:28px}
   .hero-card{padding:20px 18px 18px;border-radius:20px}
-  .hero-reloj{font-size:12px}
+  .hero-reloj{font-size:20px}
   .btn-cargar{padding:12px 18px;font-size:13px}
   .otros-turnos-row{flex-direction:column;gap:8px}
   .btn-ver-turno{min-width:unset}
@@ -944,10 +956,16 @@ body{
 .hero-top-row{margin-bottom:12px!important}
 .hero-reloj{
   font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif!important;
-  color:var(--text-soft)!important;
-  font-size:12px!important;
-  font-weight:600!important;
-  letter-spacing:.04em!important;
+  color:var(--text)!important;
+  font-size:22px!important;
+  font-weight:800!important;
+  letter-spacing:0!important;
+  font-variant-numeric:tabular-nums!important;
+}
+.hero-time-widget{
+  background:rgba(255,255,255,.055)!important;
+  border:1px solid rgba(255,255,255,.11)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 16px 30px rgba(0,0,0,.14)!important;
 }
 .turno-chip{
   background:var(--accent-soft)!important;
@@ -1668,9 +1686,10 @@ img,svg,canvas{max-width:100%}
 
   /* Hero sin dos columnas en celular */
   .hero-card{display:grid!important;grid-template-columns:1fr!important;gap:16px!important;padding:18px 16px!important;border-radius:18px!important;width:100%!important}
-  .hero-top-row{gap:8px!important;align-items:flex-start!important}
+  .hero-top-row{gap:8px!important;align-items:flex-start!important;flex-direction:column!important}
   .turno-chip{max-width:100%;white-space:normal!important}
-  .hero-reloj{font-size:11px!important;text-align:right!important;flex-shrink:0!important}
+  .hero-time-widget{min-width:0!important;width:100%!important;margin-top:4px!important}
+  .hero-reloj{font-size:20px!important;text-align:right!important;flex-shrink:0!important}
   .turno-nombre{font-size:30px!important;line-height:1.05!important;letter-spacing:-.8px!important;word-break:break-word!important}
   .turno-horario{font-size:12px!important}
   .btn-cargar{width:100%!important;justify-content:center!important;padding:13px 14px!important}
@@ -1977,7 +1996,22 @@ img,svg,canvas{max-width:100%}
       <div class="hero-main">
         <div class="hero-top-row">
           <div class="turno-chip"><div class="dot"></div><span id="turnoChip">Turno activo</span></div>
-          <div class="hero-reloj" id="heroReloj">--:--</div>
+          <div class="hero-time-widget">
+            <div class="hero-time-top">
+              <div class="hero-time-label-row">
+                <span class="hero-time-icon" aria-hidden="true"></span>
+                <span class="hero-time-label">Ahora</span>
+              </div>
+              <div class="hero-reloj" id="heroReloj">--:--</div>
+            </div>
+            <div class="shift-progress">
+              <span class="shift-progress-time" id="shiftStart">--:--</span>
+              <div class="shift-progress-track">
+                <div class="shift-progress-fill" id="shiftProgressFill"><span class="shift-progress-dot"></span></div>
+              </div>
+              <span class="shift-progress-time" id="shiftEnd">--:--</span>
+            </div>
+          </div>
         </div>
         <div class="turno-nombre" id="turnoNombre">—</div>
         <div class="turno-horario" id="turnoHorario">—</div>
@@ -3243,7 +3277,29 @@ btnTheme.addEventListener('click',()=>{const isLight=document.body.classList.tog
 // ─── EMOJIS DESACTIVADOS PARA MEJOR RENDIMIENTO ───
 
 // ─── RELOJ ───
-function tickReloj(){const now=new Date();const h=String(now.getHours()).padStart(2,'0'),m=String(now.getMinutes()).padStart(2,'0'),s=String(now.getSeconds()).padStart(2,'0');const el=document.getElementById('heroReloj');if(el)el.textContent=h+':'+m+':'+s;}
+function fmtHoraCorta(h,m){return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;}
+function progresoTurno(t,now){
+  if(!t)return 0;
+  const actual=now.getHours()*60+now.getMinutes();
+  const inicio=t.desdeH*60+t.desdeM;
+  const fin=t.hastaH*60+t.hastaM;
+  if(actual<=inicio)return 0;
+  if(actual>=fin)return 100;
+  return Math.max(0,Math.min(100,((actual-inicio)/(fin-inicio))*100));
+}
+function tickReloj(){
+  const now=new Date();
+  const h=String(now.getHours()).padStart(2,'0'),m=String(now.getMinutes()).padStart(2,'0');
+  const el=document.getElementById('heroReloj');
+  if(el)el.textContent=h+':'+m;
+  const t=turno||turnoReciente||null;
+  const start=document.getElementById('shiftStart');
+  const end=document.getElementById('shiftEnd');
+  const fill=document.getElementById('shiftProgressFill');
+  if(start)start.textContent=t?fmtHoraCorta(t.desdeH,t.desdeM):fmtHoraCorta(TURNOS[0].desdeH,TURNOS[0].desdeM);
+  if(end)end.textContent=t?fmtHoraCorta(t.hastaH,t.hastaM):fmtHoraCorta(TURNOS[TURNOS.length-1].hastaH,TURNOS[TURNOS.length-1].hastaM);
+  if(fill)fill.style.width=(t?progresoTurno(t,now):0).toFixed(1)+'%';
+}
 tickReloj();setInterval(tickReloj,1000);
 
 // ─── CURSOR GLOW DESACTIVADO PARA MEJOR RENDIMIENTO ───
