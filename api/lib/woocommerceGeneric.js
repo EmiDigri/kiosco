@@ -57,6 +57,24 @@ function priceToText(n) {
   return '$' + Number(n).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+// Paso 5A.6 — id estable por producto, sin colisiones.
+// Antes el id se armaba truncando el base64 de la URL a 16 caracteres.
+// Productos con URLs muy parecidas (mismo prefijo largo, ej:
+// ".../alfajor-rasta-blanco-70gr/" vs ".../alfajor-rasta-negro-70gr/")
+// terminaban con el MISMO id truncado, porque la diferencia entre las dos
+// URLs queda más allá del carácter 16. Eso hacía que al tocar "Negro" en
+// la lista, bpSelect() encontrara el item de "Blanco" por id duplicado.
+// Ahora usamos un hash simple (djb2) sobre la URL completa: cualquier
+// diferencia, sea al principio o al final de la URL, cambia el hash.
+function makeStableId(url) {
+  const s = String(url || '');
+  let hash = 5381;
+  for (let i = 0; i < s.length; i++) {
+    hash = ((hash << 5) + hash + s.charCodeAt(i)) >>> 0; // djb2, sin signo
+  }
+  return hash.toString(36);
+}
+
 function parseMoneyToken(raw) {
   let s = decodeHtml(String(raw || ''))
     .replace(/\s+/g, '')
@@ -306,7 +324,7 @@ function itemFromBlock(block, q, provider, sourceUrl) {
   const priceText = priceToText(price);
 
   return {
-    id: `${providerId}_` + Buffer.from(url).toString('base64url').slice(0, 16),
+    id: `${providerId}_` + makeStableId(url),
     title,
     meta: provider.location ? `${provider.name} · ${provider.location}` : provider.name,
     provider: provider.name,
@@ -470,5 +488,6 @@ module.exports = {
   extractPriceTokens,
   scoreTitle,
   uniqueSort,
-  isRelevantTitle
+  isRelevantTitle,
+  makeStableId
 };
