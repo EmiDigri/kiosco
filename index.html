@@ -86,9 +86,9 @@ html{overflow-x:hidden}
 
 /* HERO */
 .hero-tilt-wrap{position:relative;margin-bottom:16px;perspective:1000px}
-.hero-top-row{display:flex;align-items:center;justify-content:space-between;gap:24px;width:100%;margin-bottom:14px}
+.hero-top-row{display:flex;align-items:center;justify-content:space-between;gap:24px;width:100%;margin-bottom:14px;position:relative}
 .hero-reloj{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:22px;font-weight:800;color:var(--text);letter-spacing:0;font-variant-numeric:tabular-nums;line-height:1}
-.hero-time-widget{min-width:218px;margin-left:auto;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.11);border-radius:18px;padding:10px 12px 11px;box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 16px 30px rgba(0,0,0,.14)}
+.hero-time-widget{min-width:200px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);border-radius:24px;padding:18px 28px 16px;box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 8px 32px rgba(0,0,0,.3);backdrop-filter:blur(20px)}
 .hero-time-top{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;margin-bottom:9px}
 .hero-time-label{font-size:9px;font-weight:850;letter-spacing:.14em;color:var(--accent);text-transform:uppercase}
 .hero-time-icon{width:20px;height:20px;border-radius:999px;background:rgba(61,90,254,.16);border:1px solid rgba(61,90,254,.28);position:relative;flex-shrink:0}
@@ -1974,7 +1974,7 @@ img,svg,canvas{max-width:100%}
       <div class="hero-main">
         <div class="hero-top-row">
           <div class="turno-chip"><div class="dot"></div><span id="turnoChip">Turno activo</span></div>
-          <div class="hero-time-widget" style="text-align:center;padding:14px 20px">
+          <div class="hero-time-widget" style="text-align:center;padding:18px 28px 16px;position:absolute;left:50%;transform:translateX(-50%)">
             <div class="hero-reloj" id="heroReloj" style="font-size:52px;font-weight:500;letter-spacing:-2px;line-height:1">--:--</div>
             <div id="heroFecha" style="font-size:13px;color:var(--text-mid);margin-top:4px">—</div>
           </div>
