@@ -3114,16 +3114,24 @@ async function buscarCatalogo(query){
   cat.innerHTML='<div class="bp-catalogo-title">Catálogo</div><div class="bp-catalogo-loading">Buscando productos...</div>';
   try{
     const res=await fetch('https://api.mercadolibre.com/sites/MLA/search?q='+encodeURIComponent(q)+'&limit=50&condition=new&buying_mode=buy_it_now');
+    if(!res.ok){cat.innerHTML='<div class="bp-catalogo-title">Catálogo</div><div class="bp-prod-empty">API no disponible ('+res.status+'). Usá los links de arriba.</div>';return;}
     const data=await res.json();
-    const items=(data.results||[]).filter(p=>!BULK_REGEX.test(p.title)).slice(0,16);
-    if(!items.length){cat.innerHTML='<div class="bp-catalogo-title">Catálogo</div><div class="bp-prod-empty">No se encontraron productos unitarios.</div>';return;}
+    const all=data.results||[];
+    const items=all.filter(p=>!BULK_REGEX.test(p.title)).slice(0,16);
+    console.log('[catalogo] query:',q,'total API:',all.length,'tras filtro:',items.length);
+    if(all.length&&!items.length){
+      cat.innerHTML='<div class="bp-catalogo-title">Catálogo</div><div class="bp-prod-empty">La API devolvió '+all.length+' resultados pero el filtro los eliminó. Revisá consola.</div>';
+      console.log('[catalogo] títulos originales:',all.slice(0,5).map(p=>p.title));
+      return;
+    }
+    if(!items.length){cat.innerHTML='<div class="bp-catalogo-title">Catálogo</div><div class="bp-prod-empty">No se encontraron productos.</div>';return;}
     cat.innerHTML='<div class="bp-catalogo-title">Catálogo — '+items.length+' productos</div><div class="bp-catalogo-grid">'+
       items.map(p=>'<a class="bp-prod-card" href="'+p.permalink+'" target="_blank" rel="noopener noreferrer">'+
         '<img class="bp-prod-img" src="'+p.thumbnail.replace('I.jpg','O.jpg')+'" loading="lazy" alt="">'+
         '<div class="bp-prod-name">'+p.title+'</div>'+
         '<div class="bp-prod-price">'+fmtPeso(p.price)+'</div>'+
       '</a>').join('')+'</div>';
-  }catch(e){cat.innerHTML='<div class="bp-catalogo-title">Catálogo</div><div class="bp-prod-empty">Error al buscar productos.</div>';}
+  }catch(e){cat.innerHTML='<div class="bp-catalogo-title">Catálogo</div><div class="bp-prod-empty">Error: '+e.message+'</div>';}
 }
 function normalizePriceQuery(value){
   return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim();
