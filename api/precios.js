@@ -1,4 +1,4 @@
-// Paso 5A.4 — API de precios mayoristas + precio público de referencia.
+// Paso 6 — API de precios mayoristas + precio público de referencia.
 // Endpoint: /api/precios?q=oreo
 // Proveedores reales conectados:
 // - Mayorista 12 de Octubre
@@ -6,11 +6,9 @@
 // - Distribuidora Pop
 // - Golmarymar
 //
-// Cambio clave (Paso 5A.4): mismo filtro estricto que en sugerencias.js —
-// el TÍTULO tiene que contener la palabra buscada (o un alias de marca
-// conocido). Ya no alcanza con matchear en tags/meta. Preferimos devolver
-// vacío antes que mostrar un producto irrelevante (ej: "coca" trayendo
-// "Alfajor Escolar X 60").
+// Cambio clave (Paso 6): getPublicReference ahora es ASYNC porque consulta
+// SEPA/Precios Claros en vivo (promedio Coto + Día) antes de caer al
+// catálogo manual de respaldo. Se agrega "await" en las dos llamadas.
 
 const { searchMayorista12 } = require('./lib/mayorista12');
 const { searchDistrioks } = require('./lib/distrioks');
@@ -26,12 +24,6 @@ function normalize(value) {
     .replace(/[^a-z0-9]+/g, ' ')
     .trim();
 }
-
-// ─────────────────────────────────────────────────────────────
-// Paso 5A.4 — filtro global anti-basura, ESTRICTO por TÍTULO.
-// (idéntico criterio al de sugerencias.js, para que ambos endpoints
-// muestren siempre el mismo conjunto de productos "reales")
-// ─────────────────────────────────────────────────────────────
 
 const BP_STOP_TERMS = new Set(['de','del','la','el','los','las','y','en','x','por','pack','caja','cajas','unidad','unidades','u','un','una','gr','g','kg','ml','cc','lt','l','litro','litros']);
 
@@ -60,7 +52,8 @@ const BP_QUERY_ALIASES = [
   { match: /^plasticola$/, any: ['plasticola'] },
   { match: /^filgo$/, any: ['filgo'] },
   { match: /^pringles$/, any: ['pringles'] },
-  { match: /^doritos$/, any: ['doritos'] }
+  { match: /^doritos$/, any: ['doritos'] },
+  { match: /^rasta$/, any: ['rasta'] }
 ];
 
 function bpNorm(value) {
@@ -76,7 +69,6 @@ function bpImportantTerms(q) {
   return bpNorm(q).split(/\s+/).filter(t => t && t.length >= 2 && !BP_STOP_TERMS.has(t));
 }
 
-// SOLO el título decide relevancia (ya no meta/tags).
 function bpIsRelevantResult(item, q) {
   const nq = bpNorm(q);
   if (!nq) return true;
@@ -198,7 +190,7 @@ module.exports = async function handler(req, res) {
   res.setHeader('Cache-Control', 's-maxage=180, stale-while-revalidate=600');
 
   if (!q) {
-    return res.status(200).json({ ok: true, step: '5A.4', q, count: 0, items: [], providers: [] });
+    return res.status(200).json({ ok: true, step: '6', q, count: 0, items: [], providers: [] });
   }
 
   const providerEntries = [
@@ -238,31 +230,33 @@ module.exports = async function handler(req, res) {
     }
 
     const items = mergeRealItems(rawItems, 18);
+    const publicReference = await getPublicReference(q);
 
     return res.status(200).json({
       ok: true,
-      step: '5A.4',
+      step: '6',
       q,
       count: items.length,
       rawCount: rawItems.length,
       providers,
       providerNames: providers.map(p => p.name),
       items,
-      publicReference: getPublicReference(q),
+      publicReference,
       errors,
       note: items.length
-        ? 'Paso 5A.4: links mayoristas reales con filtro estricto por título. Incluye precio público de referencia si existe.'
-        : 'Paso 5A.4: no hubo resultados reales relevantes (por título) para esta búsqueda. Incluye precio público de referencia si existe.'
+        ? 'Paso 6: links mayoristas reales con filtro estricto por título. PVP = promedio Coto + Día (SEPA) cuando hay datos.'
+        : 'Paso 6: no hubo resultados reales relevantes (por título) para esta búsqueda. PVP = promedio Coto + Día (SEPA) cuando hay datos.'
     });
   } catch (err) {
+    const publicReference = await getPublicReference(q).catch(() => null);
     return res.status(200).json({
       ok: false,
-      step: '5A.4',
+      step: '6',
       q,
       count: 0,
       items: [],
       providers: [],
-      publicReference: getPublicReference(q),
+      publicReference,
       error: String(err && err.message || err),
       note: 'Falló la consulta a proveedores reales. Revisar logs de Vercel.'
     });
