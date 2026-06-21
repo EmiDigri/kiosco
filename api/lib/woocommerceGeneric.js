@@ -156,6 +156,66 @@ function scoreTitle(title, q) {
   return terms.reduce((acc, term) => acc + (nt.includes(term) ? 14 : 0), 0);
 }
 
+// Paso 5A.3 — filtro fuerte de relevancia.
+// Evita que una búsqueda como “coca” acepte cualquier producto que la web
+// devuelve por defecto (frutos secos, bazar, ceniceros, etc.).
+const STOP_TERMS = new Set(['de','del','la','el','los','las','y','en','x','por','pack','caja','cajas','unidad','unidades','u','un','una','gr','g','kg','ml','cc','lt','l']);
+
+const QUERY_ALIASES = [
+  { match: /^(coca|coca cola|coca cola zero|coca zero|cocacola)/, any: ['coca','cola','cocacola'] },
+  { match: /^(lays|lay s|papas lays)/, any: ['lays','lay s'] },
+  { match: /^(rocklets|rocklet)/, any: ['rocklets','rocklet'] },
+  { match: /^(oreo)/, any: ['oreo'] },
+  { match: /^(fantoche)/, any: ['fantoche'] },
+  { match: /^(baggio)/, any: ['baggio'] },
+  { match: /^(guaymallen|guaymallen)/, any: ['guaymallen','guaymallen'] },
+  { match: /^(jorgito)/, any: ['jorgito'] },
+  { match: /^(beldent)/, any: ['beldent'] },
+  { match: /^(topline|top line)/, any: ['topline','top line'] },
+  { match: /^(mogul)/, any: ['mogul'] },
+  { match: /^(billiken)/, any: ['billiken'] },
+  { match: /^(tita)/, any: ['tita'] },
+  { match: /^(rhodesia)/, any: ['rhodesia'] },
+  { match: /^(manaos)/, any: ['manaos'] },
+  { match: /^(levite|levite)/, any: ['levite','levite'] },
+  { match: /^(sprite)/, any: ['sprite'] },
+  { match: /^(fanta)/, any: ['fanta'] },
+  { match: /^(pepsi)/, any: ['pepsi'] },
+  { match: /^(bic)/, any: ['bic'] },
+  { match: /^(resma)/, any: ['resma'] },
+  { match: /^(plasticola)/, any: ['plasticola'] },
+  { match: /^(filgo)/, any: ['filgo'] },
+  { match: /^(pringles)/, any: ['pringles'] },
+  { match: /^(doritos)/, any: ['doritos'] }
+];
+
+function significantTerms(q) {
+  return normalize(q)
+    .split(/\s+/)
+    .filter(t => t && t.length >= 2 && !STOP_TERMS.has(t));
+}
+
+function isRelevantTitle(title, q) {
+  const nt = normalize(title);
+  const nq = normalize(q);
+  if (!nq) return true;
+  if (!nt) return false;
+  if (nt.includes(nq)) return true;
+
+  for (const rule of QUERY_ALIASES) {
+    if (rule.match.test(nq)) return rule.any.some(alias => nt.includes(normalize(alias)));
+  }
+
+  const terms = significantTerms(q);
+  if (!terms.length) return true;
+  if (terms.length === 1) return nt.includes(terms[0]);
+
+  const hits = terms.filter(t => nt.includes(t)).length;
+  // Para consultas con varias palabras pedimos coincidencia fuerte.
+  // Ej: “coca zero” debe pegar en coca/cola y zero, no en cualquier bebida.
+  return hits === terms.length || (terms.length >= 3 && hits >= terms.length - 1);
+}
+
 function inferKind(title) {
   const n = normalize(title);
   if (n.includes('oreo') || n.includes('gallet')) return 'oreo';
@@ -248,7 +308,7 @@ function itemFromBlock(block, q, provider, sourceUrl) {
 
   const title = titleFromBlock(block, url);
   if (!title || title.length < 3) return null;
-  if (q && scoreTitle(title, q) <= 0) return null;
+  if (q && !isRelevantTitle(title, q)) return null;
 
   const price = parsePrice(block, provider.priceOptions || {});
   const image = extractImage(block, null, provider.baseUrl);
@@ -359,7 +419,7 @@ function uniqueSort(items, q, limit = 12) {
   }
   return [...byUrl.values()]
     .map(x => ({ ...x, score: x.score ?? scoreTitle(x.title, q) }))
-    .filter(x => !q || x.score > 0)
+    .filter(x => !q || isRelevantTitle(x.title, q))
     .sort((a, b) => (b.score - a.score) || ((a.price ?? Infinity) - (b.price ?? Infinity)))
     .slice(0, limit);
 }
@@ -396,5 +456,6 @@ module.exports = {
   parseMoneyToken,
   extractPriceTokens,
   scoreTitle,
-  uniqueSort
+  uniqueSort,
+  isRelevantTitle
 };
