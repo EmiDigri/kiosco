@@ -1915,12 +1915,17 @@ img,svg,canvas{max-width:100%}
 }
 .bp-ext-link:hover{background:rgba(124,144,255,.10);border-color:rgba(124,144,255,.35);transform:translateY(-1px)}
 .bp-ext-link::after{content:'↗';color:var(--accent);font-size:12px}
-.bp-note{
-  margin-top:12px;
-  font-size:12px;
-  color:var(--ink-soft);
-  line-height:1.45;
-}
+.bp-note{margin-top:12px;font-size:12px;color:var(--ink-soft);line-height:1.45}
+.bp-catalogo{margin-bottom:16px}
+.bp-catalogo-title{font-size:11px;font-weight:700;letter-spacing:.1em;color:var(--ink-soft);text-transform:uppercase;margin-bottom:10px}
+.bp-catalogo-loading{font-size:13px;color:var(--ink-soft);padding:10px 0}
+.bp-catalogo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px}
+.bp-prod-card{background:var(--glass);border:1px solid var(--glass-border);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:6px;cursor:pointer;text-decoration:none;transition:background .15s}
+.bp-prod-card:hover{background:var(--glass-hover)}
+.bp-prod-img{width:100%;aspect-ratio:1;object-fit:contain;border-radius:8px;background:rgba(255,255,255,.04)}
+.bp-prod-name{font-size:12px;color:var(--text);line-height:1.35;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.bp-prod-price{font-size:15px;font-weight:700;color:var(--text)}
+.bp-prod-empty{font-size:13px;color:var(--ink-soft);padding:8px 0}
 @media(max-width:900px){
   .bp-search-row{grid-template-columns:1fr}
   .bp-btn{width:100%}
@@ -2216,8 +2221,9 @@ img,svg,canvas{max-width:100%}
     </div>
 
     <div class="bp-results" id="bpResults">
+      <div class="bp-catalogo" id="bpCatalogo"></div>
       <div class="bp-links-grid" id="bpLinksGrid"></div>
-      <div class="bp-note">Referencia online. Confirmar criterio del local. Mas adelante se sumara la lista propia de precios del kiosco.</div>
+      <div class="bp-note">Referencia online. Confirmar criterio del local.</div>
     </div>
   </div>
 </div>
@@ -3106,6 +3112,27 @@ document.querySelectorAll('.cm-caja-btn').forEach(btn=>btn.addEventListener('cli
 
 
 // Consulta rapida de precios: arma links externos, sin scraping ni APIs
+const BULK_REGEX=/\b(pack|combo|lote|fardo|bulto|display|mayor|mayorista|docena|por\s+mayor|caja\s+x)\b|[x×]\s*\d{2,}|\b(x6|x8|x10|x12|x15|x18|x20|x24|x30|x36|x48|x50|x60|x72|x96|x100)\b/i;
+function fmtPeso(n){return '$'+Number(n).toLocaleString('es-AR',{maximumFractionDigits:0});}
+async function buscarCatalogo(query){
+  const cat=document.getElementById('bpCatalogo');
+  if(!cat)return;
+  const q=normalizePriceQuery?.(query)||query.trim();
+  if(!q){cat.innerHTML='';return;}
+  cat.innerHTML='<div class="bp-catalogo-title">Catálogo</div><div class="bp-catalogo-loading">Buscando productos...</div>';
+  try{
+    const res=await fetch('https://api.mercadolibre.com/sites/MLA/search?q='+encodeURIComponent(q)+'&limit=50&condition=new&buying_mode=buy_it_now');
+    const data=await res.json();
+    const items=(data.results||[]).filter(p=>!BULK_REGEX.test(p.title)).slice(0,16);
+    if(!items.length){cat.innerHTML='<div class="bp-catalogo-title">Catálogo</div><div class="bp-prod-empty">No se encontraron productos unitarios.</div>';return;}
+    cat.innerHTML='<div class="bp-catalogo-title">Catálogo — '+items.length+' productos</div><div class="bp-catalogo-grid">'+
+      items.map(p=>'<a class="bp-prod-card" href="'+p.permalink+'" target="_blank" rel="noopener noreferrer">'+
+        '<img class="bp-prod-img" src="'+p.thumbnail.replace('I.jpg','O.jpg')+'" loading="lazy" alt="">'+
+        '<div class="bp-prod-name">'+p.title+'</div>'+
+        '<div class="bp-prod-price">'+fmtPeso(p.price)+'</div>'+
+      '</a>').join('')+'</div>';
+  }catch(e){cat.innerHTML='<div class="bp-catalogo-title">Catálogo</div><div class="bp-prod-empty">Error al buscar productos.</div>';}
+}
 function normalizePriceQuery(value){
   return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim();
 }
@@ -3151,7 +3178,7 @@ function openExternalLink(url){if(url)window.open(url,'_blank','noopener,norefer
 const bpBtn=document.getElementById('btnBuscarPrecios');if(bpBtn)bpBtn.addEventListener('click',bpAbrir);
 const bpClose=document.getElementById('btnCerrarBuscarPrecios');if(bpClose)bpClose.addEventListener('click',bpCerrar);
 const bpInput=document.getElementById('bpInput');if(bpInput){bpInput.addEventListener('input',()=>renderPriceLinks(bpInput.value));bpInput.addEventListener('keydown',e=>{if(e.key==='Enter')renderPriceLinks(bpInput.value);});}
-const bpSearch=document.getElementById('bpSearchBtn');if(bpSearch)bpSearch.addEventListener('click',()=>{const q=document.getElementById('bpInput')?.value||'';renderPriceLinks(q);if(q){bpSearch.textContent='✓ Listo';bpSearch.style.background='#22c55e';setTimeout(()=>{bpSearch.textContent='Buscar';bpSearch.style.background='';},1200);}});
+const bpSearch=document.getElementById('bpSearchBtn');if(bpSearch)bpSearch.addEventListener('click',()=>{const q=document.getElementById('bpInput')?.value||'';renderPriceLinks(q);buscarCatalogo(q);if(q){bpSearch.textContent='✓ Listo';bpSearch.style.background='#22c55e';setTimeout(()=>{bpSearch.textContent='Buscar';bpSearch.style.background='';},1200);}});
 const bpClear=document.getElementById('bpClear');if(bpClear)bpClear.addEventListener('click',()=>{const i=document.getElementById('bpInput');if(i)i.value='';renderPriceLinks('');i?.focus();});
 document.querySelectorAll('.bp-hint').forEach(btn=>btn.addEventListener('click',()=>{const i=document.getElementById('bpInput');if(!i)return;i.value=btn.dataset.bpQ||'';renderPriceLinks(i.value);i.focus();}));
 const buscarPreciosOverlay=document.getElementById('buscarPreciosOverlay');if(buscarPreciosOverlay)buscarPreciosOverlay.addEventListener('click',e=>{if(e.target===buscarPreciosOverlay)bpCerrar();});
