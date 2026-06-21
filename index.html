@@ -3118,18 +3118,18 @@ function buildPriceLinks(query){
     { title:'Precio publico / referencia minorista', links:[
       {label:'Mercado Libre',   url:'https://listado.mercadolibre.com.ar/'+enc},
       {label:'Google Shopping', url:'https://www.google.com/search?tbm=shop&q='+enc},
-      {label:'Carrefour',       url:'https://www.carrefour.com.ar/s?q='+enc+'&map=ft'},
+      {label:'Carrefour',       url:'https://www.google.com/search?q='+enc+'+site:carrefour.com.ar'},
       {label:'Dia',             url:'https://www.google.com/search?q='+enc+'+site:diaonline.supermercadosdia.com.ar'},
-      {label:'Jumbo',           url:'https://www.jumbo.com.ar/s?q='+enc+'&map=ft'},
-      {label:'Disco',           url:'https://www.disco.com.ar/s?q='+enc+'&map=ft'},
+      {label:'Jumbo',           url:'https://www.google.com/search?q='+enc+'+site:jumbo.com.ar'},
+      {label:'Disco',           url:'https://www.google.com/search?q='+enc+'+site:disco.com.ar'},
       {label:'Precios Claros',  url:'https://www.google.com/search?q='+enc+'+site:preciosclaros.gob.ar'}
     ]},
     { title:'Kiosco', links:[
       {label:'Infokioscos',     url:'https://infokioscos.com.ar/?s='+enc},
-      {label:'Google kiosco',   url:'https://www.google.com/search?q='+encodeURIComponent(q+' kiosco precio')}
+      {label:'Google kiosco',   url:'https://www.google.com/search?q='+encodeURIComponent(q+' kiosco precio argentina')}
     ]},
     { title:'Libreria', links:[
-      {label:'Casa Paso',           url:'https://www.casapaso.com.ar/?q='+enc},
+      {label:'Casa Paso',           url:'https://www.google.com/search?q='+enc+'+site:casapaso.com.ar'},
       {label:'Mercado Libre libreria', url:'https://listado.mercadolibre.com.ar/'+encodeURIComponent(q+' libreria')}
     ]}
   ];
