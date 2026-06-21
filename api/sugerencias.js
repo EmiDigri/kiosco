@@ -238,6 +238,81 @@ function normalize(value) {
     .trim();
 }
 
+
+// Paso 5A.4 — filtro global anti-basura.
+// No alcanza con que cada scraper filtre: también filtramos acá todos los
+// resultados reales antes de mezclarlos. Esto evita casos como buscar
+// “Coca-Cola 500ml” y que un proveedor devuelva “Alfajor Escolar X 60”.
+const BP_STOP_TERMS = new Set(['de','del','la','el','los','las','y','en','x','por','pack','caja','cajas','unidad','unidades','u','un','una','gr','g','kg','ml','cc','lt','l','litro','litros']);
+
+const BP_QUERY_ALIASES = [
+  { match: /^(coca|coca cola|coca cola zero|coca zero|cocacola)/, any: ['coca','cola','cocacola'] },
+  { match: /^(lays|lay s|papas lays)/, any: ['lays','lay s'] },
+  { match: /^(rocklets|rocklet)/, any: ['rocklets','rocklet'] },
+  { match: /^(oreo)/, any: ['oreo'] },
+  { match: /^(fantoche)/, any: ['fantoche'] },
+  { match: /^(baggio)/, any: ['baggio'] },
+  { match: /^(guaymallen|guaymallen)/, any: ['guaymallen','guaymallen'] },
+  { match: /^(jorgito)/, any: ['jorgito'] },
+  { match: /^(beldent)/, any: ['beldent'] },
+  { match: /^(topline|top line)/, any: ['topline','top line'] },
+  { match: /^(mogul)/, any: ['mogul'] },
+  { match: /^(billiken)/, any: ['billiken'] },
+  { match: /^(tita)/, any: ['tita'] },
+  { match: /^(rhodesia)/, any: ['rhodesia'] },
+  { match: /^(manaos)/, any: ['manaos'] },
+  { match: /^(levite|levite)/, any: ['levite','levite'] },
+  { match: /^(sprite)/, any: ['sprite'] },
+  { match: /^(fanta)/, any: ['fanta'] },
+  { match: /^(pepsi)/, any: ['pepsi'] },
+  { match: /^(bic)/, any: ['bic'] },
+  { match: /^(resma)/, any: ['resma'] },
+  { match: /^(plasticola)/, any: ['plasticola'] },
+  { match: /^(filgo)/, any: ['filgo'] },
+  { match: /^(pringles)/, any: ['pringles'] },
+  { match: /^(doritos)/, any: ['doritos'] }
+];
+
+function bpNorm(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+function bpImportantTerms(q) {
+  return bpNorm(q).split(/\s+/).filter(t => t && t.length >= 2 && !BP_STOP_TERMS.has(t));
+}
+
+function bpIsRelevantResult(item, q) {
+  const nq = bpNorm(q);
+  if (!nq) return true;
+
+  const title = bpNorm(item && item.title);
+  const hay = bpNorm([
+    item && item.title,
+    item && item.meta,
+    item && item.pack,
+    ...((item && item.tags) || [])
+  ].join(' '));
+
+  if (!title && !hay) return false;
+  if (hay.includes(nq)) return true;
+
+  for (const rule of BP_QUERY_ALIASES) {
+    if (rule.match.test(nq)) return rule.any.some(alias => hay.includes(bpNorm(alias)));
+  }
+
+  const terms = bpImportantTerms(q);
+  if (!terms.length) return true;
+  if (terms.length === 1) return hay.includes(terms[0]);
+
+  const hits = terms.filter(t => hay.includes(t)).length;
+  return hits === terms.length || (terms.length >= 3 && hits >= terms.length - 1);
+}
+
 function matches(product, q) {
   const nq = normalize(q);
   if (!nq) return false;
@@ -398,6 +473,10 @@ module.exports = async function handler(req, res) {
     if (Array.isArray(live.errors) && live.errors.length) providerErrors.push(...live.errors);
 
     for (const item of live.items || []) {
+      if (!bpIsRelevantResult(item, q)) {
+        providerErrors.push({ provider: result.entry.name, ignored: item.title || item.url || 'sin_titulo', reason: 'irrelevante_para_busqueda' });
+        continue;
+      }
       realItems.push({
         ...item,
         source: result.entry.source,
