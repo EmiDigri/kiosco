@@ -1,6 +1,13 @@
-// Paso 5A — scraper genérico liviano para proveedores WooCommerce.
+// Paso 5A.5 — scraper genérico liviano para proveedores WooCommerce.
 // No usa librerías externas. Está pensado para Vercel Serverless.
 // Recibe un proveedor con baseUrl y busca en: /?s={query}&post_type=product
+//
+// Cambio clave (Paso 5A.5): el buscador interno de WooCommerce devuelve los
+// resultados paginados (típicamente 12-16 productos por página). Si el
+// producto buscado no está entre los primeros, antes se perdía sin más
+// (ej: "rasta" no traía el Alfajor Rasta de Pop porque quedaba en la
+// página 2). Ahora pedimos varias páginas en paralelo y las combinamos
+// antes de aplicar el filtro de relevancia.
 
 const USER_AGENT = 'Mozilla/5.0 (compatible; KioscoPriceBot/1.0; +https://kiosco-lac.vercel.app/)';
 
@@ -60,9 +67,6 @@ function parseMoneyToken(raw) {
   const lastDot = s.lastIndexOf('.');
   const lastComma = s.lastIndexOf(',');
 
-  // Formato mixto:
-  // 11.330,00 => AR / europeo
-  // 11,330.00 => US
   if (lastDot !== -1 && lastComma !== -1) {
     if (lastComma > lastDot) {
       s = s.replace(/\./g, '').replace(',', '.');
@@ -71,22 +75,16 @@ function parseMoneyToken(raw) {
     }
   } else if (lastComma !== -1) {
     const [intPart, decPart = ''] = s.split(',');
-    // 11,33 puede ser decimal real, pero en muchas páginas WooCommerce aparece
-    // recortado desde 11,330.00 cuando el regex viejo agarraba solo una parte.
-    // Acá lo parseamos bien solo cuando viene como token completo.
     if (decPart.length === 2) s = intPart.replace(/\./g, '') + '.' + decPart;
     else s = s.replace(/,/g, '');
   } else if (lastDot !== -1) {
     const parts = s.split('.');
     const decPart = parts[parts.length - 1] || '';
     if (decPart.length === 2 && parts.length === 2 && parts[0].length > 3) {
-      // 5000.00 => 5000
       s = parts[0] + '.' + decPart;
     } else if (decPart.length === 2 && parts.length === 2 && parts[0].length <= 3) {
-      // 11.33 => 11.33
       s = parts[0] + '.' + decPart;
     } else {
-      // 11.330 o 5.000 => miles AR
       s = s.replace(/\./g, '');
     }
   }
@@ -99,8 +97,6 @@ function extractPriceTokens(value) {
   const text = decodeHtml(String(value || ''));
   const tokens = [];
 
-  // Primero tomamos bloques típicos de WooCommerce para no agarrar cuotas,
-  // scripts, contadores o basura alrededor del producto.
   const amountRe = /<[^>]+class=["'][^"']*(?:woocommerce-Price-amount|amount|price)[^"']*["'][^>]*>[\s\S]*?<\/[^>]+>/gi;
   let m;
   while ((m = amountRe.exec(text))) {
@@ -109,7 +105,6 @@ function extractPriceTokens(value) {
     if (money && money[1]) tokens.push(money[1]);
   }
 
-  // Fallback general: soporta 11.330,00, 11,330.00, 5000.00, 5000,00, 5000.
   const generalRe = /\$\s*((?:\d{1,3}(?:[.,]\d{3})+|\d+)(?:[.,]\d{2})?)/g;
   while ((m = generalRe.exec(text))) {
     if (m && m[1]) tokens.push(m[1]);
@@ -124,7 +119,6 @@ function parsePrices(value, opts = {}) {
   const nums = tokens
     .map(parseMoneyToken)
     .filter(n => Number.isFinite(n) && n > 0)
-    // Evita precios delirantes por parseo malo o placeholders del sitio.
     .filter(n => n <= maxReasonablePrice);
   return [...new Set(nums)];
 }
@@ -132,7 +126,6 @@ function parsePrices(value, opts = {}) {
 function parsePrice(value, opts = {}) {
   const prices = parsePrices(value, opts);
   if (!prices.length) return null;
-  // En ofertas WooCommerce suele mostrar precio viejo + precio nuevo. Tomamos el menor.
   return Math.min(...prices);
 }
 
@@ -156,9 +149,6 @@ function scoreTitle(title, q) {
   return terms.reduce((acc, term) => acc + (nt.includes(term) ? 14 : 0), 0);
 }
 
-// Paso 5A.3 — filtro fuerte de relevancia.
-// Evita que una búsqueda como “coca” acepte cualquier producto que la web
-// devuelve por defecto (frutos secos, bazar, ceniceros, etc.).
 const STOP_TERMS = new Set(['de','del','la','el','los','las','y','en','x','por','pack','caja','cajas','unidad','unidades','u','un','una','gr','g','kg','ml','cc','lt','l']);
 
 const QUERY_ALIASES = [
@@ -186,7 +176,8 @@ const QUERY_ALIASES = [
   { match: /^(plasticola)/, any: ['plasticola'] },
   { match: /^(filgo)/, any: ['filgo'] },
   { match: /^(pringles)/, any: ['pringles'] },
-  { match: /^(doritos)/, any: ['doritos'] }
+  { match: /^(doritos)/, any: ['doritos'] },
+  { match: /^(rasta)/, any: ['rasta'] }
 ];
 
 function significantTerms(q) {
@@ -211,8 +202,6 @@ function isRelevantTitle(title, q) {
   if (terms.length === 1) return nt.includes(terms[0]);
 
   const hits = terms.filter(t => nt.includes(t)).length;
-  // Para consultas con varias palabras pedimos coincidencia fuerte.
-  // Ej: “coca zero” debe pegar en coca/cola y zero, no en cualquier bebida.
   return hits === terms.length || (terms.length >= 3 && hits >= terms.length - 1);
 }
 
@@ -222,7 +211,7 @@ function inferKind(title) {
   if (n.includes('coca') || n.includes('pepsi') || n.includes('sprite') || n.includes('fanta') || n.includes('manaos') || n.includes('levite') || n.includes('bebida') || n.includes('gaseosa') || n.includes('jugo') || n.includes('agua')) return 'coca';
   if (n.includes('bic') || n.includes('lapiz') || n.includes('birome') || n.includes('resalt') || n.includes('resma') || n.includes('plasticola') || n.includes('filgo')) return 'bic';
   if (n.includes('lays') || n.includes('doritos') || n.includes('papas') || n.includes('snack')) return 'snack';
-  if (n.includes('alfajor') || n.includes('fantoche') || n.includes('jorgito') || n.includes('guaymallen')) return 'alfajor';
+  if (n.includes('alfajor') || n.includes('fantoche') || n.includes('jorgito') || n.includes('guaymallen') || n.includes('rasta')) return 'alfajor';
   if (n.includes('beldent') || n.includes('topline') || n.includes('chicle')) return 'chicle';
   return 'real';
 }
@@ -233,7 +222,7 @@ function inferTags(title, provider) {
   if (n.includes('gallet') || n.includes('oreo') || n.includes('terrabusi') || n.includes('don satur')) tags.push('Galletitas');
   if (n.includes('coca') || n.includes('pepsi') || n.includes('sprite') || n.includes('fanta') || n.includes('manaos') || n.includes('levite') || n.includes('bebida') || n.includes('gaseosa') || n.includes('jugo') || n.includes('agua')) tags.push('Bebidas');
   if (n.includes('lays') || n.includes('doritos') || n.includes('papas') || n.includes('snack')) tags.push('Snacks');
-  if (n.includes('alfajor') || n.includes('fantoche') || n.includes('jorgito') || n.includes('guaymallen')) tags.push('Alfajores');
+  if (n.includes('alfajor') || n.includes('fantoche') || n.includes('jorgito') || n.includes('guaymallen') || n.includes('rasta')) tags.push('Alfajores');
   if (n.includes('beldent') || n.includes('topline') || n.includes('chicle')) tags.push('Chicles');
   if (n.includes('mogul') || n.includes('billiken') || n.includes('caramelo') || n.includes('gomita')) tags.push('Golosinas');
   if (n.includes('bic') || n.includes('resma') || n.includes('lapiz') || n.includes('birome') || n.includes('plasticola') || n.includes('filgo')) tags.push('Librería');
@@ -373,7 +362,6 @@ function parseListing(html, q, provider, sourceUrl) {
     items.push(item);
   }
 
-  // Fallback: si la estructura no entró como bloque, buscamos links a productos y tomamos una ventana cercana.
   const anchorRe = /<a\b[^>]*href=["']([^"']*(?:\/producto\/|\/product\/)[^"']*)["'][^>]*>[\s\S]*?<\/a>/gi;
   let m;
   while ((m = anchorRe.exec(html))) {
@@ -403,6 +391,7 @@ async function fetchHtml(url, timeoutMs = 9000) {
         'Accept-Language': 'es-AR,es;q=0.9,en;q=0.7'
       }
     });
+    if (res.status === 404) return null;
     if (!res.ok) throw new Error(`HTTP ${res.status} ${url}`);
     return await res.text();
   } finally {
@@ -424,26 +413,50 @@ function uniqueSort(items, q, limit = 12) {
     .slice(0, limit);
 }
 
-function searchUrl(provider, q) {
+function searchUrl(provider, q, page = 1) {
   const base = String(provider.baseUrl || '').replace(/\/$/, '');
-  if (provider.searchUrl) return provider.searchUrl(q);
-  return `${base}/?s=${encodeURIComponent(q)}&post_type=product`;
+  if (provider.searchUrl) return provider.searchUrl(q, page);
+  const pagedParam = page > 1 ? `&paged=${page}` : '';
+  return `${base}/?s=${encodeURIComponent(q)}&post_type=product${pagedParam}`;
 }
 
 async function searchWooCommerce(q, provider, opts = {}) {
   const limit = opts.limit || 12;
-  const url = searchUrl(provider, q);
-  const html = await fetchHtml(url, opts.timeoutMs || 9000);
-  const items = parseListing(html, q, provider, url);
-  const sorted = uniqueSort(items, q, limit);
+  const pages = Math.max(1, Math.min(opts.pages || provider.pages || 3, 5));
 
-  return {
-    provider,
-    q,
-    count: sorted.length,
-    items: sorted,
-    errors: sorted.length ? [] : [{ provider: provider.name, url, error: 'Sin resultados parseables para esta búsqueda' }]
-  };
+  const urls = Array.from({ length: pages }, (_, i) => searchUrl(provider, q, i + 1));
+  const settled = await Promise.allSettled(urls.map(url => fetchHtml(url, opts.timeoutMs || 9000)));
+
+  const allItems = [];
+  const errors = [];
+  let anyOk = false;
+
+  settled.forEach((result, i) => {
+    if (result.status === 'fulfilled') {
+      if (result.value === null) return;
+      anyOk = true;
+      const items = parseListing(result.value, q, provider, urls[i]);
+      allItems.push(...items);
+    } else {
+      errors.push({ provider: provider.name, url: urls[i], error: String(result.reason && result.reason.message || result.reason) });
+    }
+  });
+
+  const sorted = uniqueSort(allItems, q, limit);
+
+  if (!sorted.length) {
+    return {
+      provider,
+      q,
+      count: 0,
+      items: [],
+      errors: anyOk
+        ? [{ provider: provider.name, url: urls[0], error: 'Sin resultados parseables para esta búsqueda' }]
+        : errors.length ? errors : [{ provider: provider.name, url: urls[0], error: 'Sin resultados parseables para esta búsqueda' }]
+    };
+  }
+
+  return { provider, q, count: sorted.length, items: sorted, errors: [] };
 }
 
 module.exports = {
