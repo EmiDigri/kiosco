@@ -81,8 +81,8 @@ function parsearPago(pago, esDomingo) {
 async function fetchYGuardar(esDomingo) {
   const now = new Date();
 
-  // Ventana: últimos 30 minutos → ahora
-  const begin = new Date(now.getTime() - 30 * 60 * 1000);
+  // Ventana: últimas 2 horas → ahora (cubre demoras de MP)
+  const begin = new Date(now.getTime() - 2 * 60 * 60 * 1000);
   const end   = now;
 
   console.log(`Buscando: ${begin.toISOString()} → ${end.toISOString()}`);
