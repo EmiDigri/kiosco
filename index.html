@@ -2274,21 +2274,21 @@ img,svg,canvas{max-width:100%}
 
 
 
-<!-- ─── BUSCAR PRECIOS OVERLAY / PASO 4: MAYORISTA + PÚBLICO ─── -->
+<!-- ─── BUSCAR PRECIOS OVERLAY / PASO 5A.2: PVP + LINKS MAYORISTAS ─── -->
 <div class="historial-overlay" id="buscarPreciosOverlay">
   <div class="historial-panel bp-panel">
     <div class="historial-header">
       <div>
         <span class="historial-title">Buscar precios</span>
-        <div class="bp-head-sub">Mayorista + venta público. Paso 4.</div>
+        <div class="bp-head-sub">Venta público + links mayoristas. Paso 5A.2.</div>
       </div>
       <button class="btn-cerrar-hist" id="btnCerrarBuscarPrecios" title="Cerrar">✕</button>
     </div>
 
     <div class="bp-intro">
-      <div class="bp-overline">Comparador de proveedores</div>
+      <div class="bp-overline">Consulta de precios</div>
       <div class="bp-title">Buscá cualquier producto</div>
-      <div class="bp-sub">Probá con <b>oreo</b>, <b>bic</b> o <b>coca</b>. Mientras escribís aparecen variantes y presentaciones. Después elegís una y ves precio mayorista y precio de venta público de referencia.</div>
+      <div class="bp-sub">Probá con <b>oreo</b>, <b>bic</b>, <b>coca</b> o el producto que quieras. La app muestra el precio de venta público de referencia y botones para abrir los proveedores mayoristas en otra pestaña.</div>
 
       <div class="bp-search-row">
         <div class="bp-search-box">
@@ -2322,8 +2322,8 @@ img,svg,canvas{max-width:100%}
 
       <div class="bp-insight">
         <div class="bp-insight-card">
-          <div class="bp-insight-label">Mayorista más bajo</div>
-          <div class="bp-insight-value" id="bpWholesaleMin">$0</div>
+          <div class="bp-insight-label">Proveedores</div>
+          <div class="bp-insight-value" id="bpWholesaleMin">0</div>
         </div>
         <div class="bp-insight-card">
           <div class="bp-insight-label">Venta público ref.</div>
@@ -2335,7 +2335,7 @@ img,svg,canvas{max-width:100%}
         </div>
       </div>
 
-      <div class="bp-note">Paso 4: muestra precios mayoristas y precio venta público de referencia. No calcula ganancia ni margen.</div>
+      <div class="bp-note">Paso 5A.2: muestra precio venta público de referencia y links a proveedores mayoristas. No interpreta precios mayoristas ni calcula ganancia o margen.</div>
     </div>
   </div>
 </div>
@@ -3370,7 +3370,7 @@ const BP_FALLBACK_DATA=[
 ];
 const bpFmt=n=>{if(n===null||n===undefined||Number.isNaN(Number(n)))return '—';return '$'+Math.round(Number(n)||0).toLocaleString('es-AR');};
 function bpPack(kind,big=false){const cls=big?'bp-big-pack':'bp-pack';const txt=kind==='oreo'?'OREO':kind==='bic'?'BIC':kind==='coca'?'Coca':kind==='paper'?'A4':'PROD';return `<div class="${cls} ${kind}">${txt}</div>`;}
-function bpVisual(productOrKind,big=false){const img=typeof productOrKind==='object'?(productOrKind.image||productOrKind.imageUrl||productOrKind.thumbnail):null;const kind=typeof productOrKind==='object'?(productOrKind.kind||'real'):productOrKind;if(img){return `<img class="bp-img-real" src="${bpEsc(img)}" alt="Producto" loading="lazy" onerror="this.outerHTML='${bpPack(kind,big).replace(/'/g,"&#39;")}'">`;}return bpPack(kind,big);}
+function bpVisual(productOrKind,big=false){const img=typeof productOrKind==='object'?(productOrKind.image||productOrKind.imageUrl||productOrKind.thumbnail):null;const kind=typeof productOrKind==='object'?(productOrKind.kind||'real'):productOrKind;if(img){return `<img class="bp-img-real" src="${bpEsc(img)}" alt="Producto" loading="lazy" onerror="this.style.display='none'">`;}return bpPack(kind,big);}
 function bpEsc(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
 function bpUrl(v){if(!v)return '';try{return new URL(String(v), location.origin).href}catch(_){return ''}}
 
@@ -3404,15 +3404,112 @@ if(!best||score<=0)return{found:false,publicPrice:null,publicPriceText:null,sour
 let bpCurrentSuggestions=[];
 function bpFallbackMatches(term){term=(term||'').trim().toLowerCase();if(!term)return[];return BP_FALLBACK_DATA.filter(p=>p.title.toLowerCase().includes(term)||p.keys.some(k=>k.includes(term)||term.includes(k))).slice(0,15);}
 async function bpFetchSuggestions(term){term=(term||'').trim();if(!term)return[];try{const res=await fetch('/api/sugerencias?q='+encodeURIComponent(term),{headers:{'Accept':'application/json'}});if(res.ok){const data=await res.json();const items=Array.isArray(data)?data:Array.isArray(data.items)?data.items:[];if(items.length)return items;}}catch(err){console.warn('API sugerencias no disponible, usando fallback local',err);}return bpFallbackMatches(term);}
-async function bpFetchPrecios(product){const q=(product&&product.title)||document.getElementById('bpInput')?.value||'';try{const res=await fetch('/api/precios?q='+encodeURIComponent(q),{headers:{'Accept':'application/json'}});if(!res.ok)throw new Error('HTTP '+res.status);const data=await res.json();const items=Array.isArray(data.items)?data.items:[];const rows=[];for(const item of items){if(Array.isArray(item.prices)&&item.prices.length){for(const r of item.prices){rows.push({...r,title:item.title||product.title,kind:item.kind||product.kind,image:r.image||item.image,url:r.url||item.url,provider:item.provider||r.name,source:r.source||item.source});}}else if(item.price!==null&&item.price!==undefined){rows.push({name:item.provider||item.providerName||'Proveedor',logo:item.logo||'Prov',price:item.price,priceText:item.priceText,url:item.url,image:item.image,stock:item.stock,title:item.title,kind:item.kind,source:item.source});}}
-if(rows.length){return {...product,title:items[0]?.title||product.title,meta:items[0]?.meta||product.meta,kind:items[0]?.kind||product.kind,tags:items[0]?.tags||product.tags||[],pack:items[0]?.pack||product.pack||'Producto',image:items[0]?.image||product.image,prices:rows,providersCount:rows.length,publicReference:data.publicReference||product.publicReference,source:'api_precios'};}
-return {...product,publicReference:data.publicReference||product.publicReference};
-}catch(err){console.warn('API precios no disponible, usando precios de sugerencia',err);return product;}}
+async function bpFetchPrecios(product){
+  const q=(product&&product.title)||document.getElementById('bpInput')?.value||'';
+  try{
+    const res=await fetch('/api/precios?q='+encodeURIComponent(q),{headers:{'Accept':'application/json'}});
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    const data=await res.json();
+    const items=Array.isArray(data.items)?data.items:[];
+    const links=[];
+    for(const item of items){
+      const base={
+        name:item.provider||item.providerName||item.name||'Proveedor',
+        logo:item.logo||item.provider||'Prov',
+        url:item.url,
+        image:item.image,
+        stock:item.stock,
+        title:item.title||product.title,
+        kind:item.kind||product.kind,
+        source:item.source||'proveedor_real',
+        pack:item.pack||product.pack||'Producto real'
+      };
+      if(base.url) links.push(base);
+      if(Array.isArray(item.prices)&&item.prices.length){
+        for(const r of item.prices){
+          const url=r.url||item.url;
+          if(!url)continue;
+          links.push({
+            name:r.name||item.provider||'Proveedor',
+            logo:r.logo||item.logo||'Prov',
+            url,
+            image:r.image||item.image,
+            stock:r.stock??item.stock,
+            title:item.title||product.title,
+            kind:item.kind||product.kind,
+            source:r.source||item.source||'proveedor_real',
+            pack:item.pack||product.pack||'Producto real'
+          });
+        }
+      }
+    }
+    const seen=new Set();
+    const providerLinks=[];
+    for(const l of links){
+      const key=(l.name||'')+'|'+(l.url||'');
+      if(!l.url||seen.has(key))continue;
+      seen.add(key);
+      providerLinks.push(l);
+    }
+    if(providerLinks.length || items.length){
+      const first=items[0]||{};
+      return {
+        ...product,
+        title:first.title||product.title,
+        meta:first.meta||product.meta,
+        kind:first.kind||product.kind,
+        tags:first.tags||product.tags||[],
+        pack:first.pack||product.pack||'Producto',
+        image:first.image||product.image,
+        prices:[],
+        providerLinks,
+        providersCount:providerLinks.length,
+        publicReference:data.publicReference||product.publicReference,
+        source:'api_precios_links'
+      };
+    }
+    return {...product,providerLinks:[],publicReference:data.publicReference||product.publicReference};
+  }catch(err){
+    console.warn('API precios no disponible, usando links de sugerencia',err);
+    const fallbackUrl=product&&product.url?bpUrl(product.url):'';
+    return {...product,providerLinks:fallbackUrl?[{name:product.provider||'Proveedor',logo:product.logo||'Prov',url:fallbackUrl,image:product.image,stock:product.stock,title:product.title,kind:product.kind,source:product.source,pack:product.pack}]:[]};
+  }
+}
 async function bpFetchPublico(product){const q=(product&&product.title)||document.getElementById('bpInput')?.value||'';try{const res=await fetch('/api/publicos?q='+encodeURIComponent(q),{headers:{'Accept':'application/json'}});if(!res.ok)throw new Error('HTTP '+res.status);const data=await res.json();if(data&&data.item)return data.item;}catch(err){console.warn('API publicos no disponible, usando referencia local',err);}return product?.publicReference||bpLocalPublic(q);}
 
 async function bpRenderSuggestions(){const input=document.getElementById('bpInput'),box=document.getElementById('bpSuggestions');if(!input||!box)return;const term=input.value;if(!term.trim()){bpCurrentSuggestions=[];box.classList.remove('open');box.innerHTML='';return;}box.innerHTML='<div class="bp-sug-head"><span>Sugerencias</span><span>buscando…</span></div><div style="padding:16px;color:var(--ink-soft)">Consultando catálogo y proveedor real</div>';box.classList.add('open');const list=await bpFetchSuggestions(term);bpCurrentSuggestions=list;if(!input.value.trim())return;if(!list.length){box.innerHTML='<div class="bp-sug-head"><span>Sugerencias</span><span>0</span></div><div style="padding:16px;color:var(--ink-soft)">No encontré sugerencias. Probá “oreo”, “bic”, “resma” o “coca”.</div>';box.classList.add('open');return;}box.innerHTML=`<div class="bp-sug-head"><span>Sugerencias</span><span>${list.length} encontradas</span></div>`+list.map(p=>`<div class="bp-sug-item" data-id="${bpEsc(p.id)}"><div class="bp-thumb">${bpVisual(p)}</div><div><div class="bp-sug-name">${bpEsc(p.title)}</div><div class="bp-sug-meta">${bpEsc(p.meta||'')}</div></div><div class="bp-provider-count">${p.providersCount||0} proveedores</div></div>`).join('');box.classList.add('open');box.querySelectorAll('.bp-sug-item').forEach(el=>el.addEventListener('click',()=>bpSelect(el.dataset.id)));}
 async function bpSelect(id){const p=bpCurrentSuggestions.find(x=>String(x.id)===String(id))||BP_FALLBACK_DATA.find(x=>String(x.id)===String(id))||bpFallbackMatches(document.getElementById('bpInput')?.value)[0];if(!p)return;document.getElementById('bpInput').value=p.title;document.getElementById('bpSuggestions').classList.remove('open');await bpRenderResults(p);}
-async function bpRenderResults(baseProduct){const res=document.getElementById('bpResults');if(!res)return;res.classList.add('visible');document.getElementById('bpBigImg').innerHTML=bpVisual(baseProduct,true);document.getElementById('bpProductTitle').textContent=baseProduct.title||'—';document.getElementById('bpProductSub').textContent='Consultando precios…';document.getElementById('bpTags').innerHTML=(baseProduct.tags||[]).map(t=>`<span class="bp-tag">${bpEsc(t)}</span>`).join('');document.getElementById('bpPriceGrid').innerHTML='<div class="bp-loading-line">Buscando precio mayorista y precio venta público de referencia…</div>';const [p,publico]=await Promise.all([bpFetchPrecios(baseProduct),bpFetchPublico(baseProduct)]);const prices=Array.isArray(p.prices)?p.prices.filter(x=>x&&x.price!==null&&x.price!==undefined):[];const nums=prices.map(x=>Number(x.price)).filter(Number.isFinite);const min=nums.length?Math.min(...nums):null;document.getElementById('bpBigImg').innerHTML=bpVisual(p,true);document.getElementById('bpProductTitle').textContent=p.title||baseProduct.title||'—';document.getElementById('bpProductSub').textContent=`${prices.length||p.providersCount||0} precio(s) mayorista(s) · ${p.meta||''}`;document.getElementById('bpTags').innerHTML=(p.tags||[]).map(t=>`<span class="bp-tag">${bpEsc(t)}</span>`).join('');document.getElementById('bpWholesaleMin').textContent=bpFmt(min);document.getElementById('bpPublicRef').textContent=publico&&publico.publicPrice!==null&&publico.publicPrice!==undefined?(publico.publicPriceText||bpFmt(publico.publicPrice)):'No disponible';document.getElementById('bpPublicSource').textContent=publico?.source||'No disponible';document.getElementById('bpPriceGrid').innerHTML=prices.length?prices.map(r=>{const source=r.source==='proveedor_real'||r.source==='proveedor_real_mayorista12'||p.source==='api_precios'?'Proveedor real':'Referencia / catálogo';const url=bpUrl(r.url||p.url);return `<div class="bp-price-card ${r.best?'best':''}">${r.best?'<div class="bp-best">★ Menor mayorista</div>':''}<div class="bp-supplier"><div class="bp-supplier-logo">${bpEsc(r.logo||r.name||'Prov')}</div><div><div class="bp-supplier-name">${bpEsc(r.name||r.provider||'Proveedor')}</div><div class="bp-supplier-type">Precio mayorista</div></div></div><div class="bp-item"><div class="bp-mini">${bpVisual({kind:r.kind||p.kind,image:r.image||p.image})}</div><div><div class="bp-item-name">${bpEsc(r.title||p.title)}</div><div class="bp-item-pack">${bpEsc(p.pack||'Producto')}</div></div></div><div class="bp-price-label">Mayorista</div><div class="bp-price">${r.priceText||bpFmt(r.price)}</div><div class="bp-source-line">Fuente: ${bpEsc(source)}</div><div class="bp-stock">${r.stock===false?'○ Sin stock informado':'● En stock / consultar'}</div><button class="bp-open" data-url="${bpEsc(url)}">${url?'Ver producto ↗':'Sin link'}</button></div>`}).join(''):'<div class="bp-loading-line">No encontré precio mayorista para este producto todavía.</div>';document.querySelectorAll('.bp-open[data-url]').forEach(btn=>btn.addEventListener('click',()=>{const u=btn.dataset.url;if(u)window.open(u,'_blank','noopener,noreferrer');}));res.scrollIntoView({behavior:'smooth',block:'start'});}
+async function bpRenderResults(baseProduct){
+  const res=document.getElementById('bpResults');
+  if(!res)return;
+  res.classList.add('visible');
+  document.getElementById('bpBigImg').innerHTML=bpVisual(baseProduct,true);
+  document.getElementById('bpProductTitle').textContent=baseProduct.title||'—';
+  document.getElementById('bpProductSub').textContent='Consultando proveedores…';
+  document.getElementById('bpTags').innerHTML=(baseProduct.tags||[]).map(t=>`<span class="bp-tag">${bpEsc(t)}</span>`).join('');
+  document.getElementById('bpPriceGrid').innerHTML='<div class="bp-loading-line">Buscando precio público de referencia y links a proveedores…</div>';
+
+  const [p,publico]=await Promise.all([bpFetchPrecios(baseProduct),bpFetchPublico(baseProduct)]);
+  let links=Array.isArray(p.providerLinks)?p.providerLinks:[];
+  if(!links.length && p.url){
+    links=[{name:p.provider||'Proveedor',logo:p.logo||'Prov',url:p.url,image:p.image,stock:p.stock,title:p.title,kind:p.kind,source:p.source,pack:p.pack}];
+  }
+
+  document.getElementById('bpBigImg').innerHTML=bpVisual(p,true);
+  document.getElementById('bpProductTitle').textContent=p.title||baseProduct.title||'—';
+  document.getElementById('bpProductSub').textContent=`${links.length} proveedor(es) para consultar · ${p.meta||''}`;
+  document.getElementById('bpTags').innerHTML=(p.tags||[]).map(t=>`<span class="bp-tag">${bpEsc(t)}</span>`).join('');
+  document.getElementById('bpWholesaleMin').textContent=String(links.length||0);
+  document.getElementById('bpPublicRef').textContent=publico&&publico.publicPrice!==null&&publico.publicPrice!==undefined?(publico.publicPriceText||bpFmt(publico.publicPrice)):'No disponible';
+  document.getElementById('bpPublicSource').textContent=publico?.source||'No disponible';
+  document.getElementById('bpPriceGrid').innerHTML=links.length?links.map(r=>{
+    const url=bpUrl(r.url);
+    const source=r.source&&String(r.source).includes('proveedor')?'Proveedor real':'Catálogo / referencia';
+    return `<div class="bp-price-card"><div class="bp-supplier"><div class="bp-supplier-logo">${bpEsc(r.logo||r.name||'Prov')}</div><div><div class="bp-supplier-name">${bpEsc(r.name||r.provider||'Proveedor')}</div><div class="bp-supplier-type">Abrir web mayorista</div></div></div><div class="bp-item"><div class="bp-mini">${bpVisual({kind:r.kind||p.kind,image:r.image||p.image})}</div><div><div class="bp-item-name">${bpEsc(r.title||p.title)}</div><div class="bp-item-pack">${bpEsc(r.pack||p.pack||'Producto')}</div></div></div><div class="bp-price-label">Mayorista</div><div class="bp-price">Ver en web</div><div class="bp-source-line">Fuente: ${bpEsc(source)}</div><div class="bp-stock">${r.stock===false?'○ Sin stock informado':'● Stock / precio a confirmar en web'}</div><button class="bp-open" data-url="${bpEsc(url)}">${url?'Ver precio en proveedor ↗':'Sin link'}</button></div>`;
+  }).join(''):'<div class="bp-loading-line">No encontré links de proveedor para este producto todavía.</div>';
+  document.querySelectorAll('.bp-open[data-url]').forEach(btn=>btn.addEventListener('click',()=>{const u=btn.dataset.url;if(u)window.open(u,'_blank','noopener,noreferrer');}));
+  res.scrollIntoView({behavior:'smooth',block:'start'});
+}
 function bpAbrir(){const overlay=document.getElementById('buscarPreciosOverlay');if(!overlay)return;overlay.classList.add('open');setTimeout(()=>document.getElementById('bpInput')?.focus(),100);}
 function bpCerrar(){document.getElementById('buscarPreciosOverlay')?.classList.remove('open');}
 const bpBtn=document.getElementById('btnBuscarPrecios');if(bpBtn)bpBtn.addEventListener('click',bpAbrir);
