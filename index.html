@@ -1272,10 +1272,10 @@ body{
     margin-top:4px!important;
   }
   .dashboard-col{display:flex!important;flex-direction:column!important;gap:14px!important;min-width:0!important}
-  .dashboard-extra{display:grid!important;grid-template-columns:1fr 1fr!important;gap:14px!important;margin-top:14px!important}
+  .dashboard-extra{display:flex!important;flex-direction:column!important;gap:14px!important;margin-top:0!important}
   .table-card{max-height:none!important;overflow:hidden!important}
   .table-card .t-row{grid-template-columns:54px minmax(0,1fr) 112px 92px!important}
-  .spark-card,.horas-card,.table-card{margin-bottom:0!important}
+  .spark-card,.horas-card,.table-card,.exc-card,.env-card{margin-bottom:0!important}
 }
 
 @media(min-width:1200px){
@@ -2104,6 +2104,26 @@ img,svg,canvas{max-width:100%}
             </div>
             <div id="horasBody"></div>
           </div>
+          <div class="dashboard-extra">
+            <div class="exc-card" id="excCard">
+              <div class="exc-head">
+                <span class="exc-title">Excluidos</span>
+                <span class="exc-pill" id="excPill">0</span>
+              </div>
+              <div id="excBody"></div>
+            </div>
+            <div class="env-card" id="envCard" style="display:none">
+              <div class="env-head">
+                <span class="env-title">Transferencias enviadas</span>
+                <span class="env-pill" id="envPill">0</span>
+              </div>
+              <div class="env-total-row">
+                <span class="env-total-label">Total enviado</span>
+                <span class="env-total-val" id="envTotal">$0</span>
+              </div>
+              <div id="envBody"></div>
+            </div>
+          </div>
         </div>
 
         <div class="dashboard-col">
@@ -2114,27 +2134,6 @@ img,svg,canvas{max-width:100%}
             </div>
             <div id="tablaBody"></div>
           </div>
-        </div>
-      </div>
-
-      <div class="dashboard-extra">
-        <div class="exc-card" id="excCard">
-          <div class="exc-head">
-            <span class="exc-title">Excluidos</span>
-            <span class="exc-pill" id="excPill">0</span>
-          </div>
-          <div id="excBody"></div>
-        </div>
-        <div class="env-card" id="envCard" style="display:none">
-          <div class="env-head">
-            <span class="env-title">Transferencias enviadas</span>
-            <span class="env-pill" id="envPill">0</span>
-          </div>
-          <div class="env-total-row">
-            <span class="env-total-label">Total enviado</span>
-            <span class="env-total-val" id="envTotal">$0</span>
-          </div>
-          <div id="envBody"></div>
         </div>
       </div>
       <div id="turnosHoySection" style="display:none">
