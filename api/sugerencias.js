@@ -1,7 +1,14 @@
-// Paso 5A — API propia de autosugerencias para Vercel.
+// Paso 5A.4 — API propia de autosugerencias para Vercel.
 // Endpoint: /api/sugerencias?q=oreo
 // Mezcla catálogo simulado + proveedores reales:
 // Mayorista 12 de Octubre + Distribuidora OKS + Distribuidora Pop + Golmarymar.
+//
+// Cambio clave (Paso 5A.4): el filtro de relevancia ahora exige que el
+// TÍTULO del producto contenga la palabra buscada (o un alias conocido de
+// esa marca). Ya no alcanza con que matchee en tags/meta, porque esos
+// campos son heurísticos (inferTags) y pueden estar mal inferidos, lo que
+// dejaba pasar basura como "Alfajor Escolar" al buscar "coca".
+// Preferimos devolver vacío antes que mostrar un producto irrelevante.
 
 const { searchMayorista12 } = require('./lib/mayorista12');
 const { searchDistrioks } = require('./lib/distrioks');
@@ -235,42 +242,49 @@ function normalize(value) {
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
     .trim();
 }
 
+// ─────────────────────────────────────────────────────────────
+// Paso 5A.4 — filtro de relevancia ESTRICTO basado en TÍTULO.
+// Regla pedida: el título tiene que contener la palabra buscada sí o sí
+// (o un alias conocido de esa misma marca/producto, ej. "coca" ~ "coca-cola").
+// Ya NO se acepta un match que venga solo de tags/meta, porque esos campos
+// son inferidos heurísticamente por los scrapers y pueden estar mal.
+// ─────────────────────────────────────────────────────────────
 
-// Paso 5A.4 — filtro global anti-basura.
-// No alcanza con que cada scraper filtre: también filtramos acá todos los
-// resultados reales antes de mezclarlos. Esto evita casos como buscar
-// “Coca-Cola 500ml” y que un proveedor devuelva “Alfajor Escolar X 60”.
 const BP_STOP_TERMS = new Set(['de','del','la','el','los','las','y','en','x','por','pack','caja','cajas','unidad','unidades','u','un','una','gr','g','kg','ml','cc','lt','l','litro','litros']);
 
+// Alias = variantes de escritura del MISMO producto/marca. No agregamos
+// alias "temáticos" (como antes "bebida"/"gaseosa" para "coca"), porque eso
+// es lo que dejaba pasar productos de otra marca que comparten categoría.
 const BP_QUERY_ALIASES = [
-  { match: /^(coca|coca cola|coca cola zero|coca zero|cocacola)/, any: ['coca','cola','cocacola'] },
-  { match: /^(lays|lay s|papas lays)/, any: ['lays','lay s'] },
-  { match: /^(rocklets|rocklet)/, any: ['rocklets','rocklet'] },
-  { match: /^(oreo)/, any: ['oreo'] },
-  { match: /^(fantoche)/, any: ['fantoche'] },
-  { match: /^(baggio)/, any: ['baggio'] },
-  { match: /^(guaymallen|guaymallen)/, any: ['guaymallen','guaymallen'] },
-  { match: /^(jorgito)/, any: ['jorgito'] },
-  { match: /^(beldent)/, any: ['beldent'] },
-  { match: /^(topline|top line)/, any: ['topline','top line'] },
-  { match: /^(mogul)/, any: ['mogul'] },
-  { match: /^(billiken)/, any: ['billiken'] },
-  { match: /^(tita)/, any: ['tita'] },
-  { match: /^(rhodesia)/, any: ['rhodesia'] },
-  { match: /^(manaos)/, any: ['manaos'] },
-  { match: /^(levite|levite)/, any: ['levite','levite'] },
-  { match: /^(sprite)/, any: ['sprite'] },
-  { match: /^(fanta)/, any: ['fanta'] },
-  { match: /^(pepsi)/, any: ['pepsi'] },
-  { match: /^(bic)/, any: ['bic'] },
-  { match: /^(resma)/, any: ['resma'] },
-  { match: /^(plasticola)/, any: ['plasticola'] },
-  { match: /^(filgo)/, any: ['filgo'] },
-  { match: /^(pringles)/, any: ['pringles'] },
-  { match: /^(doritos)/, any: ['doritos'] }
+  { match: /^coca( cola)?( zero)?$/, any: ['coca cola', 'coca-cola', 'cocacola', 'coca'] },
+  { match: /^lays?$/, any: ['lays', 'lay s'] },
+  { match: /^rocklets?$/, any: ['rocklets', 'rocklet'] },
+  { match: /^oreo$/, any: ['oreo'] },
+  { match: /^fantoche$/, any: ['fantoche'] },
+  { match: /^baggio$/, any: ['baggio'] },
+  { match: /^guaymall?en$/, any: ['guaymallen', 'guaymallén'] },
+  { match: /^jorgito$/, any: ['jorgito'] },
+  { match: /^beldent$/, any: ['beldent'] },
+  { match: /^top ?line$/, any: ['topline', 'top line'] },
+  { match: /^mogul$/, any: ['mogul'] },
+  { match: /^billiken$/, any: ['billiken'] },
+  { match: /^tita$/, any: ['tita'] },
+  { match: /^rhodesia$/, any: ['rhodesia'] },
+  { match: /^manaos$/, any: ['manaos'] },
+  { match: /^levit[eé]$/, any: ['levite', 'levité'] },
+  { match: /^sprite$/, any: ['sprite'] },
+  { match: /^fanta$/, any: ['fanta'] },
+  { match: /^pepsi$/, any: ['pepsi'] },
+  { match: /^bic$/, any: ['bic'] },
+  { match: /^resma$/, any: ['resma'] },
+  { match: /^plasticola$/, any: ['plasticola'] },
+  { match: /^filgo$/, any: ['filgo'] },
+  { match: /^pringles$/, any: ['pringles'] },
+  { match: /^doritos$/, any: ['doritos'] }
 ];
 
 function bpNorm(value) {
@@ -286,44 +300,38 @@ function bpImportantTerms(q) {
   return bpNorm(q).split(/\s+/).filter(t => t && t.length >= 2 && !BP_STOP_TERMS.has(t));
 }
 
+// SOLO el título. Ya no miramos meta/tags para decidir relevancia.
 function bpIsRelevantResult(item, q) {
   const nq = bpNorm(q);
   if (!nq) return true;
 
   const title = bpNorm(item && item.title);
-  const hay = bpNorm([
-    item && item.title,
-    item && item.meta,
-    item && item.pack,
-    ...((item && item.tags) || [])
-  ].join(' '));
+  if (!title) return false;
 
-  if (!title && !hay) return false;
-  if (hay.includes(nq)) return true;
+  // Match directo: el título contiene la query completa.
+  if (title.includes(nq)) return true;
 
+  // Alias de marca/producto conocido (variantes de escritura, no categorías).
   for (const rule of BP_QUERY_ALIASES) {
-    if (rule.match.test(nq)) return rule.any.some(alias => hay.includes(bpNorm(alias)));
+    if (rule.match.test(nq)) {
+      return rule.any.some(alias => title.includes(bpNorm(alias)));
+    }
   }
 
+  // Búsquedas de varias palabras (ej: "coca cola 500ml"): todas las palabras
+  // importantes tienen que aparecer en el título. Estricto: sin tolerancia.
   const terms = bpImportantTerms(q);
-  if (!terms.length) return true;
-  if (terms.length === 1) return hay.includes(terms[0]);
-
-  const hits = terms.filter(t => hay.includes(t)).length;
-  return hits === terms.length || (terms.length >= 3 && hits >= terms.length - 1);
+  if (!terms.length) return false;
+  return terms.every(t => title.includes(t));
 }
 
 function matches(product, q) {
   const nq = normalize(q);
   if (!nq) return false;
-  const haystack = normalize([
-    product.title,
-    product.meta,
-    product.pack,
-    ...(product.tags || []),
-    ...(product.keys || [])
-  ].join(' '));
-  return haystack.includes(nq) || (product.keys || []).some(k => nq.includes(normalize(k)));
+  // El catálogo simulado también se filtra por TÍTULO (con sus keys como alias propios).
+  const title = normalize(product.title);
+  if (title.includes(nq)) return true;
+  return (product.keys || []).some(k => nq.includes(normalize(k)) || normalize(k).includes(nq));
 }
 
 function scoreForSort(item) {
@@ -441,7 +449,7 @@ module.exports = async function handler(req, res) {
   res.setHeader('Cache-Control', 's-maxage=90, stale-while-revalidate=600');
 
   if (!q) {
-    return res.status(200).json({ ok: true, step: '5A', q, count: 0, items: [] });
+    return res.status(200).json({ ok: true, step: '5A.4', q, count: 0, items: [] });
   }
 
   const fallbackItems = PRODUCTS
@@ -474,7 +482,7 @@ module.exports = async function handler(req, res) {
 
     for (const item of live.items || []) {
       if (!bpIsRelevantResult(item, q)) {
-        providerErrors.push({ provider: result.entry.name, ignored: item.title || item.url || 'sin_titulo', reason: 'irrelevante_para_busqueda' });
+        providerErrors.push({ provider: result.entry.name, ignored: item.title || item.url || 'sin_titulo', reason: 'irrelevante_para_busqueda_titulo' });
         continue;
       }
       realItems.push({
@@ -489,7 +497,7 @@ module.exports = async function handler(req, res) {
 
   return res.status(200).json({
     ok: true,
-    step: '5A',
+    step: '5A.4',
     q,
     count: items.length,
     realCount: realItems.length,
@@ -498,6 +506,6 @@ module.exports = async function handler(req, res) {
     providerNames: providers.map(p => p.name),
     items,
     errors: providerErrors,
-    note: 'Paso 5A.3: autosugerencias con filtros de relevancia + Mayorista 12 + Pop + Golmarymar. OKS puede quedar bloqueado con 403. Si fallan, queda el fallback simulado.'
+    note: 'Paso 5A.4: filtro de relevancia ESTRICTO por título. Si ningún resultado real tiene la palabra buscada en el título, se prefiere mostrar vacío (o solo el catálogo simulado si matchea) antes que mostrar basura.'
   });
 };
