@@ -50,12 +50,40 @@ function priceToText(n) {
   return '$' + Number(n).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+function parseArMoney(raw) {
+  const clean = String(raw || '').trim();
+  // Formato AR: punto = miles, coma = decimales -> "1.234,56" => 1234.56
+  const n = Number(clean.replace(/\./g, '').replace(',', '.'));
+  return Number.isFinite(n) ? n : null;
+}
+
 function parsePrices(value) {
   const text = decodeHtml(String(value || ''));
-  const matches = [...text.matchAll(/\$\s*([0-9]{1,3}(?:\.[0-9]{3})*(?:,[0-9]{2})?|[0-9]+(?:,[0-9]{2})?)/g)];
-  const nums = matches
-    .map(m => Number(m[1].replace(/\./g, '').replace(',', '.')))
+
+  // 1) Caso ideal: WooCommerce siempre envuelve el precio real en
+  //    <span class="woocommerce-Price-amount amount">$ 1.234,56</span>
+  //    Si hay <del> (precio tachado) y <ins> (precio con descuento), nos quedamos con el de <ins>.
+  const insMatch = text.match(/<ins\b[\s\S]*?<\/ins>/i);
+  const scopedHtml = insMatch ? insMatch[0] : text;
+
+  const amountRe = /woocommerce-Price-amount[^"']*["'][^>]*>\s*(?:<bdi>)?\s*([0-9][0-9.,]*)/gi;
+  const amountMatches = [...scopedHtml.matchAll(amountRe)];
+  let nums = amountMatches
+    .map(m => parseArMoney(m[1]))
     .filter(n => Number.isFinite(n) && n > 0);
+
+  if (nums.length) return [...new Set(nums)];
+
+  // 2) Fallback: si no hay marcado WooCommerce estándar, buscamos $ pero
+  //    descartamos números que aparezcan dentro de atributos HTML (href, src, data-, class, id)
+  //    y exigimos que el "$" no esté pegado a una letra (para no agarrar cosas como "u$d" sueltos).
+  const withoutAttrs = text.replace(/\s(?:href|src|data-[a-z-]+|class|id)=["'][^"']*["']/gi, ' ');
+  const looseRe = /(?<![a-zA-Z])\$\s*([0-9]{1,3}(?:\.[0-9]{3})*(?:,[0-9]{2})?|[0-9]+(?:,[0-9]{2})?)(?!\s*%)/g;
+  const looseMatches = [...withoutAttrs.matchAll(looseRe)];
+  nums = looseMatches
+    .map(m => parseArMoney(m[1]))
+    .filter(n => Number.isFinite(n) && n >= 50 && n <= 2000000); // descarta ruido tipo $11,33 o $0,5
+
   return [...new Set(nums)];
 }
 
