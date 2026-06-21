@@ -1845,6 +1845,7 @@ img,svg,canvas{max-width:100%}
   font-size:13px;
   font-weight:800;
   cursor:pointer;
+  min-height:52px;
 }
 .bp-hints{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 .bp-hint{
@@ -1857,153 +1858,58 @@ img,svg,canvas{max-width:100%}
   font-weight:750;
   cursor:pointer;
 }
-.bp-suggestions{
-  display:none;
-  margin-top:12px;
-  background:#18181A;
-  border:1px solid var(--border);
-  border-radius:18px;
-  overflow:hidden;
-}
-.bp-suggestions.open{display:block}
-.bp-sug-head{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:11px 14px;
-  border-bottom:1px solid var(--border-soft);
-  color:var(--accent);
-  font-size:10.5px;
-  font-weight:850;
-  letter-spacing:.10em;
-  text-transform:uppercase;
-}
-.bp-sug-item{
-  display:grid;
-  grid-template-columns:54px 1fr auto;
-  gap:12px;
-  align-items:center;
-  padding:11px 14px;
-  border-bottom:1px solid var(--border-soft);
-  cursor:pointer;
-}
-.bp-sug-item:last-child{border-bottom:none}
-.bp-sug-item:hover{background:rgba(124,144,255,.07)}
-.bp-thumb{
-  width:54px;height:42px;border-radius:12px;
-  background:#101114;
-  border:1px solid var(--border);
-  display:flex;align-items:center;justify-content:center;
-  overflow:hidden;
-}
-.bp-pack{
-  width:45px;height:25px;border-radius:6px;
-  display:flex;align-items:center;justify-content:center;
-  font-size:10px;font-weight:900;
-  box-shadow:0 8px 14px rgba(0,0,0,.25);
-}
-.bp-pack.oreo{background:linear-gradient(135deg,#0731A7,#1580FF);color:white}
-.bp-pack.bic{background:linear-gradient(135deg,#F8A91C,#FFE171);color:#161616}
-.bp-pack.coca{background:#D91919;color:white}
-.bp-sug-name{font-size:14px;font-weight:850;color:var(--ink)}
-.bp-sug-meta{font-size:11.5px;color:var(--ink-soft);margin-top:2px}
-.bp-provider-count{font-size:11.5px;color:var(--accent);font-weight:850;white-space:nowrap}
 .bp-results{display:none;margin-top:14px}
 .bp-results.visible{display:block}
 .bp-product-card{
-  display:grid;
-  grid-template-columns:180px 1fr;
-  gap:18px;
-  align-items:center;
+  display:block;
   background:var(--surface);
   border:1px solid var(--border);
   border-radius:24px;
   padding:18px;
   margin-bottom:14px;
 }
-.bp-big-img{
-  min-height:132px;
-  border:1px solid var(--border);
-  border-radius:20px;
-  background:radial-gradient(circle at center,rgba(124,144,255,.18),transparent 60%),#131316;
-  display:flex;align-items:center;justify-content:center;
-}
-.bp-big-pack{
-  width:142px;height:80px;border-radius:16px;
-  display:flex;align-items:center;justify-content:center;
-  font-size:30px;font-weight:900;
-  letter-spacing:-1px;
-  transform:rotate(-3deg);
-  box-shadow:0 18px 35px rgba(0,0,0,.35);
-}
-.bp-big-pack.oreo{background:linear-gradient(135deg,#0731A7,#1580FF);color:white}
-.bp-big-pack.bic{background:linear-gradient(135deg,#F8A91C,#FFE171);color:#161616}
-.bp-big-pack.coca{background:#D91919;color:white}
 .bp-product-title{font-size:26px;font-weight:850;letter-spacing:-.5px;margin-bottom:4px}
 .bp-product-sub{font-size:13px;color:var(--ink-soft);margin-bottom:10px}
 .bp-tags{display:flex;gap:7px;flex-wrap:wrap}
 .bp-tag{font-size:11px;font-weight:800;color:var(--ink-mid);background:#18181A;border:1px solid var(--border);border-radius:999px;padding:6px 9px}
-.bp-price-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:14px}
-.bp-price-card{
+.bp-links-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:14px}
+.bp-link-section{
   background:var(--surface);
   border:1px solid var(--border);
   border-radius:20px;
   padding:16px;
-  position:relative;
 }
-.bp-price-card.best{border-color:rgba(95,214,138,.55);box-shadow:0 0 0 1px rgba(95,214,138,.18)}
-.bp-best{
-  position:absolute;top:-11px;right:12px;
-  background:var(--green);
-  color:#102315;
-  border-radius:999px;
-  padding:5px 9px;
-  font-size:10.5px;font-weight:900;
-}
-.bp-supplier{display:flex;align-items:center;gap:10px;margin-bottom:12px}
-.bp-supplier-logo{
-  width:42px;height:42px;border-radius:999px;background:#F2F1ED;color:#111;
-  display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;
-}
-.bp-supplier-name{font-size:14px;font-weight:850}
-.bp-supplier-type{font-size:11px;color:var(--ink-soft);margin-top:2px}
-.bp-item{display:flex;gap:10px;align-items:center;margin-bottom:12px}
-.bp-mini{width:54px;height:42px;border-radius:12px;border:1px solid var(--border);background:#131316;display:flex;align-items:center;justify-content:center}
-.bp-item-name{font-size:12.5px;font-weight:800}
-.bp-item-pack{font-size:11px;color:var(--ink-soft);margin-top:2px}
-.bp-price{font-size:28px;font-weight:900;letter-spacing:-.7px;margin-bottom:4px}
-.bp-stock{font-size:12px;color:var(--green);font-weight:850;margin-bottom:10px}
-.bp-open{
+.bp-link-title{font-size:13px;font-weight:850;color:var(--ink);margin-bottom:10px}
+.bp-link-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.bp-ext-link{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
   width:100%;
   border:1px solid var(--border);
   background:#18181A;
   color:var(--ink);
   border-radius:13px;
-  padding:10px;
+  padding:11px 12px;
   font-size:12px;
   font-weight:850;
-  cursor:pointer;
+  min-height:42px;
+  text-decoration:none;
+  transition:background .15s,border-color .15s,transform .15s;
 }
-.bp-price-card.best .bp-open{background:var(--green);color:#102315;border-color:transparent}
-.bp-insight{
-  display:grid;
-  grid-template-columns:repeat(3,minmax(0,1fr));
-  gap:10px;
-}
-.bp-insight-card{
+.bp-ext-link:hover{background:rgba(124,144,255,.10);border-color:rgba(124,144,255,.35);transform:translateY(-1px)}
+.bp-ext-link::after{content:'↗';color:var(--accent);font-size:12px}
+.bp-empty{
   background:var(--surface);
-  border:1px solid var(--border);
+  border:1px dashed var(--border);
   border-radius:18px;
-  padding:14px 16px;
+  padding:18px;
+  color:var(--ink-soft);
+  font-size:13px;
+  text-align:center;
+  margin-bottom:14px;
 }
-.bp-insight-label{font-size:10px;font-weight:850;letter-spacing:.10em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:6px}
-.bp-insight-value{font-size:22px;font-weight:900}
-
-.bp-img-real{width:100%;height:100%;object-fit:contain;display:block;padding:5px}
-.bp-big-img .bp-img-real{max-width:100%;max-height:132px;padding:8px}
-.bp-price-label{font-size:10px;font-weight:850;letter-spacing:.10em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:4px}
-.bp-source-line{font-size:11px;color:var(--ink-soft);line-height:1.35;margin-bottom:10px;min-height:15px}
-.bp-public-chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);background:#18181A;border-radius:999px;padding:6px 9px;font-size:11px;font-weight:800;color:var(--ink-mid);margin-top:8px}
-.bp-insight-small{font-size:14px;line-height:1.25;letter-spacing:0}
-.bp-loading-line{color:var(--ink-soft);font-size:13px;padding:12px 0}
 
 .bp-note{
   margin-top:12px;
@@ -2012,17 +1918,14 @@ img,svg,canvas{max-width:100%}
   line-height:1.45;
 }
 @media(max-width:900px){
-  .bp-search-row,.bp-product-card,.bp-price-grid,.bp-insight{grid-template-columns:1fr}
-  .bp-sug-item{grid-template-columns:48px 1fr}
-  .bp-provider-count{grid-column:2;justify-self:start}
-  .bp-thumb{width:48px;height:38px}
+  .bp-search-row,.bp-links-grid{grid-template-columns:1fr}
   .bp-title{font-size:24px}
 }
 @media(max-width:520px){
   .bp-intro{padding:16px;border-radius:20px}
   .bp-search-box input{font-size:14px;padding:14px 42px 14px 40px}
   .bp-product-title{font-size:22px}
-  .bp-price{font-size:25px}
+  .bp-link-list{grid-template-columns:1fr}
 }
 
 </style>
@@ -2274,68 +2177,49 @@ img,svg,canvas{max-width:100%}
 
 
 
-<!-- ─── BUSCAR PRECIOS OVERLAY / PASO 5A.2: PVP + LINKS MAYORISTAS ─── -->
+<!-- Consulta rapida de precios: solo genera links externos -->
 <div class="historial-overlay" id="buscarPreciosOverlay">
   <div class="historial-panel bp-panel">
     <div class="historial-header">
       <div>
-        <span class="historial-title">Buscar precios</span>
-        <div class="bp-head-sub">Venta público + links mayoristas. Paso 5A.2.</div>
+        <span class="historial-title">Consulta rapida de precios</span>
+        <div class="bp-head-sub">Links externos para consultar referencias.</div>
       </div>
       <button class="btn-cerrar-hist" id="btnCerrarBuscarPrecios" title="Cerrar">✕</button>
     </div>
 
     <div class="bp-intro">
-      <div class="bp-overline">Consulta de precios</div>
-      <div class="bp-title">Buscá cualquier producto</div>
-      <div class="bp-sub">Probá con <b>oreo</b>, <b>bic</b>, <b>coca</b> o el producto que quieras. La app muestra el precio de venta público de referencia y botones para abrir los proveedores mayoristas en otra pestaña.</div>
+      <div class="bp-overline">Consulta rapida de precios</div>
+      <div class="bp-title">Consulta rapida de precios</div>
+      <div class="bp-sub">Busca un producto y abri referencias externas. La app no interpreta precios mayoristas ni packs.</div>
 
       <div class="bp-search-row">
         <div class="bp-search-box">
           <span class="bp-search-icon">⌕</span>
-          <input id="bpInput" autocomplete="off" placeholder="Ej: Oreo, Bic Cristal, Coca-Cola 500ml">
+          <input id="bpInput" autocomplete="off" placeholder="Ej: coca 500, oreo, rocklets, bic, marlboro...">
           <button class="bp-clear" id="bpClear" title="Borrar">×</button>
         </div>
         <button class="bp-btn" id="bpSearchBtn">Buscar</button>
       </div>
 
       <div class="bp-hints">
-        <button class="bp-hint" data-bp-q="oreo">Probar “oreo”</button>
-        <button class="bp-hint" data-bp-q="bic">Probar “bic”</button>
-        <button class="bp-hint" data-bp-q="coca">Probar “coca”</button>
+        <button class="bp-hint" data-bp-q="coca 500">coca 500</button>
+        <button class="bp-hint" data-bp-q="oreo">oreo</button>
+        <button class="bp-hint" data-bp-q="bic azul">bic azul</button>
+        <button class="bp-hint" data-bp-q="resma a4">resma a4</button>
       </div>
-
-      <div class="bp-suggestions" id="bpSuggestions"></div>
     </div>
 
     <div class="bp-results" id="bpResults">
       <div class="bp-product-card">
-        <div class="bp-big-img" id="bpBigImg"></div>
-        <div>
-          <div class="bp-product-title" id="bpProductTitle">—</div>
-          <div class="bp-product-sub" id="bpProductSub">—</div>
-          <div class="bp-tags" id="bpTags"></div>
-        </div>
+        <div class="bp-product-title" id="bpProductTitle">Escribi un producto para generar links</div>
+        <div class="bp-product-sub" id="bpProductSub">Los botones se actualizan con el texto buscado.</div>
+        <div class="bp-tags" id="bpTags"></div>
       </div>
 
-      <div class="bp-price-grid" id="bpPriceGrid"></div>
+      <div class="bp-links-grid" id="bpLinksGrid"></div>
 
-      <div class="bp-insight">
-        <div class="bp-insight-card">
-          <div class="bp-insight-label">Proveedores</div>
-          <div class="bp-insight-value" id="bpWholesaleMin">0</div>
-        </div>
-        <div class="bp-insight-card">
-          <div class="bp-insight-label">Venta público ref.</div>
-          <div class="bp-insight-value" id="bpPublicRef">—</div>
-        </div>
-        <div class="bp-insight-card">
-          <div class="bp-insight-label">Fuente PVP</div>
-          <div class="bp-insight-value bp-insight-small" id="bpPublicSource">—</div>
-        </div>
-      </div>
-
-      <div class="bp-note">Paso 5A.2: muestra precio venta público de referencia y links a proveedores mayoristas. No interpreta precios mayoristas ni calcula ganancia o margen.</div>
+      <div class="bp-note">Referencia online. Confirmar criterio del local. Mas adelante se sumara la lista propia de precios del kiosco.</div>
     </div>
   </div>
 </div>
@@ -3223,301 +3107,74 @@ document.querySelectorAll('.cm-caja-btn').forEach(btn=>btn.addEventListener('cli
 
 
 
-// ─── BUSCAR PRECIOS MVP SIMULADO ───
-const BP_FALLBACK_DATA=[
-  {id:'oreo118',kind:'oreo',title:'Oreo Original 118g',meta:'Galletitas dulces · Mondelez',providersCount:3,tags:['Golosinas','Galletitas','Mondelez'],pack:'Paquete x 118g',keys:['oreo','galletita'],prices:[
-    {name:'El Goloso',logo:'El Goloso',price:1790,best:true},{name:'Distribuidora OKS',logo:'OKS',price:1850},{name:'Golomax',logo:'Golomax',price:1920}
-  ]},
-  {id:'oreo36',kind:'oreo',title:'Oreo Original 36g',meta:'Presentación chica',providersCount:3,tags:['Golosinas','Galletitas','Unidad'],pack:'Paquete x 36g',keys:['oreo'],prices:[
-    {name:'El Goloso',logo:'El Goloso',price:620,best:true},{name:'Distribuidora OKS',logo:'OKS',price:650},{name:'Golomax',logo:'Golomax',price:690}
-  ]},
-  {id:'oreo220',kind:'oreo',title:'Oreo 220g',meta:'Pack familiar',providersCount:3,tags:['Golosinas','Galletitas','Familiar'],pack:'Paquete x 220g',keys:['oreo'],prices:[
-    {name:'El Goloso',logo:'El Goloso',price:3220},{name:'Distribuidora OKS',logo:'OKS',price:3140,best:true},{name:'Golomax',logo:'Golomax',price:3370}
-  ]},
-  {id:'oreoBlanca',kind:'oreo',title:'Oreo Bañada Chocolate Blanco',meta:'Chocolate blanco',providersCount:2,tags:['Golosinas','Chocolate','Oreo'],pack:'Unidad',keys:['oreo'],prices:[
-    {name:'El Goloso',logo:'El Goloso',price:1450,best:true},{name:'Golomax',logo:'Golomax',price:1530}
-  ]},
-  {id:'milkaOreo',kind:'oreo',title:'Milka Oreo 100g',meta:'Chocolate Milka',providersCount:2,tags:['Chocolate','Milka','Oreo'],pack:'Tableta x 100g',keys:['oreo','milka'],prices:[
-    {name:'Distribuidora OKS',logo:'OKS',price:2300,best:true},{name:'Golomax',logo:'Golomax',price:2450}
-  ]},
-  {id:'kitkatOreo',kind:'oreo',title:'Kit Kat Oreo',meta:'Chocolate',providersCount:2,tags:['Chocolate','Kit Kat','Oreo'],pack:'Unidad',keys:['oreo','kit kat'],prices:[
-    {name:'El Goloso',logo:'El Goloso',price:1850,best:true},{name:'Golomax',logo:'Golomax',price:1930}
-  ]},
-  {id:'bicAzul',kind:'bic',title:'Bic Cristal Azul x50',meta:'Librería · Caja x50',providersCount:3,tags:['Librería','Biromes','Bic'],pack:'Caja x 50 unidades',keys:['bic','lapicera','birome'],prices:[
-    {name:'Casa Paso',logo:'Paso',price:18400,best:true},{name:'SASA Mayorista',logo:'SASA',price:19150},{name:'Mercado Libre ref.',logo:'ML',price:20500}
-  ]},
-  {id:'bicNegra',kind:'bic',title:'Bic Cristal Negra x50',meta:'Librería · Caja x50',providersCount:3,tags:['Librería','Biromes','Bic'],pack:'Caja x 50 unidades',keys:['bic','lapicera','birome'],prices:[
-    {name:'Casa Paso',logo:'Paso',price:18400,best:true},{name:'SASA Mayorista',logo:'SASA',price:19300},{name:'Mercado Libre ref.',logo:'ML',price:20900}
-  ]},
-  {id:'lapizBic',kind:'bic',title:'Lápiz Bic Evolution',meta:'Librería escolar',providersCount:2,tags:['Librería','Escolar','Bic'],pack:'Pack / caja',keys:['bic','lapiz','lápiz'],prices:[
-    {name:'Casa Paso',logo:'Paso',price:8900,best:true},{name:'SASA Mayorista',logo:'SASA',price:9400}
-  ]},
-  {id:'resaltadorBic',kind:'bic',title:'Resaltador Bic',meta:'Librería',providersCount:3,tags:['Librería','Resaltadores','Bic'],pack:'Unidad / pack',keys:['bic','resaltador'],prices:[
-    {name:'Casa Paso',logo:'Paso',price:1250,best:true},{name:'SASA Mayorista',logo:'SASA',price:1320},{name:'Mercado Libre ref.',logo:'ML',price:1500}
-  ]},
-  {id:'coca500',kind:'coca',title:'Coca-Cola 500ml',meta:'Bebidas',providersCount:3,tags:['Bebidas','Gaseosas','Coca-Cola'],pack:'Botella 500ml',keys:['coca','coca cola','bebida'],prices:[
-    {name:'Distribuidora OKS',logo:'OKS',price:980,best:true},{name:'Masivos',logo:'Mas',price:1030},{name:'Mercado Libre ref.',logo:'ML',price:1150}
-  ]},
-  {id:'coca225',kind:'coca',title:'Coca-Cola 2.25L',meta:'Bebidas',providersCount:3,tags:['Bebidas','Gaseosas','Coca-Cola'],pack:'Botella 2.25L',keys:['coca','coca cola','bebida'],prices:[
-    {name:'Distribuidora OKS',logo:'OKS',price:2450},{name:'Masivos',logo:'Mas',price:2390,best:true},{name:'Mercado Libre ref.',logo:'ML',price:2700}
-  ]},
-  {
-    id: 'cocaLata354', kind: 'coca', title: 'Coca-Cola Lata 354ml', meta: 'Bebidas · Lata', providersCount: 3,
-    tags: ['Bebidas', 'Gaseosas', 'Coca-Cola'], pack: 'Lata 354ml', keys: ['coca', 'coca cola', 'coca-cola', 'lata', '354', '354ml', 'bebida', 'gaseosa'],
-    prices: [
-      { name: 'Distribuidora OKS', logo: 'OKS', price: 890, best: true },
-      { name: 'Masivos', logo: 'Mas', price: 930 },
-      { name: 'Mercado Libre ref.', logo: 'ML', price: 1050 }
-    ]
-  },
-  {
-    id: 'cocaMini220', kind: 'coca', title: 'Coca-Cola Mini 220ml', meta: 'Bebidas · Mini', providersCount: 2,
-    tags: ['Bebidas', 'Gaseosas', 'Coca-Cola'], pack: 'Botellita / lata 220ml', keys: ['coca', 'coca cola', 'mini', '220', '220ml', 'bebida', 'gaseosa'],
-    prices: [
-      { name: 'Distribuidora OKS', logo: 'OKS', price: 620, best: true },
-      { name: 'Masivos', logo: 'Mas', price: 690 }
-    ]
-  },
-  {
-    id: 'coca600', kind: 'coca', title: 'Coca-Cola 600ml', meta: 'Bebidas · Botella', providersCount: 3,
-    tags: ['Bebidas', 'Gaseosas', 'Coca-Cola'], pack: 'Botella 600ml', keys: ['coca', 'coca cola', '600', '600ml', 'bebida', 'gaseosa'],
-    prices: [
-      { name: 'Distribuidora OKS', logo: 'OKS', price: 1120, best: true },
-      { name: 'Masivos', logo: 'Mas', price: 1180 },
-      { name: 'Mercado Libre ref.', logo: 'ML', price: 1300 }
-    ]
-  },
-  {
-    id: 'coca1L', kind: 'coca', title: 'Coca-Cola 1L', meta: 'Bebidas · Botella', providersCount: 3,
-    tags: ['Bebidas', 'Gaseosas', 'Coca-Cola'], pack: 'Botella 1L', keys: ['coca', 'coca cola', '1l', '1 litro', '1000', 'bebida', 'gaseosa'],
-    prices: [
-      { name: 'Distribuidora OKS', logo: 'OKS', price: 1480, best: true },
-      { name: 'Masivos', logo: 'Mas', price: 1560 },
-      { name: 'Mercado Libre ref.', logo: 'ML', price: 1700 }
-    ]
-  },
-  {
-    id: 'coca125', kind: 'coca', title: 'Coca-Cola 1.25L', meta: 'Bebidas · Botella', providersCount: 3,
-    tags: ['Bebidas', 'Gaseosas', 'Coca-Cola'], pack: 'Botella 1.25L', keys: ['coca', 'coca cola', '1.25', '125', '1,25', 'bebida', 'gaseosa'],
-    prices: [
-      { name: 'Distribuidora OKS', logo: 'OKS', price: 1760, best: true },
-      { name: 'Masivos', logo: 'Mas', price: 1830 },
-      { name: 'Mercado Libre ref.', logo: 'ML', price: 1990 }
-    ]
-  },
-  {
-    id: 'coca15', kind: 'coca', title: 'Coca-Cola 1.5L', meta: 'Bebidas · Botella', providersCount: 3,
-    tags: ['Bebidas', 'Gaseosas', 'Coca-Cola'], pack: 'Botella 1.5L', keys: ['coca', 'coca cola', '1.5', '1,5', '1500', 'litro y medio', 'bebida', 'gaseosa'],
-    prices: [
-      { name: 'Distribuidora OKS', logo: 'OKS', price: 1980, best: true },
-      { name: 'Masivos', logo: 'Mas', price: 2070 },
-      { name: 'Mercado Libre ref.', logo: 'ML', price: 2250 }
-    ]
-  },
-  {
-    id: 'coca175', kind: 'coca', title: 'Coca-Cola 1.75L', meta: 'Bebidas · Botella', providersCount: 2,
-    tags: ['Bebidas', 'Gaseosas', 'Coca-Cola'], pack: 'Botella 1.75L', keys: ['coca', 'coca cola', '1.75', '1,75', '1750', 'bebida', 'gaseosa'],
-    prices: [
-      { name: 'Distribuidora OKS', logo: 'OKS', price: 2180, best: true },
-      { name: 'Masivos', logo: 'Mas', price: 2290 }
-    ]
-  },
-  {
-    id: 'coca2L', kind: 'coca', title: 'Coca-Cola 2L', meta: 'Bebidas · Botella', providersCount: 3,
-    tags: ['Bebidas', 'Gaseosas', 'Coca-Cola'], pack: 'Botella 2L', keys: ['coca', 'coca cola', '2l', '2 litros', '2000', 'bebida', 'gaseosa'],
-    prices: [
-      { name: 'Distribuidora OKS', logo: 'OKS', price: 2280 },
-      { name: 'Masivos', logo: 'Mas', price: 2220, best: true },
-      { name: 'Mercado Libre ref.', logo: 'ML', price: 2500 }
-    ]
-  },
-  {
-    id: 'coca3L', kind: 'coca', title: 'Coca-Cola 3L', meta: 'Bebidas · Botella familiar', providersCount: 3,
-    tags: ['Bebidas', 'Gaseosas', 'Coca-Cola'], pack: 'Botella 3L', keys: ['coca', 'coca cola', '3l', '3 litros', '3000', 'familiar', 'bebida', 'gaseosa'],
-    prices: [
-      { name: 'Distribuidora OKS', logo: 'OKS', price: 3180 },
-      { name: 'Masivos', logo: 'Mas', price: 3090, best: true },
-      { name: 'Mercado Libre ref.', logo: 'ML', price: 3500 }
-    ]
-  },
-  {
-    id: 'cocaZero500', kind: 'coca', title: 'Coca-Cola Zero 500ml', meta: 'Bebidas · Sin azúcar', providersCount: 3,
-    tags: ['Bebidas', 'Gaseosas', 'Coca-Cola Zero'], pack: 'Botella 500ml', keys: ['coca', 'coca cola', 'zero', 'sin azucar', 'sin azúcar', '500', '500ml', 'bebida', 'gaseosa'],
-    prices: [
-      { name: 'Distribuidora OKS', logo: 'OKS', price: 1010, best: true },
-      { name: 'Masivos', logo: 'Mas', price: 1060 },
-      { name: 'Mercado Libre ref.', logo: 'ML', price: 1180 }
-    ]
-  },
-  {
-    id: 'cocaZero15', kind: 'coca', title: 'Coca-Cola Zero 1.5L', meta: 'Bebidas · Sin azúcar', providersCount: 3,
-    tags: ['Bebidas', 'Gaseosas', 'Coca-Cola Zero'], pack: 'Botella 1.5L', keys: ['coca', 'coca cola', 'zero', 'sin azucar', 'sin azúcar', '1.5', '1,5', '1500', 'bebida', 'gaseosa'],
-    prices: [
-      { name: 'Distribuidora OKS', logo: 'OKS', price: 2050 },
-      { name: 'Masivos', logo: 'Mas', price: 1990, best: true },
-      { name: 'Mercado Libre ref.', logo: 'ML', price: 2300 }
-    ]
-  },
-  {
-    id: 'cocaZero225', kind: 'coca', title: 'Coca-Cola Zero 2.25L', meta: 'Bebidas · Sin azúcar', providersCount: 3,
-    tags: ['Bebidas', 'Gaseosas', 'Coca-Cola Zero'], pack: 'Botella 2.25L', keys: ['coca', 'coca cola', 'zero', 'sin azucar', 'sin azúcar', '2.25', '2,25', '2250', 'bebida', 'gaseosa'],
-    prices: [
-      { name: 'Distribuidora OKS', logo: 'OKS', price: 2490 },
-      { name: 'Masivos', logo: 'Mas', price: 2420, best: true },
-      { name: 'Mercado Libre ref.', logo: 'ML', price: 2760 }
-    ]
-  }
-];
-const bpFmt=n=>{if(n===null||n===undefined||Number.isNaN(Number(n)))return '—';return '$'+Math.round(Number(n)||0).toLocaleString('es-AR');};
-function bpPack(kind,big=false){const cls=big?'bp-big-pack':'bp-pack';const txt=kind==='oreo'?'OREO':kind==='bic'?'BIC':kind==='coca'?'Coca':kind==='paper'?'A4':'PROD';return `<div class="${cls} ${kind}">${txt}</div>`;}
-function bpVisual(productOrKind,big=false){const img=typeof productOrKind==='object'?(productOrKind.image||productOrKind.imageUrl||productOrKind.thumbnail):null;const kind=typeof productOrKind==='object'?(productOrKind.kind||'real'):productOrKind;if(img){return `<img class="bp-img-real" src="${bpEsc(img)}" alt="Producto" loading="lazy" onerror="this.style.display='none'">`;}return bpPack(kind,big);}
-function bpEsc(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
-function bpUrl(v){if(!v)return '';try{return new URL(String(v), location.origin).href}catch(_){return ''}}
-
-const BP_PUBLIC_FALLBACK=[
-  {title:'Oreo Original 118g',price:2500,keys:['oreo 118','oreo original','galletitas oreo 118']},
-  {title:'Oreo Original 36g',price:900,keys:['oreo 36','oreo chica']},
-  {title:'Oreo 220g',price:4200,keys:['oreo 220','oreo familiar']},
-  {title:'Oreo Bañada Chocolate Blanco',price:2200,keys:['oreo bañada','oreo banada','oreo chocolate blanco']},
-  {title:'Milka Oreo 100g',price:3300,keys:['milka oreo']},
-  {title:'Kit Kat Oreo',price:2800,keys:['kit kat oreo','kitkat oreo']},
-  {title:'Coca-Cola Mini 220ml',price:1000,keys:['coca 220','coca mini']},
-  {title:'Coca-Cola Lata 354ml',price:1400,keys:['coca lata','coca 354']},
-  {title:'Coca-Cola 500ml',price:1500,keys:['coca 500']},
-  {title:'Coca-Cola 600ml',price:1700,keys:['coca 600']},
-  {title:'Coca-Cola 1L',price:2200,keys:['coca 1l','coca 1 litro']},
-  {title:'Coca-Cola 1.25L',price:2600,keys:['coca 1.25','coca 125']},
-  {title:'Coca-Cola 1.5L',price:3000,keys:['coca 1.5','coca 1500']},
-  {title:'Coca-Cola 1.75L',price:3300,keys:['coca 1.75','coca 1750']},
-  {title:'Coca-Cola 2L',price:3500,keys:['coca 2l','coca 2 litros']},
-  {title:'Coca-Cola 2.25L',price:3900,keys:['coca 2.25','coca 225']},
-  {title:'Coca-Cola 3L',price:5000,keys:['coca 3l','coca 3 litros']},
-  {title:'Coca-Cola Zero 500ml',price:1600,keys:['coca zero 500','zero 500']},
-  {title:'Coca-Cola Zero 1.5L',price:3100,keys:['coca zero 1.5','zero 1500']},
-  {title:'Coca-Cola Zero 2.25L',price:4000,keys:['coca zero 2.25','zero 225']}
-];
-function bpNorm(v){return String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();}
-function bpLocalPublic(q){const nq=bpNorm(q);if(!nq)return{found:false,publicPrice:null,publicPriceText:null,source:'No disponible todavía'};let best=null,score=0;for(const r of BP_PUBLIC_FALLBACK){const hay=bpNorm([r.title,...r.keys].join(' '));let s=hay.includes(nq)||nq.includes(bpNorm(r.title))?100:0;for(const k of r.keys){const nk=bpNorm(k);if(nq.includes(nk)||nk.includes(nq))s=Math.max(s,80);}
-const hits=nq.split(' ').filter(t=>hay.includes(t)).length;s=Math.max(s,hits*12);if(s>score){score=s;best=r;}}
-if(!best||score<=0)return{found:false,publicPrice:null,publicPriceText:null,source:'No disponible todavía'};return{found:true,title:best.title,publicPrice:best.price,publicPriceText:bpFmt(best.price),source:'Referencia local inicial'};}
-
-let bpCurrentSuggestions=[];
-function bpFallbackMatches(term){term=(term||'').trim().toLowerCase();if(!term)return[];return BP_FALLBACK_DATA.filter(p=>p.title.toLowerCase().includes(term)||p.keys.some(k=>k.includes(term)||term.includes(k))).slice(0,15);}
-async function bpFetchSuggestions(term){term=(term||'').trim();if(!term)return[];try{const res=await fetch('/api/sugerencias?q='+encodeURIComponent(term),{headers:{'Accept':'application/json'}});if(res.ok){const data=await res.json();const items=Array.isArray(data)?data:Array.isArray(data.items)?data.items:[];if(items.length)return items;}}catch(err){console.warn('API sugerencias no disponible, usando fallback local',err);}return bpFallbackMatches(term);}
-async function bpFetchPrecios(product){
-  const q=(product&&product.title)||document.getElementById('bpInput')?.value||'';
-  try{
-    const res=await fetch('/api/precios?q='+encodeURIComponent(q),{headers:{'Accept':'application/json'}});
-    if(!res.ok)throw new Error('HTTP '+res.status);
-    const data=await res.json();
-    const items=Array.isArray(data.items)?data.items:[];
-    const links=[];
-    for(const item of items){
-      const base={
-        name:item.provider||item.providerName||item.name||'Proveedor',
-        logo:item.logo||item.provider||'Prov',
-        url:item.url,
-        image:item.image,
-        stock:item.stock,
-        title:item.title||product.title,
-        kind:item.kind||product.kind,
-        source:item.source||'proveedor_real',
-        pack:item.pack||product.pack||'Producto real'
-      };
-      if(base.url) links.push(base);
-      if(Array.isArray(item.prices)&&item.prices.length){
-        for(const r of item.prices){
-          const url=r.url||item.url;
-          if(!url)continue;
-          links.push({
-            name:r.name||item.provider||'Proveedor',
-            logo:r.logo||item.logo||'Prov',
-            url,
-            image:r.image||item.image,
-            stock:r.stock??item.stock,
-            title:item.title||product.title,
-            kind:item.kind||product.kind,
-            source:r.source||item.source||'proveedor_real',
-            pack:item.pack||product.pack||'Producto real'
-          });
-        }
-      }
-    }
-    const seen=new Set();
-    const providerLinks=[];
-    for(const l of links){
-      const key=(l.name||'')+'|'+(l.url||'');
-      if(!l.url||seen.has(key))continue;
-      seen.add(key);
-      providerLinks.push(l);
-    }
-    if(providerLinks.length || items.length){
-      const first=items[0]||{};
-      return {
-        ...product,
-        title:first.title||product.title,
-        meta:first.meta||product.meta,
-        kind:first.kind||product.kind,
-        tags:first.tags||product.tags||[],
-        pack:first.pack||product.pack||'Producto',
-        image:first.image||product.image,
-        prices:[],
-        providerLinks,
-        providersCount:providerLinks.length,
-        publicReference:data.publicReference||product.publicReference,
-        source:'api_precios_links'
-      };
-    }
-    return {...product,providerLinks:[],publicReference:data.publicReference||product.publicReference};
-  }catch(err){
-    console.warn('API precios no disponible, usando links de sugerencia',err);
-    const fallbackUrl=product&&product.url?bpUrl(product.url):'';
-    return {...product,providerLinks:fallbackUrl?[{name:product.provider||'Proveedor',logo:product.logo||'Prov',url:fallbackUrl,image:product.image,stock:product.stock,title:product.title,kind:product.kind,source:product.source,pack:product.pack}]:[]};
-  }
+// Consulta rapida de precios: arma links externos, sin scraping ni APIs
+function normalizePriceQuery(value){
+  return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim();
 }
-async function bpFetchPublico(product){const q=(product&&product.title)||document.getElementById('bpInput')?.value||'';try{const res=await fetch('/api/publicos?q='+encodeURIComponent(q),{headers:{'Accept':'application/json'}});if(!res.ok)throw new Error('HTTP '+res.status);const data=await res.json();if(data&&data.item)return data.item;}catch(err){console.warn('API publicos no disponible, usando referencia local',err);}return product?.publicReference||bpLocalPublic(q);}
-
-async function bpRenderSuggestions(){const input=document.getElementById('bpInput'),box=document.getElementById('bpSuggestions');if(!input||!box)return;const term=input.value;if(!term.trim()){bpCurrentSuggestions=[];box.classList.remove('open');box.innerHTML='';return;}box.innerHTML='<div class="bp-sug-head"><span>Sugerencias</span><span>buscando…</span></div><div style="padding:16px;color:var(--ink-soft)">Consultando catálogo y proveedor real</div>';box.classList.add('open');const list=await bpFetchSuggestions(term);bpCurrentSuggestions=list;if(!input.value.trim())return;if(!list.length){box.innerHTML='<div class="bp-sug-head"><span>Sugerencias</span><span>0</span></div><div style="padding:16px;color:var(--ink-soft)">No encontré sugerencias. Probá “oreo”, “bic”, “resma” o “coca”.</div>';box.classList.add('open');return;}box.innerHTML=`<div class="bp-sug-head"><span>Sugerencias</span><span>${list.length} encontradas</span></div>`+list.map(p=>`<div class="bp-sug-item" data-id="${bpEsc(p.id)}"><div class="bp-thumb">${bpVisual(p)}</div><div><div class="bp-sug-name">${bpEsc(p.title)}</div><div class="bp-sug-meta">${bpEsc(p.meta||'')}</div></div><div class="bp-provider-count">${p.providersCount||0} proveedores</div></div>`).join('');box.classList.add('open');box.querySelectorAll('.bp-sug-item').forEach(el=>el.addEventListener('click',()=>bpSelect(el.dataset.id)));}
-async function bpSelect(id){const p=bpCurrentSuggestions.find(x=>String(x.id)===String(id))||BP_FALLBACK_DATA.find(x=>String(x.id)===String(id))||bpFallbackMatches(document.getElementById('bpInput')?.value)[0];if(!p)return;document.getElementById('bpInput').value=p.title;document.getElementById('bpSuggestions').classList.remove('open');await bpRenderResults(p);}
-async function bpRenderResults(baseProduct){
+function bpEsc(v){return String(v ?? '').replace(/[&<>'\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','\"':'&quot;'}[c]));}
+function bpGoogleUrl(query){return 'https://www.google.com/search?q=' + encodeURIComponent(query);}
+function bpSiteSearch(domain, query){return bpGoogleUrl('site:' + domain + ' ' + query);}
+function buildPriceLinks(query){
+  const q = normalizePriceQuery(query);
+  if(!q) return [];
+  const enc = encodeURIComponent(q);
+  return [
+    { title:'Precio publico / referencia minorista', links:[
+      {label:'Mercado Libre',url:'https://listado.mercadolibre.com.ar/' + enc},
+      {label:'Google Shopping',url:'https://www.google.com/search?tbm=shop&q=' + enc},
+      {label:'Carrefour',url:bpSiteSearch('carrefour.com.ar',q)},
+      {label:'Coto',url:bpSiteSearch('coto.com.ar',q)},
+      {label:'Dia',url:bpSiteSearch('diaonline.supermercadosdia.com.ar',q)},
+      {label:'Jumbo / Disco / Vea',url:bpGoogleUrl('(site:jumbo.com.ar OR site:disco.com.ar OR site:vea.com.ar) ' + q)},
+      {label:'SEPA / Precios Claros',url:bpSiteSearch('preciosclaros.gob.ar',q)}
+    ]},
+    { title:'Kiosco', links:[
+      {label:'Infokioscos',url:bpSiteSearch('infokioscos.com.ar',q)},
+      {label:'Google busqueda kiosco',url:bpGoogleUrl(q + ' kiosco precio')}
+    ]},
+    { title:'Libreria', links:[
+      {label:'Casa Paso',url:bpSiteSearch('casapaso.com.ar',q)},
+      {label:'SASA',url:bpSiteSearch('sasa.com.ar',q)},
+      {label:'Mercado Libre libreria',url:'https://listado.mercadolibre.com.ar/' + encodeURIComponent(q + ' libreria')}
+    ]},
+    { title:'Mayoristas / proveedores', links:[
+      {label:'Golmarymar',url:bpSiteSearch('golmarymar.com.ar',q)},
+      {label:'Distribuidora Pop',url:bpSiteSearch('distribuidorapop.com.ar',q)},
+      {label:'La Casa del Kioskero',url:bpSiteSearch('lacasadelkioskero.com.ar',q)},
+      {label:'Mayorista 12 de Octubre',url:bpSiteSearch('mayorista12.com.ar',q)}
+    ]}
+  ];
+}
+function renderPriceLinks(query){
   const res=document.getElementById('bpResults');
-  if(!res)return;
+  const grid=document.getElementById('bpLinksGrid');
+  const title=document.getElementById('bpProductTitle');
+  const sub=document.getElementById('bpProductSub');
+  const tags=document.getElementById('bpTags');
+  if(!res||!grid||!title||!sub||!tags)return;
+  const q=normalizePriceQuery(query);
   res.classList.add('visible');
-  document.getElementById('bpBigImg').innerHTML=bpVisual(baseProduct,true);
-  document.getElementById('bpProductTitle').textContent=baseProduct.title||'—';
-  document.getElementById('bpProductSub').textContent='Consultando proveedores…';
-  document.getElementById('bpTags').innerHTML=(baseProduct.tags||[]).map(t=>`<span class="bp-tag">${bpEsc(t)}</span>`).join('');
-  document.getElementById('bpPriceGrid').innerHTML='<div class="bp-loading-line">Buscando precio público de referencia y links a proveedores…</div>';
-
-  const [p,publico]=await Promise.all([bpFetchPrecios(baseProduct),bpFetchPublico(baseProduct)]);
-  let links=Array.isArray(p.providerLinks)?p.providerLinks:[];
-  if(!links.length && p.url){
-    links=[{name:p.provider||'Proveedor',logo:p.logo||'Prov',url:p.url,image:p.image,stock:p.stock,title:p.title,kind:p.kind,source:p.source,pack:p.pack}];
+  if(!q){
+    title.textContent='Escribi un producto para generar links';
+    sub.textContent='Los botones se actualizan con el texto buscado.';
+    tags.innerHTML='';
+    grid.innerHTML='<div class="bp-empty">Escribi un producto para generar links</div>';
+    return;
   }
-
-  document.getElementById('bpBigImg').innerHTML=bpVisual(p,true);
-  document.getElementById('bpProductTitle').textContent=p.title||baseProduct.title||'—';
-  document.getElementById('bpProductSub').textContent=`${links.length} proveedor(es) para consultar · ${p.meta||''}`;
-  document.getElementById('bpTags').innerHTML=(p.tags||[]).map(t=>`<span class="bp-tag">${bpEsc(t)}</span>`).join('');
-  document.getElementById('bpWholesaleMin').textContent=String(links.length||0);
-  document.getElementById('bpPublicRef').textContent=publico&&publico.publicPrice!==null&&publico.publicPrice!==undefined?(publico.publicPriceText||bpFmt(publico.publicPrice)):'No disponible';
-  document.getElementById('bpPublicSource').textContent=publico?.source||'No disponible';
-  document.getElementById('bpPriceGrid').innerHTML=links.length?links.map(r=>{
-    const url=bpUrl(r.url);
-    const source=r.source&&String(r.source).includes('proveedor')?'Proveedor real':'Catálogo / referencia';
-    return `<div class="bp-price-card"><div class="bp-supplier"><div class="bp-supplier-logo">${bpEsc(r.logo||r.name||'Prov')}</div><div><div class="bp-supplier-name">${bpEsc(r.name||r.provider||'Proveedor')}</div><div class="bp-supplier-type">Abrir web mayorista</div></div></div><div class="bp-item"><div class="bp-mini">${bpVisual({kind:r.kind||p.kind,image:r.image||p.image})}</div><div><div class="bp-item-name">${bpEsc(r.title||p.title)}</div><div class="bp-item-pack">${bpEsc(r.pack||p.pack||'Producto')}</div></div></div><div class="bp-price-label">Mayorista</div><div class="bp-price">Ver en web</div><div class="bp-source-line">Fuente: ${bpEsc(source)}</div><div class="bp-stock">${r.stock===false?'○ Sin stock informado':'● Stock / precio a confirmar en web'}</div><button class="bp-open" data-url="${bpEsc(url)}">${url?'Ver precio en proveedor ↗':'Sin link'}</button></div>`;
-  }).join(''):'<div class="bp-loading-line">No encontré links de proveedor para este producto todavía.</div>';
-  document.querySelectorAll('.bp-open[data-url]').forEach(btn=>btn.addEventListener('click',()=>{const u=btn.dataset.url;if(u)window.open(u,'_blank','noopener,noreferrer');}));
-  res.scrollIntoView({behavior:'smooth',block:'start'});
+  title.textContent='Referencias para "' + q + '"';
+  sub.textContent='Abri cada fuente en otra pestana y confirma el criterio del local.';
+  tags.innerHTML=['sin scraping','sin APIs','links externos'].map(t=>'<span class="bp-tag">'+bpEsc(t)+'</span>').join('');
+  grid.innerHTML=buildPriceLinks(q).map(section=>'<section class="bp-link-section"><div class="bp-link-title">'+bpEsc(section.title)+'</div><div class="bp-link-list">'+section.links.map(link=>'<a class="bp-ext-link" href="'+bpEsc(link.url)+'" target="_blank" rel="noopener noreferrer">'+bpEsc(link.label)+'</a>').join('')+'</div></section>').join('');
 }
-function bpAbrir(){const overlay=document.getElementById('buscarPreciosOverlay');if(!overlay)return;overlay.classList.add('open');setTimeout(()=>document.getElementById('bpInput')?.focus(),100);}
+function bpAbrir(){const overlay=document.getElementById('buscarPreciosOverlay');if(!overlay)return;overlay.classList.add('open');renderPriceLinks(document.getElementById('bpInput')?.value||'');setTimeout(()=>document.getElementById('bpInput')?.focus(),100);}
 function bpCerrar(){document.getElementById('buscarPreciosOverlay')?.classList.remove('open');}
+function openExternalLink(url){if(url)window.open(url,'_blank','noopener,noreferrer');}
 const bpBtn=document.getElementById('btnBuscarPrecios');if(bpBtn)bpBtn.addEventListener('click',bpAbrir);
 const bpClose=document.getElementById('btnCerrarBuscarPrecios');if(bpClose)bpClose.addEventListener('click',bpCerrar);
-const bpInput=document.getElementById('bpInput');if(bpInput){let bpTimer;bpInput.addEventListener('input',()=>{clearTimeout(bpTimer);bpTimer=setTimeout(bpRenderSuggestions,160);});bpInput.addEventListener('keydown',async e=>{if(e.key==='Enter'){const list=bpCurrentSuggestions.length?bpCurrentSuggestions:await bpFetchSuggestions(bpInput.value);if(list[0])await bpSelect(list[0].id);}});}
-const bpSearch=document.getElementById('bpSearchBtn');if(bpSearch)bpSearch.addEventListener('click',async()=>{const i=document.getElementById('bpInput');const list=bpCurrentSuggestions.length?bpCurrentSuggestions:await bpFetchSuggestions(i?.value);if(list[0])await bpSelect(list[0].id);});
-const bpClear=document.getElementById('bpClear');if(bpClear)bpClear.addEventListener('click',()=>{const i=document.getElementById('bpInput');if(i)i.value='';document.getElementById('bpSuggestions')?.classList.remove('open');i?.focus();});
-document.querySelectorAll('.bp-hint').forEach(btn=>btn.addEventListener('click',()=>{const i=document.getElementById('bpInput');i.value=btn.dataset.bpQ;bpRenderSuggestions();i.focus();}));
+const bpInput=document.getElementById('bpInput');if(bpInput){bpInput.addEventListener('input',()=>renderPriceLinks(bpInput.value));bpInput.addEventListener('keydown',e=>{if(e.key==='Enter')renderPriceLinks(bpInput.value);});}
+const bpSearch=document.getElementById('bpSearchBtn');if(bpSearch)bpSearch.addEventListener('click',()=>renderPriceLinks(document.getElementById('bpInput')?.value||''));
+const bpClear=document.getElementById('bpClear');if(bpClear)bpClear.addEventListener('click',()=>{const i=document.getElementById('bpInput');if(i)i.value='';renderPriceLinks('');i?.focus();});
+document.querySelectorAll('.bp-hint').forEach(btn=>btn.addEventListener('click',()=>{const i=document.getElementById('bpInput');if(!i)return;i.value=btn.dataset.bpQ||'';renderPriceLinks(i.value);i.focus();}));
 const buscarPreciosOverlay=document.getElementById('buscarPreciosOverlay');if(buscarPreciosOverlay)buscarPreciosOverlay.addEventListener('click',e=>{if(e.target===buscarPreciosOverlay)bpCerrar();});
 
 function actualizarHeroSide(movs){
