@@ -198,6 +198,18 @@ const QUERY_ALIASES = [
   { match: /^(rasta)/, any: ['rasta'] }
 ];
 
+// Paso 7 — detecta packs/cajas mayoristas (x12, x24, Caja x50, Pack x6,
+// "24 unidades", etc.) para excluirlos del buscador. El kiosco siempre
+// quiere ver el producto individual, nunca la presentación al por mayor.
+function isPack(text) {
+  const t = normalize(text);
+  return /\bx\s*\d{2,}\b/.test(t)        // "x12", "x 24", "x50"
+    || /\bcaja\b/.test(t)
+    || /\bpack\s*x?\s*\d+/.test(t)
+    || /\bdisplay\b/.test(t)
+    || /\b\d+\s*u(?:nidades)?\b/.test(t); // "12u", "24 unidades"
+}
+
 function significantTerms(q) {
   return normalize(q)
     .split(/\s+/)
@@ -209,6 +221,13 @@ function isRelevantTitle(title, q) {
   const nq = normalize(q);
   if (!nq) return true;
   if (!nt) return false;
+
+  // Paso 7 — nunca mostrar packs/cajas mayoristas en el buscador. El kiosco
+  // quiere ver siempre el producto individual, no "x12", "Caja x50", etc.
+  // Esto aplica tanto si el título del producto ES un pack, como si la
+  // búsqueda del usuario pide explícitamente un pack.
+  if (isPack(title) || isPack(q)) return false;
+
   if (nt.includes(nq)) return true;
 
   for (const rule of QUERY_ALIASES) {
@@ -489,5 +508,6 @@ module.exports = {
   scoreTitle,
   uniqueSort,
   isRelevantTitle,
-  makeStableId
+  makeStableId,
+  isPack
 };
