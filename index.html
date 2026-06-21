@@ -1886,18 +1886,6 @@ img,svg,canvas{max-width:100%}
 }
 .bp-results{display:none;margin-top:14px}
 .bp-results.visible{display:block}
-.bp-product-card{
-  display:none;
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:24px;
-  padding:18px;
-  margin-bottom:14px;
-}
-.bp-product-title{font-size:26px;font-weight:850;letter-spacing:-.5px;margin-bottom:4px}
-.bp-product-sub{font-size:13px;color:var(--ink-soft);margin-bottom:10px}
-.bp-tags{display:flex;gap:7px;flex-wrap:wrap}
-.bp-tag{font-size:11px;font-weight:800;color:var(--ink-mid);background:#18181A;border:1px solid var(--border);border-radius:999px;padding:6px 9px}
 .bp-links-grid{display:flex;flex-wrap:wrap;align-items:flex-start;gap:10px;margin-bottom:10px}
 .bp-link-section{
   background:var(--surface);
@@ -1927,17 +1915,6 @@ img,svg,canvas{max-width:100%}
 }
 .bp-ext-link:hover{background:rgba(124,144,255,.10);border-color:rgba(124,144,255,.35);transform:translateY(-1px)}
 .bp-ext-link::after{content:'↗';color:var(--accent);font-size:12px}
-.bp-empty{
-  background:var(--surface);
-  border:1px dashed var(--border);
-  border-radius:18px;
-  padding:18px;
-  color:var(--ink-soft);
-  font-size:13px;
-  text-align:center;
-  margin-bottom:14px;
-}
-
 .bp-note{
   margin-top:12px;
   font-size:12px;
@@ -1953,7 +1930,6 @@ img,svg,canvas{max-width:100%}
 @media(max-width:520px){
   .bp-intro{padding:16px;border-radius:20px}
   .bp-search-box input{font-size:14px;padding:14px 42px 14px 40px}
-  .bp-product-title{font-size:22px}
   .bp-link-list{grid-template-columns:1fr}
 }
 
@@ -2254,14 +2230,7 @@ img,svg,canvas{max-width:100%}
     </div>
 
     <div class="bp-results" id="bpResults">
-      <div class="bp-product-card">
-        <div class="bp-product-title" id="bpProductTitle">Escribi un producto para generar links</div>
-        <div class="bp-product-sub" id="bpProductSub">Los botones se actualizan con el texto buscado.</div>
-        <div class="bp-tags" id="bpTags"></div>
-      </div>
-
       <div class="bp-links-grid" id="bpLinksGrid"></div>
-
       <div class="bp-note">Referencia online. Confirmar criterio del local. Mas adelante se sumara la lista propia de precios del kiosco.</div>
     </div>
   </div>
@@ -3201,23 +3170,10 @@ function buildPriceLinks(query){
 function renderPriceLinks(query){
   const res=document.getElementById('bpResults');
   const grid=document.getElementById('bpLinksGrid');
-  const title=document.getElementById('bpProductTitle');
-  const sub=document.getElementById('bpProductSub');
-  const tags=document.getElementById('bpTags');
-  if(!res||!grid||!title||!sub||!tags)return;
+  if(!res||!grid)return;
   const q=normalizePriceQuery(query);
-  if(!q){
-    res.classList.remove('visible');
-    title.textContent='Escribi un producto para generar links';
-    sub.textContent='Los botones se actualizan con el texto buscado.';
-    tags.innerHTML='';
-    grid.innerHTML='';
-    return;
-  }
+  if(!q){res.classList.remove('visible');grid.innerHTML='';return;}
   res.classList.add('visible');
-  title.textContent='Referencias para "' + q + '"';
-  sub.textContent='Abri cada fuente en otra pestana y confirma el criterio del local.';
-  tags.innerHTML='';
   grid.innerHTML=buildPriceLinks(q).map(section=>'<section class="bp-link-section"><div class="bp-link-title">'+bpEsc(section.title)+'</div><div class="bp-link-list">'+section.links.map(link=>'<a class="bp-ext-link" href="'+bpEsc(link.url)+'" target="_blank" rel="noopener noreferrer">'+bpEsc(link.label)+'</a>').join('')+'</div></section>').join('');
 }
 function bpAbrir(){const overlay=document.getElementById('buscarPreciosOverlay');if(!overlay)return;overlay.classList.add('open');renderPriceLinks(document.getElementById('bpInput')?.value||'');setTimeout(()=>document.getElementById('bpInput')?.focus(),100);}
