@@ -1,12 +1,17 @@
 // Paso 8 — Casa Paso (librería mayorista) como proveedor real.
 // CABA: San Cristóbal (Av Jujuy 1435) y Once (Larrea 249).
-// No es WooCommerce: plataforma propia ("SmartyCart"). HTML simple, sin JS
-// pesado — el precio viene directo en el HTML, confirmado manualmente.
+// Plataforma propia (SmartyCart). HTML simple, sin JS pesado.
 //
-// Patrón de búsqueda confirmado: /categoria/{termino} funciona tanto para
-// nombres de categoría ("resma_de_papel") como para texto libre con espacios
-// reemplazados por guión bajo o %20 ("Marcadores%20Resaltadores"). Lo usamos
-// como buscador: probamos /categoria/{query} directamente.
+// Paso 8.1 — corrección importante: Casa Paso NO tiene buscador de texto
+// libre real. Confirmado: "?search=palabra" es ignorado y devuelve TODO el
+// catálogo sin filtrar (8682 productos). El sitio solo soporta:
+//   - /categoria/{nombre_exacto_de_categoria}
+//   - /?f[brand_ids][]={id}|{NOMBRE_MARCA}  (filtro por marca)
+// Como no podemos adivinar nombres de categoría para cualquier búsqueda,
+// usamos el listado de MARCAS (que sí conocemos de antemano: Bic, Filgo,
+// Plasticola, etc.) como la vía principal de búsqueda. Si la palabra
+// buscada coincide con una marca conocida, filtramos por esa marca.
+// Si no, devolvemos vacío (mejor nada que adivinar mal).
 
 const USER_AGENT = 'Mozilla/5.0 (compatible; KioscoPriceBot/1.0; +https://kiosco-lac.vercel.app/)';
 
@@ -16,6 +21,79 @@ const PROVIDER = {
   logo: 'Paso',
   baseUrl: 'https://www.casapaso.com.ar',
   location: 'CABA (San Cristóbal / Once)'
+};
+
+// Marcas confirmadas en el catálogo real de Casa Paso, con su id interno.
+// (id|NOMBRE tal como aparece en los links ?f[brand_ids][]=...)
+const MARCAS_CONOCIDAS = {
+  'bic': { id: 288, nombre: 'BIC' },
+  'filgo': { id: 283, nombre: 'FILGO' },
+  'plasticola': { id: 382, nombre: 'PLASTICOLA' },
+  'maped': { id: 334, nombre: 'MAPED' },
+  'faber castell': { id: 287, nombre: 'FABER CASTELL' },
+  'faber': { id: 287, nombre: 'FABER CASTELL' },
+  'pelikan': { id: 337, nombre: 'PELIKAN' },
+  'staedtler': { id: 520, nombre: 'STAEDTLER' },
+  'stabilo': { id: 535, nombre: 'STABILO' },
+  'sharpie': { id: 341, nombre: 'SHARPIE' },
+  'pilot': { id: 497, nombre: 'PILOT' },
+  'paper mate': { id: 518, nombre: 'PAPER MATE' },
+  'crayola': { id: 336, nombre: 'CRAYOLA' },
+  'giotto': { id: 506, nombre: 'GIOTTO' },
+  'uhu': { id: 532, nombre: 'UHU' },
+  'poxipol': { id: 580, nombre: 'POXIPOL' },
+  'ledesma': { id: 280, nombre: 'LEDESMA' },
+  'rivadavia': { id: 332, nombre: 'RIVADAVIA' },
+  'kangaro': { id: 536, nombre: 'KANGARO' }
+};
+
+// Categorías comunes de kiosco/librería, con su slug real confirmado en el
+// sitio. Si la búsqueda matchea (o está contenida en) alguno de estos
+// nombres, navegamos directo a esa categoría.
+const CATEGORIAS_CONOCIDAS = {
+  'resaltador': 'marcadores_resaltadores',
+  'resaltadores': 'marcadores_resaltadores',
+  'marcador resaltador': 'marcadores_resaltadores',
+  'resma': 'resma_de_papel',
+  'resma de papel': 'resma_de_papel',
+  'papel': 'resma_de_papel',
+  'lapicera': 'lapiceras',
+  'lapiceras': 'lapiceras',
+  'birome': 'lapiceras',
+  'boligrafo': 'boligrafos',
+  'boligrafos': 'boligrafos',
+  'lapiz': 'lapices_de_grafito',
+  'lapices': 'lapices_de_grafito',
+  'cuaderno': 'cuaderno_tapa_dura',
+  'cuadernos': 'cuaderno_tapa_dura',
+  'carpeta': 'carpeta_a4',
+  'carpetas': 'carpeta_a4',
+  'cartuchera': 'cartucheras_1_piso',
+  'cartucheras': 'cartucheras_1_piso',
+  'tijera': 'tijeras',
+  'tijeras': 'tijeras',
+  'sacapuntas': 'sacapuntas',
+  'goma': 'gomas_de_borrar',
+  'goma de borrar': 'gomas_de_borrar',
+  'corrector': 'corrector_en_cinta',
+  'cinta adhesiva': 'cinta_adhesiva',
+  'cinta': 'cinta_adhesiva',
+  'plastilina': 'plastilinas',
+  'temperas': 'temperas_escolares|profesionales',
+  'tempera': 'temperas_escolares|profesionales',
+  'calculadora': 'calculadoras',
+  'calculadoras': 'calculadoras',
+  'cartulina': 'cartulina_blanca',
+  'block': 'blocks_a4',
+  'mochila': 'mochilas',
+  'mochilas': 'mochilas',
+  'chinches': 'chinches',
+  'clips': 'clips',
+  'broches': 'broches_para_abrochadora',
+  'abrochadora': 'abrochadoras_de_mesa|mano',
+  'perforadora': 'perforadoras',
+  'pegamento': 'siliconas',
+  'plastificadora': 'maquina_plastificadora'
 };
 
 function normalize(value) {
@@ -41,6 +119,7 @@ function decodeHtml(value) {
     .replace(/&oacute;/gi, 'ó')
     .replace(/&uacute;/gi, 'ú')
     .replace(/&uuml;/gi, 'ü')
+    .replace(/&ordm;/gi, 'º')
     .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)))
     .replace(/&#x([0-9a-f]+);/gi, (_, n) => String.fromCharCode(parseInt(n, 16)));
 }
@@ -85,8 +164,6 @@ function parseMoneyToken(raw) {
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
-// El precio en Casa Paso viene como "#### $ 3.769,70" en el detalle de
-// producto, o en bloques de listado con "$ X.XXX,XX" cerca del nombre.
 function parsePrice(value) {
   const text = decodeHtml(String(value || ''));
   const m = text.match(/\$\s*([0-9]{1,3}(?:\.[0-9]{3})*(?:,[0-9]{2})?)/);
@@ -105,10 +182,6 @@ function scoreTitle(title, q) {
   return terms.reduce((acc, term) => acc + (nt.includes(term) ? 14 : 0), 0);
 }
 
-// Paso 7 — mismo filtro de packs que el resto del buscador. Casa Paso vende
-// mucho "Bulto: 150 | Paquete: 10" — eso es info de presentación mayorista,
-// no impide que el producto individual también aparezca, pero si el TÍTULO
-// mismo dice "X50", "Caja x..." lo excluimos igual que en los demás.
 function isPack(text) {
   const t = normalize(text);
   return /\bx\s*\d{2,}\b/.test(t)
@@ -135,8 +208,8 @@ function inferTags(title) {
   const tags = [];
   if (n.includes('resaltador') || n.includes('marcador')) tags.push('Resaltadores');
   if (n.includes('resma') || n.includes('papel') || n.includes('cartulina')) tags.push('Papel');
-  if (n.includes('bic') || n.includes('lapicera') || n.includes('birome')) tags.push('Biromes');
-  if (n.includes('plasticola') || n.includes('pegamento') || n.includes('poxipol')) tags.push('Adhesivos');
+  if (n.includes('bic') || n.includes('lapicera') || n.includes('birome') || n.includes('boligrafo')) tags.push('Biromes');
+  if (n.includes('plasticola') || n.includes('pegamento') || n.includes('poxipol') || n.includes('silicona')) tags.push('Adhesivos');
   if (n.includes('filgo')) tags.push('Filgo');
   if (n.includes('cuaderno') || n.includes('carpeta') || n.includes('block')) tags.push('Cuadernos');
   if (!tags.length) tags.push('Librería');
@@ -148,26 +221,31 @@ function extractImage(block) {
   const m = block.match(/<img[^>]+src=["']([^"']+)["'][^>]*>/i);
   if (!m || !m[1]) return null;
   const url = absoluteUrl(m[1], PROVIDER.baseUrl);
-  if (!url || /placeholder|logo|whatsapp|instagram|tiktok|afip/i.test(url)) return null;
+  if (!url || /placeholder|logo|whatsapp|instagram|tiktok|afip|no_img/i.test(url)) return null;
   return url;
 }
 
-// Cada producto en el listado de Casa Paso suele venir como bloque con un
-// link a /catalogo/{id}, un título, y un precio cerca. Buscamos esos bloques
-// igual que hacemos en woocommerceGeneric: por anchors a /catalogo/.
+// Cada producto en el listado de Casa Paso viene como un bloque con un link
+// a /catalogo/{id}, una imagen, un h5/h4 con el nombre, y el precio "$ X,XX"
+// cerca. Tomamos una ventana de texto alrededor de cada link a /catalogo/.
 function parseListing(html, q, sourceUrl) {
   const items = [];
   const seen = new Set();
-  const anchorRe = /<a\b[^>]*href=["']([^"']*\/catalogo\/\d+[^"']*)["'][^>]*>[\s\S]*?<\/a>/gi;
+  const anchorRe = /<a\b[^>]*href=["']([^"']*\/catalogo\/\d+[^"']*)["'][^>]*>/gi;
   let m;
   while ((m = anchorRe.exec(html))) {
     const url = absoluteUrl(m[1], PROVIDER.baseUrl);
     if (!url || seen.has(url)) continue;
-    const start = Math.max(0, m.index - 200);
-    const end = Math.min(html.length, anchorRe.lastIndex + 600);
+
+    const start = m.index;
+    const end = Math.min(html.length, anchorRe.lastIndex + 700);
     const block = html.slice(start, end);
 
-    let title = stripHtml(m[0]).replace(/\$\s*[0-9.,]+/g, '').trim();
+    // El título suele venir en un encabezado (#####) cerca del link.
+    const titleMatch = block.match(/#{2,5}\s*([^\n#]+?)\s*\n/) || stripHtml(block).match(/^[^$]{3,120}/);
+    let title = titleMatch ? stripHtml(titleMatch[1] || titleMatch[0]) : '';
+    title = title.replace(/\$\s*[0-9.,]+/g, '').replace(/Código:.*$/i, '').trim();
+
     if (!title || title.length < 3) {
       const slug = decodeURIComponent(url.split('/catalogo/')[1] || '').replace(/^\d+/, '').trim();
       title = slug || '';
@@ -245,55 +323,63 @@ function uniqueSort(items, q, limit) {
     .slice(0, limit);
 }
 
-// Búsqueda: probamos el patrón /categoria/{query} con distintas variantes
-// de formato de URL (espacios como _, como %20, y la query tal cual),
-// porque confirmamos que ambos formatos funcionan en el sitio real.
-function buildSearchUrls(q) {
+// Paso 8.1 — encuentra la mejor forma de buscar en Casa Paso para esta
+// query: por marca conocida, por categoría conocida, o ninguna (sin URL
+// confiable, evitamos adivinar y devolvemos vacío).
+function resolveSearchUrl(q) {
+  const nq = normalize(q);
   const base = PROVIDER.baseUrl;
-  const raw = String(q || '').trim();
-  const withUnderscore = raw.replace(/\s+/g, '_');
-  const withSpace = raw;
-  return [
-    `${base}/categoria/${encodeURIComponent(withUnderscore)}`,
-    `${base}/categoria/${encodeURIComponent(withSpace)}`
-  ];
+
+  // 1) ¿La query ES o CONTIENE una marca conocida?
+  for (const [key, marca] of Object.entries(MARCAS_CONOCIDAS)) {
+    if (nq === key || nq.includes(key)) {
+      const filtro = `${marca.id}|${encodeURIComponent(marca.nombre)}`;
+      return `${base}/?f%5Bbrand_ids%5D%5B%5D=${filtro}`;
+    }
+  }
+
+  // 2) ¿La query ES o CONTIENE una categoría conocida?
+  for (const [key, slug] of Object.entries(CATEGORIAS_CONOCIDAS)) {
+    if (nq === key || nq.includes(key)) {
+      return `${base}/categoria/${slug}`;
+    }
+  }
+
+  return null;
 }
 
 async function searchCasaPaso(q, opts = {}) {
   const limit = opts.limit || 10;
-  const urls = buildSearchUrls(q);
+  const url = resolveSearchUrl(q);
 
-  const settled = await Promise.allSettled(urls.map(url => fetchHtml(url, opts.timeoutMs || 9000)));
-
-  const allItems = [];
-  const errors = [];
-  let anyOk = false;
-
-  settled.forEach((result, i) => {
-    if (result.status === 'fulfilled') {
-      if (result.value === null) return; // 404: esa variante de URL no existe
-      anyOk = true;
-      allItems.push(...parseListing(result.value, q, urls[i]));
-    } else {
-      errors.push({ provider: PROVIDER.name, url: urls[i], error: String(result.reason && result.reason.message || result.reason) });
-    }
-  });
-
-  const sorted = uniqueSort(allItems, q, limit);
-
-  if (!sorted.length) {
+  if (!url) {
+    // No conocemos ninguna marca/categoría que coincida con esta búsqueda.
+    // Mejor no adivinar una URL de categoría inexistente.
     return {
       provider: PROVIDER,
       q,
       count: 0,
       items: [],
-      errors: anyOk
-        ? [{ provider: PROVIDER.name, url: urls[0], error: 'Sin resultados parseables para esta búsqueda' }]
-        : (errors.length ? errors : [{ provider: PROVIDER.name, url: urls[0], error: 'Sin resultados parseables para esta búsqueda' }])
+      errors: [{ provider: PROVIDER.name, error: 'Sin marca o categoría conocida para esta búsqueda en Casa Paso' }]
     };
   }
 
-  return { provider: PROVIDER, q, count: sorted.length, items: sorted, errors: [] };
+  try {
+    const html = await fetchHtml(url, opts.timeoutMs || 9000);
+    if (html === null) {
+      return { provider: PROVIDER, q, count: 0, items: [], errors: [{ provider: PROVIDER.name, url, error: 'Página no encontrada (404)' }] };
+    }
+    const items = parseListing(html, q, url);
+    const sorted = uniqueSort(items, q, limit);
+
+    if (!sorted.length) {
+      return { provider: PROVIDER, q, count: 0, items: [], errors: [{ provider: PROVIDER.name, url, error: 'Sin resultados parseables para esta búsqueda' }] };
+    }
+
+    return { provider: PROVIDER, q, count: sorted.length, items: sorted, errors: [] };
+  } catch (err) {
+    return { provider: PROVIDER, q, count: 0, items: [], errors: [{ provider: PROVIDER.name, url, error: String(err && err.message || err) }] };
+  }
 }
 
-module.exports = { PROVIDER, searchCasaPaso };
+module.exports = { PROVIDER, searchCasaPaso, MARCAS_CONOCIDAS, CATEGORIAS_CONOCIDAS };
