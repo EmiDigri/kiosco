@@ -2397,7 +2397,7 @@ document.getElementById('fechaHoy').textContent=hoy.toLocaleDateString('es-AR',{
 
 if(turno){
   document.getElementById('turnoChip').textContent=turno.nombre;
-  document.getElementById('turnoNombre').textContent='Turno de '+turno.nombre;
+  document.getElementById('turnoNombre').textContent=turno.nombre.startsWith('Turno')?turno.nombre:'Turno de '+turno.nombre;
   document.getElementById('turnoHorario').textContent=turno.label;
   document.querySelector('.logo-dot').style.background=turno.color;
   document.querySelector('.btn-cargar').style.background=turno.color;
@@ -3028,7 +3028,7 @@ function renderOtrosTurnos(){
       try{const results=await fetchMovimientos(t.desdeH,t.desdeM,t.hastaH,t.hastaM);const parsed=parsearMovimientos(results);guardarTurno(t.nombre,parsed.movs,parsed.excluidos);const tNombreActual=(turno||turnoReciente||{nombre:''}).nombre;renderTurnosHoy(tNombreActual);
 actualizarHeroSide();
 const heroBtnCierre=document.getElementById('heroBtnCierre');if(heroBtnCierre)heroBtnCierre.addEventListener('click',cmAbrir);
-const heroBtnHistorial2=document.getElementById('heroBtnHistorial2');if(heroBtnHistorial2)heroBtnHistorial2.addEventListener('click',()=>document.getElementById('btnHistorial')?.click());setTimeout(()=>{const portada=document.getElementById('turnosHoyPortada');if(portada)portada.scrollIntoView({behavior:'auto',block:'start'});},200);showToast('Turno de '+t.nombre+' cargado ✓');}
+const heroBtnHistorial2=document.getElementById('heroBtnHistorial2');if(heroBtnHistorial2)heroBtnHistorial2.addEventListener('click',()=>document.getElementById('btnHistorial')?.click());setTimeout(()=>{const portada=document.getElementById('turnosHoyPortada');if(portada)portada.scrollIntoView({behavior:'auto',block:'start'});},200);showToast((t.nombre.startsWith('Turno')?t.nombre:'Turno de '+t.nombre)+' cargado ✓');}
       catch(err){showToast('No se pudo conectar con MercadoPago');console.error(err);}
       btn.disabled=false;btn.innerHTML=`<span class="t-dot" style="background:${t.color}"></span>Ver turno de ${t.nombre}`;
     });
