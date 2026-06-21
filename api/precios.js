@@ -14,6 +14,7 @@ const { searchMayorista12 } = require('./lib/mayorista12');
 const { searchDistrioks } = require('./lib/distrioks');
 const { searchDistribuidoraPop } = require('./lib/distribuidorapop');
 const { searchGolmarymar } = require('./lib/golmarymar');
+const { searchCasaPaso } = require('./lib/casapaso');
 const { getPublicReference } = require('./lib/precioPublico');
 
 function normalize(value) {
@@ -69,12 +70,25 @@ function bpImportantTerms(q) {
   return bpNorm(q).split(/\s+/).filter(t => t && t.length >= 2 && !BP_STOP_TERMS.has(t));
 }
 
+// Paso 7 — excluye packs/cajas mayoristas (x12, Caja x50, etc.) del
+// resultado final. El kiosco quiere ver siempre el producto individual.
+function bpIsPack(text) {
+  const t = bpNorm(text);
+  return /\bx\s*\d{2,}\b/.test(t)
+    || /\bcaja\b/.test(t)
+    || /\bpack\s*x?\s*\d+/.test(t)
+    || /\bdisplay\b/.test(t)
+    || /\b\d+\s*u(?:nidades)?\b/.test(t);
+}
+
 function bpIsRelevantResult(item, q) {
   const nq = bpNorm(q);
   if (!nq) return true;
 
   const title = bpNorm(item && item.title);
   if (!title) return false;
+
+  if (bpIsPack(title) || bpIsPack(q)) return false;
 
   if (title.includes(nq)) return true;
 
@@ -197,7 +211,8 @@ module.exports = async function handler(req, res) {
     { name: 'Mayorista 12 de Octubre', source: 'proveedor_real_mayorista12', fn: searchMayorista12 },
     { name: 'Distribuidora OKS', source: 'proveedor_real_distrioks', fn: searchDistrioks },
     { name: 'Distribuidora Pop', source: 'proveedor_real_distribuidorapop', fn: searchDistribuidoraPop },
-    { name: 'Golmarymar', source: 'proveedor_real_golmarymar', fn: searchGolmarymar }
+    { name: 'Golmarymar', source: 'proveedor_real_golmarymar', fn: searchGolmarymar },
+    { name: 'Casa Paso', source: 'proveedor_real_casapaso', fn: searchCasaPaso }
   ];
 
   try {

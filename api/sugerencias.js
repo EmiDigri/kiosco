@@ -1,19 +1,23 @@
-// Paso 5A.4 — API propia de autosugerencias para Vercel.
+// Paso 7 — API propia de autosugerencias para Vercel.
 // Endpoint: /api/sugerencias?q=oreo
 // Mezcla catálogo simulado + proveedores reales:
 // Mayorista 12 de Octubre + Distribuidora OKS + Distribuidora Pop + Golmarymar.
 //
-// Cambio clave (Paso 5A.4): el filtro de relevancia ahora exige que el
-// TÍTULO del producto contenga la palabra buscada (o un alias conocido de
-// esa marca). Ya no alcanza con que matchee en tags/meta, porque esos
-// campos son heurísticos (inferTags) y pueden estar mal inferidos, lo que
-// dejaba pasar basura como "Alfajor Escolar" al buscar "coca".
-// Preferimos devolver vacío antes que mostrar un producto irrelevante.
+// Paso 5A.4: el filtro de relevancia exige que el TÍTULO del producto
+// contenga la palabra buscada (o un alias conocido de esa marca). Ya no
+// alcanza con que matchee en tags/meta, porque esos campos son heurísticos
+// y pueden estar mal inferidos.
+//
+// Paso 7 (nuevo): además, se excluyen packs/cajas mayoristas (x12, x24,
+// Caja x50, Pack x6, etc.) de TODOS los resultados — tanto de proveedores
+// reales como del catálogo simulado. El kiosco siempre quiere ver el
+// producto individual, nunca la presentación al por mayor.
 
 const { searchMayorista12 } = require('./lib/mayorista12');
 const { searchDistrioks } = require('./lib/distrioks');
 const { searchDistribuidoraPop } = require('./lib/distribuidorapop');
 const { searchGolmarymar } = require('./lib/golmarymar');
+const { searchCasaPaso } = require('./lib/casapaso');
 
 const PRODUCTS = [
   {
@@ -68,47 +72,12 @@ const PRODUCTS = [
     ]
   },
   {
-    id: 'bicAzul', kind: 'bic', title: 'Bic Cristal Azul x50', meta: 'Librería · Caja x50', providersCount: 3,
-    tags: ['Librería', 'Biromes', 'Bic'], pack: 'Caja x 50 unidades', keys: ['bic', 'lapicera', 'birome', 'azul'],
-    prices: [
-      { name: 'Casa Paso', logo: 'Paso', price: 18400, best: true },
-      { name: 'SASA Mayorista', logo: 'SASA', price: 19150 },
-      { name: 'Mercado Libre ref.', logo: 'ML', price: 20500 }
-    ]
-  },
-  {
-    id: 'bicNegra', kind: 'bic', title: 'Bic Cristal Negra x50', meta: 'Librería · Caja x50', providersCount: 3,
-    tags: ['Librería', 'Biromes', 'Bic'], pack: 'Caja x 50 unidades', keys: ['bic', 'lapicera', 'birome', 'negra', 'negro'],
-    prices: [
-      { name: 'Casa Paso', logo: 'Paso', price: 18400, best: true },
-      { name: 'SASA Mayorista', logo: 'SASA', price: 19300 },
-      { name: 'Mercado Libre ref.', logo: 'ML', price: 20900 }
-    ]
-  },
-  {
-    id: 'lapizBic', kind: 'bic', title: 'Lápiz Bic Evolution', meta: 'Librería escolar', providersCount: 2,
-    tags: ['Librería', 'Escolar', 'Bic'], pack: 'Pack / caja', keys: ['bic', 'lapiz', 'lápiz', 'evolution'],
-    prices: [
-      { name: 'Casa Paso', logo: 'Paso', price: 8900, best: true },
-      { name: 'SASA Mayorista', logo: 'SASA', price: 9400 }
-    ]
-  },
-  {
     id: 'resaltadorBic', kind: 'bic', title: 'Resaltador Bic', meta: 'Librería', providersCount: 3,
     tags: ['Librería', 'Resaltadores', 'Bic'], pack: 'Unidad / pack', keys: ['bic', 'resaltador', 'marcador'],
     prices: [
       { name: 'Casa Paso', logo: 'Paso', price: 1250, best: true },
       { name: 'SASA Mayorista', logo: 'SASA', price: 1320 },
       { name: 'Mercado Libre ref.', logo: 'ML', price: 1500 }
-    ]
-  },
-  {
-    id: 'resmaA4', kind: 'paper', title: 'Resma A4 75g x500 hojas', meta: 'Librería · Papel', providersCount: 3,
-    tags: ['Librería', 'Papel', 'Escolar'], pack: '500 hojas', keys: ['resma', 'a4', 'papel', 'hojas'],
-    prices: [
-      { name: 'Casa Paso', logo: 'Paso', price: 5850, best: true },
-      { name: 'SASA Mayorista', logo: 'SASA', price: 6100 },
-      { name: 'Mercado Libre ref.', logo: 'ML', price: 6900 }
     ]
   },
   {
@@ -248,17 +217,11 @@ function normalize(value) {
 
 // ─────────────────────────────────────────────────────────────
 // Paso 5A.4 — filtro de relevancia ESTRICTO basado en TÍTULO.
-// Regla pedida: el título tiene que contener la palabra buscada sí o sí
-// (o un alias conocido de esa misma marca/producto, ej. "coca" ~ "coca-cola").
-// Ya NO se acepta un match que venga solo de tags/meta, porque esos campos
-// son inferidos heurísticamente por los scrapers y pueden estar mal.
+// Paso 7 — exclusión de packs/cajas mayoristas (x12, x24, Caja x50, etc.)
 // ─────────────────────────────────────────────────────────────
 
 const BP_STOP_TERMS = new Set(['de','del','la','el','los','las','y','en','x','por','pack','caja','cajas','unidad','unidades','u','un','una','gr','g','kg','ml','cc','lt','l','litro','litros']);
 
-// Alias = variantes de escritura del MISMO producto/marca. No agregamos
-// alias "temáticos" (como antes "bebida"/"gaseosa" para "coca"), porque eso
-// es lo que dejaba pasar productos de otra marca que comparten categoría.
 const BP_QUERY_ALIASES = [
   { match: /^coca( cola)?( zero)?$/, any: ['coca cola', 'coca-cola', 'cocacola', 'coca'] },
   { match: /^lays?$/, any: ['lays', 'lay s'] },
@@ -284,7 +247,8 @@ const BP_QUERY_ALIASES = [
   { match: /^plasticola$/, any: ['plasticola'] },
   { match: /^filgo$/, any: ['filgo'] },
   { match: /^pringles$/, any: ['pringles'] },
-  { match: /^doritos$/, any: ['doritos'] }
+  { match: /^doritos$/, any: ['doritos'] },
+  { match: /^rasta$/, any: ['rasta'] }
 ];
 
 function bpNorm(value) {
@@ -300,6 +264,17 @@ function bpImportantTerms(q) {
   return bpNorm(q).split(/\s+/).filter(t => t && t.length >= 2 && !BP_STOP_TERMS.has(t));
 }
 
+// Paso 7 — detecta packs/cajas mayoristas para excluirlos de todos los
+// resultados (proveedores reales y catálogo simulado por igual).
+function bpIsPack(text) {
+  const t = bpNorm(text);
+  return /\bx\s*\d{2,}\b/.test(t)        // "x12", "x 24", "x50"
+    || /\bcaja\b/.test(t)
+    || /\bpack\s*x?\s*\d+/.test(t)
+    || /\bdisplay\b/.test(t)
+    || /\b\d+\s*u(?:nidades)?\b/.test(t); // "12u", "24 unidades"
+}
+
 // SOLO el título. Ya no miramos meta/tags para decidir relevancia.
 function bpIsRelevantResult(item, q) {
   const nq = bpNorm(q);
@@ -308,18 +283,16 @@ function bpIsRelevantResult(item, q) {
   const title = bpNorm(item && item.title);
   if (!title) return false;
 
-  // Match directo: el título contiene la query completa.
+  if (bpIsPack(title) || bpIsPack(q)) return false;
+
   if (title.includes(nq)) return true;
 
-  // Alias de marca/producto conocido (variantes de escritura, no categorías).
   for (const rule of BP_QUERY_ALIASES) {
     if (rule.match.test(nq)) {
       return rule.any.some(alias => title.includes(bpNorm(alias)));
     }
   }
 
-  // Búsquedas de varias palabras (ej: "coca cola 500ml"): todas las palabras
-  // importantes tienen que aparecer en el título. Estricto: sin tolerancia.
   const terms = bpImportantTerms(q);
   if (!terms.length) return false;
   return terms.every(t => title.includes(t));
@@ -328,7 +301,7 @@ function bpIsRelevantResult(item, q) {
 function matches(product, q) {
   const nq = normalize(q);
   if (!nq) return false;
-  // El catálogo simulado también se filtra por TÍTULO (con sus keys como alias propios).
+  if (bpIsPack(product.title) || bpIsPack(q)) return false;
   const title = normalize(product.title);
   if (title.includes(nq)) return true;
   return (product.keys || []).some(k => nq.includes(normalize(k)) || normalize(k).includes(nq));
@@ -399,7 +372,6 @@ function mergeItems(realItems, fallbackItems, limit = 18) {
       return;
     }
 
-    // Si ya hay resultado real, no pisamos con uno simulado del fallback.
     if (isFallback && !prev._fallbackOnly) return;
 
     const prices = mergePriceRows(prev.prices, normalizePriceRows(item));
@@ -449,7 +421,7 @@ module.exports = async function handler(req, res) {
   res.setHeader('Cache-Control', 's-maxage=90, stale-while-revalidate=600');
 
   if (!q) {
-    return res.status(200).json({ ok: true, step: '5A.4', q, count: 0, items: [] });
+    return res.status(200).json({ ok: true, step: '7', q, count: 0, items: [] });
   }
 
   const fallbackItems = PRODUCTS
@@ -461,7 +433,8 @@ module.exports = async function handler(req, res) {
     { name: 'Mayorista 12 de Octubre', source: 'proveedor_real_mayorista12', fn: searchMayorista12 },
     { name: 'Distribuidora OKS', source: 'proveedor_real_distrioks', fn: searchDistrioks },
     { name: 'Distribuidora Pop', source: 'proveedor_real_distribuidorapop', fn: searchDistribuidoraPop },
-    { name: 'Golmarymar', source: 'proveedor_real_golmarymar', fn: searchGolmarymar }
+    { name: 'Golmarymar', source: 'proveedor_real_golmarymar', fn: searchGolmarymar },
+    { name: 'Casa Paso', source: 'proveedor_real_casapaso', fn: searchCasaPaso }
   ];
 
   const settled = await Promise.all(providerEntries.map(entry => fetchProviderSafely(entry, q, 10)));
@@ -482,7 +455,7 @@ module.exports = async function handler(req, res) {
 
     for (const item of live.items || []) {
       if (!bpIsRelevantResult(item, q)) {
-        providerErrors.push({ provider: result.entry.name, ignored: item.title || item.url || 'sin_titulo', reason: 'irrelevante_para_busqueda_titulo' });
+        providerErrors.push({ provider: result.entry.name, ignored: item.title || item.url || 'sin_titulo', reason: bpIsPack(item.title) ? 'es_pack_mayorista' : 'irrelevante_para_busqueda_titulo' });
         continue;
       }
       realItems.push({
@@ -497,7 +470,7 @@ module.exports = async function handler(req, res) {
 
   return res.status(200).json({
     ok: true,
-    step: '5A.4',
+    step: '7',
     q,
     count: items.length,
     realCount: realItems.length,
@@ -506,6 +479,6 @@ module.exports = async function handler(req, res) {
     providerNames: providers.map(p => p.name),
     items,
     errors: providerErrors,
-    note: 'Paso 5A.4: filtro de relevancia ESTRICTO por título. Si ningún resultado real tiene la palabra buscada en el título, se prefiere mostrar vacío (o solo el catálogo simulado si matchea) antes que mostrar basura.'
+    note: 'Paso 7: filtro estricto por título + exclusión de packs/cajas mayoristas. Solo productos individuales.'
   });
 };
