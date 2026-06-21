@@ -4,10 +4,12 @@
 // - Mayorista 12 de Octubre
 // - Distribuidora OKS
 // - Distribuidora Pop
+// - Golmarymar
 
 const { searchMayorista12 } = require('./lib/mayorista12');
 const { searchDistrioks } = require('./lib/distrioks');
 const { searchDistribuidoraPop } = require('./lib/distribuidorapop');
+const { searchGolmarymar } = require('./lib/golmarymar');
 const { getPublicReference } = require('./lib/precioPublico');
 
 function normalize(value) {
@@ -126,7 +128,8 @@ module.exports = async function handler(req, res) {
   const providerEntries = [
     { name: 'Mayorista 12 de Octubre', source: 'proveedor_real_mayorista12', fn: searchMayorista12 },
     { name: 'Distribuidora OKS', source: 'proveedor_real_distrioks', fn: searchDistrioks },
-    { name: 'Distribuidora Pop', source: 'proveedor_real_distribuidorapop', fn: searchDistribuidoraPop }
+    { name: 'Distribuidora Pop', source: 'proveedor_real_distribuidorapop', fn: searchDistribuidoraPop },
+    { name: 'Golmarymar', source: 'proveedor_real_golmarymar', fn: searchGolmarymar }
   ];
 
   try {
@@ -168,8 +171,8 @@ module.exports = async function handler(req, res) {
       publicReference: getPublicReference(q),
       errors,
       note: items.length
-        ? 'Paso 5A: precios mayoristas reales obtenidos de los proveedores conectados. Incluye precio público de referencia si existe.'
-        : 'Paso 5A: no hubo resultados reales para esta búsqueda en los proveedores conectados. Incluye precio público de referencia si existe.'
+        ? 'Paso 5A.3: links mayoristas reales obtenidos de proveedores conectados. Incluye precio público de referencia si existe.'
+        : 'Paso 5A.3: no hubo resultados reales para esta búsqueda en proveedores conectados. Incluye precio público de referencia si existe.'
     });
   } catch (err) {
     return res.status(200).json({
