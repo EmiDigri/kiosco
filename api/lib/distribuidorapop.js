@@ -1,17 +1,13 @@
-// Paso 5A — Distribuidora OKS usando scraper genérico WooCommerce.
-
+// Paso 5A — Distribuidora Pop usando scraper genérico WooCommerce.
 const { searchWooCommerce } = require('./woocommerceGeneric');
-
 const PROVIDER = {
-  id: 'distrioks',
-  name: 'Distribuidora OKS',
-  logo: 'OKS',
-  baseUrl: 'https://distrioks.com.ar',
+  id: 'distribuidorapop',
+  name: 'Distribuidora Pop',
+  logo: 'POP',
+  baseUrl: 'https://www.distribuidorapop.com.ar',
   location: 'Buenos Aires'
 };
-
-async function searchDistrioks(q, opts = {}) {
+async function searchDistribuidoraPop(q, opts = {}) {
   return searchWooCommerce(q, PROVIDER, opts);
 }
-
-module.exports = { PROVIDER, searchDistrioks };
+module.exports = { PROVIDER, searchDistribuidoraPop };
