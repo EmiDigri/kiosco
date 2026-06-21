@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -1795,148 +1795,6 @@ img,svg,canvas{max-width:100%}
 }
 
 
-/* ─── BUSCAR PRECIOS MVP ─── */
-.bp-panel{max-width:1180px;margin:0 auto}
-.bp-head-sub{font-size:12px;color:var(--ink-soft);margin-top:3px}
-.bp-intro{
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:24px;
-  padding:20px;
-  margin-bottom:14px;
-  box-shadow:var(--shadow-sm);
-}
-.bp-overline{
-  display:inline-flex;align-items:center;gap:7px;
-  background:var(--accent-soft);
-  color:var(--accent);
-  border:1px solid rgba(124,144,255,.25);
-  border-radius:999px;
-  padding:6px 10px;
-  font-size:10px;font-weight:800;
-  text-transform:uppercase;letter-spacing:.10em;
-  margin-bottom:10px;
-}
-.bp-title{
-  font-size:28px;
-  line-height:1.05;
-  font-weight:850;
-  letter-spacing:-.8px;
-  margin:0 0 6px;
-  color:var(--ink);
-}
-.bp-sub{
-  color:var(--ink-mid);
-  font-size:14px;
-  line-height:1.45;
-  margin-bottom:16px;
-}
-.bp-search-row{
-  display:grid;
-  grid-template-columns:1fr auto;
-  gap:10px;
-}
-.bp-search-box{position:relative}
-.bp-search-box input{
-  width:100%;
-  border:1px solid var(--border);
-  background:#18181A;
-  color:var(--ink);
-  border-radius:16px;
-  padding:15px 44px 15px 42px;
-  outline:none;
-  font-size:16px;
-  font-weight:750;
-}
-.bp-search-box input:focus{border-color:var(--accent);box-shadow:0 0 0 4px rgba(124,144,255,.12)}
-.bp-search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--accent);font-size:18px}
-.bp-clear{
-  position:absolute;right:9px;top:50%;transform:translateY(-50%);
-  border:1px solid var(--border);
-  background:var(--surface);
-  color:var(--ink-soft);
-  width:30px;height:30px;border-radius:999px;
-  cursor:pointer;
-}
-.bp-btn{
-  border:1px solid rgba(124,144,255,.35);
-  border-radius:16px;
-  background:var(--accent);
-  color:#fff;
-  padding:0 22px;
-  font-size:13px;
-  font-weight:800;
-  cursor:pointer;
-  min-height:52px;
-  min-width:112px;
-  box-shadow:0 10px 22px rgba(124,144,255,.18);
-  transition:background .15s,transform .15s,box-shadow .15s;
-}
-.bp-btn:hover{background:#8C9BFF;transform:translateY(-1px);box-shadow:0 14px 26px rgba(124,144,255,.22)}
-.bp-hints{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-.bp-hint{
-  border:1px solid var(--border);
-  background:#18181A;
-  color:var(--ink-mid);
-  border-radius:999px;
-  padding:8px 11px;
-  font-size:12px;
-  font-weight:750;
-  cursor:pointer;
-}
-.bp-results{display:none;margin-top:14px}
-.bp-results.visible{display:block}
-.bp-links-grid{display:flex;flex-wrap:wrap;align-items:flex-start;gap:10px;margin-bottom:10px}
-.bp-link-section{
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:16px;
-  padding:13px;
-  flex:1 1 430px;
-}
-.bp-link-title{font-size:12px;font-weight:850;color:var(--ink);margin-bottom:8px}
-.bp-link-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-.bp-ext-link{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:8px;
-  width:100%;
-  border:1px solid var(--border);
-  background:#18181A;
-  color:var(--ink);
-  border-radius:12px;
-  padding:9px 11px;
-  font-size:12px;
-  font-weight:850;
-  min-height:38px;
-  text-decoration:none;
-  transition:background .15s,border-color .15s,transform .15s;
-}
-.bp-ext-link:hover{background:rgba(124,144,255,.10);border-color:rgba(124,144,255,.35);transform:translateY(-1px)}
-.bp-ext-link::after{content:'↗';color:var(--accent);font-size:12px}
-.bp-note{margin-top:12px;font-size:12px;color:var(--ink-soft);line-height:1.45}
-.bp-catalogo{margin-bottom:16px}
-.bp-catalogo-title{font-size:11px;font-weight:700;letter-spacing:.1em;color:var(--ink-soft);text-transform:uppercase;margin-bottom:10px}
-.bp-catalogo-loading{font-size:13px;color:var(--ink-soft);padding:10px 0}
-.bp-catalogo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px}
-.bp-prod-card{background:var(--glass);border:1px solid var(--glass-border);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:6px;cursor:pointer;text-decoration:none;transition:background .15s}
-.bp-prod-card:hover{background:var(--glass-hover)}
-.bp-prod-img{width:100%;aspect-ratio:1;object-fit:contain;border-radius:8px;background:rgba(255,255,255,.04)}
-.bp-prod-name{font-size:12px;color:var(--text);line-height:1.35;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
-.bp-prod-price{font-size:15px;font-weight:700;color:var(--text)}
-.bp-prod-empty{font-size:13px;color:var(--ink-soft);padding:8px 0}
-@media(max-width:900px){
-  .bp-search-row{grid-template-columns:1fr}
-  .bp-btn{width:100%}
-  .bp-link-section{flex-basis:100%}
-  .bp-title{font-size:24px}
-}
-@media(max-width:520px){
-  .bp-intro{padding:16px;border-radius:20px}
-  .bp-search-box input{font-size:14px;padding:14px 42px 14px 40px}
-  .bp-link-list{grid-template-columns:1fr}
-}
 
 </style>
 </head>
@@ -1960,8 +1818,7 @@ img,svg,canvas{max-width:100%}
     <div style="display:flex;align-items:center;gap:10px">
       <span class="fecha-chip" id="fechaHoy"></span>
       <button class="btn-toggle-theme" id="btnTheme" title="Cambiar tema">🌙</button>
-      <button class="btn-historial" id="btnBuscarPrecios">🔎 Buscar precios</button>
-      <button class="btn-historial" id="btnCierreManual">🧾 Cierre manual</button>
+<button class="btn-historial" id="btnCierreManual">🧾 Cierre manual</button>
       <button class="btn-historial" id="btnHistorial">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
         Historial
@@ -2189,36 +2046,6 @@ img,svg,canvas{max-width:100%}
 
 
 
-<!-- Consulta rapida de precios: solo genera links externos -->
-<div class="historial-overlay" id="buscarPreciosOverlay">
-  <div class="historial-panel bp-panel">
-    <div class="historial-header">
-      <div>
-        <span class="historial-title">Consulta rapida de precios</span>
-        <div class="bp-head-sub">Links externos para consultar referencias.</div>
-      </div>
-      <button class="btn-cerrar-hist" id="btnCerrarBuscarPrecios" title="Cerrar">✕</button>
-    </div>
-
-    <div class="bp-intro">
-      <div class="bp-search-row">
-        <div class="bp-search-box">
-          <span class="bp-search-icon">⌕</span>
-          <input id="bpInput" autocomplete="off" placeholder="Ej: coca 500, oreo, rocklets, bic, marlboro...">
-          <button class="bp-clear" id="bpClear" title="Borrar">×</button>
-        </div>
-        <button class="bp-btn" id="bpSearchBtn">Buscar</button>
-      </div>
-
-    </div>
-
-    <div class="bp-results" id="bpResults">
-      <div class="bp-catalogo" id="bpCatalogo"></div>
-      <div class="bp-links-grid" id="bpLinksGrid"></div>
-      <div class="bp-note">Referencia online. Confirmar criterio del local.</div>
-    </div>
-  </div>
-</div>
 
 
 <!-- ─── CIERRE MANUAL OVERLAY ─── -->
@@ -3103,76 +2930,7 @@ document.querySelectorAll('.cm-caja-btn').forEach(btn=>btn.addEventListener('cli
 
 
 
-// Consulta rapida de precios: arma links externos, sin scraping ni APIs
-const BULK_REGEX=/\b(pack|combo|lote|fardo|bulto|display|mayorista|por\s+mayor|caja\s+x)\b|\bx\s*(?:6|8|10|12|15|18|20|24|30|36|48|60|72|96)\b/i;
-function fmtPeso(n){return '$'+Number(n).toLocaleString('es-AR',{maximumFractionDigits:0});}
-async function buscarCatalogo(query){
-  const cat=document.getElementById('bpCatalogo');
-  if(!cat)return;
-  const q=normalizePriceQuery?.(query)||query.trim();
-  if(!q){cat.innerHTML='';return;}
-  cat.innerHTML='<div class="bp-catalogo-title">Catálogo</div><div class="bp-catalogo-loading">Buscando productos...</div>';
-  try{
-    const res=await fetch('/api/catalogo?q='+encodeURIComponent(q));
-    const data=await res.json();
-    const items=data.items||[];
-    if(!items.length){cat.innerHTML='<div class="bp-catalogo-title">Catálogo</div><div class="bp-prod-empty">No se encontraron productos.</div>';return;}
-    cat.innerHTML='<div class="bp-catalogo-title">Catálogo — '+items.length+' productos</div><div class="bp-catalogo-grid">'+
-      items.map(p=>'<a class="bp-prod-card" href="'+p.permalink+'" target="_blank" rel="noopener noreferrer">'+
-        '<img class="bp-prod-img" src="'+p.thumbnail+'" loading="lazy" alt="">'+
-        '<div class="bp-prod-name">'+p.title+'</div>'+
-      '</a>').join('')+'</div>';
-  }catch(e){cat.innerHTML='<div class="bp-catalogo-title">Catálogo</div><div class="bp-prod-empty">Error al buscar productos.</div>';}
-}
-function normalizePriceQuery(value){
-  return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim();
-}
-function bpEsc(v){return String(v ?? '').replace(/[&<>'\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','\"':'&quot;'}[c]));}
-function buildPriceLinks(query){
-  const q = normalizePriceQuery(query);
-  if(!q) return [];
-  const enc = encodeURIComponent(q);
-  return [
-    { title:'Precio publico / referencia minorista', links:[
-      {label:'Mercado Libre',   url:'https://listado.mercadolibre.com.ar/'+enc},
-      {label:'Google Shopping', url:'https://www.google.com/search?tbm=shop&q='+enc},
-      {label:'Carrefour',       url:'https://www.google.com/search?q='+enc+'+site:carrefour.com.ar'},
-      {label:'Dia',             url:'https://www.google.com/search?q='+enc+'+site:diaonline.supermercadosdia.com.ar'},
-      {label:'Jumbo',           url:'https://www.google.com/search?q='+enc+'+site:jumbo.com.ar'},
-      {label:'Disco',           url:'https://www.google.com/search?q='+enc+'+site:disco.com.ar'},
-      {label:'Precios Claros',  url:'https://www.google.com/search?q='+enc+'+site:preciosclaros.gob.ar'}
-    ]},
-    { title:'Kiosco', links:[
-      {label:'Infokioscos',     url:'https://infokioscos.com.ar/?s='+enc},
-      {label:'Open25',          url:'https://tienda.open25.com.ar/search/?q='+enc},
-      {label:'Google kiosco',   url:'https://www.google.com/search?q='+encodeURIComponent(q+' kiosco precio argentina')}
-    ]},
-    { title:'Libreria', links:[
-      {label:'Casa Paso',           url:'https://www.google.com/search?q='+enc+'+site:casapaso.com.ar'},
-      {label:'Mercado Libre libreria', url:'https://listado.mercadolibre.com.ar/'+encodeURIComponent(q+' libreria')}
-    ]}
-  ];
-}
-function renderPriceLinks(query){
-  const res=document.getElementById('bpResults');
-  const grid=document.getElementById('bpLinksGrid');
-  if(!res||!grid)return;
-  const q=normalizePriceQuery(query);
-  if(!q){res.classList.remove('visible');grid.innerHTML='';return;}
-  res.classList.add('visible');
-  setTimeout(()=>res.scrollIntoView({behavior:'smooth',block:'start'}),50);
-  grid.innerHTML=buildPriceLinks(q).map(section=>'<section class="bp-link-section"><div class="bp-link-title">'+bpEsc(section.title)+'</div><div class="bp-link-list">'+section.links.map(link=>'<a class="bp-ext-link" href="'+bpEsc(link.url)+'" target="_blank" rel="noopener noreferrer">'+bpEsc(link.label)+'</a>').join('')+'</div></section>').join('');
-}
-function bpAbrir(){const overlay=document.getElementById('buscarPreciosOverlay');if(!overlay)return;overlay.classList.add('open');renderPriceLinks(document.getElementById('bpInput')?.value||'');setTimeout(()=>document.getElementById('bpInput')?.focus(),100);}
-function bpCerrar(){document.getElementById('buscarPreciosOverlay')?.classList.remove('open');}
 function openExternalLink(url){if(url)window.open(url,'_blank','noopener,noreferrer');}
-const bpBtn=document.getElementById('btnBuscarPrecios');if(bpBtn)bpBtn.addEventListener('click',bpAbrir);
-const bpClose=document.getElementById('btnCerrarBuscarPrecios');if(bpClose)bpClose.addEventListener('click',bpCerrar);
-const bpInput=document.getElementById('bpInput');if(bpInput){bpInput.addEventListener('input',()=>renderPriceLinks(bpInput.value));bpInput.addEventListener('keydown',e=>{if(e.key==='Enter')renderPriceLinks(bpInput.value);});}
-const bpSearch=document.getElementById('bpSearchBtn');if(bpSearch)bpSearch.addEventListener('click',()=>{const q=document.getElementById('bpInput')?.value||'';renderPriceLinks(q);buscarCatalogo(q);if(q){bpSearch.textContent='✓ Listo';bpSearch.style.background='#22c55e';setTimeout(()=>{bpSearch.textContent='Buscar';bpSearch.style.background='';},1200);}});
-const bpClear=document.getElementById('bpClear');if(bpClear)bpClear.addEventListener('click',()=>{const i=document.getElementById('bpInput');if(i)i.value='';renderPriceLinks('');i?.focus();});
-document.querySelectorAll('.bp-hint').forEach(btn=>btn.addEventListener('click',()=>{const i=document.getElementById('bpInput');if(!i)return;i.value=btn.dataset.bpQ||'';renderPriceLinks(i.value);i.focus();}));
-const buscarPreciosOverlay=document.getElementById('buscarPreciosOverlay');if(buscarPreciosOverlay)buscarPreciosOverlay.addEventListener('click',e=>{if(e.target===buscarPreciosOverlay)bpCerrar();});
 
 function actualizarHeroSide(movs){
   const miniTurno=document.getElementById('heroMiniTurno');
