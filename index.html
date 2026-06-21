@@ -2196,9 +2196,7 @@ img,svg,canvas{max-width:100%}
     </div>
 
     <div class="bp-intro">
-      <div class="bp-overline">Consulta rapida de precios</div>
-      <div class="bp-title">Consulta rapida de precios</div>
-      <div class="bp-sub">Busca un producto y abri referencias externas. La app no interpreta precios mayoristas ni packs.</div>
+      <div class="bp-sub">Busca un producto y abrí referencias externas. La app no interpreta precios mayoristas ni packs.</div>
 
       <div class="bp-search-row">
         <div class="bp-search-box">
@@ -3122,8 +3120,8 @@ function buildPriceLinks(query){
       {label:'Google Shopping', url:'https://www.google.com/search?tbm=shop&q='+enc},
       {label:'Carrefour',       url:'https://www.carrefour.com.ar/search?q='+enc},
       {label:'Dia',             url:'https://diaonline.supermercadosdia.com.ar/buscar?q='+enc},
-      {label:'Jumbo',           url:'https://www.jumbo.com.ar/s?q='+enc},
-      {label:'Disco',           url:'https://www.disco.com.ar/s?q='+enc},
+      {label:'Jumbo',           url:'https://www.jumbo.com.ar/s?q='+enc+'&map=ft'},
+      {label:'Disco',           url:'https://www.disco.com.ar/s?q='+enc+'&map=ft'},
       {label:'Precios Claros',  url:'https://www.preciosclaros.gob.ar/#!/buscar/'+enc}
     ]},
     { title:'Kiosco', links:[
@@ -3143,6 +3141,7 @@ function renderPriceLinks(query){
   const q=normalizePriceQuery(query);
   if(!q){res.classList.remove('visible');grid.innerHTML='';return;}
   res.classList.add('visible');
+  setTimeout(()=>res.scrollIntoView({behavior:'smooth',block:'start'}),50);
   grid.innerHTML=buildPriceLinks(q).map(section=>'<section class="bp-link-section"><div class="bp-link-title">'+bpEsc(section.title)+'</div><div class="bp-link-list">'+section.links.map(link=>'<a class="bp-ext-link" href="'+bpEsc(link.url)+'" target="_blank" rel="noopener noreferrer">'+bpEsc(link.label)+'</a>').join('')+'</div></section>').join('');
 }
 function bpAbrir(){const overlay=document.getElementById('buscarPreciosOverlay');if(!overlay)return;overlay.classList.add('open');renderPriceLinks(document.getElementById('bpInput')?.value||'');setTimeout(()=>document.getElementById('bpInput')?.focus(),100);}
