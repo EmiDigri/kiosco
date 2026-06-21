@@ -3124,46 +3124,27 @@ function normalizePriceQuery(value){
   return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim();
 }
 function bpEsc(v){return String(v ?? '').replace(/[&<>'\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','\"':'&quot;'}[c]));}
-function bpGoogleUrl(query){return 'https://www.google.com/search?q=' + encodeURIComponent(query);}
-function bpSiteSearch(domain, query){return bpGoogleUrl('site:' + domain + ' ' + query);}
-function buildLibrarySearchQuery(query){
-  const q=normalizePriceQuery(query);
-  const plain=q.toLowerCase();
-  const extras=[];
-  if(/\bresma\b|\ba4\b/.test(plain))extras.push('A4 500 hojas unidad');
-  if(/\bbic\b|\bbirome\b|\blapicera\b/.test(plain))extras.push('unidad birome');
-  if(/\blapiz\b|\blápiz\b/.test(plain))extras.push('unidad escolar');
-  return [q,...extras,'-bulto','-caja','-pack','-mayorista','-x12','-x24','-x50','-x96'].filter(Boolean).join(' ');
-}
 function buildPriceLinks(query){
   const q = normalizePriceQuery(query);
   if(!q) return [];
   const enc = encodeURIComponent(q);
-  const libraryQuery = buildLibrarySearchQuery(q);
   return [
     { title:'Precio publico / referencia minorista', links:[
-      {label:'Mercado Libre',url:'https://listado.mercadolibre.com.ar/' + enc},
-      {label:'Google Shopping',url:'https://www.google.com/search?tbm=shop&q=' + enc},
-      {label:'Carrefour',url:bpSiteSearch('carrefour.com.ar',q)},
-      {label:'Coto',url:bpSiteSearch('coto.com.ar',q)},
-      {label:'Dia',url:bpSiteSearch('diaonline.supermercadosdia.com.ar',q)},
-      {label:'Jumbo / Disco / Vea',url:bpGoogleUrl('(site:jumbo.com.ar OR site:disco.com.ar OR site:vea.com.ar) ' + q)},
-      {label:'SEPA / Precios Claros',url:bpSiteSearch('preciosclaros.gob.ar',q)}
+      {label:'Mercado Libre',   url:'https://listado.mercadolibre.com.ar/'+enc},
+      {label:'Google Shopping', url:'https://www.google.com/search?tbm=shop&q='+enc},
+      {label:'Carrefour',       url:'https://www.carrefour.com.ar/search?q='+enc},
+      {label:'Dia',             url:'https://diaonline.supermercadosdia.com.ar/buscar?q='+enc},
+      {label:'Jumbo',           url:'https://www.jumbo.com.ar/s?q='+enc},
+      {label:'Disco',           url:'https://www.disco.com.ar/s?q='+enc},
+      {label:'Precios Claros',  url:'https://www.preciosclaros.gob.ar/#!/buscar/'+enc}
     ]},
     { title:'Kiosco', links:[
-      {label:'Infokioscos',url:bpSiteSearch('infokioscos.com.ar',q)},
-      {label:'Google busqueda kiosco',url:bpGoogleUrl(q + ' kiosco precio')}
+      {label:'Infokioscos',     url:'https://infokioscos.com.ar/?s='+enc},
+      {label:'Google kiosco',   url:'https://www.google.com/search?q='+encodeURIComponent(q+' kiosco precio')}
     ]},
     { title:'Libreria', links:[
-      {label:'Casa Paso',url:bpSiteSearch('casapaso.com.ar',libraryQuery)},
-      {label:'SASA',url:bpSiteSearch('sasa.com.ar',libraryQuery)},
-      {label:'Mercado Libre libreria',url:'https://listado.mercadolibre.com.ar/' + encodeURIComponent(libraryQuery + ' libreria')}
-    ]},
-    { title:'Mayoristas / proveedores', links:[
-      {label:'Golmarymar',url:bpSiteSearch('golmarymar.com.ar',q)},
-      {label:'Distribuidora Pop',url:bpSiteSearch('distribuidorapop.com.ar',q)},
-      {label:'La Casa del Kioskero',url:bpSiteSearch('lacasadelkioskero.com.ar',q)},
-      {label:'Mayorista 12 de Octubre',url:bpSiteSearch('mayorista12.com.ar',q)}
+      {label:'Casa Paso',           url:'https://www.casapaso.com.ar/?q='+enc},
+      {label:'Mercado Libre libreria', url:'https://listado.mercadolibre.com.ar/'+encodeURIComponent(q+' libreria')}
     ]}
   ];
 }
