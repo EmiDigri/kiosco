@@ -1812,7 +1812,7 @@ img,svg,canvas{max-width:100%}
 }
 .bp-search-row{
   display:grid;
-  grid-template-columns:1fr 150px;
+  grid-template-columns:1fr auto;
   gap:10px;
 }
 .bp-search-box{position:relative}
@@ -1838,15 +1838,20 @@ img,svg,canvas{max-width:100%}
   cursor:pointer;
 }
 .bp-btn{
-  border:none;
+  border:1px solid rgba(124,144,255,.35);
   border-radius:16px;
-  background:var(--ink);
-  color:var(--bg);
+  background:var(--accent);
+  color:#fff;
+  padding:0 22px;
   font-size:13px;
   font-weight:800;
   cursor:pointer;
   min-height:52px;
+  min-width:112px;
+  box-shadow:0 10px 22px rgba(124,144,255,.18);
+  transition:background .15s,transform .15s,box-shadow .15s;
 }
+.bp-btn:hover{background:#8C9BFF;transform:translateY(-1px);box-shadow:0 14px 26px rgba(124,144,255,.22)}
 .bp-hints{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 .bp-hint{
   border:1px solid var(--border);
@@ -1861,7 +1866,7 @@ img,svg,canvas{max-width:100%}
 .bp-results{display:none;margin-top:14px}
 .bp-results.visible{display:block}
 .bp-product-card{
-  display:block;
+  display:none;
   background:var(--surface);
   border:1px solid var(--border);
   border-radius:24px;
@@ -1872,14 +1877,15 @@ img,svg,canvas{max-width:100%}
 .bp-product-sub{font-size:13px;color:var(--ink-soft);margin-bottom:10px}
 .bp-tags{display:flex;gap:7px;flex-wrap:wrap}
 .bp-tag{font-size:11px;font-weight:800;color:var(--ink-mid);background:#18181A;border:1px solid var(--border);border-radius:999px;padding:6px 9px}
-.bp-links-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:14px}
+.bp-links-grid{display:flex;flex-wrap:wrap;align-items:flex-start;gap:10px;margin-bottom:10px}
 .bp-link-section{
   background:var(--surface);
   border:1px solid var(--border);
-  border-radius:20px;
-  padding:16px;
+  border-radius:16px;
+  padding:13px;
+  flex:1 1 430px;
 }
-.bp-link-title{font-size:13px;font-weight:850;color:var(--ink);margin-bottom:10px}
+.bp-link-title{font-size:12px;font-weight:850;color:var(--ink);margin-bottom:8px}
 .bp-link-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .bp-ext-link{
   display:flex;
@@ -1890,11 +1896,11 @@ img,svg,canvas{max-width:100%}
   border:1px solid var(--border);
   background:#18181A;
   color:var(--ink);
-  border-radius:13px;
-  padding:11px 12px;
+  border-radius:12px;
+  padding:9px 11px;
   font-size:12px;
   font-weight:850;
-  min-height:42px;
+  min-height:38px;
   text-decoration:none;
   transition:background .15s,border-color .15s,transform .15s;
 }
@@ -1918,7 +1924,9 @@ img,svg,canvas{max-width:100%}
   line-height:1.45;
 }
 @media(max-width:900px){
-  .bp-search-row,.bp-links-grid{grid-template-columns:1fr}
+  .bp-search-row{grid-template-columns:1fr}
+  .bp-btn{width:100%}
+  .bp-link-section{flex-basis:100%}
   .bp-title{font-size:24px}
 }
 @media(max-width:520px){
@@ -3153,17 +3161,18 @@ function renderPriceLinks(query){
   const tags=document.getElementById('bpTags');
   if(!res||!grid||!title||!sub||!tags)return;
   const q=normalizePriceQuery(query);
-  res.classList.add('visible');
   if(!q){
+    res.classList.remove('visible');
     title.textContent='Escribi un producto para generar links';
     sub.textContent='Los botones se actualizan con el texto buscado.';
     tags.innerHTML='';
-    grid.innerHTML='<div class="bp-empty">Escribi un producto para generar links</div>';
+    grid.innerHTML='';
     return;
   }
+  res.classList.add('visible');
   title.textContent='Referencias para "' + q + '"';
   sub.textContent='Abri cada fuente en otra pestana y confirma el criterio del local.';
-  tags.innerHTML=['sin scraping','sin APIs','links externos'].map(t=>'<span class="bp-tag">'+bpEsc(t)+'</span>').join('');
+  tags.innerHTML='';
   grid.innerHTML=buildPriceLinks(q).map(section=>'<section class="bp-link-section"><div class="bp-link-title">'+bpEsc(section.title)+'</div><div class="bp-link-list">'+section.links.map(link=>'<a class="bp-ext-link" href="'+bpEsc(link.url)+'" target="_blank" rel="noopener noreferrer">'+bpEsc(link.label)+'</a>').join('')+'</div></section>').join('');
 }
 function bpAbrir(){const overlay=document.getElementById('buscarPreciosOverlay');if(!overlay)return;overlay.classList.add('open');renderPriceLinks(document.getElementById('bpInput')?.value||'');setTimeout(()=>document.getElementById('bpInput')?.focus(),100);}
