@@ -3104,7 +3104,7 @@ document.querySelectorAll('.cm-caja-btn').forEach(btn=>btn.addEventListener('cli
 
 
 // Consulta rapida de precios: arma links externos, sin scraping ni APIs
-const BULK_REGEX=/\b(pack|combo|lote|fardo|bulto|display|mayor|mayorista|docena|por\s+mayor|caja\s+x)\b|[x×]\s*\d+(?!\s*(?:ml|cc|cl|l\b|lt|lts|g\b|gr\b|kg|mg|oz))(?=\s|$|\)|\])/i;
+const BULK_REGEX=/\b(pack|combo|lote|fardo|bulto|display|mayorista|por\s+mayor|caja\s+x)\b|\bx\s*(?:6|8|10|12|15|18|20|24|30|36|48|60|72|96)\b/i;
 function fmtPeso(n){return '$'+Number(n).toLocaleString('es-AR',{maximumFractionDigits:0});}
 async function buscarCatalogo(query){
   const cat=document.getElementById('bpCatalogo');
