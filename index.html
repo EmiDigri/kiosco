@@ -3113,7 +3113,7 @@ async function buscarCatalogo(query){
   if(!q){cat.innerHTML='';return;}
   cat.innerHTML='<div class="bp-catalogo-title">Catálogo</div><div class="bp-catalogo-loading">Buscando productos...</div>';
   try{
-    const res=await fetch('https://api.mercadolibre.com/sites/MLA/search?q='+encodeURIComponent(q)+'&limit=50&condition=new&buying_mode=buy_it_now');
+    const res=await fetch('https://api.mercadolibre.com/sites/MLA/search?q='+encodeURIComponent(q)+'&limit=50&condition=new&buying_mode=buy_it_now',{headers:{Authorization:'Bearer '+ACCESS_TOKEN}});
     const data=await res.json();
     const items=(data.results||[]).filter(p=>!BULK_REGEX.test(p.title)).slice(0,16);
     if(!items.length){cat.innerHTML='<div class="bp-catalogo-title">Catálogo</div><div class="bp-prod-empty">No se encontraron productos unitarios.</div>';return;}
