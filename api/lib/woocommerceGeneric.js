@@ -50,45 +50,87 @@ function priceToText(n) {
   return '$' + Number(n).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-function parseArMoney(raw) {
-  const clean = String(raw || '').trim();
-  // Formato AR: punto = miles, coma = decimales -> "1.234,56" => 1234.56
-  const n = Number(clean.replace(/\./g, '').replace(',', '.'));
-  return Number.isFinite(n) ? n : null;
+function parseMoneyToken(raw) {
+  let s = decodeHtml(String(raw || ''))
+    .replace(/\s+/g, '')
+    .replace(/[^0-9.,]/g, '');
+
+  if (!s) return null;
+
+  const lastDot = s.lastIndexOf('.');
+  const lastComma = s.lastIndexOf(',');
+
+  // Formato mixto:
+  // 11.330,00 => AR / europeo
+  // 11,330.00 => US
+  if (lastDot !== -1 && lastComma !== -1) {
+    if (lastComma > lastDot) {
+      s = s.replace(/\./g, '').replace(',', '.');
+    } else {
+      s = s.replace(/,/g, '');
+    }
+  } else if (lastComma !== -1) {
+    const [intPart, decPart = ''] = s.split(',');
+    // 11,33 puede ser decimal real, pero en muchas páginas WooCommerce aparece
+    // recortado desde 11,330.00 cuando el regex viejo agarraba solo una parte.
+    // Acá lo parseamos bien solo cuando viene como token completo.
+    if (decPart.length === 2) s = intPart.replace(/\./g, '') + '.' + decPart;
+    else s = s.replace(/,/g, '');
+  } else if (lastDot !== -1) {
+    const parts = s.split('.');
+    const decPart = parts[parts.length - 1] || '';
+    if (decPart.length === 2 && parts.length === 2 && parts[0].length > 3) {
+      // 5000.00 => 5000
+      s = parts[0] + '.' + decPart;
+    } else if (decPart.length === 2 && parts.length === 2 && parts[0].length <= 3) {
+      // 11.33 => 11.33
+      s = parts[0] + '.' + decPart;
+    } else {
+      // 11.330 o 5.000 => miles AR
+      s = s.replace(/\./g, '');
+    }
+  }
+
+  const n = Number(s);
+  return Number.isFinite(n) && n > 0 ? n : null;
 }
 
-function parsePrices(value) {
+function extractPriceTokens(value) {
   const text = decodeHtml(String(value || ''));
+  const tokens = [];
 
-  // 1) Caso ideal: WooCommerce siempre envuelve el precio real en
-  //    <span class="woocommerce-Price-amount amount">$ 1.234,56</span>
-  //    Si hay <del> (precio tachado) y <ins> (precio con descuento), nos quedamos con el de <ins>.
-  const insMatch = text.match(/<ins\b[\s\S]*?<\/ins>/i);
-  const scopedHtml = insMatch ? insMatch[0] : text;
+  // Primero tomamos bloques típicos de WooCommerce para no agarrar cuotas,
+  // scripts, contadores o basura alrededor del producto.
+  const amountRe = /<[^>]+class=["'][^"']*(?:woocommerce-Price-amount|amount|price)[^"']*["'][^>]*>[\s\S]*?<\/[^>]+>/gi;
+  let m;
+  while ((m = amountRe.exec(text))) {
+    const clean = stripHtml(m[0]);
+    const money = clean.match(/\$?\s*((?:\d{1,3}(?:[.,]\d{3})+|\d+)(?:[.,]\d{2})?)/);
+    if (money && money[1]) tokens.push(money[1]);
+  }
 
-  const amountRe = /woocommerce-Price-amount[^"']*["'][^>]*>\s*(?:<bdi>)?\s*([0-9][0-9.,]*)/gi;
-  const amountMatches = [...scopedHtml.matchAll(amountRe)];
-  let nums = amountMatches
-    .map(m => parseArMoney(m[1]))
-    .filter(n => Number.isFinite(n) && n > 0);
+  // Fallback general: soporta 11.330,00, 11,330.00, 5000.00, 5000,00, 5000.
+  const generalRe = /\$\s*((?:\d{1,3}(?:[.,]\d{3})+|\d+)(?:[.,]\d{2})?)/g;
+  while ((m = generalRe.exec(text))) {
+    if (m && m[1]) tokens.push(m[1]);
+  }
 
-  if (nums.length) return [...new Set(nums)];
+  return tokens;
+}
 
-  // 2) Fallback: si no hay marcado WooCommerce estándar, buscamos $ pero
-  //    descartamos números que aparezcan dentro de atributos HTML (href, src, data-, class, id)
-  //    y exigimos que el "$" no esté pegado a una letra (para no agarrar cosas como "u$d" sueltos).
-  const withoutAttrs = text.replace(/\s(?:href|src|data-[a-z-]+|class|id)=["'][^"']*["']/gi, ' ');
-  const looseRe = /(?<![a-zA-Z])\$\s*([0-9]{1,3}(?:\.[0-9]{3})*(?:,[0-9]{2})?|[0-9]+(?:,[0-9]{2})?)(?!\s*%)/g;
-  const looseMatches = [...withoutAttrs.matchAll(looseRe)];
-  nums = looseMatches
-    .map(m => parseArMoney(m[1]))
-    .filter(n => Number.isFinite(n) && n >= 50 && n <= 2000000); // descarta ruido tipo $11,33 o $0,5
-
+function parsePrices(value, opts = {}) {
+  const maxReasonablePrice = opts.maxReasonablePrice || 250000;
+  const tokens = extractPriceTokens(value);
+  const nums = tokens
+    .map(parseMoneyToken)
+    .filter(n => Number.isFinite(n) && n > 0)
+    // Evita precios delirantes por parseo malo o placeholders del sitio.
+    .filter(n => n <= maxReasonablePrice);
   return [...new Set(nums)];
 }
 
-function parsePrice(value) {
-  const prices = parsePrices(value);
+function parsePrice(value, opts = {}) {
+  const prices = parsePrices(value, opts);
   if (!prices.length) return null;
   // En ofertas WooCommerce suele mostrar precio viejo + precio nuevo. Tomamos el menor.
   return Math.min(...prices);
@@ -208,7 +250,7 @@ function itemFromBlock(block, q, provider, sourceUrl) {
   if (!title || title.length < 3) return null;
   if (q && scoreTitle(title, q) <= 0) return null;
 
-  const price = parsePrice(block);
+  const price = parsePrice(block, provider.priceOptions || {});
   const image = extractImage(block, null, provider.baseUrl);
   const stock = stockFromText(stripHtml(block));
   const providerId = provider.id;
@@ -351,6 +393,8 @@ module.exports = {
   stripHtml,
   priceToText,
   parsePrice,
+  parseMoneyToken,
+  extractPriceTokens,
   scoreTitle,
   uniqueSort
 };
