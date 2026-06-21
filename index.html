@@ -1189,7 +1189,7 @@ body{
 /* ─── LAYOUT ANCHO + AMABLE + LIVIANO ─── */
 @media(min-width:901px){
   .app{
-    width:min(1180px, calc(100vw - 48px))!important;
+    width:min(1440px, calc(100vw - 56px))!important;
     max-width:none!important;
     padding:24px 0 80px!important;
   }
@@ -1266,21 +1266,21 @@ body{
   #donutRow{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:14px!important}
   .dashboard-grid{
     display:grid!important;
-    grid-template-columns:minmax(0,.95fr) minmax(430px,1.05fr)!important;
-    gap:16px!important;
+    grid-template-columns:minmax(320px,.72fr) minmax(0,1.28fr)!important;
+    gap:18px!important;
     align-items:start!important;
     margin-top:4px!important;
   }
   .dashboard-col{display:flex!important;flex-direction:column!important;gap:14px!important;min-width:0!important}
   .dashboard-extra{display:grid!important;grid-template-columns:1fr 1fr!important;gap:14px!important;margin-top:14px!important}
-  .table-card{max-height:720px!important;overflow:auto!important}
+  .table-card{max-height:none!important;overflow:hidden!important}
   .table-card .t-row{grid-template-columns:54px minmax(0,1fr) 112px 92px!important}
   .spark-card,.horas-card,.table-card{margin-bottom:0!important}
 }
 
 @media(min-width:1200px){
   .hero-card{grid-template-columns:minmax(0,1.3fr) 360px!important}
-  .dashboard-grid{grid-template-columns:minmax(0,520px) minmax(0,1fr)!important}
+  .dashboard-grid{grid-template-columns:minmax(380px,.7fr) minmax(0,1.3fr)!important}
 }
 
 @media(max-width:900px){
@@ -1663,7 +1663,7 @@ textarea{
 *, *::before, *::after{box-sizing:border-box;min-width:0}
 html,body{width:100%;max-width:100%;overflow-x:hidden!important}
 img,svg,canvas{max-width:100%}
-.app{width:min(1180px,100%);max-width:100%;padding-left:16px!important;padding-right:16px!important}
+.app{width:min(1440px,100%);max-width:100%;padding-left:16px!important;padding-right:16px!important}
 .t-row,.hist-turno-header,.hero-card,.total-card,.glass-card,.donut-card,.table-card,.exc-card,.env-card,.turno-resumen-card,.hist-dia-card,.hist-turno-card{max-width:100%;overflow:hidden}
 
 @media(max-width:720px){
