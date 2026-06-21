@@ -3151,7 +3151,7 @@ function openExternalLink(url){if(url)window.open(url,'_blank','noopener,norefer
 const bpBtn=document.getElementById('btnBuscarPrecios');if(bpBtn)bpBtn.addEventListener('click',bpAbrir);
 const bpClose=document.getElementById('btnCerrarBuscarPrecios');if(bpClose)bpClose.addEventListener('click',bpCerrar);
 const bpInput=document.getElementById('bpInput');if(bpInput){bpInput.addEventListener('input',()=>renderPriceLinks(bpInput.value));bpInput.addEventListener('keydown',e=>{if(e.key==='Enter')renderPriceLinks(bpInput.value);});}
-const bpSearch=document.getElementById('bpSearchBtn');if(bpSearch)bpSearch.addEventListener('click',()=>renderPriceLinks(document.getElementById('bpInput')?.value||''));
+const bpSearch=document.getElementById('bpSearchBtn');if(bpSearch)bpSearch.addEventListener('click',()=>{const q=document.getElementById('bpInput')?.value||'';renderPriceLinks(q);if(q){bpSearch.textContent='✓ Listo';bpSearch.style.background='#22c55e';setTimeout(()=>{bpSearch.textContent='Buscar';bpSearch.style.background='';},1200);}});
 const bpClear=document.getElementById('bpClear');if(bpClear)bpClear.addEventListener('click',()=>{const i=document.getElementById('bpInput');if(i)i.value='';renderPriceLinks('');i?.focus();});
 document.querySelectorAll('.bp-hint').forEach(btn=>btn.addEventListener('click',()=>{const i=document.getElementById('bpInput');if(!i)return;i.value=btn.dataset.bpQ||'';renderPriceLinks(i.value);i.focus();}));
 const buscarPreciosOverlay=document.getElementById('buscarPreciosOverlay');if(buscarPreciosOverlay)buscarPreciosOverlay.addEventListener('click',e=>{if(e.target===buscarPreciosOverlay)bpCerrar();});
