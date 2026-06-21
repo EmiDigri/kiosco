@@ -1974,21 +1974,9 @@ img,svg,canvas{max-width:100%}
       <div class="hero-main">
         <div class="hero-top-row">
           <div class="turno-chip"><div class="dot"></div><span id="turnoChip">Turno activo</span></div>
-          <div class="hero-time-widget">
-            <div class="hero-time-top">
-              <div class="hero-time-label-row">
-                <span class="hero-time-icon" aria-hidden="true"></span>
-                <span class="hero-time-label">Ahora</span>
-              </div>
-              <div class="hero-reloj" id="heroReloj">--:--</div>
-            </div>
-            <div class="shift-progress">
-              <span class="shift-progress-time" id="shiftStart">--:--</span>
-              <div class="shift-progress-track">
-                <div class="shift-progress-fill" id="shiftProgressFill"><span class="shift-progress-dot"></span></div>
-              </div>
-              <span class="shift-progress-time" id="shiftEnd">--:--</span>
-            </div>
+          <div class="hero-time-widget" style="text-align:center;padding:14px 20px">
+            <div class="hero-reloj" id="heroReloj" style="font-size:52px;font-weight:500;letter-spacing:-2px;line-height:1">--:--</div>
+            <div id="heroFecha" style="font-size:13px;color:var(--text-mid);margin-top:4px">—</div>
           </div>
         </div>
         <div class="turno-nombre" id="turnoNombre">—</div>
@@ -3225,18 +3213,15 @@ function progresoTurno(t,now){
   if(actual>=fin)return 100;
   return Math.max(0,Math.min(100,((actual-inicio)/(fin-inicio))*100));
 }
+const _DIAS=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+const _MESES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 function tickReloj(){
   const now=new Date();
   const h=String(now.getHours()).padStart(2,'0'),m=String(now.getMinutes()).padStart(2,'0');
   const el=document.getElementById('heroReloj');
   if(el)el.textContent=h+':'+m;
-  const t=turno||turnoReciente||null;
-  const start=document.getElementById('shiftStart');
-  const end=document.getElementById('shiftEnd');
-  const fill=document.getElementById('shiftProgressFill');
-  if(start)start.textContent=t?fmtHoraCorta(t.desdeH,t.desdeM):fmtHoraCorta(TURNOS[0].desdeH,TURNOS[0].desdeM);
-  if(end)end.textContent=t?fmtHoraCorta(t.hastaH,t.hastaM):fmtHoraCorta(TURNOS[TURNOS.length-1].hastaH,TURNOS[TURNOS.length-1].hastaM);
-  if(fill)fill.style.width=(t?progresoTurno(t,now):0).toFixed(1)+'%';
+  const fe=document.getElementById('heroFecha');
+  if(fe)fe.textContent=_DIAS[now.getDay()]+', '+now.getDate()+' de '+_MESES[now.getMonth()];
 }
 tickReloj();setInterval(tickReloj,1000);
 
