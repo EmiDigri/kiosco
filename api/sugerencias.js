@@ -1,11 +1,12 @@
 // Paso 5A — API propia de autosugerencias para Vercel.
 // Endpoint: /api/sugerencias?q=oreo
 // Mezcla catálogo simulado + proveedores reales:
-// Mayorista 12 de Octubre + Distribuidora OKS + Distribuidora Pop.
+// Mayorista 12 de Octubre + Distribuidora OKS + Distribuidora Pop + Golmarymar.
 
 const { searchMayorista12 } = require('./lib/mayorista12');
 const { searchDistrioks } = require('./lib/distrioks');
 const { searchDistribuidoraPop } = require('./lib/distribuidorapop');
+const { searchGolmarymar } = require('./lib/golmarymar');
 
 const PRODUCTS = [
   {
@@ -376,7 +377,8 @@ module.exports = async function handler(req, res) {
   const providerEntries = [
     { name: 'Mayorista 12 de Octubre', source: 'proveedor_real_mayorista12', fn: searchMayorista12 },
     { name: 'Distribuidora OKS', source: 'proveedor_real_distrioks', fn: searchDistrioks },
-    { name: 'Distribuidora Pop', source: 'proveedor_real_distribuidorapop', fn: searchDistribuidoraPop }
+    { name: 'Distribuidora Pop', source: 'proveedor_real_distribuidorapop', fn: searchDistribuidoraPop },
+    { name: 'Golmarymar', source: 'proveedor_real_golmarymar', fn: searchGolmarymar }
   ];
 
   const settled = await Promise.all(providerEntries.map(entry => fetchProviderSafely(entry, q, 10)));
@@ -417,6 +419,6 @@ module.exports = async function handler(req, res) {
     providerNames: providers.map(p => p.name),
     items,
     errors: providerErrors,
-    note: 'Paso 5A: autosugerencias con Mayorista 12 de Octubre + Distribuidora OKS + Distribuidora Pop. Si fallan, queda el fallback simulado.'
+    note: 'Paso 5A.3: autosugerencias con filtros de relevancia + Mayorista 12 + Pop + Golmarymar. OKS puede quedar bloqueado con 403. Si fallan, queda el fallback simulado.'
   });
 };
