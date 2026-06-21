@@ -1,8 +1,11 @@
-// Paso 3 — API propia de autosugerencias para Vercel.
+// Paso 5A — API propia de autosugerencias para Vercel.
 // Endpoint: /api/sugerencias?q=oreo
-// Ahora mezcla catálogo simulado + primer proveedor real: Mayorista 12 de Octubre.
+// Mezcla catálogo simulado + proveedores reales:
+// Mayorista 12 de Octubre + Distribuidora OKS + Distribuidora Pop.
 
 const { searchMayorista12 } = require('./lib/mayorista12');
+const { searchDistrioks } = require('./lib/distrioks');
+const { searchDistribuidoraPop } = require('./lib/distribuidorapop');
 
 const PRODUCTS = [
   {
@@ -247,17 +250,113 @@ function matches(product, q) {
   return haystack.includes(nq) || (product.keys || []).some(k => nq.includes(normalize(k)));
 }
 
-function mergeItems(realItems, fallbackItems, limit = 15) {
-  const seen = new Set();
-  const merged = [];
-  for (const item of [...realItems, ...fallbackItems]) {
-    const key = normalize(item.url || item.title || item.id);
-    if (!key || seen.has(key)) continue;
-    seen.add(key);
-    merged.push(item);
-    if (merged.length >= limit) break;
+function scoreForSort(item) {
+  const source = String(item.source || '');
+  let score = Number(item.score || 0);
+  if (source.includes('proveedor_real')) score += 1000;
+  if (item.price !== null && item.price !== undefined) score += 30;
+  if (item.image) score += 10;
+  return score;
+}
+
+function productKey(item) {
+  return normalize(item.title || item.id || item.url || '')
+    .replace(/\b(x|pack|unidad|unidades|producto|real)\b/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function normalizePriceRows(item) {
+  const rows = Array.isArray(item.prices) ? item.prices : [];
+  if (rows.length) return rows;
+  if (item.price === null || item.price === undefined) return [];
+  return [{
+    name: item.provider || item.providerId || 'Proveedor',
+    logo: item.logo || item.provider || 'P',
+    price: item.price,
+    priceText: item.priceText,
+    url: item.url,
+    image: item.image,
+    stock: item.stock,
+    source: item.source || 'proveedor_real'
+  }];
+}
+
+function mergePriceRows(a = [], b = []) {
+  const map = new Map();
+  for (const row of [...a, ...b]) {
+    const key = normalize([row.name, row.url, row.price].join(' '));
+    if (!key || map.has(key)) continue;
+    map.set(key, row);
   }
-  return merged;
+  return [...map.values()].sort((x, y) => (x.price ?? Infinity) - (y.price ?? Infinity));
+}
+
+function mergeItems(realItems, fallbackItems, limit = 18) {
+  const byKey = new Map();
+
+  function add(item, isFallback = false) {
+    if (!item) return;
+    const key = productKey(item);
+    if (!key) return;
+
+    const prev = byKey.get(key);
+    if (!prev) {
+      const prices = normalizePriceRows(item);
+      const minPrice = prices.map(p => p.price).filter(p => p !== null && p !== undefined).sort((a, b) => a - b)[0];
+      byKey.set(key, {
+        ...item,
+        prices,
+        price: minPrice ?? item.price ?? null,
+        priceText: item.priceText,
+        providersCount: prices.length || item.providersCount || 1,
+        _fallbackOnly: isFallback
+      });
+      return;
+    }
+
+    // Si ya hay resultado real, no pisamos con uno simulado del fallback.
+    if (isFallback && !prev._fallbackOnly) return;
+
+    const prices = mergePriceRows(prev.prices, normalizePriceRows(item));
+    const min = prices.map(p => p.price).filter(p => p !== null && p !== undefined).sort((a, b) => a - b)[0];
+    byKey.set(key, {
+      ...prev,
+      title: prev.title || item.title,
+      meta: prices.length > 1 ? `${prices.length} proveedores encontrados` : (prev.meta || item.meta),
+      image: prev.image || item.image,
+      url: prev.url || item.url,
+      prices,
+      price: min ?? prev.price ?? item.price ?? null,
+      priceText: min !== undefined ? ('$' + Number(min).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })) : (prev.priceText || item.priceText),
+      providersCount: prices.length || prev.providersCount || item.providersCount || 1,
+      tags: [...new Set([...(prev.tags || []), ...(item.tags || [])])],
+      source: prev.source || item.source,
+      _fallbackOnly: prev._fallbackOnly && isFallback
+    });
+  }
+
+  realItems.forEach(item => add(item, false));
+  fallbackItems.forEach(item => add(item, true));
+
+  return [...byKey.values()]
+    .sort((a, b) => scoreForSort(b) - scoreForSort(a))
+    .slice(0, limit)
+    .map(({ _fallbackOnly, ...item }) => item);
+}
+
+async function fetchProviderSafely(entry, q, limit = 10) {
+  try {
+    const live = await entry.fn(q, { limit });
+    return { ok: true, entry, live };
+  } catch (err) {
+    return {
+      ok: false,
+      entry,
+      live: null,
+      error: { provider: entry.name, error: String(err && err.message || err) }
+    };
+  }
 }
 
 module.exports = async function handler(req, res) {
@@ -266,7 +365,7 @@ module.exports = async function handler(req, res) {
   res.setHeader('Cache-Control', 's-maxage=90, stale-while-revalidate=600');
 
   if (!q) {
-    return res.status(200).json({ ok: true, step: 3, q, count: 0, items: [] });
+    return res.status(200).json({ ok: true, step: '5A', q, count: 0, items: [] });
   }
 
   const fallbackItems = PRODUCTS
@@ -274,32 +373,50 @@ module.exports = async function handler(req, res) {
     .slice(0, 15)
     .map(product => ({ ...product, source: 'catalogo_simulado_api' }));
 
-  let realItems = [];
-  let providerErrors = [];
+  const providerEntries = [
+    { name: 'Mayorista 12 de Octubre', source: 'proveedor_real_mayorista12', fn: searchMayorista12 },
+    { name: 'Distribuidora OKS', source: 'proveedor_real_distrioks', fn: searchDistrioks },
+    { name: 'Distribuidora Pop', source: 'proveedor_real_distribuidorapop', fn: searchDistribuidoraPop }
+  ];
 
-  try {
-    const live = await searchMayorista12(q, { limit: 12 });
-    realItems = (live.items || []).map(item => ({
-      ...item,
-      source: 'proveedor_real_mayorista12',
-      providersCount: 1
-    }));
-    providerErrors = live.errors || [];
-  } catch (err) {
-    providerErrors = [{ provider: 'Mayorista 12 de Octubre', error: String(err && err.message || err) }];
+  const settled = await Promise.all(providerEntries.map(entry => fetchProviderSafely(entry, q, 10)));
+
+  const realItems = [];
+  const providerErrors = [];
+  const providers = [];
+
+  for (const result of settled) {
+    if (!result.ok) {
+      providerErrors.push(result.error);
+      continue;
+    }
+
+    const live = result.live || {};
+    if (live.provider) providers.push(live.provider);
+    if (Array.isArray(live.errors) && live.errors.length) providerErrors.push(...live.errors);
+
+    for (const item of live.items || []) {
+      realItems.push({
+        ...item,
+        source: result.entry.source,
+        providersCount: item.providersCount || 1
+      });
+    }
   }
 
-  const items = mergeItems(realItems, fallbackItems, 15);
+  const items = mergeItems(realItems, fallbackItems, 18);
 
   return res.status(200).json({
     ok: true,
-    step: 3,
+    step: '5A',
     q,
     count: items.length,
     realCount: realItems.length,
     fallbackCount: fallbackItems.length,
-    provider: 'Mayorista 12 de Octubre',
+    providers,
+    providerNames: providers.map(p => p.name),
     items,
-    errors: providerErrors
+    errors: providerErrors,
+    note: 'Paso 5A: autosugerencias con Mayorista 12 de Octubre + Distribuidora OKS + Distribuidora Pop. Si fallan, queda el fallback simulado.'
   });
 };
