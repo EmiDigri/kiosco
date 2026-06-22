@@ -1378,7 +1378,35 @@ body{
   letter-spacing:-.5px;
   text-transform:capitalize;
   color:var(--text);
+  cursor:pointer;
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  user-select:none;
 }
+.hist-month-title::after{content:'▾';font-size:18px;color:var(--text-soft);transition:transform .2s}
+.hist-month-title.picker-open::after{transform:rotate(180deg)}
+.hist-month-picker{
+  display:none;
+  position:absolute;
+  z-index:200;
+  background:var(--glass-bg,#1c1c1e);
+  border:1px solid var(--glass-border);
+  border-radius:16px;
+  padding:14px;
+  box-shadow:0 12px 40px rgba(0,0,0,.45);
+  min-width:220px;
+  margin-top:6px;
+}
+.hist-month-picker.open{display:block}
+.hist-picker-year{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.hist-picker-year-val{font-size:17px;font-weight:800;color:var(--text);font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+.hist-picker-yr-btn{background:rgba(255,255,255,.06);border:1px solid var(--glass-border);color:var(--text);border-radius:8px;padding:5px 11px;cursor:pointer;font-size:14px;font-weight:700;transition:background .15s}
+.hist-picker-yr-btn:hover{background:rgba(124,144,255,.18);border-color:var(--accent)}
+.hist-picker-months{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.hist-picker-mon{background:rgba(255,255,255,.05);border:1px solid var(--glass-border);color:var(--text-soft);border-radius:10px;padding:7px 4px;cursor:pointer;font-size:12px;font-weight:700;text-align:center;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;transition:background .15s,color .15s,border-color .15s}
+.hist-picker-mon:hover{background:rgba(124,144,255,.18);border-color:var(--accent);color:var(--accent)}
+.hist-picker-mon.active{background:rgba(124,144,255,.22);border-color:var(--accent);color:var(--accent)}
 .hist-month-sub{
   font-size:12px;
   color:var(--text-soft);
@@ -2101,9 +2129,17 @@ img,svg,canvas{max-width:100%}
     <div id="histVistaLista">
       <div class="hist-calendar-card">
         <div class="hist-calendar-toolbar">
-          <div>
+          <div style="position:relative">
             <div class="hist-month-title" id="histMonthTitle">Mes</div>
             <div class="hist-month-sub" id="histMonthSub">Facturación, MercadoPago y cierres de caja</div>
+            <div class="hist-month-picker" id="histMonthPicker">
+              <div class="hist-picker-year">
+                <button class="hist-picker-yr-btn" id="histPickerYrPrev">◀</button>
+                <span class="hist-picker-year-val" id="histPickerYrVal">2025</span>
+                <button class="hist-picker-yr-btn" id="histPickerYrNext">▶</button>
+              </div>
+              <div class="hist-picker-months" id="histPickerMonths"></div>
+            </div>
           </div>
           <div class="hist-cal-nav">
             <button class="hist-cal-btn" id="histPrevMonth">← Mes anterior</button>
@@ -2772,6 +2808,34 @@ async function mostrarListaDias(){
   if(prev&&!prev.dataset.ready){prev.dataset.ready='1';prev.addEventListener('click',()=>{histMesActual.setMonth(histMesActual.getMonth()-1);mostrarListaDias();});}
   if(next&&!next.dataset.ready){next.dataset.ready='1';next.addEventListener('click',()=>{histMesActual.setMonth(histMesActual.getMonth()+1);mostrarListaDias();});}
   if(today&&!today.dataset.ready){today.dataset.ready='1';today.addEventListener('click',()=>{histMesActual=new Date();histMesActual.setDate(1);mostrarListaDias();});}
+  const picker=document.getElementById('histMonthPicker');
+  const titleEl=document.getElementById('histMonthTitle');
+  if(titleEl&&picker&&!titleEl.dataset.pickerReady){
+    titleEl.dataset.pickerReady='1';
+    let pickerAnio=histMesActual.getFullYear();
+    const MESES=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    function renderPickerMeses(){
+      document.getElementById('histPickerYrVal').textContent=pickerAnio;
+      const grid=document.getElementById('histPickerMonths');
+      grid.innerHTML=MESES.map((mn,i)=>{
+        const isActive=pickerAnio===histMesActual.getFullYear()&&i===histMesActual.getMonth();
+        return `<button class="hist-picker-mon${isActive?' active':''}" data-m="${i}">${mn}</button>`;
+      }).join('');
+      grid.querySelectorAll('.hist-picker-mon').forEach(btn=>btn.addEventListener('click',()=>{
+        histMesActual=new Date(pickerAnio,parseInt(btn.dataset.m),1);
+        picker.classList.remove('open');titleEl.classList.remove('picker-open');
+        mostrarListaDias();
+      }));
+    }
+    titleEl.addEventListener('click',()=>{
+      pickerAnio=histMesActual.getFullYear();
+      renderPickerMeses();
+      picker.classList.toggle('open');titleEl.classList.toggle('picker-open');
+    });
+    document.getElementById('histPickerYrPrev').addEventListener('click',e=>{e.stopPropagation();pickerAnio--;renderPickerMeses();});
+    document.getElementById('histPickerYrNext').addEventListener('click',e=>{e.stopPropagation();pickerAnio++;renderPickerMeses();});
+    document.addEventListener('click',e=>{if(!titleEl.contains(e.target)&&!picker.contains(e.target)){picker.classList.remove('open');titleEl.classList.remove('picker-open');}});
+  }
 }
 async function histFetchDia(dia){
   let pagos=[],cierres=[],gastos=[];
