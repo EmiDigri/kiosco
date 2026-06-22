@@ -2575,6 +2575,14 @@ async function histSbSelect(path){
   if(!res.ok){throw new Error(await res.text());}
   return await res.json();
 }
+function histDeduplicarGastos(arr){
+  const seen=new Set();
+  return arr.filter(g=>{
+    const key=g.uid||(g.fecha+'|'+g.nombre+'|'+g.caja+'|'+g.monto);
+    if(seen.has(key))return false;
+    seen.add(key);return true;
+  });
+}
 function histAgruparPorDia(pagos,cierres,gastos){
   const out={};
   const ensure=dia=>out[dia]||(out[dia]={pagos:[],cierres:[],gastos:[],mpTotal:0,cajaTotal:0,movs:0,enviadas:0,turnos:{}});
@@ -2642,6 +2650,7 @@ async function histCargarMes(){
       });
     }
   }
+  gastos=histDeduplicarGastos(gastos);
   histRowsPagosMes=pagos;histRowsCierresMes=cierres;histRowsGastosMes=gastos;
   histResumenMes=histAgruparPorDia(pagos,cierres,gastos);
   renderCalendarioMes();
@@ -2746,6 +2755,7 @@ async function histFetchDia(dia){
   const loc=histNormalizarCierreLocal(dia);
   if(!cierres.length&&loc.cierres.length)cierres=loc.cierres;
   if(!gastos.length&&loc.gastos.length)gastos=loc.gastos;
+  gastos=histDeduplicarGastos(gastos);
   return {pagos,cierres,gastos};
 }
 async function mostrarDetalleDia(dia){
