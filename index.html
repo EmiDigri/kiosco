@@ -2845,7 +2845,7 @@ document.getElementById('btnCargar').addEventListener('click',async()=>{
     }
     const portada=document.getElementById('turnosHoyPortada');
     if(portada)portada.style.display='none';
-    setTimeout(()=>document.getElementById('resultados').scrollIntoView({behavior:'smooth',block:'start'}),1000);
+    setTimeout(()=>document.getElementById('resultados').scrollIntoView({behavior:'smooth',block:'start'}),2500);
   }catch(err){
     dot.classList.remove('activo');txt.textContent='Error al conectar — revisá el wifi';btn.disabled=false;btxt.textContent=esCierre?'Ver resumen del día':'Cargar mi turno';
     showToast('No se pudo conectar con MercadoPago');console.error(err);
@@ -2960,31 +2960,23 @@ document.querySelectorAll('.cm-caja-btn').forEach(btn=>btn.addEventListener('cli
 function openExternalLink(url){if(url)window.open(url,'_blank','noopener,noreferrer');}
 function btnExplotar(){
   const btn=document.getElementById('btnCargar');
-  const wrap=document.getElementById('btnCargarWrap');
-  if(!btn||!wrap)return;
-  btn.classList.add('loaded');
+  if(!btn)return;
   const icon=document.getElementById('btnIcon');
   if(icon){icon.innerHTML='<polyline points="20 6 9 17 4 12"/>';}
+  btn.classList.add('loaded');
   const rect=btn.getBoundingClientRect();
-  const wRect=wrap.getBoundingClientRect();
-  const cx=rect.width/2, cy=rect.height/2;
-  const colors=['#22c55e','#4ade80','#86efac','#fff','#3D5AFE','#6B7FFF'];
+  const cx=rect.left+rect.width/2+window.scrollX;
+  const cy=rect.top+rect.height/2+window.scrollY;
+  const colors=['#22c55e','#4ade80','#86efac','#ffffff','#3D5AFE','#6B7FFF','#a3e635','#34d399'];
   const angles=[0,30,60,90,120,150,180,210,240,270,300,330];
   angles.forEach((a,i)=>{
     const p=document.createElement('div');
     p.className='btn-particle';
     const rad=a*Math.PI/180;
-    const dist=45+Math.random()*35;
-    p.style.setProperty('--px',Math.cos(rad)*dist+'px');
-    p.style.setProperty('--py',Math.sin(rad)*dist+'px');
-    p.style.left=cx+'px';
-    p.style.top=cy+'px';
-    p.style.marginLeft='-3.5px';
-    p.style.marginTop='-3.5px';
-    p.style.background=colors[i%colors.length];
-    p.style.animationDelay=(i*18)+'ms';
-    wrap.appendChild(p);
-    setTimeout(()=>p.remove(),900);
+    const dist=55+Math.random()*40;
+    p.style.cssText=`position:absolute;width:8px;height:8px;border-radius:50%;pointer-events:none;z-index:9999;left:${cx}px;top:${cy}px;margin:-4px 0 0 -4px;background:${colors[i%colors.length]};--px:${Math.cos(rad)*dist}px;--py:${Math.sin(rad)*dist}px;animation:btn-particle-fly .75s cubic-bezier(.2,.8,.3,1) ${i*20}ms forwards`;
+    document.body.appendChild(p);
+    setTimeout(()=>p.remove(),900+i*20);
   });
 }
 
