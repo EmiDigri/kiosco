@@ -1640,6 +1640,18 @@ body{
   line-height:1.5;
   margin:10px 4px 0;
 }
+.hist-metricas-section{display:flex;flex-direction:column;gap:12px;margin-top:20px}
+.hist-met-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.hist-met-kpi{background:rgba(255,255,255,.04);border:1px solid var(--glass-border);border-radius:14px;padding:14px 10px;text-align:center}
+.hist-met-kpi-label{font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-soft);margin-bottom:6px}
+.hist-met-kpi-val{font-size:17px;font-weight:800;color:var(--text);font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-variant-numeric:tabular-nums}
+.hist-met-kpi-val.neg{color:#f87171}
+.hist-met-chart-card{background:rgba(255,255,255,.04);border:1px solid var(--glass-border);border-radius:16px;padding:16px 14px}
+.hist-met-chart-title{font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--text-soft);margin-bottom:12px}
+@media(max-width:720px){
+  .hist-met-kpis{grid-template-columns:repeat(2,1fr)!important}
+  .hist-met-kpi-val{font-size:15px!important}
+}
 @media(max-width:900px){
   .hist-calendar-summary{grid-template-columns:1fr 1fr}
   .hist-detail-grid{grid-template-columns:1fr}
@@ -2151,6 +2163,7 @@ img,svg,canvas{max-width:100%}
         </div>
         <div class="hist-calendar-grid" id="histCalendarGrid"></div>
         <div class="hist-source-note" id="histSourceNote"></div>
+        <div id="histMetricas" class="hist-metricas-section"></div>
       </div>
       <div class="hist-month-list-title">Días del mes</div>
       <div id="historialDias"></div>
@@ -2612,6 +2625,83 @@ let histRowsGastosMes=[];
 
 function histMoney(n){return '$'+(Number(n)||0).toLocaleString('es-AR');}
 function histMoneyCompact(n){const v=Number(n)||0;if(v===0)return'';if(v>=1e6)return'$'+(v/1e6).toLocaleString('es-AR',{maximumFractionDigits:1})+'M';if(v>=1e3)return'$'+(v/1e3).toLocaleString('es-AR',{maximumFractionDigits:1})+'k';return'$'+v.toLocaleString('es-AR');}
+function histSvgBarsDias(vals,last){
+  const W=600,H=130,pL=4,pR=4,pT=24,pB=20;
+  const cW=W-pL-pR,cH=H-pT-pB;
+  const max=Math.max(...vals,1);
+  const step=cW/last;
+  const bw=Math.max(2,step*0.72);
+  let svg='';
+  vals.forEach((v,i)=>{
+    const x=pL+i*step+(step-bw)/2;
+    const bh=v>0?Math.max(3,(v/max)*cH):0;
+    const yt=pT+cH-bh;
+    const isMax=(v===max&&v>0);
+    svg+=`<rect x="${x.toFixed(1)}" y="${yt.toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" rx="2" fill="${isMax?'rgba(248,113,113,.85)':'rgba(124,144,255,.6)'}"/>`;
+    if(v>0){const lbl=v>=1e6?(v/1e6).toFixed(1)+'M':v>=1e3?Math.round(v/1e3)+'k':'';if(lbl)svg+=`<text x="${(x+bw/2).toFixed(1)}" y="${(yt-4).toFixed(1)}" text-anchor="middle" font-size="7.5" fill="${isMax?'rgba(248,113,113,.9)':'rgba(255,255,255,.45)'}">${lbl}</text>`;}
+    const d=i+1;
+    if(d===1||d===5||d===10||d===15||d===20||d===25||d===last)svg+=`<text x="${(x+bw/2).toFixed(1)}" y="${(pT+cH+13).toFixed(1)}" text-anchor="middle" font-size="8" fill="rgba(255,255,255,.35)">${d}</text>`;
+  });
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block;overflow:visible">${svg}</svg>`;
+}
+function histSvgBarsSemana(avgs,labels){
+  const W=460,H=130,pL=4,pR=4,pT=28,pB=20;
+  const cW=W-pL-pR,cH=H-pT-pB;
+  const max=Math.max(...avgs,1);
+  const step=cW/7;
+  const bw=step*0.58;
+  const maxIdx=avgs.indexOf(max);
+  let svg='';
+  avgs.forEach((v,i)=>{
+    const x=pL+i*step+(step-bw)/2;
+    const bh=v>0?Math.max(3,(v/max)*cH):2;
+    const yt=pT+cH-bh;
+    const isWeekend=i>=5,isMax=i===maxIdx&&v>0;
+    const fill=isMax?'rgba(248,113,113,.85)':isWeekend?'rgba(240,184,96,.65)':'rgba(124,144,255,.65)';
+    svg+=`<rect x="${x.toFixed(1)}" y="${yt.toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" rx="3" fill="${fill}"/>`;
+    const cx=(x+bw/2).toFixed(1);
+    if(v>0){const lbl=v>=1e6?(v/1e6).toFixed(1)+'M':v>=1e3?Math.round(v/1e3)+'k':Math.round(v);svg+=`<text x="${cx}" y="${(yt-5).toFixed(1)}" text-anchor="middle" font-size="8" fill="${isMax?'rgba(248,113,113,.9)':'rgba(255,255,255,.55)'}">${lbl}</text>`;}
+    svg+=`<text x="${cx}" y="${(pT+cH+13).toFixed(1)}" text-anchor="middle" font-size="9.5" font-weight="600" fill="${isWeekend?'rgba(240,184,96,.7)':'rgba(255,255,255,.45)'}">${labels[i]}</text>`;
+  });
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block;overflow:visible">${svg}</svg>`;
+}
+function histRenderMetricas(y,m,last){
+  const el=document.getElementById('histMetricas');
+  if(!el)return;
+  let totalIngresos=0,totalMP=0,totalMovs=0,totalGastos=0,diasActivos=0;
+  const dailyVals=[];
+  const byDow={0:[],1:[],2:[],3:[],4:[],5:[],6:[]};
+  for(let d=1;d<=last;d++){
+    const dia=histIso(y,m,d);
+    const data=histResumenMes[dia];
+    const principal=data?(data.cajaTotal>0?data.cajaTotal:data.mpTotal):0;
+    dailyVals.push(principal);
+    if(data){
+      if(principal>0)diasActivos++;
+      totalMP+=data.mpTotal||0;
+      totalMovs+=data.movs||0;
+      totalGastos+=(data.gastos||[]).reduce((a,g)=>a+(Number(g.monto)||0),0);
+      totalIngresos+=principal;
+      byDow[new Date(y,m-1,d).getDay()].push(principal);
+    }
+  }
+  const promDiario=diasActivos>0?totalIngresos/diasActivos:0;
+  const ticketMP=totalMovs>0?totalMP/totalMovs:0;
+  const margen=totalIngresos-totalGastos;
+  const tieneGastos=totalGastos>0;
+  const dowOrder=[1,2,3,4,5,6,0];
+  const dowLabels=['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+  const dowAvgs=dowOrder.map(i=>{const a=byDow[i];return a.length?a.reduce((x,y)=>x+y,0)/a.length:0;});
+  el.innerHTML=`
+    <div class="hist-met-kpis">
+      <div class="hist-met-kpi"><div class="hist-met-kpi-label">Promedio diario</div><div class="hist-met-kpi-val">${histMoneyCompact(promDiario)||'—'}</div></div>
+      <div class="hist-met-kpi"><div class="hist-met-kpi-label">Ticket MP</div><div class="hist-met-kpi-val">${ticketMP>0?histMoneyCompact(ticketMP):'—'}</div></div>
+      <div class="hist-met-kpi"><div class="hist-met-kpi-label">Días activos</div><div class="hist-met-kpi-val">${diasActivos}</div></div>
+      ${tieneGastos?`<div class="hist-met-kpi"><div class="hist-met-kpi-label">Ingresos − Gastos</div><div class="hist-met-kpi-val${margen<0?' neg':''}">${histMoneyCompact(margen)||'—'}</div></div>`:`<div class="hist-met-kpi"><div class="hist-met-kpi-label">Total MP</div><div class="hist-met-kpi-val">${histMoneyCompact(totalMP)||'—'}</div></div>`}
+    </div>
+    <div class="hist-met-chart-card"><div class="hist-met-chart-title">Evolución diaria del mes</div>${histSvgBarsDias(dailyVals,last)}</div>
+    <div class="hist-met-chart-card"><div class="hist-met-chart-title">Promedio por día de semana</div>${histSvgBarsSemana(dowAvgs,dowLabels)}</div>`;
+}
 function histMesNombre(d){return d.toLocaleDateString('es-AR',{month:'long',year:'numeric'});}
 function histIso(y,m,d){return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;}
 function histPrimerYUltimoDiaMes(date){
@@ -2766,6 +2856,7 @@ function renderCalendarioMes(){
   }
   grid.innerHTML=html;
   grid.querySelectorAll('.hist-day-cell[data-dia]').forEach(cell=>cell.addEventListener('click',()=>mostrarDetalleDia(cell.dataset.dia)));
+  histRenderMetricas(y,m,last);
 }
 function renderListaDiasMes(fuente){
   const cont=document.getElementById('historialDias');
