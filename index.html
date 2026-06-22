@@ -1384,8 +1384,8 @@ body{
   gap:8px;
   user-select:none;
 }
-.hist-month-title::after{content:'▾';font-size:18px;color:var(--text-soft);transition:transform .2s}
-.hist-month-title.picker-open::after{transform:rotate(180deg)}
+.hist-month-title::after{content:'▾';font-size:15px;font-weight:900;color:#fff;background:var(--accent);border-radius:6px;padding:2px 7px;transition:transform .2s,background .15s;line-height:1.4;display:inline-block}
+.hist-month-title.picker-open::after{transform:rotate(180deg);background:rgba(124,144,255,.5)}
 .hist-month-picker{
   display:none;
   position:absolute;
@@ -2142,9 +2142,7 @@ img,svg,canvas{max-width:100%}
             </div>
           </div>
           <div class="hist-cal-nav">
-            <button class="hist-cal-btn" id="histPrevMonth">← Mes anterior</button>
             <button class="hist-cal-btn" id="histThisMonth">Hoy</button>
-            <button class="hist-cal-btn" id="histNextMonth">Mes siguiente →</button>
           </div>
         </div>
         <div class="hist-calendar-summary" id="histCalendarSummary"></div>
