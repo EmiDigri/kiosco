@@ -1544,6 +1544,7 @@ body{
 /* Montos alineados y resaltes */
 .hist-day-main,.hist-sum-value,.hist-day-sub{font-variant-numeric:tabular-nums}
 .hist-day-compact{display:none}
+.hist-day-emoji{font-size:9px;margin-left:2px;line-height:1}
 .hist-day-cell.has-cierre .hist-day-main{color:var(--green)}
 .hist-day-cell:not(.empty):not(.has-cierre):has(.hist-day-badge){background:rgba(255,255,255,.055)}
 .hist-day-cell.today{box-shadow:0 0 0 1px rgba(124,144,255,.35),0 6px 18px rgba(124,144,255,.18)}
@@ -2822,8 +2823,8 @@ function renderCalendarioMes(){
     <div class="hist-sum-card sum-mp"><div class="hist-sum-label">MercadoPago</div><div class="hist-sum-value">${histMoney(totalMP)}</div></div>
     <div class="hist-sum-card sum-dias"><div class="hist-sum-label">Días con MP</div><div class="hist-sum-value">${diasConMP}</div></div>
     <div class="hist-sum-card sum-movs"><div class="hist-sum-label">Movimientos</div><div class="hist-sum-value">${movs}</div></div>`;
-  let topDia=null,topVal=0;
-  for(let d=1;d<=last;d++){const dia=histIso(y,m,d);const data=histResumenMes[dia];if(!data)continue;const v=data.cajaTotal>0?data.cajaTotal:data.mpTotal;if(v>topVal){topVal=v;topDia=dia;}}
+  let topDia=null,topVal=0,botDia=null,botVal=Infinity;
+  for(let d=1;d<=last;d++){const dia=histIso(y,m,d);const data=histResumenMes[dia];if(!data)continue;const v=data.cajaTotal>0?data.cajaTotal:data.mpTotal;if(v>topVal){topVal=v;topDia=dia;}if(v>0&&v<botVal){botVal=v;botDia=dia;}}
   let html='';
   for(let i=0;i<blanks;i++)html+='<div class="hist-day-cell empty"></div>';
   for(let d=1;d<=last;d++){
@@ -2838,9 +2839,10 @@ function renderCalendarioMes(){
     if(dia===today)cls.push('today');
     if(data.cierres.length)cls.push('has-cierre');
     if(dia===topDia&&topVal>0)cls.push('best-day');
+    const emoji=dia===topDia&&topVal>0?'🔥':dia===botDia&&botVal<Infinity?'💀':'';
     const compact=histMoneyCompact(principal);
     html+=`<div class="${cls.join(' ')}" data-dia="${dia}">
-      <div><div class="hist-day-num">${d}</div>${badges.length?`<div class="hist-day-badges">${badges.map(b=>`<span class="hist-day-badge badge-${b.toLowerCase()}">${b}</span>`).join('')}</div>`:''}</div>
+      <div><div class="hist-day-num">${d}${emoji?`<span class="hist-day-emoji">${emoji}</span>`:''}</div>${badges.length?`<div class="hist-day-badges">${badges.map(b=>`<span class="hist-day-badge badge-${b.toLowerCase()}">${b}</span>`).join('')}</div>`:''}</div>
       <div class="hist-day-kpis">
         <div class="hist-day-main">${principal?histMoney(principal):'—'}</div>
         <div class="hist-day-sub">${data.movs?`${data.movs} movs · MP ${histMoney(data.mpTotal)}`:'sin movimientos'}</div>
