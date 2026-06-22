@@ -1479,6 +1479,7 @@ body{
   display:flex;
   flex-direction:column;
   justify-content:space-between;
+  position:relative;
   transition:border-color .12s ease,background .12s ease,transform .12s ease;
 }
 .hist-day-cell:hover{
@@ -1544,22 +1545,21 @@ body{
 /* Montos alineados y resaltes */
 .hist-day-main,.hist-sum-value,.hist-day-sub{font-variant-numeric:tabular-nums}
 .hist-day-compact{display:none}
-.hist-day-emoji{font-size:13px;margin-left:2px;line-height:1;display:inline-block}
-.hist-day-flame{animation:histFlame .7s ease-in-out infinite}
-.hist-day-skull{animation:histSkull 2.2s ease-in-out infinite}
+.hist-day-emoji{position:absolute;top:3px;right:3px;font-size:14px;line-height:1;display:block;z-index:2;will-change:transform}
+.hist-day-flame{animation:histFlame .75s ease-in-out infinite;transform-origin:50% 90%}
+.hist-day-skull{animation:histSkull 2s ease-in-out infinite;transform-origin:50% 50%}
 @keyframes histFlame{
-  0%,100%{transform:scale(1) rotate(-4deg)}
-  30%{transform:scale(1.25) rotate(5deg)}
-  60%{transform:scale(.92) rotate(-3deg)}
-  80%{transform:scale(1.15) rotate(3deg)}
+  0%,100%{transform:scaleX(1) scaleY(1) rotate(-5deg)}
+  35%{transform:scaleX(.85) scaleY(1.2) rotate(5deg)}
+  70%{transform:scaleX(1.1) scaleY(.9) rotate(-3deg)}
 }
 @keyframes histSkull{
-  0%,80%,100%{transform:rotate(0deg) scale(1)}
-  83%{transform:rotate(-14deg) scale(1.1)}
-  87%{transform:rotate(14deg) scale(1.1)}
-  91%{transform:rotate(-8deg) scale(1.05)}
-  95%{transform:rotate(8deg) scale(1.05)}
-  98%{transform:rotate(0deg) scale(1)}
+  0%,72%,100%{transform:rotate(0deg)}
+  76%{transform:rotate(-18deg)}
+  81%{transform:rotate(18deg)}
+  86%{transform:rotate(-10deg)}
+  91%{transform:rotate(10deg)}
+  96%{transform:rotate(-3deg)}
 }
 .hist-day-cell.has-cierre .hist-day-main{color:var(--green)}
 .hist-day-cell:not(.empty):not(.has-cierre):has(.hist-day-badge){background:rgba(255,255,255,.055)}
@@ -2858,7 +2858,7 @@ function renderCalendarioMes(){
     const emoji=dia===topDia&&topVal>0?'<span class="hist-day-emoji hist-day-flame">🔥</span>':dia===botDia&&botVal<Infinity?'<span class="hist-day-emoji hist-day-skull">💀</span>':'';
     const compact=histMoneyCompact(principal);
     html+=`<div class="${cls.join(' ')}" data-dia="${dia}">
-      <div><div class="hist-day-num">${d}${emoji}</div>${badges.length?`<div class="hist-day-badges">${badges.map(b=>`<span class="hist-day-badge badge-${b.toLowerCase()}">${b}</span>`).join('')}</div>`:''}</div>
+      ${emoji}<div><div class="hist-day-num">${d}</div>${badges.length?`<div class="hist-day-badges">${badges.map(b=>`<span class="hist-day-badge badge-${b.toLowerCase()}">${b}</span>`).join('')}</div>`:''}</div>
       <div class="hist-day-kpis">
         <div class="hist-day-main">${principal?histMoney(principal):'—'}</div>
         <div class="hist-day-sub">${data.movs?`${data.movs} movs · MP ${histMoney(data.mpTotal)}`:'sin movimientos'}</div>
