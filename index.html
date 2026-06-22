@@ -2967,23 +2967,34 @@ function btnExplotar(){
   const rect=btn.getBoundingClientRect();
   const cx=rect.left+rect.width/2;
   const cy=rect.top+rect.height/2;
-  const colors=['#22c55e','#4ade80','#86efac','#ffffff','#6B7FFF','#a3e635','#34d399','#facc15'];
-  const angles=[0,30,60,90,120,150,180,210,240,270,300,330];
-  angles.forEach((a,i)=>{
-    const p=document.createElement('div');
-    const rad=a*Math.PI/180;
-    const dist=60+Math.random()*45;
-    const tx=Math.cos(rad)*dist, ty=Math.sin(rad)*dist;
-    const color=colors[i%colors.length];
-    const size=6+Math.random()*5;
-    p.style.cssText=`position:fixed;width:${size}px;height:${size}px;border-radius:50%;pointer-events:none;z-index:99999;left:${cx}px;top:${cy}px;margin:${-size/2}px 0 0 ${-size/2}px;background:${color};transition:transform .7s cubic-bezier(.2,.8,.3,1) ${i*15}ms,opacity .6s ease ${i*15+100}ms;transform:translate(0,0) scale(1);opacity:1`;
-    document.body.appendChild(p);
-    requestAnimationFrame(()=>requestAnimationFrame(()=>{
-      p.style.transform=`translate(${tx}px,${ty}px) scale(0)`;
-      p.style.opacity='0';
-    }));
-    setTimeout(()=>p.remove(),900+i*15);
+  const canvas=document.createElement('canvas');
+  canvas.width=window.innerWidth;
+  canvas.height=window.innerHeight;
+  canvas.style.cssText='position:fixed;inset:0;z-index:99999;pointer-events:none';
+  document.body.appendChild(canvas);
+  const ctx=canvas.getContext('2d');
+  const colors=['#22c55e','#4ade80','#86efac','#ffffff','#6B7FFF','#a3e635','#34d399','#facc15','#f472b6'];
+  const particles=Array.from({length:28},(_,i)=>{
+    const angle=(i/28)*Math.PI*2;
+    const speed=4+Math.random()*5;
+    return{x:cx,y:cy,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,r:4+Math.random()*5,color:colors[i%colors.length],alpha:1};
   });
+  let frame=0;
+  function draw(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    let alive=false;
+    particles.forEach(p=>{
+      p.x+=p.vx;p.y+=p.vy;
+      p.vy+=0.18;
+      p.alpha-=0.022;
+      p.r*=0.97;
+      if(p.alpha>0){alive=true;ctx.globalAlpha=p.alpha;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=p.color;ctx.fill();}
+    });
+    ctx.globalAlpha=1;
+    if(alive&&frame<90){frame++;requestAnimationFrame(draw);}
+    else canvas.remove();
+  }
+  requestAnimationFrame(draw);
 }
 
 function actualizarHeroSide(movs){
