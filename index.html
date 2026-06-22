@@ -2845,7 +2845,7 @@ document.getElementById('btnCargar').addEventListener('click',async()=>{
     }
     const portada=document.getElementById('turnosHoyPortada');
     if(portada)portada.style.display='none';
-    setTimeout(()=>document.getElementById('resultados').scrollIntoView({behavior:'auto',block:'start'}),80);
+    setTimeout(()=>document.getElementById('resultados').scrollIntoView({behavior:'smooth',block:'start'}),1000);
   }catch(err){
     dot.classList.remove('activo');txt.textContent='Error al conectar — revisá el wifi';btn.disabled=false;btxt.textContent=esCierre?'Ver resumen del día':'Cargar mi turno';
     showToast('No se pudo conectar con MercadoPago');console.error(err);
