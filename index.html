@@ -3266,19 +3266,20 @@ tickReloj();setInterval(tickReloj,1000);
 
 // ─── INFO WIDGET (temp, dólares, feriado) ───
 async function fetchFeriadoProximo(){
-  const hoy=new Date();
   const hoyStr=fechaHoy();
+  const hoy=new Date();
+  const todayMidnight=new Date(hoy.getFullYear(),hoy.getMonth(),hoy.getDate());
   for(const y of [hoy.getFullYear(),hoy.getFullYear()+1]){
     try{
-      const data=await fetch(`https://nolaborables.com.ar/API/v2/feriados/${y}`).then(r=>r.json());
-      for(const f of data){
-        const fStr=`${y}-${String(f.mes).padStart(2,'0')}-${String(f.dia).padStart(2,'0')}`;
-        if(fStr>hoyStr){
-          const d=new Date(y,f.mes-1,f.dia);
-          const diff=Math.round((d-new Date(hoy.getFullYear(),hoy.getMonth(),hoy.getDate()))/(864e5));
-          const label=d.toLocaleDateString('es-AR',{day:'numeric',month:'long'});
-          return `${f.motivo} — ${label} (en ${diff} día${diff!==1?'s':''})`;
-        }
+      const data=await fetch(`https://api.argentinadatos.com/v1/feriados/${y}`).then(r=>{if(!r.ok)throw new Error(r.status);return r.json();});
+      const proximo=data.find(f=>f.fecha>hoyStr);
+      if(proximo){
+        const [yr,mo,da]=proximo.fecha.split('-').map(Number);
+        const d=new Date(yr,mo-1,da);
+        const diff=Math.round((d-todayMidnight)/864e5);
+        const diaSemana=d.toLocaleDateString('es-AR',{weekday:'long'});
+        const label=d.toLocaleDateString('es-AR',{day:'numeric',month:'long'});
+        return `${proximo.nombre} — ${diaSemana} ${label} (en ${diff} día${diff!==1?'s':''})`;
       }
     }catch(e){}
   }
