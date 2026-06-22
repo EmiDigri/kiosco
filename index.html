@@ -1469,6 +1469,24 @@ body{
   border-radius:999px;
   padding:2px 6px;
 }
+/* Badges color-codificados */
+.hist-day-badge.badge-caja{color:var(--green);background:rgba(95,214,138,.13);border-color:rgba(95,214,138,.28)}
+.hist-day-badge.badge-gastos{color:var(--amber);background:rgba(240,184,96,.13);border-color:rgba(240,184,96,.28)}
+/* Montos alineados y resaltes */
+.hist-day-main,.hist-sum-value,.hist-day-sub{font-variant-numeric:tabular-nums}
+.hist-day-cell.has-cierre .hist-day-main{color:var(--green)}
+.hist-day-cell:not(.empty):not(.has-cierre):has(.hist-day-badge){background:rgba(255,255,255,.055)}
+.hist-day-cell.today{box-shadow:0 0 0 1px rgba(124,144,255,.35),0 6px 18px rgba(124,144,255,.18)}
+.hist-day-cell.today .hist-day-num{color:var(--accent)}
+/* Tarjetas resumen con franja de color */
+.hist-sum-card{position:relative;overflow:hidden;transition:transform .15s ease,border-color .15s ease}
+.hist-sum-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:3px;background:var(--accent);opacity:.85}
+.hist-sum-card:hover{transform:translateY(-2px)}
+.hist-sum-card.sum-caja::before{background:var(--green)}
+.hist-sum-card.sum-mp::before{background:var(--accent)}
+.hist-sum-card.sum-dias::before{background:var(--violet,#A78BFA)}
+.hist-sum-card.sum-movs::before{background:var(--amber)}
+.hist-sum-card.sum-caja .hist-sum-value{color:var(--green)}
 .hist-month-list-title{
   font-size:11px;
   font-weight:800;
@@ -2611,10 +2629,10 @@ function renderCalendarioMes(){
   const diasConMP=Object.values(histResumenMes).filter(d=>d.mpTotal>0).length;
   const movs=Object.values(histResumenMes).reduce((a,d)=>a+d.movs,0);
   summary.innerHTML=`
-    <div class="hist-sum-card"><div class="hist-sum-label">Caja cerrada</div><div class="hist-sum-value">${histMoney(totalCaja)}</div></div>
-    <div class="hist-sum-card"><div class="hist-sum-label">MercadoPago</div><div class="hist-sum-value">${histMoney(totalMP)}</div></div>
-    <div class="hist-sum-card"><div class="hist-sum-label">Días con MP</div><div class="hist-sum-value">${diasConMP}</div></div>
-    <div class="hist-sum-card"><div class="hist-sum-label">Movimientos</div><div class="hist-sum-value">${movs}</div></div>`;
+    <div class="hist-sum-card sum-caja"><div class="hist-sum-label">Caja cerrada</div><div class="hist-sum-value">${histMoney(totalCaja)}</div></div>
+    <div class="hist-sum-card sum-mp"><div class="hist-sum-label">MercadoPago</div><div class="hist-sum-value">${histMoney(totalMP)}</div></div>
+    <div class="hist-sum-card sum-dias"><div class="hist-sum-label">Días con MP</div><div class="hist-sum-value">${diasConMP}</div></div>
+    <div class="hist-sum-card sum-movs"><div class="hist-sum-label">Movimientos</div><div class="hist-sum-value">${movs}</div></div>`;
   let html='';
   for(let i=0;i<blanks;i++)html+='<div class="hist-day-cell empty"></div>';
   for(let d=1;d<=last;d++){
@@ -2629,7 +2647,7 @@ function renderCalendarioMes(){
     if(dia===today)cls.push('today');
     if(data.cierres.length)cls.push('has-cierre');
     html+=`<div class="${cls.join(' ')}" data-dia="${dia}">
-      <div><div class="hist-day-num">${d}</div>${badges.length?`<div class="hist-day-badges">${badges.map(b=>`<span class="hist-day-badge">${b}</span>`).join('')}</div>`:''}</div>
+      <div><div class="hist-day-num">${d}</div>${badges.length?`<div class="hist-day-badges">${badges.map(b=>`<span class="hist-day-badge badge-${b.toLowerCase()}">${b}</span>`).join('')}</div>`:''}</div>
       <div class="hist-day-kpis">
         <div class="hist-day-main">${principal?histMoney(principal):'—'}</div>
         <div class="hist-day-sub">${data.movs?`${data.movs} movs · MP ${histMoney(data.mpTotal)}`:'sin movimientos'}</div>
