@@ -2578,7 +2578,7 @@ async function histSbSelect(path){
 function histDeduplicarGastos(arr){
   const seen=new Set();
   return arr.filter(g=>{
-    const key=g.uid||(g.fecha+'|'+g.nombre+'|'+g.caja+'|'+g.monto);
+    const key=(g.fecha||'')+'|'+(g.nombre||'').trim().toLowerCase()+'|'+(g.caja||'')+'|'+(Number(g.monto)||0);
     if(seen.has(key))return false;
     seen.add(key);return true;
   });
