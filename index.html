@@ -109,17 +109,27 @@ html{overflow-x:hidden;overflow-y:scroll}
 .turno-chip .dot{width:5px;height:5px;border-radius:50%;background:var(--accent);animation:glow 2s infinite}
 .turno-nombre{font-size:36px;font-weight:800;letter-spacing:-1.2px;line-height:1;margin-bottom:5px;background:linear-gradient(135deg,#fff 30%,rgba(255,255,255,.6));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .turno-horario{font-size:13px;color:var(--text-soft);margin-bottom:22px;font-weight:400}
-.btn-cargar{display:inline-flex;align-items:center;gap:10px;background:var(--accent);color:#05071A;border:none;border-radius:var(--radius-sm);padding:13px 22px;font-size:14px;font-weight:700;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;cursor:pointer;transition:background .35s ease,box-shadow .35s ease,transform .2s cubic-bezier(.34,1.56,.64,1);position:relative;z-index:1;letter-spacing:-.1px;overflow:hidden}
-.btn-cargar:hover{background:#6B7FFF;transform:translateY(-3px) scale(1.02);box-shadow:0 12px 32px rgba(61,90,254,.35)}
+.btn-cargar{display:inline-flex;align-items:center;gap:10px;background:var(--accent);color:#05071A;border:none;border-radius:var(--radius-sm);padding:13px 22px;font-size:14px;font-weight:700;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;cursor:pointer;transition:transform .2s cubic-bezier(.34,1.56,.64,1),box-shadow .3s;position:relative;z-index:1;letter-spacing:-.1px;overflow:visible}
+.btn-cargar::before{content:'';position:absolute;inset:0;border-radius:var(--radius-sm);background:var(--accent);z-index:-1;transition:background .3s}
+.btn-cargar:hover{transform:translateY(-3px) scale(1.02);box-shadow:0 12px 32px rgba(61,90,254,.35)}
+.btn-cargar:hover::before{background:#6B7FFF}
 .btn-cargar:active{transform:scale(.97)}
 .btn-cargar .btn-icon{transition:transform .35s cubic-bezier(.34,1.56,.64,1)}
 .btn-cargar:hover .btn-icon{transform:rotate(180deg) scale(1.1)}
-.btn-cargar.loaded{background:#16a34a!important;color:#fff!important;cursor:default;animation:btn-loaded .55s cubic-bezier(.34,1.56,.64,1) forwards}
-.btn-cargar.loaded:hover{transform:none!important;box-shadow:0 0 0 4px rgba(22,163,74,.25)!important}
-@keyframes btn-loaded{
-  0%{transform:scale(.95);box-shadow:0 0 0 0 rgba(22,163,74,.5)}
-  50%{transform:scale(1.04);box-shadow:0 0 0 12px rgba(22,163,74,0)}
-  100%{transform:scale(1);box-shadow:0 4px 20px rgba(22,163,74,.3)}
+.btn-cargar-wrap{position:relative;display:inline-block}
+.btn-particle{position:absolute;width:7px;height:7px;border-radius:50%;pointer-events:none;animation:btn-particle-fly .7s cubic-bezier(.2,.8,.3,1) forwards}
+@keyframes btn-particle-fly{
+  0%{transform:translate(0,0) scale(1);opacity:1}
+  100%{transform:translate(var(--px),var(--py)) scale(0);opacity:0}
+}
+.btn-cargar.loaded{cursor:default;color:#fff!important}
+.btn-cargar.loaded::before{background:#16a34a;animation:btn-green-fill .5s cubic-bezier(.34,1.56,.64,1) forwards}
+.btn-cargar.loaded:hover{transform:none!important;box-shadow:0 0 0 4px rgba(22,163,74,.3)!important}
+.btn-cargar.loaded:hover::before{background:#16a34a}
+@keyframes btn-green-fill{
+  0%{clip-path:circle(0% at 50% 50%);background:#16a34a}
+  60%{clip-path:circle(80% at 50% 50%);background:#22c55e}
+  100%{clip-path:circle(150% at 50% 50%);background:#16a34a}
 }
 .status-row{display:flex;align-items:center;gap:7px;margin-top:14px}
 .s-dot{width:5px;height:5px;border-radius:50%;background:var(--text-soft)}
@@ -1850,13 +1860,15 @@ img,svg,canvas{max-width:100%}
         </div>
         <div class="turno-nombre" id="turnoNombre">—</div>
         <div class="turno-horario" id="turnoHorario">—</div>
-        <button class="btn-cargar" id="btnCargar">
-          <svg class="btn-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
-            <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
-          </svg>
-          <span id="btnTxt">Cargar mi turno</span>
-        </button>
+        <div class="btn-cargar-wrap" id="btnCargarWrap">
+          <button class="btn-cargar" id="btnCargar">
+            <svg class="btn-icon" id="btnIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+              <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+            </svg>
+            <span id="btnTxt">Cargar mi turno</span>
+          </button>
+        </div>
         <div class="status-row">
           <div class="s-dot" id="sDot"></div>
           <span class="s-txt" id="sTxt">Esperando conexión con MercadoPago</span>
@@ -2826,7 +2838,7 @@ document.getElementById('btnCargar').addEventListener('click',async()=>{
       const t=turno||turnoReciente;
       const results=await fetchMovimientos(t.desdeH,t.desdeM,t.hastaH,t.hastaM);
       const parsed=parsearMovimientos(results);
-      dot.classList.remove('activo');txt.textContent=parsed.movs.length+' movimientos cargados ✓';btn.disabled=false;btn.classList.add('loaded');btn.querySelector('.btn-icon').innerHTML='<polyline points="20 6 9 17 4 12"/>';btxt.textContent='Turno cargado';
+      dot.classList.remove('activo');txt.textContent=parsed.movs.length+' movimientos cargados ✓';btn.disabled=false;btnExplotar();btxt.textContent='Turno cargado';
       document.getElementById('resultados').style.display='block';
       guardarTurno(t.nombre,parsed.movs,parsed.excluidos);
       renderTurno(parsed.movs,parsed.excluidos,parsed.enviadas);
@@ -2946,6 +2958,35 @@ document.querySelectorAll('.cm-caja-btn').forEach(btn=>btn.addEventListener('cli
 
 
 function openExternalLink(url){if(url)window.open(url,'_blank','noopener,noreferrer');}
+function btnExplotar(){
+  const btn=document.getElementById('btnCargar');
+  const wrap=document.getElementById('btnCargarWrap');
+  if(!btn||!wrap)return;
+  btn.classList.add('loaded');
+  const icon=document.getElementById('btnIcon');
+  if(icon){icon.innerHTML='<polyline points="20 6 9 17 4 12"/>';}
+  const rect=btn.getBoundingClientRect();
+  const wRect=wrap.getBoundingClientRect();
+  const cx=rect.width/2, cy=rect.height/2;
+  const colors=['#22c55e','#4ade80','#86efac','#fff','#3D5AFE','#6B7FFF'];
+  const angles=[0,30,60,90,120,150,180,210,240,270,300,330];
+  angles.forEach((a,i)=>{
+    const p=document.createElement('div');
+    p.className='btn-particle';
+    const rad=a*Math.PI/180;
+    const dist=45+Math.random()*35;
+    p.style.setProperty('--px',Math.cos(rad)*dist+'px');
+    p.style.setProperty('--py',Math.sin(rad)*dist+'px');
+    p.style.left=cx+'px';
+    p.style.top=cy+'px';
+    p.style.marginLeft='-3.5px';
+    p.style.marginTop='-3.5px';
+    p.style.background=colors[i%colors.length];
+    p.style.animationDelay=(i*18)+'ms';
+    wrap.appendChild(p);
+    setTimeout(()=>p.remove(),900);
+  });
+}
 
 function actualizarHeroSide(movs){
   const miniTurno=document.getElementById('heroMiniTurno');
