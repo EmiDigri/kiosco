@@ -2976,7 +2976,7 @@ function btnExplotar(){
   const colors=['#22c55e','#4ade80','#86efac','#ffffff','#6B7FFF','#a3e635','#34d399','#facc15','#f472b6'];
   const particles=Array.from({length:28},(_,i)=>{
     const angle=(i/28)*Math.PI*2;
-    const speed=4+Math.random()*5;
+    const speed=2+Math.random()*2.5;
     return{x:cx,y:cy,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,r:4+Math.random()*5,color:colors[i%colors.length],alpha:1};
   });
   let frame=0;
@@ -2985,9 +2985,9 @@ function btnExplotar(){
     let alive=false;
     particles.forEach(p=>{
       p.x+=p.vx;p.y+=p.vy;
-      p.vy+=0.18;
-      p.alpha-=0.022;
-      p.r*=0.97;
+      p.vy+=0.07;
+      p.alpha-=0.011;
+      p.r*=0.987;
       if(p.alpha>0){alive=true;ctx.globalAlpha=p.alpha;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=p.color;ctx.fill();}
     });
     ctx.globalAlpha=1;
