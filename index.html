@@ -127,6 +127,7 @@ html{overflow-x:hidden;overflow-y:scroll}
 .iw-feriado-lbl{font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--text-soft);margin-bottom:3px}
 .iw-feriados-grid{display:flex;flex-direction:column;gap:8px}
 .info-widget-loading{font-size:12px;color:var(--text-soft)}
+.iw-weather-emoji{font-size:20px;vertical-align:middle;line-height:1;display:inline-block;margin-left:4px}
 .hero-card{position:relative;z-index:1;transition:transform .08s ease;will-change:transform;margin-bottom:0!important;background:var(--glass);border:1px solid var(--glass-border);border-radius:28px;padding:28px 26px 24px;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);overflow:hidden}
 .hero-card::before{content:'';position:absolute;inset:0;border-radius:28px;background:linear-gradient(135deg,rgba(61,90,254,.08) 0%,transparent 60%);pointer-events:none}
 .hero-shimmer{position:absolute;top:0;left:-100%;width:60%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.04),transparent);animation:shimmerSlide 3s ease-in-out infinite}
@@ -3563,6 +3564,45 @@ async function fetchFeriadosInfo(){
   }
   return {feriado,fsl};
 }
+function getWeatherEmoji(temp){
+  if(temp==null)return null;
+  const t=Number(temp);
+  if(t<3)  return{emoji:'❄️',cls:'iw-emoji-freeze'};
+  if(t<12) return{emoji:'🌬️',cls:'iw-emoji-wind'};
+  if(t<20) return{emoji:'🌤️',cls:'iw-emoji-mild'};
+  if(t<27) return{emoji:'☀️',cls:'iw-emoji-warm'};
+  if(t<33) return{emoji:'🌡️',cls:'iw-emoji-hot'};
+  return{emoji:'🔥',cls:'iw-emoji-flame'};
+}
+let _iwEmojiRaf=null;
+function iwAnimarEmoji(){
+  if(_iwEmojiRaf){cancelAnimationFrame(_iwEmojiRaf);_iwEmojiRaf=null;}
+  function step(ts){
+    const t=ts/1000;
+    document.querySelectorAll('.iw-emoji-freeze').forEach(el=>{
+      el.style.transform=`rotate(${(t*45%360).toFixed(1)}deg)`;
+    });
+    document.querySelectorAll('.iw-emoji-wind').forEach(el=>{
+      el.style.transform=`rotate(${(Math.sin(t*2)*15).toFixed(1)}deg)`;
+    });
+    document.querySelectorAll('.iw-emoji-mild').forEach(el=>{
+      el.style.transform=`translateY(${(Math.sin(t*1.5)*2.5).toFixed(2)}px)`;
+    });
+    document.querySelectorAll('.iw-emoji-warm').forEach(el=>{
+      el.style.transform=`rotate(${(t*18%360).toFixed(1)}deg)`;
+    });
+    document.querySelectorAll('.iw-emoji-hot').forEach(el=>{
+      const sc=1+Math.sin(t*3)*0.12;
+      el.style.transform=`scale(${sc.toFixed(3)})`;
+    });
+    document.querySelectorAll('.iw-emoji-flame').forEach(el=>{
+      const rot=Math.sin(t*7.5)*6,sc=1+Math.sin(t*10)*0.13;
+      el.style.transform=`rotate(${rot.toFixed(1)}deg) scale(${sc.toFixed(3)})`;
+    });
+    _iwEmojiRaf=requestAnimationFrame(step);
+  }
+  _iwEmojiRaf=requestAnimationFrame(step);
+}
 async function fetchInfoWidget(){
   const el=document.getElementById('infoWidgetContent');
   if(!el)return;
@@ -3584,9 +3624,11 @@ async function fetchInfoWidget(){
   const {feriado,fsl}=await fetchFeriadosInfo().catch(()=>({feriado:null,fsl:null}));
   const fmt=v=>v!=null?'$'+Math.round(Number(v)).toLocaleString('es-AR'):'—';
   const varTag=p=>p==null?'':` <span class="iw-dolar-var ${p>=0?'up':'down'}">${p>=0?'▲':'▼'}${Math.abs(p).toFixed(1)}%</span>`;
+  const we=getWeatherEmoji(temp);
+  const tempDisp=temp!=null?`${temp}°${we?`<span class="iw-weather-emoji ${we.cls}">${we.emoji}</span>`:''}`:' —';
   const html=`
     <div class="iw-temp-row">
-      <div class="iw-temp-val">${temp!=null?temp+'°':'—'}</div>
+      <div class="iw-temp-val">${tempDisp}</div>
       <div class="iw-temp-meta"><span class="iw-temp-city">Buenos Aires</span><span class="iw-temp-label">Sensación ${sens!=null?sens+'°C':'—'}</span></div>
     </div>
     <div class="iw-dolares">
@@ -3602,6 +3644,7 @@ async function fetchInfoWidget(){
   el.innerHTML=html;
   const elM=document.getElementById('infoWidgetContentMobile');
   if(elM)elM.innerHTML=html;
+  iwAnimarEmoji();
 }
 fetchInfoWidget();
 setInterval(fetchInfoWidget,5*60*1000);
