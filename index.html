@@ -1545,22 +1545,7 @@ body{
 /* Montos alineados y resaltes */
 .hist-day-main,.hist-sum-value,.hist-day-sub{font-variant-numeric:tabular-nums}
 .hist-day-compact{display:none}
-.hist-day-emoji{position:absolute;top:3px;right:3px;font-size:14px;line-height:1;display:block;z-index:2;will-change:filter,transform;transform:translateZ(0)}
-.hist-day-flame{animation:histFlame .8s ease-in-out infinite;transform-origin:50% 90%}
-.hist-day-skull{animation:histSkull 2.2s ease-in-out infinite}
-@keyframes histFlame{
-  0%,100%{filter:brightness(1) drop-shadow(0 0 2px rgba(255,120,0,.5));transform:translateZ(0) rotate(-5deg) scale(1)}
-  40%{filter:brightness(1.4) drop-shadow(0 0 7px rgba(255,160,0,.9));transform:translateZ(0) rotate(6deg) scale(1.2)}
-  70%{filter:brightness(.9) drop-shadow(0 0 3px rgba(255,80,0,.4));transform:translateZ(0) rotate(-3deg) scale(.92)}
-}
-@keyframes histSkull{
-  0%,70%,100%{filter:brightness(1);transform:translateZ(0) rotate(0deg)}
-  74%{filter:brightness(1.3);transform:translateZ(0) rotate(-20deg)}
-  79%{filter:brightness(1.3);transform:translateZ(0) rotate(20deg)}
-  84%{filter:brightness(1.1);transform:translateZ(0) rotate(-12deg)}
-  89%{filter:brightness(1.1);transform:translateZ(0) rotate(12deg)}
-  94%{filter:brightness(1);transform:translateZ(0) rotate(0deg)}
-}
+.hist-day-emoji{display:inline-block;font-size:13px;margin-left:3px;vertical-align:middle;line-height:1}
 .hist-day-cell.has-cierre .hist-day-main{color:var(--green)}
 .hist-day-cell:not(.empty):not(.has-cierre):has(.hist-day-badge){background:rgba(255,255,255,.055)}
 .hist-day-cell.today{box-shadow:0 0 0 1px rgba(124,144,255,.35),0 6px 18px rgba(124,144,255,.18)}
@@ -2858,7 +2843,7 @@ function renderCalendarioMes(){
     const emoji=dia===topDia&&topVal>0?'<span class="hist-day-emoji hist-day-flame">🔥</span>':dia===botDia&&botVal<Infinity?'<span class="hist-day-emoji hist-day-skull">💀</span>':'';
     const compact=histMoneyCompact(principal);
     html+=`<div class="${cls.join(' ')}" data-dia="${dia}">
-      ${emoji}<div><div class="hist-day-num">${d}</div>${badges.length?`<div class="hist-day-badges">${badges.map(b=>`<span class="hist-day-badge badge-${b.toLowerCase()}">${b}</span>`).join('')}</div>`:''}</div>
+      <div><div class="hist-day-num">${d}${emoji}</div>${badges.length?`<div class="hist-day-badges">${badges.map(b=>`<span class="hist-day-badge badge-${b.toLowerCase()}">${b}</span>`).join('')}</div>`:''}</div>
       <div class="hist-day-kpis">
         <div class="hist-day-main">${principal?histMoney(principal):'—'}</div>
         <div class="hist-day-sub">${data.movs?`${data.movs} movs · MP ${histMoney(data.mpTotal)}`:'sin movimientos'}</div>
@@ -2869,6 +2854,28 @@ function renderCalendarioMes(){
   grid.innerHTML=html;
   grid.querySelectorAll('.hist-day-cell[data-dia]').forEach(cell=>cell.addEventListener('click',()=>mostrarDetalleDia(cell.dataset.dia)));
   histRenderMetricas(y,m,last);
+  histAnimarEmojis();
+}
+let _histEmojiRaf=null;
+function histAnimarEmojis(){
+  if(_histEmojiRaf){cancelAnimationFrame(_histEmojiRaf);_histEmojiRaf=null;}
+  function step(ts){
+    const t=ts/1000;
+    document.querySelectorAll('.hist-day-flame').forEach(el=>{
+      const rot=Math.sin(t*7.5)*6;
+      const sc=1+Math.sin(t*10)*0.13;
+      el.style.transform=`rotate(${rot.toFixed(1)}deg) scale(${sc.toFixed(3)})`;
+      el.style.display='inline-block';
+    });
+    document.querySelectorAll('.hist-day-skull').forEach(el=>{
+      const phase=t%2.8;
+      const rot=phase>2.3?Math.sin((phase-2.3)/0.5*Math.PI*5)*16*(1-(phase-2.3)/0.5):0;
+      el.style.transform=`rotate(${rot.toFixed(1)}deg)`;
+      el.style.display='inline-block';
+    });
+    _histEmojiRaf=requestAnimationFrame(step);
+  }
+  _histEmojiRaf=requestAnimationFrame(step);
 }
 function renderListaDiasMes(fuente){
   const cont=document.getElementById('historialDias');
