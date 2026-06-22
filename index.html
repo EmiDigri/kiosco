@@ -108,11 +108,17 @@ html{overflow-x:hidden;overflow-y:scroll}
 .shift-progress-fill{position:absolute;left:0;top:0;height:100%;width:0;border-radius:999px;background:linear-gradient(90deg,var(--accent),#8C9BFF);box-shadow:0 0 14px rgba(124,144,255,.28);transition:width .35s ease}
 .shift-progress-dot{position:absolute;right:-5px;top:50%;width:10px;height:10px;border-radius:999px;background:#f4f1ed;border:2px solid var(--accent);transform:translateY(-50%);box-shadow:0 0 0 4px rgba(124,144,255,.12)}
 .cursor-glow{pointer-events:none;position:fixed;width:340px;height:340px;border-radius:50%;background:radial-gradient(circle,rgba(61,90,254,.1) 0%,transparent 70%);transform:translate(-50%,-50%);top:0;left:0;z-index:0;transition:opacity .3s ease;opacity:0}
-.info-widget-row{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;padding:3px 0;gap:8px}
-.info-widget-label{color:var(--text-soft);white-space:nowrap}
-.info-widget-value{font-weight:700;color:var(--text);font-variant-numeric:tabular-nums;text-align:right}
-.info-widget-sep{border:none;border-top:1px solid var(--glass-border);margin:5px 0}
-.info-widget-feriado{font-size:11px;color:var(--text-mid);margin-top:4px;line-height:1.4}
+.iw-temp-row{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.iw-temp-val{font-size:28px;font-weight:800;color:var(--text);line-height:1;letter-spacing:-.5px}
+.iw-temp-meta{display:flex;flex-direction:column;gap:1px}
+.iw-temp-city{font-size:11px;font-weight:600;color:var(--text-soft);text-transform:uppercase;letter-spacing:.06em}
+.iw-temp-label{font-size:10px;color:var(--text-soft);opacity:.7}
+.iw-dolares{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px}
+.iw-dolar{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:7px 5px;text-align:center}
+.iw-dolar-label{font-size:9px;font-weight:700;letter-spacing:.09em;color:var(--text-soft);text-transform:uppercase;margin-bottom:4px}
+.iw-dolar-val{font-size:12.5px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums;line-height:1}
+.iw-feriado{font-size:11px;color:var(--text-mid);border-top:1px solid var(--glass-border);padding-top:8px;line-height:1.4}
+.iw-feriado-lbl{font-size:9px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--text-soft);margin-bottom:3px}
 .info-widget-loading{font-size:12px;color:var(--text-soft)}
 .hero-card{position:relative;z-index:1;transition:transform .08s ease;will-change:transform;margin-bottom:0!important;background:var(--glass);border:1px solid var(--glass-border);border-radius:28px;padding:28px 26px 24px;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);overflow:hidden}
 .hero-card::before{content:'';position:absolute;inset:0;border-radius:28px;background:linear-gradient(135deg,rgba(61,90,254,.08) 0%,transparent 60%);pointer-events:none}
@@ -3278,14 +3284,18 @@ async function fetchInfoWidget(){
     const oficial=dolares.find(d=>d.casa==='oficial');
     const mep=dolares.find(d=>d.casa==='bolsa');
     const blue=dolares.find(d=>d.casa==='blue');
-    const fmt=v=>v!=null?'$'+Number(v).toLocaleString('es-AR'):'—';
+    const fmt=v=>v!=null?'$'+Math.round(Number(v)).toLocaleString('es-AR'):'—';
     el.innerHTML=`
-      <div class="info-widget-row"><span class="info-widget-label">🌡 Temperatura</span><span class="info-widget-value">${temp!=null?temp+'°C':'—'}</span></div>
-      <hr class="info-widget-sep">
-      <div class="info-widget-row"><span class="info-widget-label">💵 Oficial</span><span class="info-widget-value">${fmt(oficial?.venta)}</span></div>
-      <div class="info-widget-row"><span class="info-widget-label">💵 MEP</span><span class="info-widget-value">${fmt(mep?.venta)}</span></div>
-      <div class="info-widget-row"><span class="info-widget-label">💵 Blue</span><span class="info-widget-value">${fmt(blue?.venta)}</span></div>
-      ${feriado?`<hr class="info-widget-sep"><div class="info-widget-feriado">📅 ${feriado}</div>`:''}
+      <div class="iw-temp-row">
+        <div class="iw-temp-val">${temp!=null?temp+'°':'—'}</div>
+        <div class="iw-temp-meta"><span class="iw-temp-city">Buenos Aires</span><span class="iw-temp-label">Temperatura actual</span></div>
+      </div>
+      <div class="iw-dolares">
+        <div class="iw-dolar"><div class="iw-dolar-label">Oficial</div><div class="iw-dolar-val">${fmt(oficial?.venta)}</div></div>
+        <div class="iw-dolar"><div class="iw-dolar-label">MEP</div><div class="iw-dolar-val">${fmt(mep?.venta)}</div></div>
+        <div class="iw-dolar"><div class="iw-dolar-label">Blue</div><div class="iw-dolar-val">${fmt(blue?.venta)}</div></div>
+      </div>
+      ${feriado?`<div class="iw-feriado"><div class="iw-feriado-lbl">Próximo feriado</div>${feriado}</div>`:''}
     `;
   }catch(e){
     const el2=document.getElementById('infoWidgetContent');
