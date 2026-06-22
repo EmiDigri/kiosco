@@ -3284,22 +3284,16 @@ async function fetchInfoWidget(){
   let temp=null,sens=null;
   try{const m=await fetch('https://api.open-meteo.com/v1/forecast?latitude=-34.6037&longitude=-58.3816&current=temperature_2m,apparent_temperature&timezone=America/Argentina/Buenos_Aires').then(r=>r.json());temp=m?.current?.temperature_2m;sens=m?.current?.apparent_temperature;}catch(e){}
 
-  let ofVal=null,mepVal=null,blVal=null;
-  try{const d=await fetch('https://dolarapi.com/v1/dolares').then(r=>r.json());ofVal=d.find(x=>x.casa==='oficial')?.venta;mepVal=d.find(x=>x.casa==='bolsa')?.venta;blVal=d.find(x=>x.casa==='blue')?.venta;}catch(e){}
-
-  let ofPct=null,blPct=null;
+  let ofVal=null,mepVal=null,blVal=null,ofPct=null,mepPct=null,blPct=null;
   try{
-    const ly=await fetch('https://api.bluelytics.com.ar/v2/latest').then(r=>r.json());
-    const lPct=(lv,cur)=>{if(lv?.variation==null||!cur)return null;const prev=cur-lv.variation;return prev>0?(lv.variation/prev*100):null;};
-    ofPct=lPct(ly?.oficial,ofVal);blPct=lPct(ly?.blue,blVal);
-  }catch(e){}
-
-  let mepPct=null;
-  try{
-    const hist=await fetch('https://api.argentinadatos.com/v1/cotizaciones/dolares/mep').then(r=>{if(!r.ok)throw new Error(r.status);return r.json();});
-    const arr=Array.isArray(hist)?hist.filter(d=>d.venta!=null).sort((a,b)=>b.fecha.localeCompare(a.fecha)):[];
-    if(arr.length>=2){mepPct=((arr[0].venta-arr[1].venta)/arr[1].venta*100);if(!mepVal)mepVal=arr[0].venta;}
-  }catch(e){}
+    const d=await fetch('/api/dolar').then(r=>{if(!r.ok)throw new Error(r.status);return r.json();});
+    ofVal=d.oficial?.venta;ofPct=d.oficial?.pct;
+    mepVal=d.bolsa?.venta;mepPct=d.bolsa?.pct;
+    blVal=d.blue?.venta;blPct=d.blue?.pct;
+  }catch(e){
+    // fallback: valores actuales sin variación
+    try{const d=await fetch('https://dolarapi.com/v1/dolares').then(r=>r.json());ofVal=d.find(x=>x.casa==='oficial')?.venta;mepVal=d.find(x=>x.casa==='bolsa')?.venta;blVal=d.find(x=>x.casa==='blue')?.venta;}catch(e2){}
+  }
 
   const feriado=await fetchFeriadoProximo().catch(()=>null);
   const fmt=v=>v!=null?'$'+Math.round(Number(v)).toLocaleString('es-AR'):'—';
