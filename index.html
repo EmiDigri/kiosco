@@ -423,6 +423,27 @@ html{overflow-x:hidden;overflow-y:scroll}
   color:var(--cm-ink-soft);
   margin-top:5px;
 }
+.cm-sync-status{
+  display:inline-flex;
+  align-items:center;
+  margin-top:8px;
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:.02em;
+  border-radius:999px;
+  padding:3px 10px;
+  border:1px solid transparent;
+}
+.cm-sync-status.ok{
+  color:var(--green,#5FD68A);
+  background:rgba(95,214,138,.12);
+  border-color:rgba(95,214,138,.28);
+}
+.cm-sync-status.pend{
+  color:var(--amber,#F0B860);
+  background:rgba(240,184,96,.13);
+  border-color:rgba(240,184,96,.3);
+}
 #cierreManualOverlay .btn-cerrar-hist{
   background:var(--cm-surface);
   border:1px solid var(--cm-border);
@@ -2099,6 +2120,7 @@ img,svg,canvas{max-width:100%}
       <div>
         <span class="historial-title">Cierre de Caja</span>
         <div class="cm-header-sub" id="cmHeaderFecha">Hoy</div>
+        <span class="cm-sync-status ok" id="cmSyncStatus">✓ Todo sincronizado</span>
       </div>
       <button class="btn-cerrar-hist" id="btnCerrarCierreManual" title="Cerrar">✕</button>
     </div>
@@ -2952,44 +2974,79 @@ async function cmCargarDataRemotaHoy(){
       histSbSelect(`gastos_caja?fecha=eq.${dia}&order=created_at.asc&limit=300`)
     ]);
     if(Array.isArray(cierres)&&cierres.length){
-      cierres.forEach(c=>{cmCierres[c.turno]={apertura:Number(c.apertura)||0,efectivo:Number(c.efectivo)||0,once:Number(c.once_monto)||0,mpo:Number(c.mpo)||0,mp:Number(c.mp)||0,total_turno:Number(c.total_turno)||0,guardadoEn:c.updated_at||c.created_at||new Date().toISOString()};});
+      cierres.forEach(c=>{cmCierres[c.turno]={apertura:Number(c.apertura)||0,efectivo:Number(c.efectivo)||0,once:Number(c.once_monto)||0,mpo:Number(c.mpo)||0,mp:Number(c.mp)||0,total_turno:Number(c.total_turno)||0,guardadoEn:c.updated_at||c.created_at||new Date().toISOString(),synced:true};});
     }
     if(Array.isArray(gastos)&&gastos.length){cmGastos=gastos.map(g=>({uid:g.uid,nombre:g.nombre,monto:Number(g.monto)||0,caja:g.caja||'',turno:g.turno||CM_CAJA_TURNO[g.caja]||'',creadoEn:g.created_at,synced:true}));}
     cmGuardarData();
   }catch(e){console.warn('No pude cargar cierre remoto de hoy:',e.message);}
 }
-// Sube a Supabase los gastos que quedaron solo locales (creados antes del fix, sin uid). Una sola vez.
-async function cmSyncGastosLocales(){
+// Cuenta items locales (gastos + cierres) que todavía no están confirmados en Supabase.
+function cmContarPendientes(){
+  let all={};
+  try{all=JSON.parse(localStorage.getItem(CM_STORAGE_KEY)||'{}');}catch(e){return 0;}
+  let n=0;
+  for(const fecha of Object.keys(all)){
+    const dia=all[fecha];if(!dia)continue;
+    if(Array.isArray(dia.gastos))n+=dia.gastos.filter(g=>!g.synced).length;
+    if(dia.cierres&&typeof dia.cierres==='object')n+=Object.values(dia.cierres).filter(c=>c&&!c.synced).length;
+  }
+  return n;
+}
+function cmRenderSyncStatus(){
+  const el=document.getElementById('cmSyncStatus');if(!el)return;
+  const n=cmContarPendientes();
+  if(n>0){el.className='cm-sync-status pend';el.textContent='⟳ '+n+' sin subir';}
+  else{el.className='cm-sync-status ok';el.textContent='✓ Todo sincronizado';}
+}
+// Sube a Supabase los gastos y cierres locales que aún no están confirmados (viejos sin uid u offline).
+async function cmSyncLocales(){
   let all={};
   try{all=JSON.parse(localStorage.getItem(CM_STORAGE_KEY)||'{}');}catch(e){return;}
-  let changed=false,count=0;
+  let changed=false,gCount=0,cCount=0;
   for(const fecha of Object.keys(all)){
-    const dia=all[fecha];
-    if(!dia||!Array.isArray(dia.gastos))continue;
-    for(const g of dia.gastos){
+    const dia=all[fecha];if(!dia)continue;
+    const dayGastos=Array.isArray(dia.gastos)?dia.gastos:[];
+    for(const g of dayGastos){
       if(g.synced)continue; // ya confirmado en Supabase
       if(!g.uid)g.uid=cmUid();
       const payload={uid:g.uid,fecha,nombre:g.nombre,monto:Number(g.monto)||0,caja:g.caja||null,turno:g.turno||CM_CAJA_TURNO[g.caja]||null};
       try{
         await cmSbWrite('gastos_caja?on_conflict=uid','POST',payload,'resolution=merge-duplicates,return=minimal');
-        g.synced=true;changed=true;count++;
+        g.synced=true;changed=true;gCount++;
       }catch(e){/* sin conexión: se reintenta la próxima vez */}
+    }
+    if(dia.cierres&&typeof dia.cierres==='object'){
+      for(const turno of Object.keys(dia.cierres)){
+        const c=dia.cierres[turno];
+        if(!c||c.synced)continue;
+        const caja=CM_TURNO_CAJA[turno];
+        const gastosCaja=dayGastos.filter(g=>g.caja===caja).reduce((a,g)=>a+(Number(g.monto)||0),0);
+        const payload={fecha,turno,apertura:Number(c.apertura)||0,efectivo:Number(c.efectivo)||0,once_monto:Number(c.once)||0,mpo:Number(c.mpo)||0,mp:Number(c.mp)||0,gastos_caja:gastosCaja,total_turno:(Number(c.mp)||0)+(Number(c.efectivo)||0)+(Number(c.once)||0)+gastosCaja,updated_at:new Date().toISOString()};
+        try{
+          await cmSbWrite('cierres_caja?on_conflict=fecha,turno','POST',payload,'resolution=merge-duplicates,return=minimal');
+          c.synced=true;changed=true;cCount++;
+        }catch(e){/* sin conexión: se reintenta la próxima vez */}
+      }
     }
   }
   if(changed)localStorage.setItem(CM_STORAGE_KEY,JSON.stringify(all));
-  if(count)showToast(count+' gasto'+(count!==1?'s':'')+' viejo'+(count!==1?'s':'')+' sincronizado'+(count!==1?'s':'')+' ✓');
+  const partes=[];
+  if(gCount)partes.push(gCount+' gasto'+(gCount!==1?'s':''));
+  if(cCount)partes.push(cCount+' cierre'+(cCount!==1?'s':''));
+  if(partes.length)showToast(partes.join(' y ')+' sincronizado'+((gCount+cCount)!==1?'s':'')+' ✓');
+  cmRenderSyncStatus();
 }
 function cmMpTurno(nombreTurno){const hist=leerHistorial();const datosDia=hist[fechaHoy()]||{};const datosTurno=datosDia[nombreTurno];if(!datosTurno||!Array.isArray(datosTurno.movs))return 0;return datosTurno.movs.reduce((a,m)=>a+(Number(m.monto)||0),0);}
 function cmGastosDeCaja(nombreTurno){const caja=CM_TURNO_CAJA[nombreTurno];return cmGastos.filter(g=>g.caja===caja).reduce((a,g)=>a+(Number(g.monto)||0),0);}
 function cmRenderTurnoBtns(){const row=document.getElementById('cmTurnoRow');if(!row)return;row.innerHTML=CM_TURNOS.map(t=>`<button class="cm-turno-btn ${t===cmTurnoActivo?'active':''}" data-turno="${t}" style="${t===cmTurnoActivo?'background:'+CM_COLORS[t]:''}">${t}</button>`).join('');row.querySelectorAll('.cm-turno-btn').forEach(btn=>btn.addEventListener('click',()=>{cmTurnoActivo=btn.dataset.turno;cmCargarFormularioTurno();}));}
 function cmCargarFormularioTurno(){cmRenderTurnoBtns();const c=cmCierres[cmTurnoActivo],mp=cmMpTurno(cmTurnoActivo);document.getElementById('cmMpTurnoNombre').textContent=cmTurnoActivo;document.getElementById('cmMpValor').textContent=cmFmt(mp);document.getElementById('cmBdMp').textContent=cmFmt(mp);document.getElementById('cmBtnGuardar').textContent='Guardar cierre de '+cmTurnoActivo;document.getElementById('cmApertura').value=c?c.apertura:10000;document.getElementById('cmOnce').value=c?c.once:0;document.getElementById('cmMpo').value=c?c.mpo:0;const esMarta=cmTurnoActivo==='Marta';document.getElementById('cmFieldEfectivo').style.display=esMarta?'block':'none';document.getElementById('cmFieldTotal').style.display=esMarta?'none':'block';if(esMarta){document.getElementById('cmEfectivo').value=c?c.efectivo:'';}else{document.getElementById('cmTotalInput').value=c&&c.total_turno?c.total_turno:'';}cmCalcularTotalTurno();}
 function cmCalcularTotalTurno(){const once=Number(document.getElementById('cmOnce').value)||0,mp=cmMpTurno(cmTurnoActivo),gastosCaja=cmGastosDeCaja(cmTurnoActivo),esMarta=cmTurnoActivo==='Marta';let efectivo,total;if(esMarta){efectivo=Number(document.getElementById('cmEfectivo').value)||0;total=mp+efectivo+once+gastosCaja;}else{total=Number(document.getElementById('cmTotalInput').value)||0;efectivo=total-mp-once-gastosCaja;}document.getElementById('cmTotalTurno').textContent=cmFmt(total);document.getElementById('cmBdMp').textContent=cmFmt(mp);document.getElementById('cmBdEfectivo').textContent=cmFmt(efectivo);document.getElementById('cmBdOnce').textContent=cmFmt(once);const bd=document.getElementById('cmBdGastosCaja');if(gastosCaja>0){bd.style.display='inline';bd.querySelector('b').textContent=cmFmt(gastosCaja);}else bd.style.display='none';}
-function cmGuardarCierreTurno(){const apertura=Number(document.getElementById('cmApertura').value)||0,once=Number(document.getElementById('cmOnce').value)||0,mpo=Number(document.getElementById('cmMpo').value)||0,mp=cmMpTurno(cmTurnoActivo),gCaja=cmGastosDeCaja(cmTurnoActivo),esMarta=cmTurnoActivo==='Marta';let efectivo,total;if(esMarta){efectivo=Number(document.getElementById('cmEfectivo').value)||0;total=mp+efectivo+once+gCaja;}else{total=Number(document.getElementById('cmTotalInput').value)||0;efectivo=total-mp-once-gCaja;}cmCierres[cmTurnoActivo]={apertura,efectivo,once,mpo,mp,total_turno:total,guardadoEn:new Date().toISOString()};cmGuardarData();cmRenderResumen();showToast('Cierre de '+cmTurnoActivo+' guardado ✓');cmGuardarCierreRemoto(cmTurnoActivo,cmCierres[cmTurnoActivo]).catch(e=>showToast('Guardado local. Supabase falló.'));}
-function cmRenderGastos(){const list=document.getElementById('cmGastoList');if(!list)return;if(!cmGastos.length){list.innerHTML='<div class="empty">Todavía no se cargó ningún gasto hoy.</div>';}else{list.innerHTML=cmGastos.map((g,i)=>`<div class="cm-gasto-row"><span class="cm-gasto-nombre">${cmEsc(g.nombre)}${g.caja?`<span class="cm-gasto-pill">${cmEsc(g.caja)}</span>`:''}</span><span class="cm-gasto-right"><b>${cmFmt(g.monto)}</b><button class="cm-gasto-del" data-i="${i}">✕</button></span></div>`).join('');list.querySelectorAll('.cm-gasto-del').forEach(btn=>btn.addEventListener('click',()=>{const idx=Number(btn.dataset.i),g=cmGastos[idx];cmGastos.splice(idx,1);cmGuardarData();cmRenderGastos();cmCalcularTotalTurno();cmRenderResumen();cmEliminarGastoRemoto(g).catch(e=>showToast('Borrado local. Supabase falló.'));}));}const total=cmGastos.reduce((a,g)=>a+(Number(g.monto)||0),0);document.getElementById('cmGastoTotal').textContent=cmFmt(total);document.getElementById('cmResumenGastos').textContent=cmFmt(total);}
-function cmAgregarGasto(){const nombre=document.getElementById('cmGastoNombre').value.trim(),monto=Number(document.getElementById('cmGastoMonto').value)||0;if(!nombre||!monto){showToast('Cargá concepto y monto');return;}const g={uid:cmUid(),nombre,monto,caja:cmCajaSeleccionada,turno:CM_CAJA_TURNO[cmCajaSeleccionada]||'',creadoEn:new Date().toISOString()};cmGastos.push(g);document.getElementById('cmGastoNombre').value='';document.getElementById('cmGastoMonto').value='';cmCajaSeleccionada='';document.querySelectorAll('.cm-caja-btn').forEach(b=>b.classList.remove('active'));const noBtn=document.querySelector('.cm-caja-btn[data-caja=""]');if(noBtn)noBtn.classList.add('active');cmGuardarData();cmRenderGastos();cmCalcularTotalTurno();cmRenderResumen();showToast('Gasto agregado ✓');cmGuardarGastoRemoto(g).then(()=>{g.synced=true;cmGuardarData();}).catch(e=>showToast('Guardado local. Se sincroniza al reabrir.'));}
+function cmGuardarCierreTurno(){const apertura=Number(document.getElementById('cmApertura').value)||0,once=Number(document.getElementById('cmOnce').value)||0,mpo=Number(document.getElementById('cmMpo').value)||0,mp=cmMpTurno(cmTurnoActivo),gCaja=cmGastosDeCaja(cmTurnoActivo),esMarta=cmTurnoActivo==='Marta';let efectivo,total;if(esMarta){efectivo=Number(document.getElementById('cmEfectivo').value)||0;total=mp+efectivo+once+gCaja;}else{total=Number(document.getElementById('cmTotalInput').value)||0;efectivo=total-mp-once-gCaja;}cmCierres[cmTurnoActivo]={apertura,efectivo,once,mpo,mp,total_turno:total,guardadoEn:new Date().toISOString()};cmGuardarData();cmRenderResumen();cmRenderSyncStatus();showToast('Cierre de '+cmTurnoActivo+' guardado ✓');const tCierre=cmTurnoActivo;cmGuardarCierreRemoto(tCierre,cmCierres[tCierre]).then(()=>{if(cmCierres[tCierre]){cmCierres[tCierre].synced=true;cmGuardarData();cmRenderSyncStatus();}}).catch(e=>showToast('Guardado local. Se sincroniza al reabrir.'));}
+function cmRenderGastos(){const list=document.getElementById('cmGastoList');if(!list)return;if(!cmGastos.length){list.innerHTML='<div class="empty">Todavía no se cargó ningún gasto hoy.</div>';}else{list.innerHTML=cmGastos.map((g,i)=>`<div class="cm-gasto-row"><span class="cm-gasto-nombre">${cmEsc(g.nombre)}${g.caja?`<span class="cm-gasto-pill">${cmEsc(g.caja)}</span>`:''}</span><span class="cm-gasto-right"><b>${cmFmt(g.monto)}</b><button class="cm-gasto-del" data-i="${i}">✕</button></span></div>`).join('');list.querySelectorAll('.cm-gasto-del').forEach(btn=>btn.addEventListener('click',()=>{const idx=Number(btn.dataset.i),g=cmGastos[idx];cmGastos.splice(idx,1);cmGuardarData();cmRenderGastos();cmCalcularTotalTurno();cmRenderResumen();cmRenderSyncStatus();cmEliminarGastoRemoto(g).catch(e=>showToast('Borrado local. Supabase falló.'));}));}const total=cmGastos.reduce((a,g)=>a+(Number(g.monto)||0),0);document.getElementById('cmGastoTotal').textContent=cmFmt(total);document.getElementById('cmResumenGastos').textContent=cmFmt(total);}
+function cmAgregarGasto(){const nombre=document.getElementById('cmGastoNombre').value.trim(),monto=Number(document.getElementById('cmGastoMonto').value)||0;if(!nombre||!monto){showToast('Cargá concepto y monto');return;}const g={uid:cmUid(),nombre,monto,caja:cmCajaSeleccionada,turno:CM_CAJA_TURNO[cmCajaSeleccionada]||'',creadoEn:new Date().toISOString()};cmGastos.push(g);document.getElementById('cmGastoNombre').value='';document.getElementById('cmGastoMonto').value='';cmCajaSeleccionada='';document.querySelectorAll('.cm-caja-btn').forEach(b=>b.classList.remove('active'));const noBtn=document.querySelector('.cm-caja-btn[data-caja=""]');if(noBtn)noBtn.classList.add('active');cmGuardarData();cmRenderGastos();cmCalcularTotalTurno();cmRenderResumen();cmRenderSyncStatus();showToast('Gasto agregado ✓');cmGuardarGastoRemoto(g).then(()=>{g.synced=true;cmGuardarData();cmRenderSyncStatus();}).catch(e=>showToast('Guardado local. Se sincroniza al reabrir.'));}
 function cmRenderResumen(){const cont=document.getElementById('cmResumenTurnos');if(!cont)return;let totalDia=0,cerrados=0,sumMp=0,sumEf=0,sumOnce=0,sumMpo=0;cont.innerHTML=CM_TURNOS.map(t=>{const c=cmCierres[t];if(!c){return `<div class="cm-resumen-turno"><div class="cm-resumen-head"><div class="cm-resumen-name"><span class="cm-resumen-dot" style="background:${CM_COLORS[t]}"></span>${t}</div><div class="cm-pendiente">Sin cerrar</div></div></div>`;}cerrados++;const mp=Number(c.mp)||cmMpTurno(t),gCaja=cmGastosDeCaja(t),total=mp+(Number(c.efectivo)||0)+(Number(c.once)||0)+gCaja;totalDia+=total;sumMp+=mp;sumEf+=Number(c.efectivo)||0;sumOnce+=Number(c.once)||0;sumMpo+=Number(c.mpo)||0;return `<div class="cm-resumen-turno"><div class="cm-resumen-head"><div class="cm-resumen-name"><span class="cm-resumen-dot" style="background:${CM_COLORS[t]}"></span>${t}</div><div class="cm-resumen-total">${cmFmt(total)}</div></div><div class="cm-resumen-detail"><span>Apertura ${cmFmt(c.apertura)}</span><span>MP ${cmFmt(mp)}</span><span>Efectivo ${cmFmt(c.efectivo)}</span>${Number(c.once)>0?`<span>Once ${cmFmt(c.once)}</span>`:''}${Number(c.mpo)>0?`<span>MPO ${cmFmt(c.mpo)}</span>`:''}${gCaja>0?`<span>Gastos caja ${cmFmt(gCaja)}</span>`:''}</div></div>`;}).join('');document.getElementById('cmTotalDia').textContent=cmFmt(totalDia);document.getElementById('cmTotalDiaSub').textContent=cerrados+' de '+CM_TURNOS.length+' turnos cerrados';document.getElementById('cmTotMp').textContent=cmFmt(sumMp);document.getElementById('cmTotEfectivo').textContent=cmFmt(sumEf);document.getElementById('cmTotOnce').textContent=cmFmt(sumOnce);document.getElementById('cmTotMpo').textContent=cmFmt(sumMpo);document.getElementById('cmResumenGastos').textContent=cmFmt(cmGastos.reduce((a,g)=>a+(Number(g.monto)||0),0));}
 function cmCambiarVista(view){document.querySelectorAll('.cm-tab').forEach(t=>t.classList.toggle('active',t.dataset.cmView===view));document.querySelectorAll('.cm-view').forEach(v=>v.classList.remove('active'));const el=document.getElementById('cm-view-'+view);if(el)el.classList.add('active');if(view==='resumen')cmRenderResumen();if(view==='gastos')cmRenderGastos();}
-async function cmAbrir(){lockBody();cmLeerData();await cmSyncGastosLocales();await cmCargarDataRemotaHoy();const t=(turno||turnoReciente||{}).nombre;if(CM_TURNOS.includes(t))cmTurnoActivo=t;const fh=document.getElementById('cmHeaderFecha');if(fh)fh.textContent=new Date().toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'});document.getElementById('cierreManualOverlay').classList.add('open');cmCambiarVista('turno');cmCargarFormularioTurno();cmRenderGastos();cmRenderResumen();}
+async function cmAbrir(){lockBody();cmLeerData();cmRenderSyncStatus();await cmSyncLocales();await cmCargarDataRemotaHoy();cmRenderSyncStatus();const t=(turno||turnoReciente||{}).nombre;if(CM_TURNOS.includes(t))cmTurnoActivo=t;const fh=document.getElementById('cmHeaderFecha');if(fh)fh.textContent=new Date().toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'});document.getElementById('cierreManualOverlay').classList.add('open');cmCambiarVista('turno');cmCargarFormularioTurno();cmRenderGastos();cmRenderResumen();}
 function cmCerrar(){document.getElementById('cierreManualOverlay').classList.remove('open');unlockBody();}
 const btnCierreManual=document.getElementById('btnCierreManual');if(btnCierreManual)btnCierreManual.addEventListener('click',cmAbrir);
 const btnCerrarCierreManual=document.getElementById('btnCerrarCierreManual');if(btnCerrarCierreManual)btnCerrarCierreManual.addEventListener('click',cmCerrar);
