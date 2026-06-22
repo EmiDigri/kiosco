@@ -3567,11 +3567,11 @@ async function fetchFeriadosInfo(){
 function getWeatherEmoji(temp){
   if(temp==null)return null;
   const t=Number(temp);
-  if(t<3)  return{emoji:'❄️',cls:'iw-emoji-freeze'};
-  if(t<12) return{emoji:'🌬️',cls:'iw-emoji-wind'};
-  if(t<20) return{emoji:'🌤️',cls:'iw-emoji-mild'};
-  if(t<27) return{emoji:'☀️',cls:'iw-emoji-warm'};
-  if(t<33) return{emoji:'🌡️',cls:'iw-emoji-hot'};
+  if(t<8)  return{emoji:'🥶',cls:'iw-emoji-freeze'};
+  if(t<15) return{emoji:'💨',cls:'iw-emoji-wind'};
+  if(t<22) return{emoji:'🌤️',cls:'iw-emoji-mild'};
+  if(t<28) return{emoji:'☀️',cls:'iw-emoji-warm'};
+  if(t<34) return{emoji:'🌡️',cls:'iw-emoji-hot'};
   return{emoji:'🔥',cls:'iw-emoji-flame'};
 }
 let _iwEmojiRaf=null;
@@ -3580,7 +3580,7 @@ function iwAnimarEmoji(){
   function step(ts){
     const t=ts/1000;
     document.querySelectorAll('.iw-emoji-freeze').forEach(el=>{
-      el.style.transform=`rotate(${(t*45%360).toFixed(1)}deg)`;
+      el.style.transform=`rotate(${(Math.sin(t*18)*5).toFixed(1)}deg)`;
     });
     document.querySelectorAll('.iw-emoji-wind').forEach(el=>{
       el.style.transform=`rotate(${(Math.sin(t*2)*15).toFixed(1)}deg)`;
