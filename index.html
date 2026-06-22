@@ -108,6 +108,12 @@ html{overflow-x:hidden;overflow-y:scroll}
 .shift-progress-fill{position:absolute;left:0;top:0;height:100%;width:0;border-radius:999px;background:linear-gradient(90deg,var(--accent),#8C9BFF);box-shadow:0 0 14px rgba(124,144,255,.28);transition:width .35s ease}
 .shift-progress-dot{position:absolute;right:-5px;top:50%;width:10px;height:10px;border-radius:999px;background:#f4f1ed;border:2px solid var(--accent);transform:translateY(-50%);box-shadow:0 0 0 4px rgba(124,144,255,.12)}
 .cursor-glow{pointer-events:none;position:fixed;width:340px;height:340px;border-radius:50%;background:radial-gradient(circle,rgba(61,90,254,.1) 0%,transparent 70%);transform:translate(-50%,-50%);top:0;left:0;z-index:0;transition:opacity .3s ease;opacity:0}
+.info-widget-row{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;padding:3px 0;gap:8px}
+.info-widget-label{color:var(--text-soft);white-space:nowrap}
+.info-widget-value{font-weight:700;color:var(--text);font-variant-numeric:tabular-nums;text-align:right}
+.info-widget-sep{border:none;border-top:1px solid var(--glass-border);margin:5px 0}
+.info-widget-feriado{font-size:11px;color:var(--text-mid);margin-top:4px;line-height:1.4}
+.info-widget-loading{font-size:12px;color:var(--text-soft)}
 .hero-card{position:relative;z-index:1;transition:transform .08s ease;will-change:transform;margin-bottom:0!important;background:var(--glass);border:1px solid var(--glass-border);border-radius:28px;padding:28px 26px 24px;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);overflow:hidden}
 .hero-card::before{content:'';position:absolute;inset:0;border-radius:28px;background:linear-gradient(135deg,rgba(61,90,254,.08) 0%,transparent 60%);pointer-events:none}
 .hero-shimmer{position:absolute;top:0;left:-100%;width:60%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.04),transparent);animation:shimmerSlide 3s ease-in-out infinite}
@@ -1922,6 +1928,10 @@ img,svg,canvas{max-width:100%}
       </div>
 
       <aside class="hero-side" aria-label="Resumen rápido">
+        <div class="hero-side-card" id="infoWidgetCard">
+          <div class="hero-side-label">Info del día</div>
+          <div id="infoWidgetContent"><div class="info-widget-loading">Cargando…</div></div>
+        </div>
         <div class="hero-side-card hero-side-card-total">
           <div class="hero-side-label">Resumen rápido</div>
           <div class="hero-side-kpi" id="heroMiniTotal">$0</div>
@@ -3234,6 +3244,56 @@ tickReloj();setInterval(tickReloj,1000);
   // Badge
   if(badge){badge.style.opacity='0';badge.style.transform='scale(.6) rotate(-10deg)';setTimeout(()=>{setImp(badge,'opacity .4s ease,transform .5s cubic-bezier(.34,1.56,.64,1)');badge.style.opacity='1';badge.style.transform='scale(1) rotate(0)';},600);}
 })();
+
+// ─── INFO WIDGET (temp, dólares, feriado) ───
+async function fetchFeriadoProximo(){
+  const hoy=new Date();
+  const hoyStr=fechaHoy();
+  for(const y of [hoy.getFullYear(),hoy.getFullYear()+1]){
+    try{
+      const data=await fetch(`https://nolaborables.com.ar/API/v2/feriados/${y}`).then(r=>r.json());
+      for(const f of data){
+        const fStr=`${y}-${String(f.mes).padStart(2,'0')}-${String(f.dia).padStart(2,'0')}`;
+        if(fStr>hoyStr){
+          const d=new Date(y,f.mes-1,f.dia);
+          const diff=Math.round((d-new Date(hoy.getFullYear(),hoy.getMonth(),hoy.getDate()))/(864e5));
+          const label=d.toLocaleDateString('es-AR',{day:'numeric',month:'long'});
+          return `${f.motivo} — ${label} (en ${diff} día${diff!==1?'s':''})`;
+        }
+      }
+    }catch(e){}
+  }
+  return null;
+}
+async function fetchInfoWidget(){
+  const el=document.getElementById('infoWidgetContent');
+  if(!el)return;
+  try{
+    const [meteo,dolares,feriado]=await Promise.all([
+      fetch('https://api.open-meteo.com/v1/forecast?latitude=-34.6037&longitude=-58.3816&current=temperature_2m&timezone=America/Argentina/Buenos_Aires').then(r=>r.json()),
+      fetch('https://dolarapi.com/v1/dolares').then(r=>r.json()),
+      fetchFeriadoProximo()
+    ]);
+    const temp=meteo?.current?.temperature_2m;
+    const oficial=dolares.find(d=>d.casa==='oficial');
+    const mep=dolares.find(d=>d.casa==='bolsa');
+    const blue=dolares.find(d=>d.casa==='blue');
+    const fmt=v=>v!=null?'$'+Number(v).toLocaleString('es-AR'):'—';
+    el.innerHTML=`
+      <div class="info-widget-row"><span class="info-widget-label">🌡 Temperatura</span><span class="info-widget-value">${temp!=null?temp+'°C':'—'}</span></div>
+      <hr class="info-widget-sep">
+      <div class="info-widget-row"><span class="info-widget-label">💵 Oficial</span><span class="info-widget-value">${fmt(oficial?.venta)}</span></div>
+      <div class="info-widget-row"><span class="info-widget-label">💵 MEP</span><span class="info-widget-value">${fmt(mep?.venta)}</span></div>
+      <div class="info-widget-row"><span class="info-widget-label">💵 Blue</span><span class="info-widget-value">${fmt(blue?.venta)}</span></div>
+      ${feriado?`<hr class="info-widget-sep"><div class="info-widget-feriado">📅 ${feriado}</div>`:''}
+    `;
+  }catch(e){
+    const el2=document.getElementById('infoWidgetContent');
+    if(el2)el2.innerHTML='<div class="info-widget-loading">No disponible</div>';
+  }
+}
+fetchInfoWidget();
+setInterval(fetchInfoWidget,5*60*1000);
 
 window.addEventListener('resize',()=>{
   const sc=document.getElementById('sparkCard');
