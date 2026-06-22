@@ -1641,7 +1641,7 @@ body{
   margin:10px 4px 0;
 }
 .hist-metricas-section{display:flex;flex-direction:column;gap:12px;margin-top:20px}
-.hist-met-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.hist-met-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .hist-met-kpi{background:rgba(255,255,255,.04);border:1px solid var(--glass-border);border-radius:14px;padding:14px 10px;text-align:center}
 .hist-met-kpi-label{font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-soft);margin-bottom:6px}
 .hist-met-kpi-val{font-size:17px;font-weight:800;color:var(--text);font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-variant-numeric:tabular-nums}
@@ -2634,13 +2634,14 @@ function histSvgBarsDias(vals,last){
   let svg='';
   vals.forEach((v,i)=>{
     const x=pL+i*step+(step-bw)/2;
-    const bh=v>0?Math.max(3,(v/max)*cH):0;
-    const yt=pT+cH-bh;
     const isMax=(v===max&&v>0);
-    svg+=`<rect x="${x.toFixed(1)}" y="${yt.toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" rx="2" fill="${isMax?'rgba(248,113,113,.85)':'rgba(124,144,255,.6)'}"/>`;
+    const bh=v>0?Math.max(3,(v/max)*cH):2;
+    const yt=pT+cH-bh;
+    const fill=v>0?(isMax?'rgba(248,113,113,.85)':'rgba(124,144,255,.6)'):'rgba(255,255,255,.07)';
+    svg+=`<rect x="${x.toFixed(1)}" y="${yt.toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" rx="2" fill="${fill}"/>`;
     if(v>0){const lbl=v>=1e6?(v/1e6).toFixed(1)+'M':v>=1e3?Math.round(v/1e3)+'k':'';if(lbl)svg+=`<text x="${(x+bw/2).toFixed(1)}" y="${(yt-4).toFixed(1)}" text-anchor="middle" font-size="7.5" fill="${isMax?'rgba(248,113,113,.9)':'rgba(255,255,255,.45)'}">${lbl}</text>`;}
     const d=i+1;
-    if(d===1||d===5||d===10||d===15||d===20||d===25||d===last)svg+=`<text x="${(x+bw/2).toFixed(1)}" y="${(pT+cH+13).toFixed(1)}" text-anchor="middle" font-size="8" fill="rgba(255,255,255,.35)">${d}</text>`;
+    if(d===1||d===5||d===10||d===15||d===20||d===25||d===last)svg+=`<text x="${(x+bw/2).toFixed(1)}" y="${(pT+cH+13).toFixed(1)}" text-anchor="middle" font-size="8" fill="rgba(255,255,255,.3)">${d}</text>`;
   });
   return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block;overflow:visible">${svg}</svg>`;
 }
@@ -2668,7 +2669,7 @@ function histSvgBarsSemana(avgs,labels){
 function histRenderMetricas(y,m,last){
   const el=document.getElementById('histMetricas');
   if(!el)return;
-  let totalIngresos=0,totalMP=0,totalMovs=0,totalGastos=0,diasActivos=0;
+  let totalMP=0,totalMovs=0,diasConMP=0,diasActivos=0;
   const dailyVals=[];
   const byDow={0:[],1:[],2:[],3:[],4:[],5:[],6:[]};
   for(let d=1;d<=last;d++){
@@ -2678,26 +2679,21 @@ function histRenderMetricas(y,m,last){
     dailyVals.push(principal);
     if(data){
       if(principal>0)diasActivos++;
-      totalMP+=data.mpTotal||0;
+      if((data.mpTotal||0)>0){totalMP+=data.mpTotal;diasConMP++;}
       totalMovs+=data.movs||0;
-      totalGastos+=(data.gastos||[]).reduce((a,g)=>a+(Number(g.monto)||0),0);
-      totalIngresos+=principal;
-      byDow[new Date(y,m-1,d).getDay()].push(principal);
+      if(principal>0)byDow[new Date(y,m-1,d).getDay()].push(principal);
     }
   }
-  const promDiario=diasActivos>0?totalIngresos/diasActivos:0;
+  const promDiario=diasConMP>0?totalMP/diasConMP:0;
   const ticketMP=totalMovs>0?totalMP/totalMovs:0;
-  const margen=totalIngresos-totalGastos;
-  const tieneGastos=totalGastos>0;
   const dowOrder=[1,2,3,4,5,6,0];
   const dowLabels=['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
   const dowAvgs=dowOrder.map(i=>{const a=byDow[i];return a.length?a.reduce((x,y)=>x+y,0)/a.length:0;});
   el.innerHTML=`
     <div class="hist-met-kpis">
-      <div class="hist-met-kpi"><div class="hist-met-kpi-label">Promedio diario</div><div class="hist-met-kpi-val">${histMoneyCompact(promDiario)||'—'}</div></div>
+      <div class="hist-met-kpi"><div class="hist-met-kpi-label">Promedio diario MP</div><div class="hist-met-kpi-val">${histMoneyCompact(promDiario)||'—'}</div></div>
       <div class="hist-met-kpi"><div class="hist-met-kpi-label">Ticket MP</div><div class="hist-met-kpi-val">${ticketMP>0?histMoneyCompact(ticketMP):'—'}</div></div>
       <div class="hist-met-kpi"><div class="hist-met-kpi-label">Días activos</div><div class="hist-met-kpi-val">${diasActivos}</div></div>
-      ${tieneGastos?`<div class="hist-met-kpi"><div class="hist-met-kpi-label">Ingresos − Gastos</div><div class="hist-met-kpi-val${margen<0?' neg':''}">${histMoneyCompact(margen)||'—'}</div></div>`:`<div class="hist-met-kpi"><div class="hist-met-kpi-label">Total MP</div><div class="hist-met-kpi-val">${histMoneyCompact(totalMP)||'—'}</div></div>`}
     </div>
     <div class="hist-met-chart-card"><div class="hist-met-chart-title">Evolución diaria del mes</div>${histSvgBarsDias(dailyVals,last)}</div>
     <div class="hist-met-chart-card"><div class="hist-met-chart-title">Promedio por día de semana</div>${histSvgBarsSemana(dowAvgs,dowLabels)}</div>`;
