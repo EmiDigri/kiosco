@@ -123,8 +123,9 @@ html{overflow-x:hidden;overflow-y:scroll}
 .iw-dolar-var{font-size:10px;font-weight:700;line-height:1}
 .iw-dolar-var.up{color:#5FD68A}
 .iw-dolar-var.down{color:#f87171}
-.iw-feriado{font-size:11px;color:var(--text-mid);border-top:1px solid var(--glass-border);padding-top:8px;line-height:1.4}
-.iw-feriado-lbl{font-size:9px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--text-soft);margin-bottom:3px}
+.iw-feriado{font-size:12px;color:var(--text-mid);border-top:1px solid var(--glass-border);padding-top:8px;line-height:1.45}
+.iw-feriado-lbl{font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--text-soft);margin-bottom:3px}
+.iw-feriados-grid{display:flex;flex-direction:column;gap:8px}
 .info-widget-loading{font-size:12px;color:var(--text-soft)}
 .hero-card{position:relative;z-index:1;transition:transform .08s ease;will-change:transform;margin-bottom:0!important;background:var(--glass);border:1px solid var(--glass-border);border-radius:28px;padding:28px 26px 24px;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);overflow:hidden}
 .hero-card::before{content:'';position:absolute;inset:0;border-radius:28px;background:linear-gradient(135deg,rgba(61,90,254,.08) 0%,transparent 60%);pointer-events:none}
@@ -3265,25 +3266,47 @@ tickReloj();setInterval(tickReloj,1000);
 })();
 
 // ─── INFO WIDGET (temp, dólares, feriado) ───
-async function fetchFeriadoProximo(){
+async function fetchFeriadosInfo(){
   const hoyStr=fechaHoy();
   const hoy=new Date();
-  const todayMidnight=new Date(hoy.getFullYear(),hoy.getMonth(),hoy.getDate());
+  const todayMid=new Date(hoy.getFullYear(),hoy.getMonth(),hoy.getDate());
+  const fmtFecha=d=>d.toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'});
+  const fmtCorta=d=>d.toLocaleDateString('es-AR',{weekday:'short',day:'numeric',month:'long'});
+  const diasFalta=d=>Math.round((d-todayMid)/864e5);
+  let todosFeriados=[];
   for(const y of [hoy.getFullYear(),hoy.getFullYear()+1]){
     try{
       const data=await fetch(`https://api.argentinadatos.com/v1/feriados/${y}`).then(r=>{if(!r.ok)throw new Error(r.status);return r.json();});
-      const proximo=data.find(f=>f.fecha>hoyStr);
-      if(proximo){
-        const [yr,mo,da]=proximo.fecha.split('-').map(Number);
-        const d=new Date(yr,mo-1,da);
-        const diff=Math.round((d-todayMidnight)/864e5);
-        const diaSemana=d.toLocaleDateString('es-AR',{weekday:'long'});
-        const label=d.toLocaleDateString('es-AR',{day:'numeric',month:'long'});
-        return `${proximo.nombre} — ${diaSemana} ${label} (en ${diff} día${diff!==1?'s':''})`;
-      }
+      todosFeriados=todosFeriados.concat(data);
     }catch(e){}
   }
-  return null;
+  const futuros=todosFeriados.filter(f=>f.fecha>hoyStr);
+  // Próximo feriado
+  let feriado=null;
+  if(futuros.length){
+    const f=futuros[0];
+    const [yr,mo,da]=f.fecha.split('-').map(Number);
+    const d=new Date(yr,mo-1,da);
+    feriado=`${f.nombre} — ${fmtFecha(d)} (en ${diasFalta(d)} día${diasFalta(d)!==1?'s':''})`;
+  }
+  // Próximo fin de semana largo
+  let fsl=null;
+  for(const f of futuros){
+    const [yr,mo,da]=f.fecha.split('-').map(Number);
+    const fecha=new Date(yr,mo-1,da);
+    const dow=fecha.getDay(); // 0=Dom,1=Lun,...,5=Vie,6=Sab
+    let start=null,end=null;
+    if(dow===1){start=new Date(yr,mo-1,da-2);end=fecha;}          // Lunes → Sáb+Dom+Lun
+    else if(dow===5){start=fecha;end=new Date(yr,mo-1,da+2);}     // Viernes → Vie+Sáb+Dom
+    else if(f.tipo==='puente'&&dow===4){start=fecha;end=new Date(yr,mo-1,da+3);}  // Jue puente → Jue+Vie+Sáb+Dom
+    else if(f.tipo==='puente'&&dow===2){start=new Date(yr,mo-1,da-3);end=fecha;}  // Mar puente → Sáb+Dom+Lun+Mar
+    if(start&&end){
+      const diff=diasFalta(start);
+      fsl=`del ${fmtCorta(start)} al ${fmtCorta(end)} (en ${diff} día${diff!==1?'s':''})`;
+      break;
+    }
+  }
+  return {feriado,fsl};
 }
 async function fetchInfoWidget(){
   const el=document.getElementById('infoWidgetContent');
@@ -3303,7 +3326,7 @@ async function fetchInfoWidget(){
     try{const d=await fetch('https://dolarapi.com/v1/dolares').then(r=>r.json());ofVal=d.find(x=>x.casa==='oficial')?.venta;mepVal=d.find(x=>x.casa==='bolsa')?.venta;blVal=d.find(x=>x.casa==='blue')?.venta;}catch(e2){}
   }
 
-  const feriado=await fetchFeriadoProximo().catch(()=>null);
+  const {feriado,fsl}=await fetchFeriadosInfo().catch(()=>({feriado:null,fsl:null}));
   const fmt=v=>v!=null?'$'+Math.round(Number(v)).toLocaleString('es-AR'):'—';
   const varTag=p=>p==null?'':` <span class="iw-dolar-var ${p>=0?'up':'down'}">${p>=0?'▲':'▼'}${Math.abs(p).toFixed(1)}%</span>`;
   const html=`
@@ -3316,7 +3339,10 @@ async function fetchInfoWidget(){
       <div class="iw-dolar"><div class="iw-dolar-label">MEP</div><div class="iw-dolar-val">${fmt(mepVal)}${varTag(mepPct)}</div></div>
       <div class="iw-dolar"><div class="iw-dolar-label">Blue</div><div class="iw-dolar-val">${fmt(blVal)}${varTag(blPct)}</div></div>
     </div>
-    ${feriado?`<div class="iw-feriado"><div class="iw-feriado-lbl">Próximo feriado</div>${feriado}</div>`:''}
+    ${feriado||fsl?`<div class="iw-feriado"><div class="iw-feriados-grid">
+      ${feriado?`<div><div class="iw-feriado-lbl">Próximo feriado</div>${feriado}</div>`:''}
+      ${fsl?`<div><div class="iw-feriado-lbl">Próximo finde largo</div>${fsl}</div>`:''}
+    </div></div>`:''}
   `;
   el.innerHTML=html;
   const elM=document.getElementById('infoWidgetContentMobile');
