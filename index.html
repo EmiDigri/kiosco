@@ -2625,7 +2625,8 @@ async function histCargarMes(){
       cierres.push(...loc.cierres);gastos.push(...loc.gastos);
     });
   }
-  // Completa cierres/gastos locales si todavía no estaban sincronizados a Supabase.
+  // Completa cierres/gastos/pagos locales si todavía no estaban sincronizados a Supabase.
+  const histLocal=leerHistorial();
   for(let d=1;d<=last;d++){
     const dia=histIso(y,m,d);
     const loc=histNormalizarCierreLocal(dia);
@@ -2633,6 +2634,13 @@ async function histCargarMes(){
     if(!tieneRemoto&&loc.cierres.length)cierres.push(...loc.cierres);
     const tieneGastosRemotos=gastos.some(g=>g.fecha===dia);
     if(!tieneGastosRemotos&&loc.gastos.length)gastos.push(...loc.gastos);
+    // Si no hay pagos de Supabase para este día, completar desde kiosco_historial local
+    if(!pagos.some(p=>p.fecha===dia)){
+      const datosDia=histLocal[dia]||{};
+      Object.entries(datosDia).forEach(([turno,datos])=>{
+        (datos.movs||[]).forEach(m=>pagos.push({fecha:dia,hora:m.hora,nombre:m.nombre,tipo:m.tipo,monto:m.monto,turno,es_enviada:false}));
+      });
+    }
   }
   histRowsPagosMes=pagos;histRowsCierresMes=cierres;histRowsGastosMes=gastos;
   histResumenMes=histAgruparPorDia(pagos,cierres,gastos);
@@ -2800,9 +2808,6 @@ async function mostrarDetalleDia(dia){
     if(movs.length){
       movs.forEach(m=>{const pill=m.tipo==='Venta Point'?'<span class="tipo-pill tp-p">Point Smart</span>':'<span class="tipo-pill tp-t">Transferencia</span>';movsHTML+=`<div class="t-row"><span class="t-hora">${m.hora||'--:--'}</span><span class="t-nombre">${cmEsc?cmEsc(m.nombre):m.nombre}</span>${pill}<span class="t-monto">${histMoney(m.monto)}</span></div>`;});
     }else{movsHTML+='<div class="empty">Sin movimientos de MercadoPago en este turno.</div>';}
-    if(gastosTurno.length){
-      movsHTML+=`<div class="hist-movs-title">Gastos de esta caja</div>${gastosTurno.map(g=>`<div class="hist-gasto-line"><span>${cmEsc?cmEsc(g.nombre):g.nombre}${g.caja?` · ${g.caja}`:''}</span><strong>${histMoney(g.monto)}</strong></div>`).join('')}`;
-    }
     html+=`<div class="hist-turno-card" id="${cardId}">
       <div class="hist-turno-header">
         <div class="hist-turno-left"><span class="hist-turno-dot" style="background:${t.color}"></span><div><div class="hist-turno-nombre">${t.nombre}</div><div class="hist-turno-horario">${t.label||''}</div></div></div>
