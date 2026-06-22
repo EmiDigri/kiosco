@@ -2965,18 +2965,24 @@ function btnExplotar(){
   if(icon){icon.innerHTML='<polyline points="20 6 9 17 4 12"/>';}
   btn.classList.add('loaded');
   const rect=btn.getBoundingClientRect();
-  const cx=rect.left+rect.width/2+window.scrollX;
-  const cy=rect.top+rect.height/2+window.scrollY;
-  const colors=['#22c55e','#4ade80','#86efac','#ffffff','#3D5AFE','#6B7FFF','#a3e635','#34d399'];
+  const cx=rect.left+rect.width/2;
+  const cy=rect.top+rect.height/2;
+  const colors=['#22c55e','#4ade80','#86efac','#ffffff','#6B7FFF','#a3e635','#34d399','#facc15'];
   const angles=[0,30,60,90,120,150,180,210,240,270,300,330];
   angles.forEach((a,i)=>{
     const p=document.createElement('div');
-    p.className='btn-particle';
     const rad=a*Math.PI/180;
-    const dist=55+Math.random()*40;
-    p.style.cssText=`position:absolute;width:8px;height:8px;border-radius:50%;pointer-events:none;z-index:9999;left:${cx}px;top:${cy}px;margin:-4px 0 0 -4px;background:${colors[i%colors.length]};--px:${Math.cos(rad)*dist}px;--py:${Math.sin(rad)*dist}px;animation:btn-particle-fly .75s cubic-bezier(.2,.8,.3,1) ${i*20}ms forwards`;
+    const dist=60+Math.random()*45;
+    const tx=Math.cos(rad)*dist, ty=Math.sin(rad)*dist;
+    const color=colors[i%colors.length];
+    const size=6+Math.random()*5;
+    p.style.cssText=`position:fixed;width:${size}px;height:${size}px;border-radius:50%;pointer-events:none;z-index:99999;left:${cx}px;top:${cy}px;margin:${-size/2}px 0 0 ${-size/2}px;background:${color};transition:transform .7s cubic-bezier(.2,.8,.3,1) ${i*15}ms,opacity .6s ease ${i*15+100}ms;transform:translate(0,0) scale(1);opacity:1`;
     document.body.appendChild(p);
-    setTimeout(()=>p.remove(),900+i*20);
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      p.style.transform=`translate(${tx}px,${ty}px) scale(0)`;
+      p.style.opacity='0';
+    }));
+    setTimeout(()=>p.remove(),900+i*15);
   });
 }
 
