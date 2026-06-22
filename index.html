@@ -3277,51 +3277,45 @@ async function fetchFeriadoProximo(){
   }
   return null;
 }
-async function fetchDolarHist(tipo){
-  const desde=new Date();desde.setDate(desde.getDate()-12);
-  const desdeStr=`${desde.getFullYear()}-${String(desde.getMonth()+1).padStart(2,'0')}-${String(desde.getDate()).padStart(2,'0')}`;
-  const data=await fetch(`https://api.argentinadatos.com/v1/cotizaciones/dolares/${tipo}?desde=${desdeStr}`).then(r=>r.json());
-  return Array.isArray(data)?data.filter(d=>d.venta!=null).sort((a,b)=>b.fecha.localeCompare(a.fecha)):[];
-}
 async function fetchInfoWidget(){
   const el=document.getElementById('infoWidgetContent');
   if(!el)return;
+  // Cada fuente con su propio try/catch para que una falla no rompa el widget
+  let temp=null,sens=null;
+  try{const m=await fetch('https://api.open-meteo.com/v1/forecast?latitude=-34.6037&longitude=-58.3816&current=temperature_2m,apparent_temperature&timezone=America/Argentina/Buenos_Aires').then(r=>r.json());temp=m?.current?.temperature_2m;sens=m?.current?.apparent_temperature;}catch(e){}
+
+  let ofVal=null,mepVal=null,blVal=null;
+  try{const d=await fetch('https://dolarapi.com/v1/dolares').then(r=>r.json());ofVal=d.find(x=>x.casa==='oficial')?.venta;mepVal=d.find(x=>x.casa==='bolsa')?.venta;blVal=d.find(x=>x.casa==='blue')?.venta;}catch(e){}
+
+  let ofPct=null,blPct=null;
   try{
-    const [meteo,histOf,histMep,histBl,feriado]=await Promise.all([
-      fetch('https://api.open-meteo.com/v1/forecast?latitude=-34.6037&longitude=-58.3816&current=temperature_2m,apparent_temperature&timezone=America/Argentina/Buenos_Aires').then(r=>r.json()),
-      fetchDolarHist('oficial'),
-      fetchDolarHist('mep'),
-      fetchDolarHist('blue'),
-      fetchFeriadoProximo()
-    ]);
-    const temp=meteo?.current?.temperature_2m;
-    const sens=meteo?.current?.apparent_temperature;
-    const fmt=v=>v!=null?'$'+Math.round(Number(v)).toLocaleString('es-AR'):'—';
-    const calcVar=(arr)=>{
-      if(arr.length<2)return{val:null,pct:null};
-      return{val:arr[0].venta,pct:((arr[0].venta-arr[1].venta)/arr[1].venta*100)};
-    };
-    const of=calcVar(histOf),mp=calcVar(histMep),bl=calcVar(histBl);
-    const varTag=(p)=>p==null?'':` <span class="iw-dolar-var ${p>=0?'up':'down'}">${p>=0?'▲':'▼'}${Math.abs(p).toFixed(1)}%</span>`;
-    el.innerHTML=`
-      <div class="iw-temp-row">
-        <div class="iw-temp-val">${temp!=null?temp+'°':'—'}</div>
-        <div class="iw-temp-meta">
-          <span class="iw-temp-city">Buenos Aires</span>
-          <span class="iw-temp-label">Sensación ${sens!=null?sens+'°C':'—'}</span>
-        </div>
-      </div>
-      <div class="iw-dolares">
-        <div class="iw-dolar"><div class="iw-dolar-label">Oficial</div><div class="iw-dolar-val">${fmt(of.val)}${varTag(of.pct)}</div></div>
-        <div class="iw-dolar"><div class="iw-dolar-label">MEP</div><div class="iw-dolar-val">${fmt(mp.val)}${varTag(mp.pct)}</div></div>
-        <div class="iw-dolar"><div class="iw-dolar-label">Blue</div><div class="iw-dolar-val">${fmt(bl.val)}${varTag(bl.pct)}</div></div>
-      </div>
-      ${feriado?`<div class="iw-feriado"><div class="iw-feriado-lbl">Próximo feriado</div>${feriado}</div>`:''}
-    `;
-  }catch(e){
-    const el2=document.getElementById('infoWidgetContent');
-    if(el2)el2.innerHTML='<div class="info-widget-loading">No disponible</div>';
-  }
+    const ly=await fetch('https://api.bluelytics.com.ar/v2/latest').then(r=>r.json());
+    const lPct=(lv,cur)=>{if(lv?.variation==null||!cur)return null;const prev=cur-lv.variation;return prev>0?(lv.variation/prev*100):null;};
+    ofPct=lPct(ly?.oficial,ofVal);blPct=lPct(ly?.blue,blVal);
+  }catch(e){}
+
+  let mepPct=null;
+  try{
+    const hist=await fetch('https://api.argentinadatos.com/v1/cotizaciones/dolares/mep').then(r=>{if(!r.ok)throw new Error(r.status);return r.json();});
+    const arr=Array.isArray(hist)?hist.filter(d=>d.venta!=null).sort((a,b)=>b.fecha.localeCompare(a.fecha)):[];
+    if(arr.length>=2){mepPct=((arr[0].venta-arr[1].venta)/arr[1].venta*100);if(!mepVal)mepVal=arr[0].venta;}
+  }catch(e){}
+
+  const feriado=await fetchFeriadoProximo().catch(()=>null);
+  const fmt=v=>v!=null?'$'+Math.round(Number(v)).toLocaleString('es-AR'):'—';
+  const varTag=p=>p==null?'':` <span class="iw-dolar-var ${p>=0?'up':'down'}">${p>=0?'▲':'▼'}${Math.abs(p).toFixed(1)}%</span>`;
+  el.innerHTML=`
+    <div class="iw-temp-row">
+      <div class="iw-temp-val">${temp!=null?temp+'°':'—'}</div>
+      <div class="iw-temp-meta"><span class="iw-temp-city">Buenos Aires</span><span class="iw-temp-label">Sensación ${sens!=null?sens+'°C':'—'}</span></div>
+    </div>
+    <div class="iw-dolares">
+      <div class="iw-dolar"><div class="iw-dolar-label">Oficial</div><div class="iw-dolar-val">${fmt(ofVal)}${varTag(ofPct)}</div></div>
+      <div class="iw-dolar"><div class="iw-dolar-label">MEP</div><div class="iw-dolar-val">${fmt(mepVal)}${varTag(mepPct)}</div></div>
+      <div class="iw-dolar"><div class="iw-dolar-label">Blue</div><div class="iw-dolar-val">${fmt(blVal)}${varTag(blPct)}</div></div>
+    </div>
+    ${feriado?`<div class="iw-feriado"><div class="iw-feriado-lbl">Próximo feriado</div>${feriado}</div>`:''}
+  `;
 }
 fetchInfoWidget();
 setInterval(fetchInfoWidget,5*60*1000);
