@@ -2629,25 +2629,57 @@ function histMoney(n){return '$'+(Number(n)||0).toLocaleString('es-AR');}
 function histMoneyCompact(n){const v=Number(n)||0;if(v===0)return'';if(v>=1e6)return'$'+(v/1e6).toLocaleString('es-AR',{maximumFractionDigits:1})+'M';if(v>=1e3)return'$'+(v/1e3).toLocaleString('es-AR',{maximumFractionDigits:1})+'k';return'$'+v.toLocaleString('es-AR');}
 function histSvgBarsDias(vals,last,y,m){
   const W=600,H=130,pL=4,pR=4,pT=24,pB=20;
-  const cW=W-pL-pR,cH=H-pT-pB;
+  const cW=W-pL-pR,cH=H-pT-pB,base=pT+cH;
   const max=Math.max(...vals,1);
   const step=cW/last;
   const bw=Math.max(2,step*0.72);
-  let svg='';
+  let bars='',lbls='',axis='';
   vals.forEach((v,i)=>{
     const x=pL+i*step+(step-bw)/2;
     const isMax=(v===max&&v>0);
-    const bh=v>0?Math.max(3,(v/max)*cH):2;
-    const yt=pT+cH-bh;
+    const fh=v>0?Math.max(3,(v/max)*cH):2;
+    const fy=base-fh;
     const fill=v>0?(isMax?'rgba(248,113,113,.85)':'rgba(124,144,255,.6)'):'rgba(255,255,255,.07)';
-    svg+=`<rect x="${x.toFixed(1)}" y="${yt.toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" rx="2" fill="${fill}"/>`;
-    if(v>0){const lbl=v>=1e6?(v/1e6).toFixed(1)+'M':v>=1e3?Math.round(v/1e3)+'k':'';if(lbl)svg+=`<text x="${(x+bw/2).toFixed(1)}" y="${(yt-4).toFixed(1)}" text-anchor="middle" font-size="7.5" fill="${isMax?'rgba(248,113,113,.9)':'rgba(255,255,255,.45)'}">${lbl}</text>`;}
+    bars+=`<rect class="hbar" x="${x.toFixed(1)}" y="${base}" width="${bw.toFixed(1)}" height="0" rx="2" fill="${fill}" data-fy="${fy.toFixed(1)}" data-fh="${fh.toFixed(1)}"/>`;
+    if(v>0){const lbl=v>=1e6?(v/1e6).toFixed(1)+'M':v>=1e3?Math.round(v/1e3)+'k':'';if(lbl)lbls+=`<text class="hval" x="${(x+bw/2).toFixed(1)}" y="${(fy-4).toFixed(1)}" text-anchor="middle" font-size="7.5" fill="${isMax?'rgba(248,113,113,.9)':'rgba(255,255,255,.45)'}" opacity="0">${lbl}</text>`;}
     const d=i+1;
     const dow=new Date(y,m-1,d).getDay();
-    const isWeekend=dow===0||dow===6;
-    svg+=`<text x="${(x+bw/2).toFixed(1)}" y="${(pT+cH+13).toFixed(1)}" text-anchor="middle" font-size="7" fill="${isWeekend?'rgba(240,184,96,.55)':'rgba(255,255,255,.28)'}">${d}</text>`;
+    axis+=`<text x="${(x+bw/2).toFixed(1)}" y="${(base+13).toFixed(1)}" text-anchor="middle" font-size="7" fill="${dow===0||dow===6?'rgba(240,184,96,.55)':'rgba(255,255,255,.28)'}">${d}</text>`;
   });
-  return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block;overflow:visible">${svg}</svg>`;
+  return `<svg class="hist-chart-svg" viewBox="0 0 ${W} ${H}" width="100%" style="display:block;overflow:visible">${bars}${lbls}${axis}</svg>`;
+}
+let _histChartObs=null;
+function histAnimarGraficoDias(card){
+  if(_histChartObs){_histChartObs.disconnect();_histChartObs=null;}
+  const svg=card.querySelector('.hist-chart-svg');
+  if(!svg)return;
+  const rects=[...svg.querySelectorAll('.hbar')];
+  const lbls=[...svg.querySelectorAll('.hval')];
+  if(!rects.length)return;
+  _histChartObs=new IntersectionObserver(entries=>{
+    if(!entries[0].isIntersecting)return;
+    _histChartObs.disconnect();
+    const DUR=800,STAGGER=300,TOTAL=DUR+STAGGER;
+    const t0=performance.now();
+    function ease(t){return 1-Math.pow(1-t,3);}
+    function step(now){
+      const el=now-t0;
+      const prog=Math.min(el/TOTAL,1);
+      rects.forEach((r,i)=>{
+        const delay=i/rects.length*STAGGER;
+        const p=ease(Math.min(Math.max((el-delay)/DUR,0),1));
+        const fh=parseFloat(r.dataset.fh),fy=parseFloat(r.dataset.fy);
+        const bh=fh*p;
+        r.setAttribute('y',(fy+fh-bh).toFixed(1));
+        r.setAttribute('height',bh.toFixed(1));
+      });
+      if(prog>0.75)lbls.forEach(l=>l.setAttribute('opacity',Math.min((prog-0.75)/0.25,1).toFixed(2)));
+      if(prog<1)requestAnimationFrame(step);
+      else lbls.forEach(l=>l.setAttribute('opacity','1'));
+    }
+    requestAnimationFrame(step);
+  },{threshold:0.15});
+  _histChartObs.observe(card);
 }
 function histSvgBarsSemana(avgs,labels){
   const W=460,H=130,pL=4,pR=4,pT=28,pB=20;
@@ -2696,7 +2728,9 @@ function histRenderMetricas(y,m,last){
       <div class="hist-met-kpi"><div class="hist-met-kpi-label">Ticket MP</div><div class="hist-met-kpi-val">${ticketMP>0?histMoneyCompact(ticketMP):'—'}</div></div>
       <div class="hist-met-kpi"><div class="hist-met-kpi-label">Días activos</div><div class="hist-met-kpi-val">${diasActivos}</div></div>
     </div>
-    <div class="hist-met-chart-card"><div class="hist-met-chart-title">Evolución diaria del mes</div>${histSvgBarsDias(dailyVals,last,y,m)}</div>`;
+    <div class="hist-met-chart-card" id="histChartCard"><div class="hist-met-chart-title">Evolución diaria del mes</div>${histSvgBarsDias(dailyVals,last,y,m)}</div>`;
+  const chartCard=el.querySelector('#histChartCard');
+  if(chartCard)histAnimarGraficoDias(chartCard);
 }
 function histMesNombre(d){return d.toLocaleDateString('es-AR',{month:'long',year:'numeric'});}
 function histIso(y,m,d){return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;}
