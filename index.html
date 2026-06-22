@@ -2646,21 +2646,23 @@ function histSvgBarsDias(vals,last,y,m){
     const dow=new Date(y,m-1,d).getDay();
     axis+=`<text x="${(x+bw/2).toFixed(1)}" y="${(base+13).toFixed(1)}" text-anchor="middle" font-size="7" fill="${dow===0||dow===6?'rgba(240,184,96,.55)':'rgba(255,255,255,.28)'}">${d}</text>`;
   });
-  // Regresión lineal sobre días activos
-  const pts=vals.map((v,i)=>({x:i+1,v})).filter(p=>p.v>0);
+  // Media móvil de 3 días sobre días activos → curva bezier
+  const actives=vals.map((v,i)=>v>0?{d:i+1,v}:null).filter(Boolean);
   let trend='';
-  if(pts.length>=3){
-    const n=pts.length,mx=pts.reduce((a,p)=>a+p.x,0)/n,my=pts.reduce((a,p)=>a+p.v,0)/n;
-    const num=pts.reduce((a,p)=>a+(p.x-mx)*(p.v-my),0),den=pts.reduce((a,p)=>a+(p.x-mx)*(p.x-mx),0);
-    if(den){
-      const sl=num/den,ic=my-sl*mx;
-      const sx=d=>pL+(d-1)*step+bw/2,sy=v=>Math.max(pT,Math.min(base,base-(v/max)*cH));
-      const x1=sx(1),y1=sy(sl+ic),x2=sx(last),y2=sy(sl*last+ic);
-      const col=sl>=0?'rgba(95,214,138,.85)':'rgba(248,113,113,.85)';
-      const lbl=sl>=0?'↗ subiendo':'↘ bajando';
-      trend=`<line class="htrend" x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${col}" stroke-width="2" stroke-linecap="round" stroke-dasharray="5 3" opacity="0"/>`;
-      trend+=`<text class="htrend" x="${(W-pR)}" y="${pT-7}" text-anchor="end" font-size="9" font-weight="700" fill="${col}" opacity="0">${lbl}</text>`;
+  if(actives.length>=2){
+    const sma=actives.map((p,i)=>{const w=actives.slice(Math.max(0,i-1),i+2);return{d:p.d,v:w.reduce((a,x)=>a+x.v,0)/w.length};});
+    const up=sma[sma.length-1].v>=sma[0].v;
+    const col=up?'rgba(95,214,138,.85)':'rgba(248,113,113,.85)';
+    const svgX=d=>pL+(d-1)*step+bw/2;
+    const svgY=v=>Math.max(pT+2,Math.min(base-2,base-(v/max)*cH));
+    const pts=sma.map(p=>({x:svgX(p.d),y:svgY(p.v)}));
+    let path=`M${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
+    for(let i=1;i<pts.length;i++){
+      const dx=(pts[i].x-pts[i-1].x)*0.45;
+      path+=` C${(pts[i-1].x+dx).toFixed(1)} ${pts[i-1].y.toFixed(1)} ${(pts[i].x-dx).toFixed(1)} ${pts[i].y.toFixed(1)} ${pts[i].x.toFixed(1)} ${pts[i].y.toFixed(1)}`;
     }
+    trend=`<path class="htrend" d="${path}" fill="none" stroke="${col}" stroke-width="2" stroke-linecap="round" stroke-dasharray="3 2" opacity="0"/>`;
+    trend+=`<text class="htrend" x="${W-pR}" y="${pT-7}" text-anchor="end" font-size="9" font-weight="700" fill="${col}" opacity="0">${up?'↗ subiendo':'↘ bajando'}</text>`;
   }
   return `<svg class="hist-chart-svg" viewBox="0 0 ${W} ${H}" width="100%" style="display:block;overflow:visible">${bars}${trend}${lbls}${axis}</svg>`;
 }
