@@ -109,6 +109,8 @@ html{overflow-x:hidden;overflow-y:scroll}
 .shift-progress-dot{position:absolute;right:-5px;top:50%;width:10px;height:10px;border-radius:999px;background:#f4f1ed;border:2px solid var(--accent);transform:translateY(-50%);box-shadow:0 0 0 4px rgba(124,144,255,.12)}
 .cursor-glow{pointer-events:none;position:fixed;width:340px;height:340px;border-radius:50%;background:radial-gradient(circle,rgba(61,90,254,.1) 0%,transparent 70%);transform:translate(-50%,-50%);top:0;left:0;z-index:0;transition:opacity .3s ease;opacity:0}
 .hero-clock-col{display:flex;flex-direction:column;align-items:center;justify-content:center;margin:16px 0}
+.iw-mobile-card{display:none;background:var(--glass);border:1px solid var(--glass-border);border-radius:16px;padding:14px 16px;margin-bottom:14px}
+@media(max-width:900px){.iw-mobile-card{display:block}}
 .iw-temp-row{display:flex;align-items:center;gap:10px;margin-bottom:12px}
 .iw-temp-val{font-size:28px;font-weight:800;color:var(--text);line-height:1;letter-spacing:-.5px}
 .iw-temp-meta{display:flex;flex-direction:column;gap:1px}
@@ -1965,6 +1967,11 @@ img,svg,canvas{max-width:100%}
     </div>
   </div>
 
+  <!-- Info widget mobile (solo visible en pantallas ≤900px) -->
+  <div class="iw-mobile-card" id="infoWidgetMobile">
+    <div id="infoWidgetContentMobile"><div class="info-widget-loading">Cargando…</div></div>
+  </div>
+
   <!-- cursor glow desactivado para mejor rendimiento -->
   <div class="otros-turnos-row" id="otrosTurnosRow"></div>
   <div id="turnosHoyPortada" style="margin-top:24px"></div>
@@ -3298,7 +3305,7 @@ async function fetchInfoWidget(){
   const feriado=await fetchFeriadoProximo().catch(()=>null);
   const fmt=v=>v!=null?'$'+Math.round(Number(v)).toLocaleString('es-AR'):'—';
   const varTag=p=>p==null?'':` <span class="iw-dolar-var ${p>=0?'up':'down'}">${p>=0?'▲':'▼'}${Math.abs(p).toFixed(1)}%</span>`;
-  el.innerHTML=`
+  const html=`
     <div class="iw-temp-row">
       <div class="iw-temp-val">${temp!=null?temp+'°':'—'}</div>
       <div class="iw-temp-meta"><span class="iw-temp-city">Buenos Aires</span><span class="iw-temp-label">Sensación ${sens!=null?sens+'°C':'—'}</span></div>
@@ -3310,6 +3317,9 @@ async function fetchInfoWidget(){
     </div>
     ${feriado?`<div class="iw-feriado"><div class="iw-feriado-lbl">Próximo feriado</div>${feriado}</div>`:''}
   `;
+  el.innerHTML=html;
+  const elM=document.getElementById('infoWidgetContentMobile');
+  if(elM)elM.innerHTML=html;
 }
 fetchInfoWidget();
 setInterval(fetchInfoWidget,5*60*1000);
