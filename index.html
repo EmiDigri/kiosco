@@ -2279,7 +2279,7 @@ img,svg,canvas{max-width:100%}
         </div>
       </div>
 
-      <div class="cm-hint">CM = Vale · CT = Ani · CN = Marta. Si marcás una caja, ese gasto se suma de nuevo al total de ese turno.</div>
+      <div class="cm-hint" id="cmHintCajas">CM = Vale · CT = Ani · CN = Marta. Si marcás una caja, ese gasto se suma de nuevo al total de ese turno.</div>
 
       <div class="cm-gasto-list" id="cmGastoList">
         <div class="empty">Todavía no se cargó ningún gasto hoy.</div>
@@ -2789,11 +2789,11 @@ function histNormalizarCierreLocal(dia){
   const local=histGetLocalCierreDia(dia);
   const cierres=[];
   Object.entries(local.cierres||{}).forEach(([turno,c])=>{
-    const gastos=(local.gastos||[]).filter(g=>({Vale:'CM',Ani:'CT',Marta:'CN'}[turno])===g.caja).reduce((a,g)=>a+(Number(g.monto)||0),0);
+    const gastos=(local.gastos||[]).filter(g=>CM_TURNO_CAJA_ALL[turno]===g.caja).reduce((a,g)=>a+(Number(g.monto)||0),0);
     const mp=Number(c.mp)||0, efectivo=Number(c.efectivo)||0, once=Number(c.once)||0;
     cierres.push({fecha:dia,turno,apertura:Number(c.apertura)||0,efectivo,once_monto:once,mpo:Number(c.mpo)||0,mp,gastos_caja:gastos,total_turno:mp+efectivo+once+gastos});
   });
-  const gastos=(local.gastos||[]).map(g=>({fecha:dia,nombre:g.nombre,monto:Number(g.monto)||0,caja:g.caja,turno:{CM:'Vale',CT:'Ani',CN:'Marta'}[g.caja]||null,uid:g.uid||''}));
+  const gastos=(local.gastos||[]).map(g=>({fecha:dia,nombre:g.nombre,monto:Number(g.monto)||0,caja:g.caja,turno:g.turno||CM_CAJA_TURNO[g.caja]||null,uid:g.uid||''}));
   return {cierres,gastos};
 }
 async function histSbSelect(path){
@@ -3222,12 +3222,14 @@ renderOtrosTurnos();
 
 
 // ─── CIERRE MANUAL ───
-const CM_TURNOS=['Vale','Ani','Marta'];
-const CM_COLORS={Vale:'#7C90FF',Ani:'#A78BFA',Marta:'#4FCCBE'};
-const CM_TURNO_CAJA={Vale:'CM',Ani:'CT',Marta:'CN'};
-const CM_CAJA_TURNO={CM:'Vale',CT:'Ani',CN:'Marta'};
+const CM_TURNOS=esDomingo?['Turno 1','Turno 2']:['Vale','Ani','Marta'];
+const CM_COLORS=esDomingo?{'Turno 1':'#3D5AFE','Turno 2':'#6B7FFF'}:{Vale:'#7C90FF',Ani:'#A78BFA',Marta:'#4FCCBE'};
+const CM_TURNO_CAJA=esDomingo?{'Turno 1':'CM','Turno 2':'CT'}:{Vale:'CM',Ani:'CT',Marta:'CN'};
+const CM_CAJA_TURNO=esDomingo?{CM:'Turno 1',CT:'Turno 2'}:{CM:'Vale',CT:'Ani',CN:'Marta'};
+// Mapa universal para sincronizar datos de días anteriores sin importar el día actual
+const CM_TURNO_CAJA_ALL={Vale:'CM',Ani:'CT',Marta:'CN','Turno 1':'CM','Turno 2':'CT'};
 const CM_STORAGE_KEY='kiosco_cierre_manual';
-let cmTurnoActivo='Vale',cmCierres={},cmGastos=[],cmCajaSeleccionada='';
+let cmTurnoActivo=esDomingo?'Turno 1':'Vale',cmCierres={},cmGastos=[],cmCajaSeleccionada='';
 const cmFmt=n=>'$'+(Number(n)||0).toLocaleString('es-AR');
 function cmEsc(s){return String(s||'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
 function cmLeerData(){try{const all=JSON.parse(localStorage.getItem(CM_STORAGE_KEY)||'{}');const data=all[fechaHoy()]||{};cmCierres=data.cierres||{};cmGastos=data.gastos||[];}catch(e){cmCierres={};cmGastos=[];}}
@@ -3317,7 +3319,7 @@ async function cmSyncLocales(){
       for(const turno of Object.keys(dia.cierres)){
         const c=dia.cierres[turno];
         if(!c||c.synced)continue;
-        const caja=CM_TURNO_CAJA[turno];
+        const caja=CM_TURNO_CAJA_ALL[turno];
         const gastosCaja=dayGastos.filter(g=>g.caja===caja).reduce((a,g)=>a+(Number(g.monto)||0),0);
         const payload={fecha,turno,apertura:Number(c.apertura)||0,efectivo:Number(c.efectivo)||0,once_monto:Number(c.once)||0,mpo:Number(c.mpo)||0,mp:Number(c.mp)||0,gastos_caja:gastosCaja,total_turno:(Number(c.mp)||0)+(Number(c.efectivo)||0)+(Number(c.once)||0)+gastosCaja,updated_at:new Date().toISOString()};
         try{
@@ -3344,7 +3346,7 @@ function cmRenderGastos(){const list=document.getElementById('cmGastoList');if(!
 function cmAgregarGasto(){const nombre=document.getElementById('cmGastoNombre').value.trim(),monto=Number(document.getElementById('cmGastoMonto').value)||0;if(!nombre||!monto){showToast('Cargá concepto y monto');return;}const g={uid:cmUid(),nombre,monto,caja:cmCajaSeleccionada,turno:CM_CAJA_TURNO[cmCajaSeleccionada]||'',creadoEn:new Date().toISOString()};cmGastos.push(g);document.getElementById('cmGastoNombre').value='';document.getElementById('cmGastoMonto').value='';cmCajaSeleccionada='';document.querySelectorAll('.cm-caja-btn').forEach(b=>b.classList.remove('active'));const noBtn=document.querySelector('.cm-caja-btn[data-caja=""]');if(noBtn)noBtn.classList.add('active');cmGuardarData();cmRenderGastos();cmCalcularTotalTurno();cmRenderResumen();cmRenderSyncStatus();showToast('Gasto agregado ✓');cmGuardarGastoRemoto(g).then(()=>{g.synced=true;cmGuardarData();cmRenderSyncStatus();}).catch(e=>showToast('Guardado local. Se sincroniza al reabrir.'));}
 function cmRenderResumen(){const cont=document.getElementById('cmResumenTurnos');if(!cont)return;let totalDia=0,cerrados=0,sumMp=0,sumEf=0,sumOnce=0,sumMpo=0;cont.innerHTML=CM_TURNOS.map(t=>{const c=cmCierres[t];if(!c){return `<div class="cm-resumen-turno"><div class="cm-resumen-head"><div class="cm-resumen-name"><span class="cm-resumen-dot" style="background:${CM_COLORS[t]}"></span>${t}</div><div class="cm-pendiente">Sin cerrar</div></div></div>`;}cerrados++;const mp=Number(c.mp)||cmMpTurno(t),gCaja=cmGastosDeCaja(t),total=mp+(Number(c.efectivo)||0)+(Number(c.once)||0)+gCaja;totalDia+=total;sumMp+=mp;sumEf+=Number(c.efectivo)||0;sumOnce+=Number(c.once)||0;sumMpo+=Number(c.mpo)||0;return `<div class="cm-resumen-turno"><div class="cm-resumen-head"><div class="cm-resumen-name"><span class="cm-resumen-dot" style="background:${CM_COLORS[t]}"></span>${t}</div><div class="cm-resumen-total">${cmFmt(total)}</div></div><div class="cm-resumen-detail"><span>Apertura ${cmFmt(c.apertura)}</span><span>MP ${cmFmt(mp)}</span><span>Efectivo ${cmFmt(c.efectivo)}</span>${Number(c.once)>0?`<span>Once ${cmFmt(c.once)}</span>`:''}${Number(c.mpo)>0?`<span>MPO ${cmFmt(c.mpo)}</span>`:''}${gCaja>0?`<span>Gastos caja ${cmFmt(gCaja)}</span>`:''}</div></div>`;}).join('');document.getElementById('cmTotalDia').textContent=cmFmt(totalDia);document.getElementById('cmTotalDiaSub').textContent=cerrados+' de '+CM_TURNOS.length+' turnos cerrados';document.getElementById('cmTotMp').textContent=cmFmt(sumMp);document.getElementById('cmTotEfectivo').textContent=cmFmt(sumEf);document.getElementById('cmTotOnce').textContent=cmFmt(sumOnce);document.getElementById('cmTotMpo').textContent=cmFmt(sumMpo);document.getElementById('cmResumenGastos').textContent=cmFmt(cmGastos.reduce((a,g)=>a+(Number(g.monto)||0),0));}
 function cmCambiarVista(view){document.querySelectorAll('.cm-tab').forEach(t=>t.classList.toggle('active',t.dataset.cmView===view));document.querySelectorAll('.cm-view').forEach(v=>v.classList.remove('active'));const el=document.getElementById('cm-view-'+view);if(el)el.classList.add('active');if(view==='resumen')cmRenderResumen();if(view==='gastos')cmRenderGastos();}
-async function cmAbrir(){lockBody();cmLeerData();cmRenderSyncStatus();await cmSyncLocales();await cmCargarDataRemotaHoy();cmRenderSyncStatus();const t=(turno||turnoReciente||{}).nombre;if(CM_TURNOS.includes(t))cmTurnoActivo=t;const fh=document.getElementById('cmHeaderFecha');if(fh)fh.textContent=new Date().toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'});document.getElementById('cierreManualOverlay').classList.add('open');cmCambiarVista('turno');cmCargarFormularioTurno();cmRenderGastos();cmRenderResumen();}
+async function cmAbrir(){lockBody();cmLeerData();cmRenderSyncStatus();await cmSyncLocales();await cmCargarDataRemotaHoy();cmRenderSyncStatus();const t=(turno||turnoReciente||{}).nombre;if(CM_TURNOS.includes(t))cmTurnoActivo=t;const fh=document.getElementById('cmHeaderFecha');if(fh)fh.textContent=new Date().toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'});const hintEl=document.getElementById('cmHintCajas');if(hintEl)hintEl.textContent=esDomingo?'CM = Turno 1 · CT = Turno 2. Si marcás una caja, ese gasto se suma de nuevo al total de ese turno.':'CM = Vale · CT = Ani · CN = Marta. Si marcás una caja, ese gasto se suma de nuevo al total de ese turno.';const btnCN=document.querySelector('.cm-caja-btn[data-caja="CN"]');if(btnCN)btnCN.style.display=esDomingo?'none':'';document.getElementById('cierreManualOverlay').classList.add('open');cmCambiarVista('turno');cmCargarFormularioTurno();cmRenderGastos();cmRenderResumen();}
 function cmCerrar(){document.getElementById('cierreManualOverlay').classList.remove('open');unlockBody();}
 const btnCierreManual=document.getElementById('btnCierreManual');if(btnCierreManual)btnCierreManual.addEventListener('click',cmAbrir);
 const btnCerrarCierreManual=document.getElementById('btnCerrarCierreManual');if(btnCerrarCierreManual)btnCerrarCierreManual.addEventListener('click',cmCerrar);
