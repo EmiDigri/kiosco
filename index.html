@@ -1643,7 +1643,7 @@ body{
   margin:10px 4px 0;
 }
 .hist-metricas-section{display:flex;flex-direction:column;gap:12px;margin-top:20px}
-.hist-met-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.hist-met-kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
 .hist-met-kpi{background:rgba(255,255,255,.04);border:1px solid var(--glass-border);border-radius:14px;padding:14px 10px;text-align:center}
 .hist-met-kpi-label{font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-soft);margin-bottom:6px}
 .hist-met-kpi-val{font-size:17px;font-weight:800;color:var(--text);font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-variant-numeric:tabular-nums}
@@ -2646,7 +2646,23 @@ function histSvgBarsDias(vals,last,y,m){
     const dow=new Date(y,m-1,d).getDay();
     axis+=`<text x="${(x+bw/2).toFixed(1)}" y="${(base+13).toFixed(1)}" text-anchor="middle" font-size="7" fill="${dow===0||dow===6?'rgba(240,184,96,.55)':'rgba(255,255,255,.28)'}">${d}</text>`;
   });
-  return `<svg class="hist-chart-svg" viewBox="0 0 ${W} ${H}" width="100%" style="display:block;overflow:visible">${bars}${lbls}${axis}</svg>`;
+  // Regresión lineal sobre días activos
+  const pts=vals.map((v,i)=>({x:i+1,v})).filter(p=>p.v>0);
+  let trend='';
+  if(pts.length>=3){
+    const n=pts.length,mx=pts.reduce((a,p)=>a+p.x,0)/n,my=pts.reduce((a,p)=>a+p.v,0)/n;
+    const num=pts.reduce((a,p)=>a+(p.x-mx)*(p.v-my),0),den=pts.reduce((a,p)=>a+(p.x-mx)*(p.x-mx),0);
+    if(den){
+      const sl=num/den,ic=my-sl*mx;
+      const sx=d=>pL+(d-1)*step+bw/2,sy=v=>Math.max(pT,Math.min(base,base-(v/max)*cH));
+      const x1=sx(1),y1=sy(sl+ic),x2=sx(last),y2=sy(sl*last+ic);
+      const col=sl>=0?'rgba(95,214,138,.85)':'rgba(248,113,113,.85)';
+      const lbl=sl>=0?'↗ subiendo':'↘ bajando';
+      trend=`<line class="htrend" x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${col}" stroke-width="2" stroke-linecap="round" stroke-dasharray="5 3" opacity="0"/>`;
+      trend+=`<text class="htrend" x="${(W-pR)}" y="${pT-7}" text-anchor="end" font-size="9" font-weight="700" fill="${col}" opacity="0">${lbl}</text>`;
+    }
+  }
+  return `<svg class="hist-chart-svg" viewBox="0 0 ${W} ${H}" width="100%" style="display:block;overflow:visible">${bars}${trend}${lbls}${axis}</svg>`;
 }
 let _histChartObs=null;
 function histAnimarGraficoDias(card){
@@ -2655,6 +2671,7 @@ function histAnimarGraficoDias(card){
   if(!svg)return;
   const rects=[...svg.querySelectorAll('.hbar')];
   const lbls=[...svg.querySelectorAll('.hval')];
+  const trends=[...svg.querySelectorAll('.htrend')];
   if(!rects.length)return;
   _histChartObs=new IntersectionObserver(entries=>{
     if(!entries[0].isIntersecting)return;
@@ -2674,8 +2691,9 @@ function histAnimarGraficoDias(card){
         r.setAttribute('height',bh.toFixed(1));
       });
       if(prog>0.75)lbls.forEach(l=>l.setAttribute('opacity',Math.min((prog-0.75)/0.25,1).toFixed(2)));
+      if(prog>0.82)trends.forEach(t=>t.setAttribute('opacity',(Math.min((prog-0.82)/0.18,1)*0.85).toFixed(2)));
       if(prog<1)requestAnimationFrame(step);
-      else lbls.forEach(l=>l.setAttribute('opacity','1'));
+      else{lbls.forEach(l=>l.setAttribute('opacity','1'));trends.forEach(t=>t.setAttribute('opacity','0.85'));}
     }
     requestAnimationFrame(step);
   },{threshold:0.15});
@@ -2727,10 +2745,30 @@ function histRenderMetricas(y,m,last){
       <div class="hist-met-kpi"><div class="hist-met-kpi-label">Promedio diario MP</div><div class="hist-met-kpi-val">${histMoneyCompact(promDiario)||'—'}</div></div>
       <div class="hist-met-kpi"><div class="hist-met-kpi-label">Ticket MP</div><div class="hist-met-kpi-val">${ticketMP>0?histMoneyCompact(ticketMP):'—'}</div></div>
       <div class="hist-met-kpi"><div class="hist-met-kpi-label">Días activos</div><div class="hist-met-kpi-val">${diasActivos}</div></div>
+      <div class="hist-met-kpi" id="histVsMesAnt"><div class="hist-met-kpi-label">vs mes anterior</div><div class="hist-met-kpi-val" style="font-size:13px;opacity:.35">···</div></div>
     </div>
     <div class="hist-met-chart-card" id="histChartCard"><div class="hist-met-chart-title">Evolución diaria del mes</div>${histSvgBarsDias(dailyVals,last,y,m)}</div>`;
   const chartCard=el.querySelector('#histChartCard');
   if(chartCard)histAnimarGraficoDias(chartCard);
+  const prevM=m===1?12:m-1,prevY=m===1?y-1:y;
+  histFetchMPMes(prevY,prevM).then(prevTotal=>{
+    const chip=document.getElementById('histVsMesAnt');
+    if(!chip)return;
+    const valEl=chip.querySelector('.hist-met-kpi-val');
+    if(!valEl)return;
+    if(prevTotal==null||prevTotal===0){valEl.style.opacity='1';valEl.textContent='—';return;}
+    const pct=(totalMP-prevTotal)/prevTotal*100;
+    const col=pct>=0?'#5FD68A':'#f87171';
+    valEl.style.opacity='1';
+    valEl.innerHTML=`<span style="color:${col};font-size:20px;font-weight:800">${pct>=0?'+':''}${pct.toFixed(1)}%</span><div style="font-size:9px;color:var(--text-soft);margin-top:3px;font-weight:600">${histMoneyCompact(prevTotal)} mes ant.</div>`;
+  });
+}
+async function histFetchMPMes(y,m){
+  const from=histIso(y,m,1),to=histIso(y,m,new Date(y,m,0).getDate());
+  try{
+    const rows=await histSbSelect(`pagos?select=monto&fecha=gte.${from}&fecha=lte.${to}&es_enviada=neq.true&limit=10000`);
+    return rows.reduce((a,r)=>a+(Number(r.monto)||0),0);
+  }catch(e){return null;}
 }
 function histMesNombre(d){return d.toLocaleDateString('es-AR',{month:'long',year:'numeric'});}
 function histIso(y,m,d){return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;}
