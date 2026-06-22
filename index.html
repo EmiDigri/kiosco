@@ -1544,7 +1544,23 @@ body{
 /* Montos alineados y resaltes */
 .hist-day-main,.hist-sum-value,.hist-day-sub{font-variant-numeric:tabular-nums}
 .hist-day-compact{display:none}
-.hist-day-emoji{font-size:9px;margin-left:2px;line-height:1}
+.hist-day-emoji{font-size:13px;margin-left:2px;line-height:1;display:inline-block}
+.hist-day-flame{animation:histFlame .7s ease-in-out infinite}
+.hist-day-skull{animation:histSkull 2.2s ease-in-out infinite}
+@keyframes histFlame{
+  0%,100%{transform:scale(1) rotate(-4deg)}
+  30%{transform:scale(1.25) rotate(5deg)}
+  60%{transform:scale(.92) rotate(-3deg)}
+  80%{transform:scale(1.15) rotate(3deg)}
+}
+@keyframes histSkull{
+  0%,80%,100%{transform:rotate(0deg) scale(1)}
+  83%{transform:rotate(-14deg) scale(1.1)}
+  87%{transform:rotate(14deg) scale(1.1)}
+  91%{transform:rotate(-8deg) scale(1.05)}
+  95%{transform:rotate(8deg) scale(1.05)}
+  98%{transform:rotate(0deg) scale(1)}
+}
 .hist-day-cell.has-cierre .hist-day-main{color:var(--green)}
 .hist-day-cell:not(.empty):not(.has-cierre):has(.hist-day-badge){background:rgba(255,255,255,.055)}
 .hist-day-cell.today{box-shadow:0 0 0 1px rgba(124,144,255,.35),0 6px 18px rgba(124,144,255,.18)}
@@ -2839,10 +2855,10 @@ function renderCalendarioMes(){
     if(dia===today)cls.push('today');
     if(data.cierres.length)cls.push('has-cierre');
     if(dia===topDia&&topVal>0)cls.push('best-day');
-    const emoji=dia===topDia&&topVal>0?'🔥':dia===botDia&&botVal<Infinity?'💀':'';
+    const emoji=dia===topDia&&topVal>0?'<span class="hist-day-emoji hist-day-flame">🔥</span>':dia===botDia&&botVal<Infinity?'<span class="hist-day-emoji hist-day-skull">💀</span>':'';
     const compact=histMoneyCompact(principal);
     html+=`<div class="${cls.join(' ')}" data-dia="${dia}">
-      <div><div class="hist-day-num">${d}${emoji?`<span class="hist-day-emoji">${emoji}</span>`:''}</div>${badges.length?`<div class="hist-day-badges">${badges.map(b=>`<span class="hist-day-badge badge-${b.toLowerCase()}">${b}</span>`).join('')}</div>`:''}</div>
+      <div><div class="hist-day-num">${d}${emoji}</div>${badges.length?`<div class="hist-day-badges">${badges.map(b=>`<span class="hist-day-badge badge-${b.toLowerCase()}">${b}</span>`).join('')}</div>`:''}</div>
       <div class="hist-day-kpis">
         <div class="hist-day-main">${principal?histMoney(principal):'—'}</div>
         <div class="hist-day-sub">${data.movs?`${data.movs} movs · MP ${histMoney(data.mpTotal)}`:'sin movimientos'}</div>
