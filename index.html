@@ -3277,36 +3277,31 @@ async function fetchFeriadoProximo(){
   }
   return null;
 }
+async function fetchDolarHist(tipo){
+  const desde=new Date();desde.setDate(desde.getDate()-12);
+  const desdeStr=`${desde.getFullYear()}-${String(desde.getMonth()+1).padStart(2,'0')}-${String(desde.getDate()).padStart(2,'0')}`;
+  const data=await fetch(`https://api.argentinadatos.com/v1/cotizaciones/dolares/${tipo}?desde=${desdeStr}`).then(r=>r.json());
+  return Array.isArray(data)?data.filter(d=>d.venta!=null).sort((a,b)=>b.fecha.localeCompare(a.fecha)):[];
+}
 async function fetchInfoWidget(){
   const el=document.getElementById('infoWidgetContent');
   if(!el)return;
   try{
-    const hoy=fechaHoy();
-    const ayerD=new Date();ayerD.setDate(ayerD.getDate()-1);
-    const ayer=`${ayerD.getFullYear()}-${String(ayerD.getMonth()+1).padStart(2,'0')}-${String(ayerD.getDate()).padStart(2,'0')}`;
-    const [meteo,dolares,feriado,lytics]=await Promise.all([
+    const [meteo,histOf,histMep,histBl,feriado]=await Promise.all([
       fetch('https://api.open-meteo.com/v1/forecast?latitude=-34.6037&longitude=-58.3816&current=temperature_2m,apparent_temperature&timezone=America/Argentina/Buenos_Aires').then(r=>r.json()),
-      fetch('https://dolarapi.com/v1/dolares').then(r=>r.json()),
-      fetchFeriadoProximo(),
-      fetch('https://api.bluelytics.com.ar/v2/latest').then(r=>r.json()).catch(()=>null)
+      fetchDolarHist('oficial'),
+      fetchDolarHist('mep'),
+      fetchDolarHist('blue'),
+      fetchFeriadoProximo()
     ]);
     const temp=meteo?.current?.temperature_2m;
     const sens=meteo?.current?.apparent_temperature;
-    const oficial=dolares.find(d=>d.casa==='oficial');
-    const mep=dolares.find(d=>d.casa==='bolsa');
-    const blue=dolares.find(d=>d.casa==='blue');
     const fmt=v=>v!=null?'$'+Math.round(Number(v)).toLocaleString('es-AR'):'—';
-    // Guardar MEP de hoy para comparar mañana
-    const hist=JSON.parse(localStorage.getItem('iw_dolar_hist')||'{}');
-    if(!hist[hoy])hist[hoy]={};
-    if(mep?.venta)hist[hoy].mep=mep.venta;
-    localStorage.setItem('iw_dolar_hist',JSON.stringify(hist));
-    // Calcular variaciones
-    const pct=(v,prev)=>prev&&v!=null?((v-prev)/prev*100):null;
-    const lyticsVar=(lv)=>lv?.variation!=null&&lv?.value_sell!=null?pct(lv.value_sell,lv.value_sell-lv.variation):null;
-    const ofPct=lyticsVar(lytics?.oficial);
-    const blPct=lyticsVar(lytics?.blue);
-    const mepPct=pct(mep?.venta,hist[ayer]?.mep);
+    const calcVar=(arr)=>{
+      if(arr.length<2)return{val:null,pct:null};
+      return{val:arr[0].venta,pct:((arr[0].venta-arr[1].venta)/arr[1].venta*100)};
+    };
+    const of=calcVar(histOf),mp=calcVar(histMep),bl=calcVar(histBl);
     const varTag=(p)=>p==null?'':` <span class="iw-dolar-var ${p>=0?'up':'down'}">${p>=0?'▲':'▼'}${Math.abs(p).toFixed(1)}%</span>`;
     el.innerHTML=`
       <div class="iw-temp-row">
@@ -3317,9 +3312,9 @@ async function fetchInfoWidget(){
         </div>
       </div>
       <div class="iw-dolares">
-        <div class="iw-dolar"><div class="iw-dolar-label">Oficial</div><div class="iw-dolar-val">${fmt(oficial?.venta)}${varTag(ofPct)}</div></div>
-        <div class="iw-dolar"><div class="iw-dolar-label">MEP</div><div class="iw-dolar-val">${fmt(mep?.venta)}${varTag(mepPct)}</div></div>
-        <div class="iw-dolar"><div class="iw-dolar-label">Blue</div><div class="iw-dolar-val">${fmt(blue?.venta)}${varTag(blPct)}</div></div>
+        <div class="iw-dolar"><div class="iw-dolar-label">Oficial</div><div class="iw-dolar-val">${fmt(of.val)}${varTag(of.pct)}</div></div>
+        <div class="iw-dolar"><div class="iw-dolar-label">MEP</div><div class="iw-dolar-val">${fmt(mp.val)}${varTag(mp.pct)}</div></div>
+        <div class="iw-dolar"><div class="iw-dolar-label">Blue</div><div class="iw-dolar-val">${fmt(bl.val)}${varTag(bl.pct)}</div></div>
       </div>
       ${feriado?`<div class="iw-feriado"><div class="iw-feriado-lbl">Próximo feriado</div>${feriado}</div>`:''}
     `;
