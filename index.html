@@ -3564,14 +3564,23 @@ async function fetchFeriadosInfo(){
   }
   return {feriado,fsl};
 }
-function getWeatherEmoji(temp){
+function getWeatherEmoji(temp,code,wind){
+  const t=Number(temp),c=Number(code),w=Number(wind)||0;
+  // Condiciones específicas (códigos WMO de Open-Meteo)
+  if(c>=95)                         return{emoji:'⛈️',cls:'iw-emoji-storm'};
+  if((c>=71&&c<=77)||c===85||c===86)return{emoji:'🌨️',cls:'iw-emoji-snow'};
+  if(c>=80&&c<=82)                  return{emoji:'🌧️',cls:'iw-emoji-rain'};
+  if(c>=51&&c<=67)                  return{emoji:'🌦️',cls:'iw-emoji-drizzle'};
+  if(c===45||c===48)                return{emoji:'🌫️',cls:'iw-emoji-fog'};
+  if(w>50)                          return{emoji:'💨',cls:'iw-emoji-windy'};
+  if(c===3)                         return{emoji:'☁️',cls:'iw-emoji-cloudy'};
+  if(c===2)                         return{emoji:'⛅',cls:'iw-emoji-partly'};
+  // Cielo despejado (0,1): temperatura decide
   if(temp==null)return null;
-  const t=Number(temp);
-  if(t<8)  return{emoji:'🥶',cls:'iw-emoji-freeze'};
-  if(t<15) return{emoji:'💨',cls:'iw-emoji-wind'};
+  if(t<8)  return{emoji:'❄️',cls:'iw-emoji-freeze'};
   if(t<22) return{emoji:'🌤️',cls:'iw-emoji-mild'};
   if(t<28) return{emoji:'☀️',cls:'iw-emoji-warm'};
-  if(t<34) return{emoji:'🌡️',cls:'iw-emoji-hot'};
+  if(t<34) return{emoji:'🥵',cls:'iw-emoji-hot'};
   return{emoji:'🔥',cls:'iw-emoji-flame'};
 }
 let _iwEmojiRaf=null;
@@ -3581,9 +3590,6 @@ function iwAnimarEmoji(){
     const t=ts/1000;
     document.querySelectorAll('.iw-emoji-freeze').forEach(el=>{
       el.style.transform=`rotate(${(Math.sin(t*18)*5).toFixed(1)}deg)`;
-    });
-    document.querySelectorAll('.iw-emoji-wind').forEach(el=>{
-      el.style.transform=`rotate(${(Math.sin(t*2)*15).toFixed(1)}deg)`;
     });
     document.querySelectorAll('.iw-emoji-mild').forEach(el=>{
       el.style.transform=`translateY(${(Math.sin(t*1.5)*2.5).toFixed(2)}px)`;
@@ -3599,6 +3605,31 @@ function iwAnimarEmoji(){
       const rot=Math.sin(t*7.5)*6,sc=1+Math.sin(t*10)*0.13;
       el.style.transform=`rotate(${rot.toFixed(1)}deg) scale(${sc.toFixed(3)})`;
     });
+    document.querySelectorAll('.iw-emoji-partly').forEach(el=>{
+      el.style.transform=`rotate(${(Math.sin(t*1.2)*8).toFixed(1)}deg)`;
+    });
+    document.querySelectorAll('.iw-emoji-cloudy').forEach(el=>{
+      el.style.transform=`translateX(${(Math.sin(t*0.8)*3).toFixed(2)}px)`;
+    });
+    document.querySelectorAll('.iw-emoji-fog').forEach(el=>{
+      const sc=1+Math.sin(t*0.9)*0.07;
+      el.style.transform=`scale(${sc.toFixed(3)})`;
+    });
+    document.querySelectorAll('.iw-emoji-drizzle').forEach(el=>{
+      el.style.transform=`translateY(${(Math.sin(t*3.5)*2).toFixed(2)}px)`;
+    });
+    document.querySelectorAll('.iw-emoji-rain').forEach(el=>{
+      el.style.transform=`translateY(${(Math.sin(t*4)*3).toFixed(2)}px)`;
+    });
+    document.querySelectorAll('.iw-emoji-storm').forEach(el=>{
+      el.style.transform=`rotate(${(Math.sin(t*12)*8).toFixed(1)}deg)`;
+    });
+    document.querySelectorAll('.iw-emoji-snow').forEach(el=>{
+      el.style.transform=`rotate(${(t*25%360).toFixed(1)}deg)`;
+    });
+    document.querySelectorAll('.iw-emoji-windy').forEach(el=>{
+      el.style.transform=`rotate(${(Math.sin(t*3)*20).toFixed(1)}deg)`;
+    });
     _iwEmojiRaf=requestAnimationFrame(step);
   }
   _iwEmojiRaf=requestAnimationFrame(step);
@@ -3607,8 +3638,8 @@ async function fetchInfoWidget(){
   const el=document.getElementById('infoWidgetContent');
   if(!el)return;
   // Cada fuente con su propio try/catch para que una falla no rompa el widget
-  let temp=null,sens=null;
-  try{const m=await fetch('https://api.open-meteo.com/v1/forecast?latitude=-34.6037&longitude=-58.3816&current=temperature_2m,apparent_temperature&timezone=America/Argentina/Buenos_Aires').then(r=>r.json());temp=m?.current?.temperature_2m;sens=m?.current?.apparent_temperature;}catch(e){}
+  let temp=null,sens=null,wxCode=null,wxWind=null;
+  try{const m=await fetch('https://api.open-meteo.com/v1/forecast?latitude=-34.6037&longitude=-58.3816&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m&timezone=America/Argentina/Buenos_Aires').then(r=>r.json());temp=m?.current?.temperature_2m;sens=m?.current?.apparent_temperature;wxCode=m?.current?.weather_code;wxWind=m?.current?.wind_speed_10m;}catch(e){}
 
   let ofVal=null,mepVal=null,blVal=null,ofPct=null,mepPct=null,blPct=null;
   try{
@@ -3624,7 +3655,7 @@ async function fetchInfoWidget(){
   const {feriado,fsl}=await fetchFeriadosInfo().catch(()=>({feriado:null,fsl:null}));
   const fmt=v=>v!=null?'$'+Math.round(Number(v)).toLocaleString('es-AR'):'—';
   const varTag=p=>p==null?'':` <span class="iw-dolar-var ${p>=0?'up':'down'}">${p>=0?'▲':'▼'}${Math.abs(p).toFixed(1)}%</span>`;
-  const we=getWeatherEmoji(temp);
+  const we=getWeatherEmoji(temp,wxCode,wxWind);
   const tempDisp=temp!=null?`${temp}°${we?`<span class="iw-weather-emoji ${we.cls}">${we.emoji}</span>`:''}`:' —';
   const html=`
     <div class="iw-temp-row">
