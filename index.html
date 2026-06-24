@@ -3165,7 +3165,7 @@ function parsearMovimientos(results){
     if(p.status!=='approved'){excluidos.push({hora,nombre,tipo,monto,motivo:p.status});return;}
     movs.push({hora,nombre,tipo,monto});
   });
-  const sortFn=(a,b)=>{const pa=a.hora.split(':').map(Number),pb=b.hora.split(':').map(Number);return(pa[0]*60+pa[1])-(pb[0]*60+pb[1]);};
+  const sortFn=(a,b)=>{const pa=a.hora.split(':').map(Number),pb=b.hora.split(':').map(Number);return(pb[0]*60+pb[1])-(pa[0]*60+pa[1]);};
   movs.sort(sortFn);enviadas.sort(sortFn);
   return{movs,excluidos,enviadas};
 }
