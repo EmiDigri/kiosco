@@ -136,13 +136,17 @@ html{overflow-x:hidden;overflow-y:scroll}
 .turno-chip .dot{width:5px;height:5px;border-radius:50%;background:var(--accent);animation:glow 2s infinite}
 .turno-nombre{font-size:36px;font-weight:800;letter-spacing:-1.2px;line-height:1;margin-bottom:5px;background:linear-gradient(135deg,#fff 30%,rgba(255,255,255,.6));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .turno-horario{font-size:13px;color:var(--text-soft);margin-bottom:22px;font-weight:400}
-.btn-cargar{display:inline-flex;align-items:center;gap:10px;background:var(--accent);color:#05071A;border:none;border-radius:var(--radius-sm);padding:13px 22px;font-size:14px;font-weight:700;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;cursor:pointer;transition:transform .2s cubic-bezier(.34,1.56,.64,1),box-shadow .3s;position:relative;z-index:1;letter-spacing:-.1px;overflow:visible}
+.btn-cargar{display:inline-flex;align-items:center;gap:10px;background:var(--accent);color:#05071A;border:none;border-radius:var(--radius-sm);padding:13px 22px;font-size:14px;font-weight:700;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;cursor:pointer;transition:transform .2s cubic-bezier(.34,1.56,.64,1),box-shadow .3s,width .42s cubic-bezier(.77,0,.175,1),padding .42s cubic-bezier(.77,0,.175,1);position:relative;z-index:1;letter-spacing:-.1px;overflow:visible}
 .btn-cargar::before{content:'';position:absolute;inset:0;border-radius:var(--radius-sm);background:var(--accent);z-index:-1;transition:background .3s}
 .btn-cargar:hover{transform:translateY(-3px) scale(1.02);box-shadow:0 12px 32px rgba(61,90,254,.35)}
 .btn-cargar:hover::before{background:#6B7FFF}
 .btn-cargar:active{transform:scale(.97)}
 .btn-cargar .btn-icon{transition:transform .35s cubic-bezier(.34,1.56,.64,1)}
 .btn-cargar:hover .btn-icon{transform:rotate(180deg) scale(1.1)}
+.btn-cargar.morphing{overflow:hidden;pointer-events:none;transform:none!important}
+.btn-cargar.morphing .btn-icon,.btn-cargar.morphing #btnTxt{opacity:0;transition:opacity .12s}
+.btn-cargar.morphing::after{content:'';position:absolute;top:50%;left:50%;width:18px;height:18px;border:2.5px solid rgba(5,7,26,.22);border-top-color:#05071A;border-radius:50%;animation:btn-morph-spin .72s linear infinite;transform:translate(-50%,-50%)}
+@keyframes btn-morph-spin{to{transform:translate(-50%,-50%) rotate(360deg)}}
 .btn-cargar-wrap{position:relative;display:inline-block}
 .btn-particle{position:absolute;width:7px;height:7px;border-radius:50%;pointer-events:none;animation:btn-particle-fly .7s cubic-bezier(.2,.8,.3,1) forwards}
 @keyframes btn-particle-fly{
@@ -3172,19 +3176,31 @@ function parsearMovimientos(results){
 
 document.getElementById('btnCargar').addEventListener('click',async()=>{
   const btn=document.getElementById('btnCargar'),dot=document.getElementById('sDot'),txt=document.getElementById('sTxt'),btxt=document.getElementById('btnTxt');
-  btn.disabled=true;btxt.textContent='Conectando...';dot.classList.add('activo');txt.textContent='Conectando con MercadoPago...';
+  const bRect=btn.getBoundingClientRect(),origW=bRect.width,btnH=bRect.height;
+  btn.style.width=origW+'px';btn.style.padding='0';
+  void btn.offsetWidth;
+  btn.classList.add('morphing');btn.style.width=btnH+'px';
+  btn.disabled=true;dot.classList.add('activo');txt.textContent='Conectando con MercadoPago...';
+  const morphRestore=(newTxt)=>{
+    btxt.textContent=newTxt;
+    btn.classList.remove('morphing');
+    btn.style.width=origW+'px';
+    setTimeout(()=>{btn.style.width='';btn.style.padding='';},460);
+  };
   try{
     if(esCierre&&!turnoReciente){
       document.getElementById('resultados').style.display='block';
       const resultados=await Promise.all(TURNOS.map(t=>fetchMovimientos(t.desdeH,t.desdeM,t.hastaH,t.hastaM)));
       TURNOS.forEach((t,i)=>{const parsed=parsearMovimientos(resultados[i]);guardarTurno(t.nombre,parsed.movs,parsed.excluidos);});
-      dot.classList.remove('activo');txt.textContent='Datos cargados ✓';btn.disabled=false;btxt.textContent='Ver resumen del día';
+      dot.classList.remove('activo');txt.textContent='Datos cargados ✓';btn.disabled=false;
+      morphRestore('Ver resumen del día');
       renderCierre();
     }else{
       const t=turno||turnoReciente;
       const results=await fetchMovimientos(t.desdeH,t.desdeM,t.hastaH,t.hastaM);
       const parsed=parsearMovimientos(results);
-      dot.classList.remove('activo');txt.textContent=parsed.movs.length+' movimientos cargados ✓';btn.disabled=false;btnExplotar();btxt.textContent='Turno cargado';
+      dot.classList.remove('activo');txt.textContent=parsed.movs.length+' movimientos cargados ✓';btn.disabled=false;btnExplotar();
+      morphRestore('Turno cargado');
       document.getElementById('resultados').style.display='block';
       guardarTurno(t.nombre,parsed.movs,parsed.excluidos);
       renderTurno(parsed.movs,parsed.excluidos,parsed.enviadas);
@@ -3193,7 +3209,8 @@ document.getElementById('btnCargar').addEventListener('click',async()=>{
     if(portada)portada.style.display='none';
     setTimeout(()=>document.getElementById('resultados').scrollIntoView({behavior:'smooth',block:'start'}),2500);
   }catch(err){
-    dot.classList.remove('activo');txt.textContent='Error al conectar — revisá el wifi';btn.disabled=false;btxt.textContent=esCierre?'Ver resumen del día':'Cargar mi turno';
+    dot.classList.remove('activo');txt.textContent='Error al conectar — revisá el wifi';btn.disabled=false;
+    morphRestore(esCierre?'Ver resumen del día':'Cargar mi turno');
     showToast('No se pudo conectar con MercadoPago');console.error(err);
   }
 });
