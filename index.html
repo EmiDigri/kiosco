@@ -3177,15 +3177,17 @@ function parsearMovimientos(results){
 document.getElementById('btnCargar').addEventListener('click',async()=>{
   const btn=document.getElementById('btnCargar'),dot=document.getElementById('sDot'),txt=document.getElementById('sTxt'),btxt=document.getElementById('btnTxt');
   const bRect=btn.getBoundingClientRect(),origW=bRect.width,btnH=bRect.height;
-  btn.style.width=origW+'px';btn.style.padding='0';
+  btn.style.setProperty('width',origW+'px','important');
+  btn.style.setProperty('padding','0','important');
   void btn.offsetWidth;
-  btn.classList.add('morphing');btn.style.width=btnH+'px';
+  btn.classList.add('morphing');
+  btn.style.setProperty('width',btnH+'px','important');
   btn.disabled=true;dot.classList.add('activo');txt.textContent='Conectando con MercadoPago...';
   const morphRestore=(newTxt)=>{
     btxt.textContent=newTxt;
     btn.classList.remove('morphing');
-    btn.style.width=origW+'px';
-    setTimeout(()=>{btn.style.width='';btn.style.padding='';},460);
+    btn.style.setProperty('width',origW+'px','important');
+    setTimeout(()=>{btn.style.removeProperty('width');btn.style.removeProperty('padding');},460);
   };
   try{
     if(esCierre&&!turnoReciente){
@@ -3199,7 +3201,7 @@ document.getElementById('btnCargar').addEventListener('click',async()=>{
       const t=turno||turnoReciente;
       const results=await fetchMovimientos(t.desdeH,t.desdeM,t.hastaH,t.hastaM);
       const parsed=parsearMovimientos(results);
-      dot.classList.remove('activo');txt.textContent=parsed.movs.length+' movimientos cargados ✓';btn.disabled=false;btnExplotar();
+      dot.classList.remove('activo');txt.textContent=parsed.movs.length+' movimientos cargados ✓';btn.disabled=false;
       morphRestore('Turno cargado');
       document.getElementById('resultados').style.display='block';
       guardarTurno(t.nombre,parsed.movs,parsed.excluidos);
