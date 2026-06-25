@@ -3740,8 +3740,8 @@ tickReloj();setInterval(tickReloj,1000);
       name.appendChild(flag);
       setTimeout(()=>{
         flag.style.opacity='1';flag.style.transform='translateY(0) scale(1)';
-        // Liberar transform inline para que tome la animación CSS de flameo
-        setTimeout(()=>{flag.style.transform='';flag.style.removeProperty('transition');},600);
+        // Activar animación de flameo con !important para superar el reset global
+        setTimeout(()=>{flag.style.transform='';flag.style.setProperty('animation','logo-flag-wave 2.2s ease-in-out infinite','important');},600);
       },100+i*60+300);
     }
   });
