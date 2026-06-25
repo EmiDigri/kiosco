@@ -2894,6 +2894,19 @@ async function histCargarMes(){
   histResumenMes=histAgruparPorDia(pagos,cierres,gastos);
   renderCalendarioMes();
   renderListaDiasMes(fuente);
+  // Para hoy, hacer fetch fresco y actualizar el tile (el resumen mensual puede estar desactualizado)
+  const hoyStr=fechaHoy();
+  if(histMesActual.getFullYear()===new Date().getFullYear()&&histMesActual.getMonth()===new Date().getMonth()){
+    histFetchDia(hoyStr).then(({pagos:p2,cierres:c2})=>{
+      const pagosValidos=p2.filter(x=>!x.es_enviada&&!x.excluido);
+      const totalMP=pagosValidos.reduce((a,x)=>a+(Number(x.monto)||0),0);
+      const totalCaja=c2.reduce((a,x)=>a+(Number(x.total_turno)||0),0);
+      const totalMovs=pagosValidos.length;
+      if(histResumenMes[hoyStr]){histResumenMes[hoyStr].mpTotal=totalMP;histResumenMes[hoyStr].cajaTotal=totalCaja;histResumenMes[hoyStr].movs=totalMovs;}
+      const cell=document.querySelector(`.hist-day-cell[data-dia="${hoyStr}"]`);
+      if(cell){const mainEl=cell.querySelector('.hist-day-main');if(mainEl){const principal=totalCaja>0?totalCaja:totalMP;mainEl.textContent=principal?histMoney(principal):'—';}}
+    }).catch(()=>{});
+  }
 }
 function renderCalendarioMes(){
   const {y,m,last}=histPrimerYUltimoDiaMes(histMesActual);
