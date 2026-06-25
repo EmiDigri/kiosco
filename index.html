@@ -3193,7 +3193,7 @@ document.getElementById('btnCargar').addEventListener('click',async()=>{
     }
     const portada=document.getElementById('turnosHoyPortada');
     if(portada)portada.style.display='none';
-    setTimeout(()=>document.getElementById('resultados').scrollIntoView({behavior:'smooth',block:'start'}),2500);
+    setTimeout(()=>{const lastTransf=document.querySelector('#tablaBody .tp-t');const target=lastTransf?lastTransf.closest('.t-row'):document.getElementById('resultados');target.scrollIntoView({behavior:'smooth',block:'center'});},1500);
   }catch(err){
     dot.classList.remove('activo');txt.textContent='Error al conectar — revisá el wifi';btn.disabled=false;
     showToast('No se pudo conectar con MercadoPago');console.error(err);
