@@ -3058,6 +3058,9 @@ async function mostrarDetalleDia(dia){
   const totalMP=pagosValidos.reduce((a,p)=>a+(Number(p.monto)||0),0);
   const totalCaja=cierres.reduce((a,c)=>a+(Number(c.total_turno)||0),0);
   const totalMovs=pagosValidos.length;
+  if(histResumenMes[dia]){histResumenMes[dia].mpTotal=totalMP;histResumenMes[dia].cajaTotal=totalCaja;histResumenMes[dia].movs=totalMovs;}
+  const cell=document.querySelector(`.hist-day-cell[data-dia="${dia}"]`);
+  if(cell){const mainEl=cell.querySelector('.hist-day-main');if(mainEl){const principal=totalCaja>0?totalCaja:totalMP;mainEl.textContent=principal?histMoney(principal):'—';}}
   document.getElementById('histTotalGlobal').textContent=histMoney(totalCaja>0?totalCaja:totalMP);
   document.getElementById('histTotalSub').textContent=`Caja ${histMoney(totalCaja)} · MercadoPago ${histMoney(totalMP)} · ${totalMovs} movimientos`;
   let html=`<div class="hist-detail-grid">
