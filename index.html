@@ -3710,6 +3710,7 @@ tickReloj();setInterval(tickReloj,1000);
   // Dot
   if(dot){dot.style.opacity='0';dot.style.transform='scale(0)';setTimeout(()=>{setImp(dot,'opacity .4s ease,transform .5s cubic-bezier(.34,1.56,.64,1)');dot.style.opacity='1';dot.style.transform='scale(1)';},60);}
   // Pelota que rueda desde la izquierda
+  name.textContent='';
   const ball=document.createElement('span');
   ball.textContent='⚽';
   ball.style.cssText='display:inline-block;font-size:1em;margin-right:6px;opacity:0;transform:translateX(-40px) rotate(-180deg)';
