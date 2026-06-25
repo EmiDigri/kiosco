@@ -2551,10 +2551,13 @@ function renderTurnosCards(anteriores,datosDia,contId){
     const horas=Object.keys(horaMap).sort((a,b)=>+a-+b);const maxM=Math.max(...horas.map(h=>horaMap[h].t+horaMap[h].p));
     let filasHoras='';
     horas.forEach(h=>{const pctT=horaMap[h].t/maxM*100,pctP=horaMap[h].p/maxM*100;filasHoras+=`<div class="hora-row"><span class="hora-lbl">${h}:00</span><div class="hora-track"><div class="hora-bar-t" style="width:${pctT}%"></div><div class="hora-bar-p" style="left:${pctT}%;width:${pctP}%"></div></div><span class="hora-monto">$${((horaMap[h].t+horaMap[h].p)/1000).toFixed(1)}k</span></div>`;});
+    const enviadas=(datos.enviadas||[]).sort((a,b)=>(a.hora||'').localeCompare(b.hora||''));
+    const totalEnviado=enviadas.reduce((a,m)=>a+m.monto,0);
     let filasMov='';movs.forEach(m=>{const pill=m.tipo==='Venta Point'?'<span class="tipo-pill tp-p">Point Smart</span>':'<span class="tipo-pill tp-t">Transferencia</span>';filasMov+=`<div class="t-row"><span class="t-hora">${m.hora}</span><span class="t-nombre">${m.nombre}</span>${pill}<span class="t-monto">$${m.monto.toLocaleString('es-AR')}</span></div>`;});
+    let filasEnv='';if(enviadas.length){filasEnv+=`<div class="trc-detalle-head" style="margin-top:12px">↗ Transferencias enviadas</div>`;enviadas.forEach(m=>{filasEnv+=`<div class="t-row"><span class="t-hora">${m.hora}</span><span class="t-nombre">${m.nombre}</span><span class="tipo-pill" style="background:var(--amber-dim);color:var(--amber);border:1px solid rgba(244,164,53,.25)">Enviada</span><span class="t-monto" style="color:var(--amber)">$${m.monto.toLocaleString('es-AR')}</span></div>`;});}
     const uid=contId+i;
     const card=document.createElement('div');card.className='turno-resumen-card';card.style.cssText='opacity:0;transform:translateY(16px)';
-    card.innerHTML=`<div class="trc-clickable" data-uid="${uid}"><div class="trc-head"><div class="trc-name"><span class="trc-dot" style="background:${t.color}"></span>${t.nombre}</div><svg class="trc-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div><div class="trc-total">$${tot.toLocaleString('es-AR')}</div><div class="trc-detail"><span><span class="trc-mini-dot" style="background:#3D5AFE"></span>Transf. $${transfT.toLocaleString('es-AR')}</span><span><span class="trc-mini-dot" style="background:#f4a435"></span>Point $${pointT.toLocaleString('es-AR')}</span><span class="trc-tap">Ver detalle</span></div></div><div class="trc-detalle" id="det-${uid}"><div class="trc-detalle-head">${movs.length} pagos · de ${movs[0]?.hora||'—'} a ${movs[movs.length-1]?.hora||'—'}</div><div style="margin-bottom:12px">${filasHoras}</div>${filasMov}</div>`;
+    card.innerHTML=`<div class="trc-clickable" data-uid="${uid}"><div class="trc-head"><div class="trc-name"><span class="trc-dot" style="background:${t.color}"></span>${t.nombre}</div><svg class="trc-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div><div class="trc-total">$${tot.toLocaleString('es-AR')}</div><div class="trc-detail"><span><span class="trc-mini-dot" style="background:#3D5AFE"></span>Transf. $${transfT.toLocaleString('es-AR')}</span><span><span class="trc-mini-dot" style="background:#f4a435"></span>Point $${pointT.toLocaleString('es-AR')}</span>${enviadas.length?`<span style="color:var(--amber)">↗ $${totalEnviado.toLocaleString('es-AR')}</span>`:''}<span class="trc-tap">Ver detalle</span></div></div><div class="trc-detalle" id="det-${uid}"><div class="trc-detalle-head">${movs.length} pagos · de ${movs[0]?.hora||'—'} a ${movs[movs.length-1]?.hora||'—'}</div><div style="margin-bottom:12px">${filasHoras}</div>${filasMov}${filasEnv}</div>`;
     cont.appendChild(card);
     setTimeout(()=>{card.style.transition='opacity .4s ease,transform .5s cubic-bezier(.34,1.56,.64,1)';card.style.opacity='1';card.style.transform='translateY(0)';},80+i*100);
     card.querySelector('.trc-clickable').addEventListener('click',()=>{card.classList.toggle('open');const det=document.getElementById('det-'+uid);det.style.maxHeight=card.classList.contains('open')?det.scrollHeight+'px':'0';});
@@ -2578,11 +2581,11 @@ function renderTurnosHoy(turnoActualNombre,containerId){
 // ─── STORAGE ───
 const STORAGE_KEY='kiosco_historial';
 function fechaHoy(){const d=new Date();return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
-function guardarTurno(nombreTurno,movs,excluidos){
+function guardarTurno(nombreTurno,movs,excluidos,enviadas){
   const hoyK=fechaHoy();let hist={};
   try{hist=JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}');}catch(e){}
   if(!hist[hoyK])hist[hoyK]={};
-  hist[hoyK][nombreTurno]={movs,excluidos,guardadoEn:new Date().toISOString()};
+  hist[hoyK][nombreTurno]={movs,excluidos,enviadas:enviadas||[],guardadoEn:new Date().toISOString()};
   localStorage.setItem(STORAGE_KEY,JSON.stringify(hist));
 }
 function leerHistorial(){try{return JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}');}catch(e){return{};}}
@@ -3034,6 +3037,7 @@ async function histFetchDia(dia){
     Object.entries(datosDia).forEach(([turno,d])=>{
       (d.movs||[]).forEach(m=>pagos.push({fecha:dia,hora:m.hora,nombre:m.nombre,tipo:m.tipo,monto:m.monto,turno,es_enviada:false}));
       (d.excluidos||[]).forEach(m=>pagos.push({fecha:dia,hora:m.hora,nombre:m.nombre,tipo:m.tipo,monto:m.monto,turno,es_enviada:false,excluido:true}));
+      (d.enviadas||[]).forEach(m=>pagos.push({fecha:dia,hora:m.hora,nombre:m.nombre,tipo:'Transferencia enviada',monto:m.monto,turno,es_enviada:true}));
     });
   }
   const loc=histNormalizarCierreLocal(dia);
@@ -3179,7 +3183,7 @@ document.getElementById('btnCargar').addEventListener('click',async()=>{
     if(esCierre&&!turnoReciente){
       document.getElementById('resultados').style.display='block';
       const resultados=await Promise.all(TURNOS.map(t=>fetchMovimientos(t.desdeH,t.desdeM,t.hastaH,t.hastaM)));
-      TURNOS.forEach((t,i)=>{const parsed=parsearMovimientos(resultados[i]);guardarTurno(t.nombre,parsed.movs,parsed.excluidos);});
+      TURNOS.forEach((t,i)=>{const parsed=parsearMovimientos(resultados[i]);guardarTurno(t.nombre,parsed.movs,parsed.excluidos,parsed.enviadas);});
       dot.classList.remove('activo');txt.textContent='Datos cargados ✓';btn.disabled=false;
       ef.l.e(btn);btxt.textContent='Ver resumen del día';ef.x(btn);
       renderCierre();
@@ -3190,7 +3194,7 @@ document.getElementById('btnCargar').addEventListener('click',async()=>{
       dot.classList.remove('activo');txt.textContent=parsed.movs.length+' movimientos cargados ✓';btn.disabled=false;
       ef.l.e(btn);btxt.textContent='Turno cargado';ef.x(btn);
       document.getElementById('resultados').style.display='block';
-      guardarTurno(t.nombre,parsed.movs,parsed.excluidos);
+      guardarTurno(t.nombre,parsed.movs,parsed.excluidos,parsed.enviadas);
       renderTurno(parsed.movs,parsed.excluidos,parsed.enviadas);
     }
     const portada=document.getElementById('turnosHoyPortada');
@@ -3213,7 +3217,7 @@ function renderOtrosTurnos(){
     btn.innerHTML=`<span class="t-dot" style="background:${t.color}"></span>Ver turno de ${t.nombre}`;
     btn.addEventListener('click',async()=>{
       btn.disabled=true;btn.innerHTML=`<span class="t-dot" style="background:${t.color}"></span>Cargando...`;
-      try{const results=await fetchMovimientos(t.desdeH,t.desdeM,t.hastaH,t.hastaM);const parsed=parsearMovimientos(results);guardarTurno(t.nombre,parsed.movs,parsed.excluidos);const tNombreActual=(turno||turnoReciente||{nombre:''}).nombre;renderTurnosHoy(tNombreActual);
+      try{const results=await fetchMovimientos(t.desdeH,t.desdeM,t.hastaH,t.hastaM);const parsed=parsearMovimientos(results);guardarTurno(t.nombre,parsed.movs,parsed.excluidos,parsed.enviadas);const tNombreActual=(turno||turnoReciente||{nombre:''}).nombre;renderTurnosHoy(tNombreActual);
 actualizarHeroSide();
 const heroBtnCierre=document.getElementById('heroBtnCierre');if(heroBtnCierre)heroBtnCierre.addEventListener('click',cmAbrir);
 const heroBtnHistorial2=document.getElementById('heroBtnHistorial2');if(heroBtnHistorial2)heroBtnHistorial2.addEventListener('click',()=>document.getElementById('btnHistorial')?.click());setTimeout(()=>{const portada=document.getElementById('turnosHoyPortada');if(portada)portada.scrollIntoView({behavior:'auto',block:'start'});},200);showToast((t.nombre.startsWith('Turno')?t.nombre:'Turno de '+t.nombre)+' cargado ✓');}
