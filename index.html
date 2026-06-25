@@ -136,28 +136,14 @@ html{overflow-x:hidden;overflow-y:scroll}
 .turno-chip .dot{width:5px;height:5px;border-radius:50%;background:var(--accent);animation:glow 2s infinite}
 .turno-nombre{font-size:36px;font-weight:800;letter-spacing:-1.2px;line-height:1;margin-bottom:5px;background:linear-gradient(135deg,#fff 30%,rgba(255,255,255,.6));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .turno-horario{font-size:13px;color:var(--text-soft);margin-bottom:22px;font-weight:400}
-.btn-cargar{display:inline-flex;align-items:center;gap:10px;background:var(--accent);color:#05071A;border:none;border-radius:var(--radius-sm);padding:13px 22px;font-size:14px;font-weight:700;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;cursor:pointer;transition:transform .2s cubic-bezier(.34,1.56,.64,1),box-shadow .3s,width .42s cubic-bezier(.77,0,.175,1),padding .42s cubic-bezier(.77,0,.175,1);position:relative;z-index:1;letter-spacing:-.1px;overflow:visible}
+.btn-cargar{display:inline-flex;align-items:center;gap:10px;background:var(--accent);color:#05071A;border:none;border-radius:var(--radius-sm);padding:13px 22px;font-size:14px;font-weight:700;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;cursor:pointer;transition:transform .2s cubic-bezier(.34,1.56,.64,1),box-shadow .3s;position:relative;z-index:1;letter-spacing:-.1px;overflow:visible}
 .btn-cargar::before{content:'';position:absolute;inset:0;border-radius:var(--radius-sm);background:var(--accent);z-index:-1;transition:background .3s}
 .btn-cargar:hover{transform:translateY(-3px) scale(1.02);box-shadow:0 12px 32px rgba(61,90,254,.35)}
 .btn-cargar:hover::before{background:#6B7FFF}
 .btn-cargar:active{transform:scale(.97)}
-.btn-cargar .btn-circle{height:44px;width:44px;border-radius:50%;background:rgba(5,7,26,.13);display:flex;justify-content:center;align-items:center;transition:all .4s ease;position:relative;box-shadow:0 0 0 0 rgba(255,255,255,0);overflow:hidden;flex-shrink:0}
-.btn-cargar .btn-circle::before{content:'';position:absolute;left:0;bottom:0;background:rgba(5,7,26,.25);width:100%;height:0;transition:none}
-.btn-cargar .btn-icon{transition:all .4s ease;flex-shrink:0}
+.btn-cargar .btn-icon{transition:transform .35s cubic-bezier(.34,1.56,.64,1)}
 .btn-cargar:hover .btn-icon{transform:rotate(180deg) scale(1.1)}
-.btn-cargar .btn-square{aspect-ratio:1;width:13px;border-radius:2px;background:currentColor;opacity:0;visibility:hidden;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);transition:all .4s ease}
 .btn-cargar-wrap{position:relative;display:inline-block}
-.btn-cargar-wrap::after{content:'';position:absolute;top:0;bottom:0;left:0;right:0;background:rgba(255,255,255,.95);width:10px;height:10px;border-radius:50%;margin:auto;opacity:0;visibility:hidden;pointer-events:none;z-index:10}
-.btn-cargar-wrap.morphing::after{animation:btnOrbit 1.8s ease-in-out .4s infinite}
-.btn-cargar.morphing{pointer-events:none;transform:none!important;justify-content:center!important;gap:0!important}
-.btn-cargar.morphing #btnTxt{opacity:0;flex:0 0 0!important;min-width:0!important;max-width:0!important;overflow:hidden;padding:0;transition:opacity .15s}
-.btn-cargar.morphing .btn-circle{animation:btnCirclePulse 1s forwards;rotate:180deg}
-.btn-cargar.morphing .btn-circle::before{animation:btnCircleFill 14s ease-in-out forwards}
-.btn-cargar.morphing .btn-icon{opacity:0;visibility:hidden}
-.btn-cargar.morphing .btn-square{opacity:1;visibility:visible}
-@keyframes btnCirclePulse{0%{scale:.95;box-shadow:0 0 0 0 rgba(255,255,255,.55)}70%{scale:1;box-shadow:0 0 0 16px rgba(255,255,255,0)}100%{scale:.95;box-shadow:0 0 0 0 rgba(255,255,255,0)}}
-@keyframes btnCircleFill{from{height:0}to{height:100%}}
-@keyframes btnOrbit{from{transform:rotate(-90deg) translate(36px) rotate(0);opacity:1;visibility:visible}to{transform:rotate(270deg) translate(36px) rotate(360deg);opacity:1;visibility:visible}}
 .btn-particle{position:absolute;width:7px;height:7px;border-radius:50%;pointer-events:none;animation:btn-particle-fly .7s cubic-bezier(.2,.8,.3,1) forwards}
 @keyframes btn-particle-fly{
   0%{transform:translate(0,0) scale(1);opacity:1}
@@ -1982,13 +1968,10 @@ img,svg,canvas{max-width:100%}
         <div class="turno-horario" id="turnoHorario">—</div>
         <div class="btn-cargar-wrap" id="btnCargarWrap">
           <button class="btn-cargar" id="btnCargar">
-            <span class="btn-circle">
-              <svg class="btn-icon" id="btnIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
-                <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
-              </svg>
-              <span class="btn-square"></span>
-            </span>
+            <svg class="btn-icon" id="btnIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+              <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+            </svg>
             <span id="btnTxt">Cargar mi turno</span>
           </button>
         </div>
@@ -3189,39 +3172,21 @@ function parsearMovimientos(results){
 
 document.getElementById('btnCargar').addEventListener('click',async()=>{
   const btn=document.getElementById('btnCargar'),dot=document.getElementById('sDot'),txt=document.getElementById('sTxt'),btxt=document.getElementById('btnTxt');
-  const wrap=document.getElementById('btnCargarWrap');
-  const origW=btn.getBoundingClientRect().width;
-  btn.style.setProperty('transition','none','important');
-  btn.style.setProperty('padding','5px','important');
-  void btn.offsetWidth;
-  const collapsedW=btn.getBoundingClientRect().height;
-  btn.style.removeProperty('transition');
-  btn.style.setProperty('width',origW+'px','important');
-  void btn.offsetWidth;
-  btn.classList.add('morphing');wrap.classList.add('morphing');
-  btn.style.setProperty('width',collapsedW+'px','important');
-  btn.style.setProperty('height',collapsedW+'px','important');
   btn.disabled=true;dot.classList.add('activo');txt.textContent='Conectando con MercadoPago...';
-  const morphRestore=(newTxt)=>{
-    btxt.textContent=newTxt;
-    btn.classList.remove('morphing');wrap.classList.remove('morphing');
-    btn.style.setProperty('width',origW+'px','important');
-    setTimeout(()=>{btn.style.removeProperty('width');btn.style.removeProperty('height');btn.style.removeProperty('padding');},460);
-  };
   try{
     if(esCierre&&!turnoReciente){
       document.getElementById('resultados').style.display='block';
       const resultados=await Promise.all(TURNOS.map(t=>fetchMovimientos(t.desdeH,t.desdeM,t.hastaH,t.hastaM)));
       TURNOS.forEach((t,i)=>{const parsed=parsearMovimientos(resultados[i]);guardarTurno(t.nombre,parsed.movs,parsed.excluidos);});
       dot.classList.remove('activo');txt.textContent='Datos cargados ✓';btn.disabled=false;
-      morphRestore('Ver resumen del día');
+      btxt.textContent='Ver resumen del día';btnExplotar();
       renderCierre();
     }else{
       const t=turno||turnoReciente;
       const results=await fetchMovimientos(t.desdeH,t.desdeM,t.hastaH,t.hastaM);
       const parsed=parsearMovimientos(results);
       dot.classList.remove('activo');txt.textContent=parsed.movs.length+' movimientos cargados ✓';btn.disabled=false;
-      morphRestore('Turno cargado');
+      btxt.textContent='Turno cargado';btnExplotar();
       document.getElementById('resultados').style.display='block';
       guardarTurno(t.nombre,parsed.movs,parsed.excluidos);
       renderTurno(parsed.movs,parsed.excluidos,parsed.enviadas);
@@ -3231,7 +3196,6 @@ document.getElementById('btnCargar').addEventListener('click',async()=>{
     setTimeout(()=>document.getElementById('resultados').scrollIntoView({behavior:'smooth',block:'start'}),2500);
   }catch(err){
     dot.classList.remove('activo');txt.textContent='Error al conectar — revisá el wifi';btn.disabled=false;
-    morphRestore(esCierre?'Ver resumen del día':'Cargar mi turno');
     showToast('No se pudo conectar con MercadoPago');console.error(err);
   }
 });
@@ -3415,41 +3379,25 @@ function btnExplotar(){
   canvas.style.cssText='position:fixed;inset:0;z-index:99999;pointer-events:none';
   document.body.appendChild(canvas);
   const ctx=canvas.getContext('2d');
-  const golosinas=['🍬','🍭','🍫','🍪','🧁','🍩','🍡','🍦','🍮','🍯'];
-  const particles=Array.from({length:24},(_,i)=>({
-    x:cx,y:cy,
-    vx:(Math.random()*2-1)*6.5,
-    vy:-(7+Math.random()*8),
-    size:22+Math.random()*16,
-    emoji:golosinas[Math.floor(Math.random()*golosinas.length)],
-    rot:Math.random()*Math.PI*2,
-    vr:(Math.random()-0.5)*0.35,
-    alpha:1
-  }));
+  const colors=['#22c55e','#4ade80','#86efac','#ffffff','#6B7FFF','#a3e635','#34d399','#facc15','#f472b6'];
+  const particles=Array.from({length:28},(_,i)=>{
+    const angle=(i/28)*Math.PI*2;
+    const speed=2+Math.random()*2.5;
+    return{x:cx,y:cy,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,r:4+Math.random()*5,color:colors[i%colors.length],alpha:1};
+  });
   let frame=0;
   function draw(){
     ctx.clearRect(0,0,canvas.width,canvas.height);
     let alive=false;
-    const fade=frame<80?1:Math.max(0,1-(frame-80)/45);
     particles.forEach(p=>{
       p.x+=p.vx;p.y+=p.vy;
-      p.vy+=0.34;p.rot+=p.vr;
-      p.alpha=fade;
-      if(p.alpha>0){
-        alive=true;
-        ctx.save();
-        ctx.globalAlpha=p.alpha;
-        ctx.translate(p.x,p.y);
-        ctx.rotate(p.rot);
-        ctx.font=`${p.size}px serif`;
-        ctx.textAlign='center';
-        ctx.textBaseline='middle';
-        ctx.fillText(p.emoji,0,0);
-        ctx.restore();
-      }
+      p.vy+=0.07;
+      p.alpha-=0.011;
+      p.r*=0.987;
+      if(p.alpha>0){alive=true;ctx.globalAlpha=p.alpha;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=p.color;ctx.fill();}
     });
     ctx.globalAlpha=1;
-    if(alive&&frame<140){frame++;requestAnimationFrame(draw);}
+    if(alive&&frame<90){frame++;requestAnimationFrame(draw);}
     else canvas.remove();
   }
   requestAnimationFrame(draw);
