@@ -2904,7 +2904,13 @@ async function histCargarMes(){
       const totalMovs=pagosValidos.length;
       if(histResumenMes[hoyStr]){histResumenMes[hoyStr].mpTotal=totalMP;histResumenMes[hoyStr].cajaTotal=totalCaja;histResumenMes[hoyStr].movs=totalMovs;}
       const cell=document.querySelector(`.hist-day-cell[data-dia="${hoyStr}"]`);
-      if(cell){const mainEl=cell.querySelector('.hist-day-main');if(mainEl){const principal=totalCaja>0?totalCaja:totalMP;mainEl.textContent=principal?histMoney(principal):'—';}}
+      if(cell){
+        const principal=totalCaja>0?totalCaja:totalMP;
+        const mainEl=cell.querySelector('.hist-day-main');
+        if(mainEl)mainEl.textContent=principal?histMoney(principal):'—';
+        const subEl=cell.querySelector('.hist-day-sub');
+        if(subEl)subEl.textContent=totalMovs?`${totalMovs} movs · MP ${histMoney(totalMP)}`:'sin movimientos';
+      }
     }).catch(()=>{});
   }
 }
