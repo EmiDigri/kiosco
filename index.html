@@ -78,6 +78,7 @@ html{overflow-x:hidden;overflow-y:scroll}
 .logo-name{font-size:15px;font-weight:600;letter-spacing:-.2px;color:var(--text)}
 .fecha-chip{font-size:11px;color:var(--text-soft);background:var(--glass);border:1px solid var(--glass-border);border-radius:999px;padding:5px 12px;backdrop-filter:blur(10px);font-weight:500}
 .logo-name-row{display:flex;align-items:center;gap:10px;position:relative}
+@keyframes ball-spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
 @keyframes logo-flag-wave{0%,100%{transform:skewY(0deg) scaleX(1)}33%{transform:skewY(3deg) scaleX(.96)}66%{transform:skewY(-2.5deg) scaleX(.97)}}
 @keyframes star-twinkle{0%,100%{transform:translateX(-50%) scale(1);text-shadow:0 0 6px #FFD700,0 0 12px #FFA500;opacity:1}40%{transform:translateX(-50%) scale(1.5);text-shadow:0 0 16px #FFD700,0 0 32px #FFA500,0 0 55px #FFE566,0 0 80px #FFD700;opacity:1}60%{transform:translateX(-50%) scale(.85);text-shadow:0 0 4px #FFD700,0 0 8px #FFA500;opacity:.7}}
 .logo-flag{display:inline-block;margin-left:7px;vertical-align:middle;transform-origin:left center;animation:logo-flag-wave 2.2s ease-in-out infinite;filter:drop-shadow(0 1px 3px rgba(0,0,0,.4))}
@@ -3722,7 +3723,10 @@ tickReloj();setInterval(tickReloj,1000);
   ball.style.cssText='display:inline-block;font-size:1em;margin-right:6px;opacity:0;transform:translateX(-40px) rotate(-180deg)';
   setImp(ball,'opacity .35s ease,transform .6s cubic-bezier(.22,1,.36,1)');
   name.appendChild(ball);
-  setTimeout(()=>{ball.style.opacity='1';ball.style.transform='translateX(0) rotate(0deg)';},60);
+  setTimeout(()=>{
+    ball.style.opacity='1';ball.style.transform='translateX(0) rotate(0deg)';
+    setTimeout(()=>{ball.style.transform='';ball.style.setProperty('animation','ball-spin 3s linear infinite','important');},650);
+  },60);
   // Letters — celeste y blanco alternados (colores Argentina)
   const text='Kiosco';
   const colors=['#ffffff','#75AADB'];
