@@ -3146,6 +3146,10 @@ async function mostrarDetalleDia(dia){
     if(movs.length){
       movs.forEach(m=>{const pill=m.tipo==='Venta Point'?'<span class="tipo-pill tp-p">Point Smart</span>':'<span class="tipo-pill tp-t">Transferencia</span>';movsHTML+=`<div class="t-row"><span class="t-hora">${m.hora||'--:--'}</span><span class="t-nombre">${cmEsc?cmEsc(m.nombre):m.nombre}</span>${pill}<span class="t-monto">${histMoney(m.monto)}</span></div>`;});
     }else{movsHTML+='<div class="empty">Sin movimientos de MercadoPago en este turno.</div>';}
+    if(enviados.length){
+      movsHTML+=`<div class="hist-movs-title" style="margin-top:10px;color:var(--amber)">↗ Transferencias enviadas</div>`;
+      enviados.sort((a,b)=>(a.hora||'').localeCompare(b.hora||'')).forEach(e=>{movsHTML+=`<div class="t-row"><span class="t-hora">${e.hora||'--:--'}</span><span class="t-nombre">${cmEsc?cmEsc(e.nombre):e.nombre}</span><span class="tipo-pill" style="background:rgba(245,158,11,.15);color:var(--amber)">Enviada</span><span class="t-monto" style="color:var(--amber)">-${histMoney(e.monto)}</span></div>`;});
+    }
     html+=`<div class="hist-turno-card" id="${cardId}">
       <div class="hist-turno-header">
         <div class="hist-turno-left"><span class="hist-turno-dot" style="background:${t.color}"></span><div><div class="hist-turno-nombre">${t.nombre}</div><div class="hist-turno-horario">${t.label||''}</div></div></div>
