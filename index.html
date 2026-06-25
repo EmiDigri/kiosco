@@ -2872,11 +2872,20 @@ async function histCargarMes(){
     if(!tieneRemoto&&loc.cierres.length)cierres.push(...loc.cierres);
     const tieneGastosRemotos=gastos.some(g=>g.fecha===dia);
     if(!tieneGastosRemotos&&loc.gastos.length)gastos.push(...loc.gastos);
-    // Si no hay pagos de Supabase para este día, completar desde kiosco_historial local
-    if(!pagos.some(p=>p.fecha===dia)){
+    // Completar desde kiosco_historial local: siempre para hoy (merge), solo si no hay datos remotos para otros días
+    const esHoy=dia===fechaHoy();
+    const tienePagosRemotos=pagos.some(p=>p.fecha===dia);
+    if(!tienePagosRemotos||esHoy){
       const datosDia=histLocal[dia]||{};
       Object.entries(datosDia).forEach(([turno,datos])=>{
-        (datos.movs||[]).forEach(m=>pagos.push({fecha:dia,hora:m.hora,nombre:m.nombre,tipo:m.tipo,monto:m.monto,turno,es_enviada:false}));
+        (datos.movs||[]).forEach(m=>{
+          const existe=pagos.some(p=>p.fecha===dia&&p.hora===m.hora&&p.monto===m.monto&&p.nombre===m.nombre);
+          if(!existe)pagos.push({fecha:dia,hora:m.hora,nombre:m.nombre,tipo:m.tipo,monto:m.monto,turno,es_enviada:false});
+        });
+        (datos.enviadas||[]).forEach(e=>{
+          const existe=pagos.some(p=>p.fecha===dia&&p.hora===e.hora&&p.monto===e.monto&&p.nombre===e.nombre);
+          if(!existe)pagos.push({fecha:dia,hora:e.hora,nombre:e.nombre,tipo:e.tipo||'enviada',monto:e.monto,turno,es_enviada:true});
+        });
       });
     }
   }
