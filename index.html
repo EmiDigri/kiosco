@@ -78,6 +78,8 @@ html{overflow-x:hidden;overflow-y:scroll}
 .logo-name{font-size:15px;font-weight:600;letter-spacing:-.2px;color:var(--text)}
 .fecha-chip{font-size:11px;color:var(--text-soft);background:var(--glass);border:1px solid var(--glass-border);border-radius:999px;padding:5px 12px;backdrop-filter:blur(10px);font-weight:500}
 .logo-name-row{display:flex;align-items:center;gap:10px;position:relative}
+@keyframes logo-flag-wave{0%,100%{transform:skewY(0deg) scaleX(1)}33%{transform:skewY(3deg) scaleX(.96)}66%{transform:skewY(-2.5deg) scaleX(.97)}}
+.logo-flag{display:inline-block;margin-left:7px;vertical-align:middle;transform-origin:left center;animation:logo-flag-wave 2.2s ease-in-out infinite;filter:drop-shadow(0 1px 3px rgba(0,0,0,.4))}
 .logo-sub{font-size:11px;color:var(--text-soft);margin-top:2px;letter-spacing:.01em}
 
 .aviso-banner{display:flex;align-items:center;justify-content:space-between;gap:10px;background:rgba(61,90,254,.1);border:1px solid rgba(61,90,254,.2);border-radius:var(--radius-sm);padding:10px 16px;margin-bottom:14px;font-size:12px;color:var(--text-mid);backdrop-filter:blur(10px)}
@@ -3729,10 +3731,11 @@ tickReloj();setInterval(tickReloj,1000);
     setTimeout(()=>{s.style.opacity='1';s.style.transform='translateY(0)';s.style.filter='blur(0)';},100+i*60);
     if(i===text.length-1){
       const flag=document.createElement('span');
-      flag.style.cssText='display:inline-block;margin-left:7px;width:22px;height:15px;border-radius:2px;background:linear-gradient(to bottom,#75AADB 33.3%,#fff 33.3%,#fff 66.6%,#75AADB 66.6%);opacity:0;transform:translateY(10px) scale(.6);vertical-align:middle;box-shadow:0 1px 4px rgba(0,0,0,.3);position:relative';
-      const sun=document.createElement('span');
-      sun.style.cssText='position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:4px;height:4px;border-radius:50%;background:#F6C444;box-shadow:0 -4px 0 .8px #F6C444,0 4px 0 .8px #F6C444,-4px 0 0 .8px #F6C444,4px 0 0 .8px #F6C444,-3px -3px 0 .8px #F6C444,3px -3px 0 .8px #F6C444,-3px 3px 0 .8px #F6C444,3px 3px 0 .8px #F6C444';
-      flag.appendChild(sun);
+      flag.className='logo-flag';
+      let rays='';
+      for(let r=0;r<16;r++){const a=r*22.5*Math.PI/180;const x1=(Math.sin(a)*6.2).toFixed(2),y1=(-Math.cos(a)*6.2).toFixed(2),x2=(Math.sin(a)*9.8).toFixed(2),y2=(-Math.cos(a)*9.8).toFixed(2);rays+=`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#F6B40E" stroke-width="${r%2===0?1.5:1}" stroke-linecap="round"/>`;}
+      flag.innerHTML=`<svg width="44" height="30" viewBox="0 0 60 40" xmlns="http://www.w3.org/2000/svg"><rect width="60" height="13.4" fill="#74ACDF"/><rect y="13.4" width="60" height="13.2" fill="#FFF"/><rect y="26.6" width="60" height="13.4" fill="#74ACDF"/><g transform="translate(30,20)">${rays}<circle r="4.6" fill="#F6B40E" stroke="#85340A" stroke-width=".7"/><circle cx="-1.4" cy="-.7" r=".55" fill="#85340A"/><circle cx="1.4" cy="-.7" r=".55" fill="#85340A"/><path d="M-1.5,.9 Q0,2.3 1.5,.9" stroke="#85340A" stroke-width=".6" fill="none"/></g></svg>`;
+      flag.style.cssText=flag.style.cssText+'opacity:0;transform:translateY(10px) scale(.6)';
       setImp(flag,'opacity .4s ease,transform .5s cubic-bezier(.34,1.56,.64,1)');
       name.appendChild(flag);
       setTimeout(()=>{flag.style.opacity='1';flag.style.transform='translateY(0) scale(1)';},100+i*60+300);
