@@ -3727,6 +3727,14 @@ tickReloj();setInterval(tickReloj,1000);
     setImp(s,'opacity .45s ease,transform .45s cubic-bezier(.22,1,.36,1),filter .45s ease');
     name.appendChild(s);
     setTimeout(()=>{s.style.opacity='1';s.style.transform='translateY(0)';s.style.filter='blur(0)';},100+i*60);
+    if(i===text.length-1){
+      const flag=document.createElement('span');
+      flag.textContent=' 🇦🇷';
+      flag.style.cssText='display:inline-block;opacity:0;transform:translateY(10px) scale(.6)';
+      setImp(flag,'opacity .4s ease,transform .5s cubic-bezier(.34,1.56,.64,1)');
+      name.appendChild(flag);
+      setTimeout(()=>{flag.style.opacity='1';flag.style.transform='translateY(0) scale(1)';},100+i*60+300);
+    }
   });
   // Estrellas doradas al terminar el reveal
   const revealEnd=100+5*60+450;
