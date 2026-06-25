@@ -77,7 +77,7 @@ html{overflow-x:hidden;overflow-y:scroll}
 @keyframes glow{0%,100%{box-shadow:0 0 6px var(--accent)}50%{box-shadow:0 0 18px var(--accent),0 0 30px rgba(61,90,254,.3)}}
 .logo-name{font-size:15px;font-weight:600;letter-spacing:-.2px;color:var(--text)}
 .fecha-chip{font-size:11px;color:var(--text-soft);background:var(--glass);border:1px solid var(--glass-border);border-radius:999px;padding:5px 12px;backdrop-filter:blur(10px);font-weight:500}
-.logo-name-row{display:flex;align-items:center;gap:10px}
+.logo-name-row{display:flex;align-items:center;gap:10px;position:relative}
 .logo-sub{font-size:11px;color:var(--text-soft);margin-top:2px;letter-spacing:.01em}
 
 .aviso-banner{display:flex;align-items:center;justify-content:space-between;gap:10px;background:rgba(61,90,254,.1);border:1px solid rgba(61,90,254,.2);border-radius:var(--radius-sm);padding:10px 16px;margin-bottom:14px;font-size:12px;color:var(--text-mid);backdrop-filter:blur(10px)}
@@ -3738,18 +3738,29 @@ tickReloj();setInterval(tickReloj,1000);
       setTimeout(()=>{flag.style.opacity='1';flag.style.transform='translateY(0) scale(1)';},100+i*60+300);
     }
   });
-  // Estrellas doradas al terminar el reveal
+  // Estrellas doradas: explotan y quedan fijas arriba de Kiosco
+  const row=name.closest('.logo-name-row')||name.parentElement;
   const revealEnd=100+5*60+450;
-  setTimeout(()=>{
-    const rect=name.getBoundingClientRect();
-    [{dx:-18,dy:-18,delay:0},{dx:0,dy:-26,delay:80},{dx:18,dy:-18,delay:160}].forEach(({dx,dy,delay})=>{
-      const star=document.createElement('span');
-      star.textContent='★';
-      star.style.cssText=`position:fixed;left:${rect.left+rect.width/2+dx}px;top:${rect.top+6}px;font-size:13px;color:#FFD700;pointer-events:none;z-index:9999;opacity:1;transform:translateY(0) scale(1);transition:opacity .6s ease,transform .6s cubic-bezier(.2,.8,.3,1)`;
-      document.body.appendChild(star);
-      setTimeout(()=>{star.style.opacity='0';star.style.transform=`translateY(${dy}px) scale(0)`;setTimeout(()=>star.remove(),700);},delay);
-    });
-  },revealEnd);
+  [{left:'18%',delay:0},{left:'50%',delay:100},{left:'82%',delay:200}].forEach(({left,delay})=>{
+    const star=document.createElement('span');
+    star.textContent='★';
+    // Posición final: arriba del texto
+    star.style.cssText=`position:absolute;left:${left};top:-18px;transform:translateX(-50%) scale(0) translateY(20px);font-size:16px;color:#FFD700;text-shadow:0 0 8px #FFD700,0 0 16px #FFA500;pointer-events:none;z-index:10;opacity:0`;
+    row.appendChild(star);
+    setTimeout(()=>{
+      // Explosión: aparece grande desde abajo
+      star.style.transition='opacity .2s ease,transform .35s cubic-bezier(.2,1.6,.4,1),text-shadow .3s ease';
+      star.style.opacity='1';
+      star.style.transform='translateX(-50%) scale(1.8) translateY(-8px)';
+      star.style.textShadow='0 0 12px #FFD700,0 0 24px #FFA500,0 0 40px #FFD700';
+      // Settle: encoge a tamaño final y queda fija
+      setTimeout(()=>{
+        star.style.transition='transform .4s cubic-bezier(.34,1.56,.64,1),text-shadow .4s ease';
+        star.style.transform='translateX(-50%) scale(1) translateY(0)';
+        star.style.textShadow='0 0 6px #FFD700,0 0 12px #FFA500';
+      },350);
+    },revealEnd+delay);
+  });
   // Subtitle
   if(sub){sub.style.opacity='0';sub.style.transform='translateY(5px)';setTimeout(()=>{setImp(sub,'opacity .5s ease,transform .5s ease');sub.style.opacity='1';sub.style.transform='translateY(0)';},480);}
   // Badge
