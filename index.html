@@ -3729,7 +3729,10 @@ tickReloj();setInterval(tickReloj,1000);
     setTimeout(()=>{s.style.opacity='1';s.style.transform='translateY(0)';s.style.filter='blur(0)';},100+i*60);
     if(i===text.length-1){
       const flag=document.createElement('span');
-      flag.style.cssText='display:inline-block;margin-left:7px;width:22px;height:15px;border-radius:2px;background:linear-gradient(to bottom,#75AADB 33.3%,#fff 33.3%,#fff 66.6%,#75AADB 66.6%);opacity:0;transform:translateY(10px) scale(.6);vertical-align:middle;box-shadow:0 1px 4px rgba(0,0,0,.3)';
+      flag.style.cssText='display:inline-block;margin-left:7px;width:22px;height:15px;border-radius:2px;background:linear-gradient(to bottom,#75AADB 33.3%,#fff 33.3%,#fff 66.6%,#75AADB 66.6%);opacity:0;transform:translateY(10px) scale(.6);vertical-align:middle;box-shadow:0 1px 4px rgba(0,0,0,.3);position:relative';
+      const sun=document.createElement('span');
+      sun.style.cssText='position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:4px;height:4px;border-radius:50%;background:#F6C444;box-shadow:0 -4px 0 .8px #F6C444,0 4px 0 .8px #F6C444,-4px 0 0 .8px #F6C444,4px 0 0 .8px #F6C444,-3px -3px 0 .8px #F6C444,3px -3px 0 .8px #F6C444,-3px 3px 0 .8px #F6C444,3px 3px 0 .8px #F6C444';
+      flag.appendChild(sun);
       setImp(flag,'opacity .4s ease,transform .5s cubic-bezier(.34,1.56,.64,1)');
       name.appendChild(flag);
       setTimeout(()=>{flag.style.opacity='1';flag.style.transform='translateY(0) scale(1)';},100+i*60+300);
