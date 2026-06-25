@@ -3875,7 +3875,17 @@ async function fetchInfoWidget(){
   iwAnimarEmoji();
 }
 fetchInfoWidget();
-setInterval(fetchInfoWidget,5*60*1000);
+// Dólares: actualizar cada 1h solo en horario de mercado (lun-vie 9-18 ART)
+function iwEnMercado(){
+  const now=new Date();
+  const d=now.getDay(); // 0=dom, 6=sab
+  if(d===0||d===6)return false;
+  const h=((now.getUTCHours()-3)+24)%24; // ART = UTC-3 fijo (sin DST)
+  return h>=9&&h<18;
+}
+(function iwSchedule(){
+  setTimeout(()=>{if(iwEnMercado())fetchInfoWidget();iwSchedule();},60*60*1000);
+})();
 
 window.addEventListener('resize',()=>{
   const sc=document.getElementById('sparkCard');
