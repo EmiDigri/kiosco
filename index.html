@@ -1802,10 +1802,12 @@ img,svg,canvas{max-width:100%}
   .app{width:100%!important;max-width:100%!important;padding:12px 10px 64px!important;margin:0!important}
 
   /* Header: en celular se apila para que no se vaya afuera */
-  .header{display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:12px!important;padding:0!important;margin-bottom:14px!important}
+  .header{display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:12px!important;padding:0!important;margin-bottom:14px!important;overflow:visible!important}
   .header .logo{width:100%;max-width:100%;align-items:flex-start!important}
-  .logo-name-row{display:flex!important;align-items:center!important;gap:7px!important;flex-wrap:wrap!important;max-width:100%}
-  .logo-name{font-size:22px!important;line-height:1!important}
+  .logo-name-row{display:flex!important;align-items:center!important;gap:7px!important;flex-wrap:wrap!important;max-width:100%;overflow:visible!important}
+  .logo-name{font-size:22px!important;line-height:1!important;overflow:visible!important}
+  .logo-flag{width:30px!important;height:20px!important}
+  .logo-flag svg{width:30px!important;height:20px!important}
   .logo-sub{font-size:12px!important;white-space:normal!important}
   .mp-mini-badge{height:30px!important;padding:3px 7px!important;margin-left:2px!important;max-width:120px!important}
   .mp-mini-logo{height:23px!important;width:auto!important;max-width:100px!important;object-fit:contain!important}
