@@ -3870,7 +3870,7 @@ async function fetchInfoWidget(){
   const html=`
     <div class="iw-temp-row">
       <div class="iw-temp-val">${tempDisp}</div>
-      <div class="iw-temp-meta"><span class="iw-temp-city">Buenos Aires</span><span class="iw-temp-label">Sensación ${sens!=null?sens+'°C':'—'}</span></div>
+      <div class="iw-temp-meta"><span class="iw-temp-city">Buenos Aires</span><span class="iw-temp-label">ST ${sens!=null?sens+'°C':'—'}</span></div>
     </div>
     <div class="iw-dolares">
       <div class="iw-dolar"><div class="iw-dolar-label">Oficial</div><div class="iw-dolar-val">${fmt(ofVal)}${varTag(ofPct)}</div></div>
