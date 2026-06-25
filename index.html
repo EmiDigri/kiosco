@@ -3738,7 +3738,11 @@ tickReloj();setInterval(tickReloj,1000);
       flag.style.cssText=flag.style.cssText+'opacity:0;transform:translateY(10px) scale(.6)';
       setImp(flag,'opacity .4s ease,transform .5s cubic-bezier(.34,1.56,.64,1)');
       name.appendChild(flag);
-      setTimeout(()=>{flag.style.opacity='1';flag.style.transform='translateY(0) scale(1)';},100+i*60+300);
+      setTimeout(()=>{
+        flag.style.opacity='1';flag.style.transform='translateY(0) scale(1)';
+        // Liberar transform inline para que tome la animación CSS de flameo
+        setTimeout(()=>{flag.style.transform='';flag.style.removeProperty('transition');},600);
+      },100+i*60+300);
     }
   });
   // Estrellas doradas: explotan y quedan fijas arriba de Kiosco
