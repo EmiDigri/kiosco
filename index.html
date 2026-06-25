@@ -3729,8 +3729,7 @@ tickReloj();setInterval(tickReloj,1000);
     setTimeout(()=>{s.style.opacity='1';s.style.transform='translateY(0)';s.style.filter='blur(0)';},100+i*60);
     if(i===text.length-1){
       const flag=document.createElement('span');
-      flag.textContent=' 🇦🇷';
-      flag.style.cssText='display:inline-block;opacity:0;transform:translateY(10px) scale(.6)';
+      flag.style.cssText='display:inline-block;margin-left:7px;width:22px;height:15px;border-radius:2px;background:linear-gradient(to bottom,#75AADB 33.3%,#fff 33.3%,#fff 66.6%,#75AADB 66.6%);opacity:0;transform:translateY(10px) scale(.6);vertical-align:middle;box-shadow:0 1px 4px rgba(0,0,0,.3)';
       setImp(flag,'opacity .4s ease,transform .5s cubic-bezier(.34,1.56,.64,1)');
       name.appendChild(flag);
       setTimeout(()=>{flag.style.opacity='1';flag.style.transform='translateY(0) scale(1)';},100+i*60+300);
