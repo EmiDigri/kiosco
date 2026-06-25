@@ -3709,17 +3709,36 @@ tickReloj();setInterval(tickReloj,1000);
   const setImp=(el,t)=>el.style.setProperty('transition',t,'important');
   // Dot
   if(dot){dot.style.opacity='0';dot.style.transform='scale(0)';setTimeout(()=>{setImp(dot,'opacity .4s ease,transform .5s cubic-bezier(.34,1.56,.64,1)');dot.style.opacity='1';dot.style.transform='scale(1)';},60);}
-  // Letters
+  // Pelota que rueda desde la izquierda
+  const ball=document.createElement('span');
+  ball.textContent='⚽';
+  ball.style.cssText='display:inline-block;font-size:1em;margin-right:6px;opacity:0;transform:translateX(-40px) rotate(-180deg)';
+  setImp(ball,'opacity .35s ease,transform .6s cubic-bezier(.22,1,.36,1)');
+  name.appendChild(ball);
+  setTimeout(()=>{ball.style.opacity='1';ball.style.transform='translateX(0) rotate(0deg)';},60);
+  // Letters — celeste y blanco alternados (colores Argentina)
   const text='Kiosco';
-  name.textContent='';
+  const colors=['#ffffff','#75AADB'];
   text.split('').forEach((ch,i)=>{
     const s=document.createElement('span');
     s.textContent=ch;
-    s.style.cssText='display:inline-block;opacity:0;transform:translateY(16px);filter:blur(8px)';
+    s.style.cssText=`display:inline-block;opacity:0;transform:translateY(16px);filter:blur(8px);color:${colors[i%2]}`;
     setImp(s,'opacity .45s ease,transform .45s cubic-bezier(.22,1,.36,1),filter .45s ease');
     name.appendChild(s);
     setTimeout(()=>{s.style.opacity='1';s.style.transform='translateY(0)';s.style.filter='blur(0)';},100+i*60);
   });
+  // Estrellas doradas al terminar el reveal
+  const revealEnd=100+5*60+450;
+  setTimeout(()=>{
+    const rect=name.getBoundingClientRect();
+    [{dx:-18,dy:-18,delay:0},{dx:0,dy:-26,delay:80},{dx:18,dy:-18,delay:160}].forEach(({dx,dy,delay})=>{
+      const star=document.createElement('span');
+      star.textContent='★';
+      star.style.cssText=`position:fixed;left:${rect.left+rect.width/2+dx}px;top:${rect.top+6}px;font-size:13px;color:#FFD700;pointer-events:none;z-index:9999;opacity:1;transform:translateY(0) scale(1);transition:opacity .6s ease,transform .6s cubic-bezier(.2,.8,.3,1)`;
+      document.body.appendChild(star);
+      setTimeout(()=>{star.style.opacity='0';star.style.transform=`translateY(${dy}px) scale(0)`;setTimeout(()=>star.remove(),700);},delay);
+    });
+  },revealEnd);
   // Subtitle
   if(sub){sub.style.opacity='0';sub.style.transform='translateY(5px)';setTimeout(()=>{setImp(sub,'opacity .5s ease,transform .5s ease');sub.style.opacity='1';sub.style.transform='translateY(0)';},480);}
   // Badge
