@@ -3808,17 +3808,25 @@ tickReloj();setInterval(tickReloj,1000);
     cv.style.cssText='display:block;width:1em;height:1em';
     const ctx=cv.getContext('2d');
     const cx=40,cy=40,r=37;
-    ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fillStyle='#f5f5f5';ctx.fill();
-    const sliceColors=['#002868','#BF0A30'];
-    for(let i=0;i<8;i++){
-      const a0=(i/8)*Math.PI*2,a1=((i+1)/8)*Math.PI*2;
-      ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,a0,a1);ctx.closePath();
-      ctx.fillStyle=sliceColors[i%2];ctx.fill();
-      ctx.strokeStyle='#fff';ctx.lineWidth=1;ctx.stroke();
-    }
-    ctx.beginPath();ctx.arc(cx,cy,r*0.28,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();
+    // Gradiente 3D base
+    const g=ctx.createRadialGradient(cx-10,cy-12,3,cx,cy,r);
+    g.addColorStop(0,'#ffffff');g.addColorStop(1,'#c8c8c8');
+    ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fillStyle=g;ctx.fill();
+    // Pentagonos clipados al círculo
+    ctx.save();ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.clip();
+    const penta=(px,py,pr,rot)=>{
+      ctx.beginPath();
+      for(let i=0;i<5;i++){const a=rot+i*2*Math.PI/5;i===0?ctx.moveTo(px+pr*Math.cos(a),py+pr*Math.sin(a)):ctx.lineTo(px+pr*Math.cos(a),py+pr*Math.sin(a));}
+      ctx.closePath();ctx.fillStyle='#1a1a2e';ctx.fill();ctx.strokeStyle='rgba(255,255,255,.6)';ctx.lineWidth=1;ctx.stroke();
+    };
+    // Central + 5 alrededor (patrón clásico de pelota)
+    penta(cx,cy+2,11,-Math.PI/2);
+    for(let i=0;i<5;i++){const a=-Math.PI/2+i*2*Math.PI/5;penta(cx+22*Math.cos(a),cy+2+22*Math.sin(a),11,a+Math.PI/10);}
+    ctx.restore();
+    // Destello especular
+    ctx.beginPath();ctx.ellipse(cx-10,cy-11,9,6,-.4,0,Math.PI*2);ctx.fillStyle='rgba(255,255,255,.45)';ctx.fill();
+    // Borde
     ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.strokeStyle='#999';ctx.lineWidth=1.5;ctx.stroke();
-    ctx.beginPath();ctx.ellipse(cx-10,cy-10,8,5,-.4,0,Math.PI*2);ctx.fillStyle='rgba(255,255,255,.35)';ctx.fill();
     ball.appendChild(cv);
   }
   ball.style.cssText='display:inline-block;font-size:1em;margin-right:6px;opacity:0;transform:translateX(-40px) rotate(-180deg)';
