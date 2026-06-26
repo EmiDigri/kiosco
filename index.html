@@ -2429,10 +2429,25 @@ function drawSparkline(movs,canvasId){
   const w=W,h=70;
   const movsAsc=[...movs].reverse();
   const vals=movsAsc.map(m=>m.monto);
-  const max=Math.max(...vals)*1.15;
+  const maxVal=Math.max(...vals);
+  const max=maxVal*1.15;
+  const yOf=v=>h-8-(v/max)*(h-20);
+  const fmtM=v=>v>=10000?'$'+(v/1000).toFixed(0)+'k':v>=1000?'$'+(v/1000).toFixed(1)+'k':'$'+Math.round(v);
+
+  // Grid lines + etiquetas eje Y
+  ctx.font='500 9px Inter,sans-serif';ctx.textAlign='right';
+  [[maxVal,true],[maxVal/2,false]].forEach(([v,isTop])=>{
+    const y=yOf(v);
+    ctx.beginPath();ctx.setLineDash([3,5]);
+    ctx.strokeStyle='rgba(240,250,244,.08)';ctx.lineWidth=0.5;
+    ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle='rgba(240,250,244,.32)';
+    ctx.fillText(fmtM(v),w-3,y-2);
+  });
+
   const pts=vals.map((v,i)=>({
     x:vals.length===1?w/2:(i/(vals.length-1))*(w-24)+12,
-    y:h-8-(v/max)*(h-20)
+    y:yOf(v)
   }));
   const grad=ctx.createLinearGradient(0,0,0,h);
   grad.addColorStop(0,'rgba(61,90,254,.25)');grad.addColorStop(1,'rgba(61,90,254,0)');
