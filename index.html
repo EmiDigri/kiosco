@@ -2938,7 +2938,7 @@ function renderCalendarioMes(){
     <div class="hist-sum-card sum-dias"><div class="hist-sum-label">Días con MP</div><div class="hist-sum-value">${diasConMP}</div></div>
     <div class="hist-sum-card sum-movs"><div class="hist-sum-label">Movimientos</div><div class="hist-sum-value">${movs}</div></div>`;
   let topDia=null,topVal=0,botDia=null,botVal=Infinity;
-  for(let d=1;d<=last;d++){const dia=histIso(y,m,d);const data=histResumenMes[dia];if(!data)continue;const v=data.cajaTotal>0?data.cajaTotal:data.mpTotal;if(v>topVal){topVal=v;topDia=dia;}if(v>0&&v<botVal){botVal=v;botDia=dia;}}
+  for(let d=1;d<=last;d++){const dia=histIso(y,m,d);const data=histResumenMes[dia];if(!data)continue;const v=data.cajaTotal>0?data.cajaTotal:data.mpTotal;if(v>topVal){topVal=v;topDia=dia;}if(v>0&&v<botVal&&dia<today){botVal=v;botDia=dia;}}
   let html='';
   for(let i=0;i<blanks;i++)html+='<div class="hist-day-cell empty"></div>';
   for(let d=1;d<=last;d++){
