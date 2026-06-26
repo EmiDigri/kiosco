@@ -2510,7 +2510,7 @@ function renderTurno(movs,excluidos,enviadas){
   setTimeout(()=>{document.getElementById('horasCard').classList.add('visible');renderHorasChart(movs);},560);
   const tablaBody=document.getElementById('tablaBody');
   document.getElementById('countPill').textContent=movs.length;tablaBody.innerHTML='';
-  movs.forEach((m,i)=>{const row=document.createElement('div');row.className='t-row';row.style.animationDelay=(i*45)+'ms';const pill=m.tipo==='Venta Point'?'<span class="tipo-pill tp-p">Point Smart</span>':'<span class="tipo-pill tp-t">Transferencia</span>';row.innerHTML=`<span class="t-hora">${m.hora}</span><span class="t-nombre">${m.nombre}</span>${pill}<span class="t-monto">$${m.monto.toLocaleString('es-AR')}</span>`;tablaBody.appendChild(row);});
+  movs.forEach((m,i)=>{const row=document.createElement('div');row.className='t-row';row.style.animationDelay=(i*45)+'ms';const pill=m.tipo==='Venta Point'?'<span class="tipo-pill tp-p">Point Smart</span>':'<span class="tipo-pill tp-t">Transferencia</span>';row.innerHTML=`<span class="t-hora">${m.hora}</span><span class="t-nombre">${m.nombre}${cardLogoHtml(m)}</span>${pill}<span class="t-monto">$${m.monto.toLocaleString('es-AR')}</span>`;tablaBody.appendChild(row);});
   setTimeout(()=>document.getElementById('tableCard').classList.add('visible'),560);
   const excBody=document.getElementById('excBody');document.getElementById('excPill').textContent=excluidos.length;excBody.innerHTML='';
   if(!excluidos.length){excBody.innerHTML='<div class="empty">Sin movimientos excluidos ✓</div>';}
@@ -2528,6 +2528,13 @@ function renderTurno(movs,excluidos,enviadas){
   if(portada)portada.style.display='none';
 }
 
+function cardLogoHtml(m){
+  const marca=m.marca||(m.tipo==='Venta Point'?(/(visa)/i.test(m.nombre||'')?'Visa':/(master)/i.test(m.nombre||'')?'Mastercard':/(maestro)/i.test(m.nombre||'')?'Maestro':''):'' );
+  if(!marca||marca==='Débito')return'';
+  if(marca==='Visa')return`<svg style="vertical-align:middle;margin-left:5px;flex-shrink:0" width="28" height="17" viewBox="0 0 40 26" xmlns="http://www.w3.org/2000/svg"><rect width="40" height="26" rx="4" fill="#1A1F71"/><text x="20" y="20" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="15" font-weight="900" font-style="italic" fill="#FFFFFF">VISA</text></svg>`;
+  if(marca==='Mastercard'||marca==='Maestro'){const c1=marca==='Mastercard'?'#EB001B':'#009DDC',c2=marca==='Mastercard'?'#F79E1B':'#CC0000',co=marca==='Mastercard'?'#FF5F00':'#7B2E82';return`<svg style="vertical-align:middle;margin-left:5px;flex-shrink:0" width="28" height="17" viewBox="0 0 40 26" xmlns="http://www.w3.org/2000/svg"><rect width="40" height="26" rx="4" fill="#1D1D1D"/><circle cx="16" cy="13" r="9" fill="${c1}"/><circle cx="24" cy="13" r="9" fill="${c2}"/><path d="M20,4.94 A9,9,0,0,1,20,21.06 A9,9,0,0,1,20,4.94Z" fill="${co}"/></svg>`;}
+  return'';
+}
 function renderCierre(){
   document.getElementById('turnoSection').style.display='none';
   document.getElementById('cierreSection').style.display='block';
@@ -3280,9 +3287,9 @@ function parsearMovimientos(results){
   results.forEach(p=>{
     const d=new Date(p.date_approved||p.date_created);
     const hora=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
-    let nombre='';
+    let nombre='',marca='';
     if(p._nombre){nombre=p._nombre;}
-    else if(p.operation_type==='pos_payment'){const cardholder=p.card?.cardholder?.name||'';const tarjeta=p.payment_method?.id||'';const tipoTarjeta=tarjeta.includes('visa')?'Visa':tarjeta.includes('master')?'Mastercard':tarjeta.includes('maestro')?'Maestro':'Débito';const nombreValido=cardholder.trim()&&!cardholder.includes('PAYWAVE')&&!cardholder.toLowerCase().includes('cardholder')&&cardholder.length>3;nombre=nombreValido?cardholder.trim():'Point Smart · '+tipoTarjeta;}
+    else if(p.operation_type==='pos_payment'){const cardholder=p.card?.cardholder?.name||'';const tarjeta=p.payment_method?.id||'';const tipoTarjeta=tarjeta.includes('visa')?'Visa':tarjeta.includes('master')?'Mastercard':tarjeta.includes('maestro')?'Maestro':'Débito';marca=tipoTarjeta;const nombreValido=cardholder.trim()&&!cardholder.includes('PAYWAVE')&&!cardholder.toLowerCase().includes('cardholder')&&cardholder.length>3;nombre=nombreValido?cardholder.trim():'Point Smart · '+tipoTarjeta;}
     else if(p.payer?.first_name){nombre=(p.payer.first_name+' '+(p.payer.last_name||'')).trim();}
     else if(p.additional_info?.payer?.first_name){nombre=(p.additional_info.payer.first_name+' '+(p.additional_info.payer.last_name||'')).trim();}
     else{nombre=p.description||'Transferencia recibida';}
@@ -3290,7 +3297,7 @@ function parsearMovimientos(results){
     const monto=p.transaction_amount;
     if(p.operation_type==='money_transfer_send'||p._tipo==='Transferencia enviada'){enviadas.push({hora,nombre,tipo:'Enviada',monto:Math.abs(monto)});return;}
     if(p.status!=='approved'){excluidos.push({hora,nombre,tipo,monto,motivo:p.status});return;}
-    movs.push({hora,nombre,tipo,monto});
+    movs.push({hora,nombre,tipo,monto,marca});
   });
   const sortFn=(a,b)=>{const pa=a.hora.split(':').map(Number),pb=b.hora.split(':').map(Number);return(pb[0]*60+pb[1])-(pa[0]*60+pa[1]);};
   movs.sort(sortFn);enviadas.sort(sortFn);
