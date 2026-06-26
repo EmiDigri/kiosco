@@ -3502,7 +3502,18 @@ function efectoDelDia(){
 }
 function _cvs(){const c=document.createElement('canvas');c.width=innerWidth;c.height=innerHeight;c.style.cssText='position:fixed;inset:0;z-index:99999;pointer-events:none';document.body.appendChild(c);return c;}
 function _rc(b){const r=b.getBoundingClientRect();return{cx:r.left+r.width/2,cy:r.top+r.height/2,w:r.width,h:r.height,r};}
-function _btnExito(btn){const ic=document.getElementById('btnIcon');if(ic)ic.innerHTML='<polyline points="20 6 9 17 4 12"/>';btn.classList.add('loaded');}
+function _btnExito(btn){
+  const ic=document.getElementById('btnIcon');
+  if(ic)ic.innerHTML='<polyline points="20 6 9 17 4 12"/>';
+  btn.classList.add('loaded');
+  setTimeout(()=>{
+    btn.classList.remove('loaded');
+    btn.disabled=false;
+    if(ic)ic.innerHTML='<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>';
+    const btxt=document.getElementById('btnTxt');
+    if(btxt)btxt.textContent='Cargar mi turno';
+  },3000);
+}
 
 const EFECTOS=[
 
