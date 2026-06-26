@@ -2341,9 +2341,9 @@ const TURNOS_DOMINGO = [
   {nombre:'Turno 2',desdeH:16,desdeM:1,hastaH:23,hastaM:0,label:'4:01 pm → 10:00 pm',color:'#6B7FFF'},
 ];
 const TURNOS_SEMANA = [
-  {nombre:'Vale',desdeH:7,desdeM:0,hastaH:12,hastaM:0,label:'7:00 am → 12:00 pm',color:'#3D5AFE'},
+  {nombre:'Vale',desdeH:7,desdeM:0,hastaH:12,hastaM:0,capturaDesdeH:0,capturaDesdeM:0,label:'7:00 am → 12:00 pm',color:'#3D5AFE'},
   {nombre:'Ani',desdeH:12,desdeM:1,hastaH:17,hastaM:0,label:'12:01 pm → 5:00 pm',color:'#6B7FFF'},
-  {nombre:'Marta',desdeH:17,desdeM:1,hastaH:23,hastaM:0,label:'5:01 pm → 11:00 pm',color:'#2541CC'},
+  {nombre:'Marta',desdeH:17,desdeM:1,hastaH:23,hastaM:59,label:'5:01 pm → 11:00 pm',color:'#2541CC'},
 ];
 const esDomingo = new Date().getDay() === 0;
 const TURNOS = esDomingo ? TURNOS_DOMINGO : TURNOS_SEMANA;
@@ -3314,14 +3314,14 @@ document.getElementById('btnCargar').addEventListener('click',async()=>{
   try{
     if(esCierre&&!turnoReciente){
       document.getElementById('resultados').style.display='block';
-      const resultados=await Promise.all(TURNOS.map(t=>fetchMovimientos(t.desdeH,t.desdeM,t.hastaH,t.hastaM)));
+      const resultados=await Promise.all(TURNOS.map(t=>fetchMovimientos(t.capturaDesdeH??t.desdeH,t.capturaDesdeM??t.desdeM,t.hastaH,t.hastaM)));
       TURNOS.forEach((t,i)=>{const parsed=parsearMovimientos(resultados[i]);guardarTurno(t.nombre,parsed.movs,parsed.excluidos,parsed.enviadas);});
       dot.classList.remove('activo');txt.textContent='Datos cargados ✓';btn.disabled=false;
       ef.l.e(btn);btxt.textContent='Ver resumen del día';ef.x(btn);
       renderCierre();
     }else{
       const t=turno||turnoReciente;
-      const results=await fetchMovimientos(t.desdeH,t.desdeM,t.hastaH,t.hastaM);
+      const results=await fetchMovimientos(t.capturaDesdeH??t.desdeH,t.capturaDesdeM??t.desdeM,t.hastaH,t.hastaM);
       const parsed=parsearMovimientos(results);
       dot.classList.remove('activo');txt.textContent=parsed.movs.length+' movimientos cargados ✓';btn.disabled=false;
       ef.l.e(btn);btxt.textContent='Turno cargado';ef.x(btn);
@@ -3349,7 +3349,7 @@ function renderOtrosTurnos(){
     btn.innerHTML=`<span class="t-dot" style="background:${t.color}"></span>Ver turno de ${t.nombre}`;
     btn.addEventListener('click',async()=>{
       btn.disabled=true;btn.innerHTML=`<span class="t-dot" style="background:${t.color}"></span>Cargando...`;
-      try{const results=await fetchMovimientos(t.desdeH,t.desdeM,t.hastaH,t.hastaM);const parsed=parsearMovimientos(results);guardarTurno(t.nombre,parsed.movs,parsed.excluidos,parsed.enviadas);const tNombreActual=(turno||turnoReciente||{nombre:''}).nombre;renderTurnosHoy(tNombreActual);
+      try{const results=await fetchMovimientos(t.capturaDesdeH??t.desdeH,t.capturaDesdeM??t.desdeM,t.hastaH,t.hastaM);const parsed=parsearMovimientos(results);guardarTurno(t.nombre,parsed.movs,parsed.excluidos,parsed.enviadas);const tNombreActual=(turno||turnoReciente||{nombre:''}).nombre;renderTurnosHoy(tNombreActual);
 actualizarHeroSide();
 const heroBtnCierre=document.getElementById('heroBtnCierre');if(heroBtnCierre)heroBtnCierre.addEventListener('click',cmAbrir);
 const heroBtnHistorial2=document.getElementById('heroBtnHistorial2');if(heroBtnHistorial2)heroBtnHistorial2.addEventListener('click',()=>document.getElementById('btnHistorial')?.click());setTimeout(()=>{const portada=document.getElementById('turnosHoyPortada');if(portada)portada.scrollIntoView({behavior:'auto',block:'start'});},200);showToast((t.nombre.startsWith('Turno')?t.nombre:'Turno de '+t.nombre)+' cargado ✓');}
