@@ -3803,7 +3803,7 @@ tickReloj();setInterval(tickReloj,1000);
   name.textContent='';
   const ball=document.createElement('span');
   ball.innerHTML=`<img src="/assets/trionda.jpg" style="display:block;width:1em;height:1em;object-fit:cover;border-radius:50%" alt="">`;
-  ball.style.cssText='display:inline-block;font-size:1em;margin-right:6px;opacity:0;transform:translateX(-40px) rotate(-180deg)';
+  ball.style.cssText='display:inline-block;font-size:0.82em;margin-right:5px;vertical-align:middle;opacity:0;transform:translateX(-40px) rotate(-180deg)';
   setImp(ball,'opacity .35s ease,transform .6s cubic-bezier(.22,1,.36,1)');
   name.appendChild(ball);
   setTimeout(()=>{
