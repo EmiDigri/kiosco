@@ -77,11 +77,11 @@ html{overflow-x:hidden;overflow-y:scroll}
 @keyframes glow{0%,100%{box-shadow:0 0 6px var(--accent)}50%{box-shadow:0 0 18px var(--accent),0 0 30px rgba(61,90,254,.3)}}
 .logo-name{font-size:15px;font-weight:600;letter-spacing:-.2px;color:var(--text)}
 .fecha-chip{font-size:11px;color:var(--text-soft);background:var(--glass);border:1px solid var(--glass-border);border-radius:999px;padding:5px 12px;backdrop-filter:blur(10px);font-weight:500}
-.logo-name-row{display:flex;align-items:center;gap:10px;position:relative}
+.logo-name-row{display:flex;align-items:center;gap:20px;position:relative}
 @keyframes ball-spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
 @keyframes logo-flag-wave{0%,100%{transform:skewY(0deg) scaleX(1)}33%{transform:skewY(3deg) scaleX(.96)}66%{transform:skewY(-2.5deg) scaleX(.97)}}
 @keyframes star-twinkle{0%,100%{transform:translateX(-50%) scale(1);text-shadow:0 0 6px #FFD700,0 0 12px #FFA500;opacity:1}40%{transform:translateX(-50%) scale(1.5);text-shadow:0 0 16px #FFD700,0 0 32px #FFA500,0 0 55px #FFE566,0 0 80px #FFD700;opacity:1}60%{transform:translateX(-50%) scale(.85);text-shadow:0 0 4px #FFD700,0 0 8px #FFA500;opacity:.7}}
-.logo-flag{display:inline-block;margin-left:7px;vertical-align:middle;transform-origin:left center;animation:logo-flag-wave 2.2s ease-in-out infinite;filter:drop-shadow(0 1px 3px rgba(0,0,0,.4))}
+.logo-flag{display:inline-block;margin-left:11px;vertical-align:middle;transform-origin:left center;animation:logo-flag-wave 2.2s ease-in-out infinite;filter:drop-shadow(0 1px 3px rgba(0,0,0,.4))}
 .logo-sub{font-size:11px;color:var(--text-soft);margin-top:2px;letter-spacing:.01em}
 
 .aviso-banner{display:flex;align-items:center;justify-content:space-between;gap:10px;background:rgba(61,90,254,.1);border:1px solid rgba(61,90,254,.2);border-radius:var(--radius-sm);padding:10px 16px;margin-bottom:14px;font-size:12px;color:var(--text-mid);backdrop-filter:blur(10px)}
@@ -1809,7 +1809,7 @@ img,svg,canvas{max-width:100%}
   /* Header: en celular se apila para que no se vaya afuera */
   .header{display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:12px!important;padding:0!important;margin-bottom:14px!important;overflow:visible!important}
   .header .logo{width:100%;max-width:100%;align-items:flex-start!important}
-  .logo-name-row{display:flex!important;align-items:center!important;gap:7px!important;flex-wrap:wrap!important;max-width:100%;overflow:visible!important}
+  .logo-name-row{display:flex!important;align-items:center!important;gap:14px!important;flex-wrap:wrap!important;max-width:100%;overflow:visible!important}
   .logo-name{font-size:22px!important;line-height:1!important;overflow:visible!important}
   .logo-flag{width:30px!important;height:20px!important}
   .logo-flag svg{width:30px!important;height:20px!important}
@@ -3803,7 +3803,7 @@ tickReloj();setInterval(tickReloj,1000);
   name.textContent='';
   const ball=document.createElement('span');
   ball.innerHTML=`<img src="/assets/trionda.jpg" style="display:block;width:1em;height:1em;object-fit:cover;border-radius:50%" alt="">`;
-  ball.style.cssText='display:inline-block;font-size:0.82em;margin-right:5px;vertical-align:middle;opacity:0;transform:translateX(-40px) rotate(-180deg)';
+  ball.style.cssText='display:inline-block;font-size:0.82em;margin-right:8px;vertical-align:middle;opacity:0;transform:translateX(-40px) rotate(-180deg)';
   setImp(ball,'opacity .35s ease,transform .6s cubic-bezier(.22,1,.36,1)');
   name.appendChild(ball);
   setTimeout(()=>{
