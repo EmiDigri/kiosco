@@ -1944,7 +1944,7 @@ img,svg,canvas{max-width:100%}
     <div class="logo">
       <div>
         <div class="logo-name-row">
-          <div class="logo-dot"></div>
+
           <span class="logo-name" id="logoName">Kiosco</span>
           <span class="mp-mini-badge">
             <img src="./assets/mercadopago-logo.png" alt="Mercado Pago" class="mp-mini-logo">
@@ -2372,7 +2372,7 @@ if(turno){
   document.getElementById('turnoChip').textContent=turno.nombre;
   document.getElementById('turnoNombre').textContent=turno.nombre.startsWith('Turno')?turno.nombre:'Turno de '+turno.nombre;
   document.getElementById('turnoHorario').textContent=turno.label;
-  document.querySelector('.logo-dot').style.background=turno.color;
+  const _ld=document.querySelector('.logo-dot');if(_ld)_ld.style.background=turno.color;
   document.querySelector('.btn-cargar').style.background=turno.color;
   document.querySelector('.turno-chip').style.color=turno.color;
 }else if(turnoReciente){
