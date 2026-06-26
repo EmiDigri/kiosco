@@ -2588,8 +2588,8 @@ function renderTurnosHoy(turnoActualNombre,containerId){
 // ─── STORAGE ───
 const STORAGE_KEY='kiosco_historial';
 function fechaHoy(){const d=new Date();return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
-function guardarTurno(nombreTurno,movs,excluidos,enviadas){
-  const hoyK=fechaHoy();let hist={};
+function guardarTurno(nombreTurno,movs,excluidos,enviadas,fecha){
+  const hoyK=fecha||fechaHoy();let hist={};
   try{hist=JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}');}catch(e){}
   if(!hist[hoyK])hist[hoyK]={};
   hist[hoyK][nombreTurno]={movs,excluidos,enviadas:enviadas||[],guardadoEn:new Date().toISOString()};
@@ -3165,13 +3165,40 @@ async function mostrarDetalleDia(dia){
       <div class="hist-turno-body"><div class="hist-turno-body-inner">${cierreHTML}${movsHTML}</div></div>
     </div>`;
   });
-  if(!huboAlgo)html+='<div class="hist-empty">No hay cierres ni movimientos guardados para este día.</div>';
+  if(!huboAlgo){
+    const esPasado=dia<=fechaHoy();
+    html+=`<div class="hist-empty">No hay cierres ni movimientos guardados para este día.${esPasado?`<br><button id="btnRecuperarMP" style="margin-top:14px;padding:10px 18px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:7px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg>Recuperar de MercadoPago</button>`:''}</div>`;
+  }
   cont.innerHTML=html;
   cont.querySelectorAll('.hist-turno-card').forEach(card=>{
     const header=card.querySelector('.hist-turno-header'),body=card.querySelector('.hist-turno-body');
     header.addEventListener('click',()=>{card.classList.toggle('open');body.style.maxHeight=card.classList.contains('open')?body.scrollHeight+'px':'0';});
   });
   document.getElementById('historialOverlay').scrollTop=0;
+  const btnRec=document.getElementById('btnRecuperarMP');
+  if(btnRec){
+    btnRec.addEventListener('click',async()=>{
+      btnRec.disabled=true;btnRec.textContent='Consultando MercadoPago...';
+      try{
+        const total=await fetchHistoricoMP(dia);
+        if(total===0){btnRec.textContent='No se encontraron pagos en MP para este día';return;}
+        // Refrescar detalle y tile del calendario
+        mostrarDetalleDia(dia);
+        histFetchDia(dia).then(({pagos:p2,cierres:c2})=>{
+          const pv=p2.filter(x=>!x.es_enviada&&!x.excluido);
+          const mp=pv.reduce((a,x)=>a+(Number(x.monto)||0),0);
+          const cj=c2.reduce((a,x)=>a+(Number(x.total_turno)||0),0);
+          if(histResumenMes[dia]){histResumenMes[dia].mpTotal=mp;histResumenMes[dia].cajaTotal=cj;histResumenMes[dia].movs=pv.length;}
+          const cell=document.querySelector(`.hist-day-cell[data-dia="${dia}"]`);
+          if(cell){
+            const principal=cj>0?cj:mp;
+            const mainEl=cell.querySelector('.hist-day-main');if(mainEl)mainEl.textContent=principal?histMoney(principal):'—';
+            const subEl=cell.querySelector('.hist-day-sub');if(subEl)subEl.textContent=pv.length?`${pv.length} movs · MP ${histMoney(mp)}`:'sin movimientos';
+          }
+        }).catch(()=>{});
+      }catch(e){btnRec.disabled=false;btnRec.innerHTML='Error: '+e.message;}
+    });
+  }
 }
 
 // ─── API / FETCH ───
@@ -3201,6 +3228,40 @@ async function fetchMovimientos(desdeH,desdeM,hastaH,hastaM){
   if(!res.ok)throw new Error('Error MP: '+res.status);
   const data=await res.json();
   return(data.results||[]).filter(p=>{const aprobado=new Date(p.date_approved);return aprobado>=desde&&aprobado<=hasta;});
+}
+
+async function fetchHistoricoMP(isoDate){
+  // Trae todos los pagos de MercadoPago para una fecha pasada con paginación
+  const begin=`${isoDate}T00:00:00.000-03:00`;
+  const end=`${isoDate}T23:59:59.000-03:00`;
+  let all=[],offset=0;
+  while(true){
+    const params=new URLSearchParams({begin_date:begin,end_date:end,sort:'date_approved',criteria:'asc',limit:100,offset});
+    const res=await fetch(`https://api.mercadopago.com/v1/payments/search?${params}`,{headers:{'Authorization':`Bearer ${ACCESS_TOKEN}`}});
+    if(!res.ok)throw new Error('Error MP: '+res.status);
+    const data=await res.json();
+    const results=data.results||[];
+    all=all.concat(results);
+    if(results.length<100)break;
+    offset+=100;
+  }
+  // Parsear y agrupar por turno según hora
+  const parsed=parsearMovimientos(all.filter(p=>p.status==='approved'));
+  const turnos=turnosDelDia(isoDate);
+  const asignarTurno=hora=>{
+    const [h,m]=hora.split(':').map(Number),mins=h*60+m;
+    return(turnos.find(t=>mins>=t.desdeH*60+t.desdeM&&mins<=t.hastaH*60+t.hastaM)||turnos[turnos.length-1]).nombre;
+  };
+  const byTurno={};
+  turnos.forEach(t=>{byTurno[t.nombre]={movs:[],excluidos:[],enviadas:[]};});
+  parsed.movs.forEach(m=>{byTurno[asignarTurno(m.hora)].movs.push(m);});
+  parsed.excluidos.forEach(m=>{byTurno[asignarTurno(m.hora)].excluidos.push(m);});
+  // Guardar cada turno en localStorage bajo la fecha histórica
+  turnos.forEach(t=>{
+    const d=byTurno[t.nombre];
+    if(d.movs.length||d.excluidos.length)guardarTurno(t.nombre,d.movs,d.excluidos,d.enviadas,isoDate);
+  });
+  return all.length;
 }
 
 function parsearMovimientos(results){
