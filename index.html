@@ -4045,13 +4045,13 @@ fetchInfoWidget();
     // Fase 1: girar ícono + texto "Cargando..."
     icon.style.animation='rf-spin .6s linear infinite';
     txt.textContent='Cargando...';
-    await new Promise(r=>setTimeout(r,700));
+    await new Promise(r=>setTimeout(r,350));
     // Fase 2: check verde + "Listo" → luego recarga real
     icon.style.animation='none';
     icon.innerHTML='<polyline points="20 6 9 17 4 12"/>';
     txt.textContent='Listo';
     btn.classList.add('done');
-    setTimeout(()=>location.reload(),500);
+    setTimeout(()=>location.reload(),250);
   });
 })();
 
