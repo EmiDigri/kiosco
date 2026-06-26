@@ -2427,7 +2427,8 @@ function drawSparkline(movs,canvasId){
   canvas.style.width='100%';canvas.style.height='70px';
   ctx.setTransform(1,0,0,1,0,0);ctx.scale(2,2);
   const w=W,h=70;
-  const vals=movs.map(m=>m.monto);
+  const movsAsc=[...movs].reverse();
+  const vals=movsAsc.map(m=>m.monto);
   const max=Math.max(...vals)*1.15;
   const pts=vals.map((v,i)=>({
     x:vals.length===1?w/2:(i/(vals.length-1))*(w-24)+12,
@@ -2446,8 +2447,8 @@ function drawSparkline(movs,canvasId){
   ctx.beginPath();ctx.arc(last.x,last.y,5,0,Math.PI*2);ctx.fillStyle='rgba(61,90,254,.2)';ctx.fill();
   ctx.beginPath();ctx.arc(last.x,last.y,3,0,Math.PI*2);ctx.fillStyle='#3D5AFE';ctx.fill();
   ctx.font='500 10px Space Grotesk,sans-serif';ctx.fillStyle='rgba(240,250,244,.35)';ctx.textAlign='center';
-  const step=Math.ceil(movs.length/6);
-  movs.forEach((m,i)=>{if(i%step===0||i===movs.length-1)ctx.fillText(m.hora,pts[i].x,h-1);});
+  const step=Math.ceil(movsAsc.length/6);
+  movsAsc.forEach((m,i)=>{if(i%step===0||i===movsAsc.length-1)ctx.fillText(m.hora,pts[i].x,h-1);});
 }
 
 function renderHorasChart(movs,bodyId){
