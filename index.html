@@ -3231,12 +3231,13 @@ async function fetchMovimientos(desdeH,desdeM,hastaH,hastaM){
 }
 
 async function fetchHistoricoMP(isoDate){
-  // Trae todos los pagos de MercadoPago para una fecha pasada con paginación
-  const begin=`${isoDate}T00:00:00.000-03:00`;
-  const end=`${isoDate}T23:59:59.000-03:00`;
+  // ART = UTC-3. Convertir día completo a UTC para la query a MP
+  const [y,mo,d]=isoDate.split('-').map(Number);
+  const begin=new Date(Date.UTC(y,mo-1,d,3,0,0));   // 00:00 ART = 03:00 UTC
+  const end=new Date(Date.UTC(y,mo-1,d+1,2,59,59)); // 23:59:59 ART = 02:59:59 UTC del día siguiente
   let all=[],offset=0;
   while(true){
-    const params=new URLSearchParams({begin_date:begin,end_date:end,sort:'date_approved',criteria:'asc',limit:100,offset});
+    const params=new URLSearchParams({begin_date:begin.toISOString(),end_date:end.toISOString(),sort:'date_approved',criteria:'asc',limit:100,offset});
     const res=await fetch(`https://api.mercadopago.com/v1/payments/search?${params}`,{headers:{'Authorization':`Bearer ${ACCESS_TOKEN}`}});
     if(!res.ok)throw new Error('Error MP: '+res.status);
     const data=await res.json();
