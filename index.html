@@ -3108,7 +3108,8 @@ async function mostrarDetalleDia(dia){
   document.getElementById('histTotalGlobal').textContent=histMoney(totalCaja>0?totalCaja:totalMP);
   document.getElementById('histTotalSub').textContent=`Caja ${histMoney(totalCaja)} · MercadoPago ${histMoney(totalMP)} · ${totalMovs} movimientos`;
   const esPasado=dia<fechaHoy();
-  let html=esPasado?`<div style="margin-bottom:12px"><button id="btnRecuperarMP" style="padding:8px 14px;background:rgba(61,90,254,.15);color:var(--accent);border:1px solid rgba(61,90,254,.3);border-radius:8px;font-weight:600;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg>Recuperar de MercadoPago</button></div>`:'';
+  const sinDatos=totalMP===0&&totalCaja===0;
+  let html=(esPasado&&sinDatos)?`<div style="margin-bottom:12px"><button id="btnRecuperarMP" style="padding:8px 14px;background:rgba(61,90,254,.15);color:var(--accent);border:1px solid rgba(61,90,254,.3);border-radius:8px;font-weight:600;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg>Recuperar de MercadoPago</button></div>`:'';
   html+=`<div class="hist-detail-grid">
     <div class="hist-detail-card"><div class="hist-detail-label">Cierre de caja</div><div class="hist-detail-value">${histMoney(totalCaja)}</div></div>
     <div class="hist-detail-card"><div class="hist-detail-label">MercadoPago</div><div class="hist-detail-value">${histMoney(totalMP)}</div></div>
