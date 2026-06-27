@@ -2679,7 +2679,7 @@ document.getElementById('btnCerrarHist').addEventListener('click',()=>{
   unlockBody();
 });
 document.getElementById('btnVolverHist').addEventListener('click',()=>{
-  mostrarListaDias();
+  mostrarListaDias(true);
 });
 document.getElementById('historialOverlay').addEventListener('click',e=>{
   if(e.target===document.getElementById('historialOverlay')){
@@ -3078,13 +3078,14 @@ function renderListaDiasMes(fuente){
     cont.appendChild(card);
   });
 }
-async function mostrarListaDias(){
+async function mostrarListaDias(skipFetch=false){
   document.getElementById('histVistaDetalle').style.display='none';
   document.getElementById('histVistaLista').style.display='block';
   document.getElementById('histTitleText').textContent='Historial';
   const title=document.getElementById('histMonthTitle');
   if(title)title.textContent=histMesNombre(histMesActual);
-  await histCargarMes();
+  if(skipFetch&&Object.keys(histResumenMes).length>0){renderCalendarioMes();renderListaDiasMes('Supabase');}
+  else await histCargarMes();
   const prev=document.getElementById('histPrevMonth'),next=document.getElementById('histNextMonth'),today=document.getElementById('histThisMonth');
   if(prev&&!prev.dataset.ready){prev.dataset.ready='1';prev.addEventListener('click',()=>{histMesActual.setMonth(histMesActual.getMonth()-1);mostrarListaDias();});}
   if(next&&!next.dataset.ready){next.dataset.ready='1';next.addEventListener('click',()=>{histMesActual.setMonth(histMesActual.getMonth()+1);mostrarListaDias();});}
