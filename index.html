@@ -2888,6 +2888,7 @@ function histAgruparPorDia(pagos,cierres,gastos){
     d.pagos.push(r);
     const monto=Number(r.monto)||0;
     if(r.es_enviada){d.enviadas+=monto;return;}
+    if(r.excluido)return;
     d.mpTotal+=monto;d.movs++;
     const t=r.turno||'Sin turno';
     if(!d.turnos[t])d.turnos[t]={mp:0,movs:0};
