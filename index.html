@@ -2871,6 +2871,24 @@ async function histSbSelect(path){
   if(!res.ok){throw new Error(await res.text());}
   return await res.json();
 }
+// Supabase corta en 1000 filas por request (el límite del query no lo supera).
+// Este helper pagina con offset hasta traer todas las filas del rango.
+async function histSbSelectAll(path){
+  const base=path.replace(/[&?]limit=\d+/g,'');
+  const sep=base.includes('?')?'&':'?';
+  const page=1000;let offset=0,all=[];
+  while(true){
+    const chunk=await histSbSelect(`${base}${sep}limit=${page}&offset=${offset}`);
+    all=all.concat(chunk);
+    if(chunk.length<page)break;
+    offset+=page;
+    if(offset>50000)break;
+  }
+  if(all.length&&all[0]&&all[0].id!==undefined){
+    const seen=new Set();all=all.filter(r=>{if(seen.has(r.id))return false;seen.add(r.id);return true;});
+  }
+  return all;
+}
 function histDeduplicarGastos(arr){
   const seen=new Set();
   return arr.filter(g=>{
@@ -2913,9 +2931,9 @@ async function histCargarMes(){
   let pagos=[],cierres=[],gastos=[];
   try{
     [pagos,cierres,gastos]=await Promise.all([
-      histSbSelect(`pagos?fecha=gte.${desde}&fecha=lte.${hasta}&order=fecha.asc,hora.asc&limit=10000`),
-      histSbSelect(`cierres_caja?fecha=gte.${desde}&fecha=lte.${hasta}&order=fecha.asc,turno.asc&limit=1000`),
-      histSbSelect(`gastos_caja?fecha=gte.${desde}&fecha=lte.${hasta}&order=fecha.asc,created_at.asc&limit=2000`)
+      histSbSelectAll(`pagos?fecha=gte.${desde}&fecha=lte.${hasta}&order=fecha.asc,hora.asc`),
+      histSbSelectAll(`cierres_caja?fecha=gte.${desde}&fecha=lte.${hasta}&order=fecha.asc,turno.asc`),
+      histSbSelectAll(`gastos_caja?fecha=gte.${desde}&fecha=lte.${hasta}&order=fecha.asc,created_at.asc`)
     ]);
   }catch(e){
     fuente='datos locales del navegador';
