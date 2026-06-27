@@ -3163,7 +3163,7 @@ async function mostrarDetalleDia(dia){
   const totalMovs=pagosValidos.length;
   if(histResumenMes[dia]){histResumenMes[dia].mpTotal=totalMP;histResumenMes[dia].cajaTotal=totalCaja;histResumenMes[dia].movs=totalMovs;}
   const cell=document.querySelector(`.hist-day-cell[data-dia="${dia}"]`);
-  if(cell){const principal=totalCaja>0?totalCaja:totalMP;const mainEl=cell.querySelector('.hist-day-main');if(mainEl)mainEl.textContent=principal?histMoney(principal):'—';const compactEl=cell.querySelector('.hist-day-compact');if(compactEl)compactEl.textContent=histMoneyCompact(principal);}
+  if(cell){const principal=totalCaja>0?totalCaja:totalMP;const mainEl=cell.querySelector('.hist-day-main');if(mainEl)mainEl.textContent=principal?histMoney(principal):'—';const subEl=cell.querySelector('.hist-day-sub');if(subEl)subEl.textContent=totalMovs?`${totalMovs} movs · MP ${histMoney(totalMP)}`:'sin movimientos';const compactEl=cell.querySelector('.hist-day-compact');if(compactEl)compactEl.textContent=histMoneyCompact(principal);}
   document.getElementById('histTotalGlobal').textContent=histMoney(totalCaja>0?totalCaja:totalMP);
   document.getElementById('histTotalSub').textContent=`Caja ${histMoney(totalCaja)} · MercadoPago ${histMoney(totalMP)} · ${totalMovs} movimientos`;
   const esPasado=dia<fechaHoy();
