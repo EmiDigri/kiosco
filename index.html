@@ -3414,7 +3414,7 @@ function renderOtrosTurnos(){
       try{const results=await fetchMovimientos(t.capturaDesdeH??t.desdeH,t.capturaDesdeM??t.desdeM,t.hastaH,t.hastaM);const parsed=parsearMovimientos(results);guardarTurno(t.nombre,parsed.movs,parsed.excluidos,parsed.enviadas);const tNombreActual=(turno||turnoReciente||{nombre:''}).nombre;renderTurnosHoy(tNombreActual);
 actualizarHeroSide();
 const heroBtnCierre=document.getElementById('heroBtnCierre');if(heroBtnCierre)heroBtnCierre.addEventListener('click',cmAbrir);
-const heroBtnHistorial2=document.getElementById('heroBtnHistorial2');if(heroBtnHistorial2)heroBtnHistorial2.addEventListener('click',()=>document.getElementById('btnHistorial')?.click());setTimeout(()=>{const card=document.querySelector(`#turnosHoyPortada [data-turno="${t.nombre}"]`)||document.getElementById('turnosHoyPortada');if(card)card.scrollIntoView({behavior:'smooth',block:'start'});},250);showToast((t.nombre.startsWith('Turno')?t.nombre:'Turno de '+t.nombre)+' cargado ✓');}
+const heroBtnHistorial2=document.getElementById('heroBtnHistorial2');if(heroBtnHistorial2)heroBtnHistorial2.addEventListener('click',()=>document.getElementById('btnHistorial')?.click());setTimeout(()=>{const card=document.querySelector(`#turnosHoySection [data-turno="${t.nombre}"]`)||document.querySelector(`#turnosHoyPortada [data-turno="${t.nombre}"]`)||document.getElementById('turnosHoySection');if(card)card.scrollIntoView({behavior:'smooth',block:'start'});},300);showToast((t.nombre.startsWith('Turno')?t.nombre:'Turno de '+t.nombre)+' cargado ✓');}
       catch(err){showToast('No se pudo conectar con MercadoPago');console.error(err);}
       btn.disabled=false;btn.innerHTML=`<span class="t-dot" style="background:${t.color}"></span>Ver turno de ${t.nombre}`;
     });
