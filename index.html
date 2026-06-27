@@ -4167,15 +4167,15 @@ function launchConfetti(){
 }
 
 (function initCelebracion(){
-  const hoyKey=()=>new Date().toISOString().slice(0,10);
+  const localKey=()=>{const d=new Date();return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;};
   function check(){
     const now=new Date(),mins=now.getHours()*60+now.getMinutes();
     TURNOS.forEach(t=>{
       const cH=t.cierreH!==undefined?t.cierreH:t.hastaH;
       const cM=t.cierreM!==undefined?t.cierreM:t.hastaM;
       const end=cH*60+cM;
-      const sid='cel_'+t.nombre+'_'+hoyKey();
-      if(mins>=end&&mins<=end+1&&!sessionStorage.getItem(sid)){
+      const sid='cel_'+t.nombre+'_'+localKey();
+      if(mins>=end&&mins<=end+12&&!sessionStorage.getItem(sid)){
         sessionStorage.setItem(sid,'1');
         launchConfetti();
       }
@@ -4183,6 +4183,7 @@ function launchConfetti(){
   }
   setInterval(check,15000);
   check();
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)check();});
 })();
 </script>
 </body>
