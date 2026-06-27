@@ -3019,7 +3019,7 @@ function renderCalendarioMes(){
         <div class="hist-day-main">${principal?histMoney(principal):'—'}</div>
         <div class="hist-day-sub">${data.movs?`${data.movs} movs · MP ${histMoney(data.mpTotal)}`:'sin movimientos'}</div>
       </div>
-      ${compact?`<div class="hist-day-compact">${compact}</div>`:''}
+      <div class="hist-day-compact">${compact}</div>
     </div>`;
   }
   grid.innerHTML=html;
@@ -3162,7 +3162,7 @@ async function mostrarDetalleDia(dia){
   const totalMovs=pagosValidos.length;
   if(histResumenMes[dia]){histResumenMes[dia].mpTotal=totalMP;histResumenMes[dia].cajaTotal=totalCaja;histResumenMes[dia].movs=totalMovs;}
   const cell=document.querySelector(`.hist-day-cell[data-dia="${dia}"]`);
-  if(cell){const mainEl=cell.querySelector('.hist-day-main');if(mainEl){const principal=totalCaja>0?totalCaja:totalMP;mainEl.textContent=principal?histMoney(principal):'—';}}
+  if(cell){const principal=totalCaja>0?totalCaja:totalMP;const mainEl=cell.querySelector('.hist-day-main');if(mainEl)mainEl.textContent=principal?histMoney(principal):'—';const compactEl=cell.querySelector('.hist-day-compact');if(compactEl)compactEl.textContent=histMoneyCompact(principal);}
   document.getElementById('histTotalGlobal').textContent=histMoney(totalCaja>0?totalCaja:totalMP);
   document.getElementById('histTotalSub').textContent=`Caja ${histMoney(totalCaja)} · MercadoPago ${histMoney(totalMP)} · ${totalMovs} movimientos`;
   const esPasado=dia<fechaHoy();
