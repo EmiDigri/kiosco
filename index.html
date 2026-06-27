@@ -2355,13 +2355,14 @@ function turnosDelDia(isoDate){
   return dow===0 ? TURNOS_DOMINGO : TURNOS_SEMANA;
 }
 
+function visFin(t){return(t.cierreH!==undefined?t.cierreH:t.hastaH)*60+(t.cierreM!==undefined?t.cierreM:t.hastaM);}
 function turnoActual(){
   const now=new Date(),mins=now.getHours()*60+now.getMinutes();
-  return TURNOS.find(t=>mins>=t.desdeH*60+t.desdeM&&mins<=t.hastaH*60+t.hastaM)||null;
+  return TURNOS.find(t=>mins>=t.desdeH*60+t.desdeM&&mins<=visFin(t))||null;
 }
 function turnoAnterior(){
   const now=new Date(),mins=now.getHours()*60+now.getMinutes();
-  return TURNOS.find(t=>{const hasta=t.hastaH*60+t.hastaM;return mins>hasta&&mins<=hasta+30;})||null;
+  return TURNOS.find(t=>{const fin=visFin(t);return mins>fin&&mins<=fin+30;})||null;
 }
 
 const turno=turnoActual();
