@@ -2423,47 +2423,72 @@ function drawSparkline(movs,canvasId){
   if(!canvas||!movs.length)return;
   const ctx=canvas.getContext('2d');
   const W=canvas.parentElement.offsetWidth-40||300;
-  canvas.width=W*2;canvas.height=140;
-  canvas.style.width='100%';canvas.style.height='70px';
+  canvas.width=W*2;canvas.height=160;
+  canvas.style.width='100%';canvas.style.height='80px';
   ctx.setTransform(1,0,0,1,0,0);ctx.scale(2,2);
-  const w=W,h=70;
+  const w=W,h=80;
   const movsAsc=[...movs].reverse();
   const vals=movsAsc.map(m=>m.monto);
   const maxVal=Math.max(...vals);
-  const max=maxVal*1.15;
-  const yOf=v=>h-8-(v/max)*(h-20);
+  const max=maxVal*1.18;
+  const PL=46,PR=6,PT=10,PB=16;
+  const cH=h-PT-PB,cW=w-PL-PR;
+  const yOf=v=>PT+cH-(v/max)*cH;
   const fmtM=v=>v>=10000?'$'+(v/1000).toFixed(0)+'k':v>=1000?'$'+(v/1000).toFixed(1)+'k':'$'+Math.round(v);
+  const yBase=yOf(0);
 
-  // Grid lines + etiquetas eje Y
-  ctx.font='500 9px Inter,sans-serif';ctx.textAlign='right';
-  [[maxVal,true],[maxVal/2,false]].forEach(([v,isTop])=>{
+  // Eje Y izquierdo
+  ctx.beginPath();ctx.strokeStyle='rgba(240,250,244,.15)';ctx.lineWidth=0.5;
+  ctx.moveTo(PL,PT);ctx.lineTo(PL,yBase);ctx.stroke();
+
+  // 3 líneas de referencia + etiquetas
+  ctx.font='600 9px Inter,sans-serif';ctx.textAlign='right';
+  [[maxVal,'rgba(240,250,244,.55)',.18],[maxVal/2,'rgba(240,250,244,.38)',.1],[0,'rgba(240,250,244,.25)',.12]].forEach(([v,labelAlpha,lineAlpha])=>{
     const y=yOf(v);
     ctx.beginPath();ctx.setLineDash([3,5]);
-    ctx.strokeStyle='rgba(240,250,244,.08)';ctx.lineWidth=0.5;
-    ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();ctx.setLineDash([]);
-    ctx.fillStyle='rgba(240,250,244,.32)';
-    ctx.fillText(fmtM(v),w-3,y-2);
+    ctx.strokeStyle=`rgba(240,250,244,${lineAlpha})`;ctx.lineWidth=0.5;
+    ctx.moveTo(PL,y);ctx.lineTo(w-PR,y);ctx.stroke();ctx.setLineDash([]);
+    ctx.beginPath();ctx.strokeStyle='rgba(240,250,244,.2)';ctx.lineWidth=0.5;
+    ctx.moveTo(PL-3,y);ctx.lineTo(PL,y);ctx.stroke();
+    ctx.fillStyle=labelAlpha;
+    ctx.fillText(fmtM(v),PL-6,y+3.5);
   });
 
+  // Curva + relleno
   const pts=vals.map((v,i)=>({
-    x:vals.length===1?w/2:(i/(vals.length-1))*(w-24)+12,
+    x:vals.length===1?PL+cW/2:PL+(i/(vals.length-1))*cW,
     y:yOf(v)
   }));
-  const grad=ctx.createLinearGradient(0,0,0,h);
-  grad.addColorStop(0,'rgba(61,90,254,.25)');grad.addColorStop(1,'rgba(61,90,254,0)');
-  ctx.beginPath();ctx.moveTo(pts[0].x,h);
+  const grad=ctx.createLinearGradient(0,PT,0,yBase);
+  grad.addColorStop(0,'rgba(61,90,254,.28)');grad.addColorStop(1,'rgba(61,90,254,.02)');
+  ctx.beginPath();ctx.moveTo(pts[0].x,yBase);
   pts.forEach((p,i)=>{if(i===0)ctx.lineTo(p.x,p.y);else{const pr=pts[i-1];const cx=(pr.x+p.x)/2;ctx.bezierCurveTo(cx,pr.y,cx,p.y,p.x,p.y);}});
-  ctx.lineTo(pts[pts.length-1].x,h);ctx.closePath();ctx.fillStyle=grad;ctx.fill();
+  ctx.lineTo(pts[pts.length-1].x,yBase);ctx.closePath();ctx.fillStyle=grad;ctx.fill();
   ctx.beginPath();
   pts.forEach((p,i)=>{if(i===0)ctx.moveTo(p.x,p.y);else{const pr=pts[i-1];const cx=(pr.x+p.x)/2;ctx.bezierCurveTo(cx,pr.y,cx,p.y,p.x,p.y);}});
   ctx.strokeStyle='#3D5AFE';ctx.lineWidth=2;ctx.stroke();
+
+  // Puntos
   pts.forEach(p=>{ctx.beginPath();ctx.arc(p.x,p.y,3,0,Math.PI*2);ctx.fillStyle='#3D5AFE';ctx.fill();ctx.beginPath();ctx.arc(p.x,p.y,1.5,0,Math.PI*2);ctx.fillStyle='#080B1A';ctx.fill();});
+
+  // Último punto destacado + valor flotante
   const last=pts[pts.length-1];
-  ctx.beginPath();ctx.arc(last.x,last.y,5,0,Math.PI*2);ctx.fillStyle='rgba(61,90,254,.2)';ctx.fill();
+  ctx.beginPath();ctx.arc(last.x,last.y,5,0,Math.PI*2);ctx.fillStyle='rgba(61,90,254,.25)';ctx.fill();
   ctx.beginPath();ctx.arc(last.x,last.y,3,0,Math.PI*2);ctx.fillStyle='#3D5AFE';ctx.fill();
-  ctx.font='500 10px Space Grotesk,sans-serif';ctx.fillStyle='rgba(240,250,244,.35)';ctx.textAlign='center';
-  const step=Math.ceil(movsAsc.length/6);
-  movsAsc.forEach((m,i)=>{if(i%step===0||i===movsAsc.length-1)ctx.fillText(m.hora,pts[i].x,h-1);});
+  const lv=fmtM(vals[vals.length-1]);
+  ctx.font='700 9px Inter,sans-serif';
+  const lw2=ctx.measureText(lv).width;
+  const lx=Math.min(last.x,w-PR-lw2/2-2);
+  const ly=last.y>PT+12?last.y-8:last.y+14;
+  ctx.fillStyle='rgba(61,90,254,.15)';
+  ctx.beginPath();ctx.roundRect(lx-lw2/2-4,ly-10,lw2+8,13,3);ctx.fill();
+  ctx.fillStyle='rgba(180,195,255,.9)';ctx.textAlign='center';
+  ctx.fillText(lv,lx,ly);
+
+  // Etiquetas hora (eje X)
+  ctx.font='500 9px Space Grotesk,sans-serif';ctx.fillStyle='rgba(240,250,244,.32)';ctx.textAlign='center';
+  const step=Math.ceil(movsAsc.length/5);
+  movsAsc.forEach((m,i)=>{if(i%step===0||i===movsAsc.length-1)ctx.fillText(m.hora,pts[i].x,h-3);});
 }
 
 function renderHorasChart(movs,bodyId){
