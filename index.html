@@ -81,6 +81,7 @@ html{overflow-x:hidden;overflow-y:scroll}
 @keyframes ball-spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
 @keyframes logo-flag-wave{0%,100%{transform:skewY(0deg) scaleX(1)}33%{transform:skewY(3deg) scaleX(.96)}66%{transform:skewY(-2.5deg) scaleX(.97)}}
 @keyframes star-twinkle{0%,100%{transform:translateX(-50%) scale(1);text-shadow:0 0 6px #FFD700,0 0 12px #FFA500;opacity:1}40%{transform:translateX(-50%) scale(1.5);text-shadow:0 0 16px #FFD700,0 0 32px #FFA500,0 0 55px #FFE566,0 0 80px #FFD700;opacity:1}60%{transform:translateX(-50%) scale(.85);text-shadow:0 0 4px #FFD700,0 0 8px #FFA500;opacity:.7}}
+.logo-ball{display:inline-block;width:.9em;height:.9em;margin-right:8px;vertical-align:-.08em;border-radius:50%;background:#f7f7f2 url("./assets/trionda.jpg") center center/142% auto no-repeat;border:1px solid rgba(255,255,255,.72);box-shadow:0 1px 5px rgba(0,0,0,.32),0 0 0 2px rgba(255,255,255,.08);overflow:hidden;transform-origin:50% 50%;will-change:transform;backface-visibility:hidden}
 .logo-flag{display:inline-block;margin-left:11px;vertical-align:middle;transform-origin:left center;animation:logo-flag-wave 2.2s ease-in-out infinite;filter:drop-shadow(0 1px 3px rgba(0,0,0,.4))}
 .logo-sub{font-size:11px;color:var(--text-soft);margin-top:2px;letter-spacing:.01em}
 
@@ -115,11 +116,21 @@ html{overflow-x:hidden;overflow-y:scroll}
 .hero-clock-col{display:flex;flex-direction:column;align-items:center;justify-content:center;margin:16px 0}
 .iw-mobile-card{display:none;background:var(--glass);border:1px solid var(--glass-border);border-radius:16px;padding:14px 16px;margin-bottom:14px}
 @media(max-width:900px){.iw-mobile-card{display:block}}
-.iw-temp-row{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.iw-temp-row{display:flex;align-items:center;gap:14px;margin-bottom:12px;min-width:0}
+.iw-temp-main{display:flex;align-items:center;gap:10px;min-width:0;flex:0 0 auto}
 .iw-temp-val{font-size:28px;font-weight:800;color:var(--text);line-height:1;letter-spacing:-.5px}
 .iw-temp-meta{display:flex;flex-direction:column;gap:1px}
 .iw-temp-city{font-size:11px;font-weight:600;color:var(--text-soft);text-transform:uppercase;letter-spacing:.06em}
 .iw-temp-label{font-size:12px;color:var(--text-mid);font-weight:500}
+.iw-forecast{min-width:0}
+.iw-forecast-desktop{display:none;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;flex:1 1 520px;max-width:640px}
+.iw-forecast-mobile{display:none;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:-3px 0 12px}
+.iw-forecast-day{display:flex;align-items:center;justify-content:center;gap:4px;min-width:0;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07);border-radius:9px;padding:5px 4px;white-space:nowrap;overflow:hidden}
+.iw-forecast-dow{font-size:9px;font-weight:800;color:var(--text-soft);letter-spacing:0;text-transform:uppercase;line-height:1}
+.iw-forecast-emoji{font-size:14px;line-height:1;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto}
+.iw-forecast-temp{font-size:10px;font-weight:750;color:var(--text);font-variant-numeric:tabular-nums;line-height:1;letter-spacing:0}
+@media(min-width:1200px){.iw-forecast-desktop{display:grid}.iw-forecast-day{gap:6px;padding:7px 8px;border-radius:11px;min-height:34px}.iw-forecast-dow{font-size:10.5px}.iw-forecast-emoji{font-size:17px}.iw-forecast-temp{font-size:12.5px}}
+@media(max-width:900px){.iw-temp-row{margin-bottom:9px}.iw-forecast-mobile{display:grid}}
 .iw-dolares{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px}
 .iw-dolar{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:7px 5px;text-align:center}
 .iw-dolar-label{font-size:9px;font-weight:700;letter-spacing:.09em;color:var(--text-soft);text-transform:uppercase;margin-bottom:4px}
@@ -3873,8 +3884,9 @@ tickReloj();setInterval(tickReloj,1000);
   // Pelota que rueda desde la izquierda
   name.textContent='';
   const ball=document.createElement('span');
-  ball.innerHTML=`<img src="/assets/trionda.jpg" style="display:block;width:1em;height:1em;object-fit:cover;border-radius:50%" alt="">`;
-  ball.style.cssText='display:inline-block;font-size:0.82em;margin-right:8px;vertical-align:middle;opacity:0;transform:translateX(-40px) rotate(-180deg)';
+  ball.className='logo-ball';
+  ball.setAttribute('aria-hidden','true');
+  ball.style.cssText='opacity:0;transform:translateX(-40px) rotate(-180deg)';
   setImp(ball,'opacity .35s ease,transform .6s cubic-bezier(.22,1,.36,1)');
   name.appendChild(ball);
   setTimeout(()=>{
@@ -4005,6 +4017,44 @@ function getWeatherEmoji(temp,code,wind,isDay){
   if(t<34) return{emoji:'🥵',cls:'iw-emoji-hot'};
   return{emoji:'🔥',cls:'iw-emoji-flame'};
 }
+function iwPronosticoDias(daily){
+  const time=daily?.time||[],codes=daily?.weather_code||[],maxs=daily?.temperature_2m_max||[],mins=daily?.temperature_2m_min||[];
+  const labels=['DOM','LUN','MAR','MIÉ','JUE','VIE','SÁB'];
+  const out=[];
+  for(let i=1;i<time.length&&out.length<4;i++){
+    const d=new Date(`${time[i]}T12:00:00`);
+    const max=Math.round(Number(maxs[i])),min=Math.round(Number(mins[i]));
+    const wx=getWeatherEmoji(max,codes[i],0,true);
+    if(!Number.isFinite(max)||!Number.isFinite(min))continue;
+    out.push({dia:labels[d.getDay()],emoji:wx?.emoji||'☀️',cls:wx?.cls||'iw-emoji-warm',min,max});
+  }
+  return out;
+}
+function iwPronosticoHtml(items,count){
+  return (items||[]).slice(0,count).map(d=>`
+    <div class="iw-forecast-day">
+      <span class="iw-forecast-dow">${d.dia}</span>
+      <span class="iw-forecast-emoji">${d.emoji}</span>
+      <span class="iw-forecast-temp">${d.min}/${d.max}°</span>
+    </div>`).join('');
+}
+function iwDolarDesdeSerie(data){
+  if(!Array.isArray(data)||!data.length)return null;
+  const last=data[data.length-1],current=last?.venta;
+  let prev=null;
+  for(let i=data.length-2;i>=0;i--){
+    if(data[i]?.venta!==current){prev=data[i].venta;break;}
+  }
+  return{fecha:last.fecha,venta:current,compra:last.compra,pct:prev!=null?((current-prev)/prev*100):null};
+}
+async function iwFetchDolarDirecto(){
+  const tipos=['oficial','blue','bolsa'];
+  const rows=await Promise.allSettled(tipos.map(tipo=>fetch(`https://api.argentinadatos.com/v1/cotizaciones/dolares/${tipo}`).then(r=>{if(!r.ok)throw new Error(r.status);return r.json();})));
+  const out={};
+  tipos.forEach((tipo,i)=>{out[tipo]=rows[i].status==='fulfilled'?iwDolarDesdeSerie(rows[i].value):null;});
+  if(!out.oficial&&!out.blue&&!out.bolsa)throw new Error('sin cotizaciones');
+  return out;
+}
 let _iwEmojiRaf=null;
 function iwAnimarEmoji(){
   if(_iwEmojiRaf){cancelAnimationFrame(_iwEmojiRaf);_iwEmojiRaf=null;}
@@ -4063,8 +4113,8 @@ async function fetchInfoWidget(){
   const el=document.getElementById('infoWidgetContent');
   if(!el)return;
   // Cada fuente con su propio try/catch para que una falla no rompa el widget
-  let temp=null,sens=null,wxCode=null,wxWind=null,wxIsDay=1;
-  try{const m=await fetch('https://api.open-meteo.com/v1/forecast?latitude=-34.6037&longitude=-58.3816&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,is_day&timezone=America/Argentina/Buenos_Aires').then(r=>r.json());temp=m?.current?.temperature_2m;sens=m?.current?.apparent_temperature;wxCode=m?.current?.weather_code;wxWind=m?.current?.wind_speed_10m;wxIsDay=m?.current?.is_day??1;}catch(e){}
+  let temp=null,sens=null,wxCode=null,wxWind=null,wxIsDay=1,wxForecast=[];
+  try{const m=await fetch('https://api.open-meteo.com/v1/forecast?latitude=-34.6037&longitude=-58.3816&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,is_day&daily=weather_code,temperature_2m_max,temperature_2m_min&forecast_days=5&timezone=America/Argentina/Buenos_Aires').then(r=>r.json());temp=m?.current?.temperature_2m;sens=m?.current?.apparent_temperature;wxCode=m?.current?.weather_code;wxWind=m?.current?.wind_speed_10m;wxIsDay=m?.current?.is_day??1;wxForecast=iwPronosticoDias(m?.daily);}catch(e){}
 
   let ofVal=null,mepVal=null,blVal=null,ofPct=null,mepPct=null,blPct=null;
   try{
@@ -4073,8 +4123,15 @@ async function fetchInfoWidget(){
     mepVal=d.bolsa?.venta;mepPct=d.bolsa?.pct;
     blVal=d.blue?.venta;blPct=d.blue?.pct;
   }catch(e){
-    // fallback: valores actuales sin variación
-    try{const d=await fetch('https://dolarapi.com/v1/dolares').then(r=>r.json());ofVal=d.find(x=>x.casa==='oficial')?.venta;mepVal=d.find(x=>x.casa==='bolsa')?.venta;blVal=d.find(x=>x.casa==='blue')?.venta;}catch(e2){}
+    try{
+      const d=await iwFetchDolarDirecto();
+      ofVal=d.oficial?.venta;ofPct=d.oficial?.pct;
+      mepVal=d.bolsa?.venta;mepPct=d.bolsa?.pct;
+      blVal=d.blue?.venta;blPct=d.blue?.pct;
+    }catch(e1){
+      // fallback final: valores actuales sin variación
+      try{const d=await fetch('https://dolarapi.com/v1/dolares').then(r=>r.json());ofVal=d.find(x=>x.casa==='oficial')?.venta;mepVal=d.find(x=>x.casa==='bolsa')?.venta;blVal=d.find(x=>x.casa==='blue')?.venta;}catch(e2){}
+    }
   }
 
   const {feriado,fsl}=await fetchFeriadosInfo().catch(()=>({feriado:null,fsl:null}));
@@ -4082,11 +4139,17 @@ async function fetchInfoWidget(){
   const varTag=p=>p==null?'':` <span class="iw-dolar-var ${p>=0?'up':'down'}">${p>=0?'▲':'▼'}${Math.abs(p).toFixed(1)}%</span>`;
   const we=getWeatherEmoji(temp,wxCode,wxWind,wxIsDay);
   const tempDisp=temp!=null?`${temp}°${we?`<span class="iw-weather-emoji ${we.cls}">${we.emoji}</span>`:''}`:' —';
+  const forecastDesk=iwPronosticoHtml(wxForecast,4);
+  const forecastMob=iwPronosticoHtml(wxForecast,3);
   const html=`
     <div class="iw-temp-row">
-      <div class="iw-temp-val">${tempDisp}</div>
-      <div class="iw-temp-meta"><span class="iw-temp-city">Buenos Aires</span><span class="iw-temp-label">ST ${sens!=null?sens+'°C':'—'}</span></div>
+      <div class="iw-temp-main">
+        <div class="iw-temp-val">${tempDisp}</div>
+        <div class="iw-temp-meta"><span class="iw-temp-city">Buenos Aires</span><span class="iw-temp-label">ST ${sens!=null?sens+'°C':'—'}</span></div>
+      </div>
+      ${forecastDesk?`<div class="iw-forecast iw-forecast-desktop">${forecastDesk}</div>`:''}
     </div>
+    ${forecastMob?`<div class="iw-forecast iw-forecast-mobile">${forecastMob}</div>`:''}
     <div class="iw-dolares">
       <div class="iw-dolar"><div class="iw-dolar-label">Oficial</div><div class="iw-dolar-val">${fmt(ofVal)}${varTag(ofPct)}</div></div>
       <div class="iw-dolar"><div class="iw-dolar-label">MEP</div><div class="iw-dolar-val">${fmt(mepVal)}${varTag(mepPct)}</div></div>
