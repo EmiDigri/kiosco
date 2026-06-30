@@ -143,6 +143,33 @@ html{overflow-x:hidden;overflow-y:scroll}
 .iw-feriados-grid{display:flex;flex-direction:column;gap:8px}
 .info-widget-loading{font-size:12px;color:var(--text-soft)}
 .iw-weather-emoji{font-size:20px;vertical-align:middle;line-height:1;display:inline-block;margin-left:4px}
+#infoWidgetCard,#infoWidgetMobile{position:relative;overflow:hidden}
+.egg-layer{position:fixed;inset:0;z-index:10000;pointer-events:none;overflow:hidden}
+.egg-rain-item{position:fixed;z-index:10001;pointer-events:none;font-weight:850;font-size:15px;line-height:1;animation:egg-fall var(--egg-dur,1.7s) linear forwards;filter:drop-shadow(0 2px 5px rgba(0,0,0,.28))}
+@keyframes egg-fall{0%{opacity:0;transform:translate3d(0,-20px,0) rotate(-12deg) scale(.8)}10%{opacity:1}100%{opacity:0;transform:translate3d(var(--egg-dx,0px),105vh,0) rotate(22deg) scale(1)}}
+.egg-pop{position:fixed;left:50%;top:18%;transform:translate(-50%,-50%);z-index:10002;pointer-events:none;background:rgba(8,11,26,.78);border:1px solid rgba(255,255,255,.18);color:var(--text);border-radius:16px;padding:12px 18px;font-size:18px;font-weight:850;letter-spacing:0;text-align:center;box-shadow:0 18px 60px rgba(0,0,0,.35);backdrop-filter:blur(14px);animation:egg-pop .95s cubic-bezier(.22,1,.36,1) forwards}
+.egg-pop small{display:block;margin-top:3px;font-size:11px;font-weight:700;color:var(--text-soft);text-transform:uppercase;letter-spacing:.12em}
+@keyframes egg-pop{0%{opacity:0;transform:translate(-50%,-35%) scale(.75)}18%,78%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-62%) scale(.96)}}
+.egg-goal{position:fixed;z-index:10000;right:18px;top:96px;width:52px;height:74px;border:2px solid rgba(255,255,255,.75);border-left:none;border-radius:0 12px 12px 0;pointer-events:none;box-shadow:0 0 0 999px transparent}
+.egg-goal::before{content:'';position:absolute;inset:5px;background:linear-gradient(90deg,rgba(255,255,255,.14) 1px,transparent 1px),linear-gradient(0deg,rgba(255,255,255,.14) 1px,transparent 1px);background-size:10px 10px;border-radius:0 8px 8px 0}
+.egg-ball-flight{position:fixed!important;z-index:10002!important;pointer-events:none!important;margin:0!important}
+.egg-weather-layer{position:absolute;inset:0;z-index:2;pointer-events:none;overflow:hidden;border-radius:inherit}
+.egg-weather-drop,.egg-weather-spark,.egg-weather-cloud{position:absolute;pointer-events:none;line-height:1}
+.egg-weather-drop{top:-12px;width:2px;height:12px;border-radius:999px;background:#74c0fc;opacity:.8;animation:egg-weather-drop 1.15s linear forwards}
+@keyframes egg-weather-drop{to{transform:translateY(190px);opacity:0}}
+.egg-weather-spark{font-size:14px;color:#ffd43b;text-shadow:0 0 10px rgba(255,212,59,.65);animation:egg-weather-spark 1.25s ease-out forwards}
+@keyframes egg-weather-spark{0%{opacity:0;transform:scale(.4) rotate(0)}30%{opacity:1}100%{opacity:0;transform:scale(1.7) rotate(80deg)}}
+.egg-weather-cloud{font-size:18px;opacity:.18;animation:egg-weather-cloud 2s ease-out forwards}
+@keyframes egg-weather-cloud{0%{opacity:0;transform:translateX(-12px)}25%{opacity:.42}100%{opacity:0;transform:translateX(32px)}}
+.egg-sticker{position:absolute;z-index:12;right:6px;top:6px;width:18px;height:18px;display:flex;align-items:center;justify-content:center;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);font-size:12px;opacity:.12;cursor:pointer;transition:opacity .18s,transform .18s,background .18s;user-select:none}
+.egg-sticker:hover,.egg-sticker:focus{opacity:.85;transform:scale(1.12);background:rgba(255,255,255,.16);outline:none}
+.egg-sticker.found{opacity:.55;color:#5FD68A}
+.egg-stamp{position:fixed;left:50%;top:50%;z-index:10003;pointer-events:none;transform:translate(-50%,-50%) rotate(-8deg) scale(.65);border:3px solid #5FD68A;color:#5FD68A;border-radius:14px;padding:14px 22px;font-size:26px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;background:rgba(8,11,26,.72);box-shadow:0 0 35px rgba(95,214,138,.24);animation:egg-stamp 1.8s cubic-bezier(.22,1,.36,1) forwards}
+@keyframes egg-stamp{0%{opacity:0;transform:translate(-50%,-50%) rotate(-14deg) scale(1.8)}18%,78%{opacity:1;transform:translate(-50%,-50%) rotate(-8deg) scale(1)}100%{opacity:0;transform:translate(-50%,-50%) rotate(-8deg) scale(.9)}}
+body.egg-arcade .hero-card,body.egg-champion .hero-card{box-shadow:0 0 0 1px rgba(116,172,223,.35),0 0 42px rgba(116,172,223,.22)!important}
+body.egg-arcade .logo-name{color:#fff;text-shadow:0 0 10px #74c0fc,0 0 22px rgba(116,192,252,.55)}
+body.egg-champion .logo-flag{filter:drop-shadow(0 0 8px rgba(116,172,223,.9)) drop-shadow(0 0 16px rgba(255,255,255,.5))}
+@media(prefers-reduced-motion:reduce){.egg-rain-item,.egg-pop,.egg-weather-drop,.egg-weather-spark,.egg-weather-cloud,.egg-stamp{animation-duration:.01ms!important}}
 .hero-card{position:relative;z-index:1;transition:transform .08s ease;will-change:transform;margin-bottom:0!important;background:var(--glass);border:1px solid var(--glass-border);border-radius:28px;padding:28px 26px 24px;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);overflow:hidden}
 .hero-card::before{content:'';position:absolute;inset:0;border-radius:28px;background:linear-gradient(135deg,rgba(61,90,254,.08) 0%,transparent 60%);pointer-events:none}
 .hero-shimmer{position:absolute;top:0;left:-100%;width:60%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.04),transparent);animation:shimmerSlide 3s ease-in-out infinite}
@@ -4251,6 +4278,151 @@ function launchConfetti(){
   })();
 }
 
+/* ─── EASTER EGGS ─── */
+const EGG_STICKERS_KEY='kiosco_easter_stickers_v1';
+function eggTodayKey(){return fechaHoy?fechaHoy():new Date().toISOString().slice(0,10);}
+function eggMotionOk(){return !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;}
+function eggPop(title,sub){
+  const el=document.createElement('div');
+  el.className='egg-pop';
+  el.innerHTML=`${title}${sub?`<small>${sub}</small>`:''}`;
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),1100);
+}
+function eggRain(items,count,opts){
+  opts=opts||{};
+  const colors=opts.colors||['#5FD68A','#74C0FC','#FFD43B','#f4a435'];
+  for(let i=0;i<count;i++){
+    const s=document.createElement('span');
+    s.className='egg-rain-item';
+    s.textContent=items[i%items.length];
+    s.style.left=(opts.x!=null?opts.x+(Math.random()-.5)*(opts.spread||160):Math.random()*innerWidth)+'px';
+    s.style.top=(opts.y!=null?opts.y:-(20+Math.random()*120))+'px';
+    s.style.color=colors[i%colors.length];
+    s.style.setProperty('--egg-dx',((Math.random()-.5)*(opts.drift||180)).toFixed(0)+'px');
+    s.style.setProperty('--egg-dur',(opts.dur||1.3+Math.random()*.9)+'s');
+    s.style.fontSize=(opts.size||13+Math.random()*10)+'px';
+    document.body.appendChild(s);
+    setTimeout(()=>s.remove(),2600);
+  }
+}
+function eggArcade(){
+  document.body.classList.add('egg-arcade');
+  eggPop('Modo Kiosco Arcade','cheat activado');
+  eggRain(['★','$','+1','777'],80,{colors:['#74C0FC','#FFD43B','#5FD68A','#fff'],dur:1.6});
+  setTimeout(()=>document.body.classList.remove('egg-arcade'),6500);
+}
+function eggBallGoal(ball){
+  if(!ball||ball.dataset.goalBusy==='1')return;
+  ball.dataset.goalBusy='1';
+  const r=ball.getBoundingClientRect();
+  const clone=ball.cloneNode(true);
+  clone.className='logo-ball egg-ball-flight';
+  clone.style.left=r.left+'px';clone.style.top=r.top+'px';clone.style.width=r.width+'px';clone.style.height=r.height+'px';
+  clone.style.opacity='1';clone.style.animation='none';
+  document.body.appendChild(clone);
+  const goal=document.createElement('div');goal.className='egg-goal';document.body.appendChild(goal);
+  const dx=innerWidth-r.left-86,dy=Math.max(20,92-r.top);
+  const anim=clone.animate([
+    {transform:'translate(0,0) rotate(0deg)',offset:0},
+    {transform:`translate(${dx*.42}px,${dy-52}px) rotate(420deg)`,offset:.45},
+    {transform:`translate(${dx*.76}px,${dy+26}px) rotate(780deg)`,offset:.76},
+    {transform:`translate(${dx}px,${dy}px) rotate(1040deg)`,offset:1}
+  ],{duration:1450,easing:'cubic-bezier(.22,1,.36,1)'});
+  anim.onfinish=()=>{eggPop('GOOOL','pelota al ángulo');eggRain(['⚽','★'],32,{x:innerWidth-58,y:96,spread:120,colors:['#fff','#74C0FC','#FFD43B'],dur:1.05,size:18});clone.remove();goal.remove();ball.dataset.goalBusy='0';};
+}
+function eggDolarLoco(card){
+  const val=card.querySelector('.iw-dolar-val')?.innerText.replace(/\s+/g,' ')||'$';
+  const down=card.querySelector('.iw-dolar-var.down');
+  eggPop('Dólar loco',val);
+  eggRain([val,'$','ARS','USD'],70,{x:card.getBoundingClientRect().left+card.offsetWidth/2,y:card.getBoundingClientRect().top,spread:220,colors:down?['#f87171','#fff','#f4a435']:['#5FD68A','#fff','#74C0FC'],dur:1.35,size:14});
+}
+function eggWeather(icon){
+  const card=icon.closest('#infoWidgetCard,#infoWidgetMobile')||document.getElementById('infoWidgetCard');
+  if(!card)return;
+  const layer=document.createElement('div');layer.className='egg-weather-layer';card.appendChild(layer);
+  const txt=icon.textContent||'',cls=icon.className||'';
+  const storm=/⛈|rain|drizzle|storm/.test(txt+cls),cloud=/☁|🌫|cloud|fog/.test(txt+cls),snow=/🌨|❄|snow|freeze/.test(txt+cls);
+  if(storm){
+    for(let i=0;i<34;i++){const d=document.createElement('span');d.className='egg-weather-drop';d.style.left=Math.random()*100+'%';d.style.animationDelay=(Math.random()*.45)+'s';layer.appendChild(d);}
+    if(/⛈|storm/.test(txt+cls))eggRain(['⚡'],12,{x:card.getBoundingClientRect().left+card.offsetWidth/2,y:card.getBoundingClientRect().top+24,spread:card.offsetWidth,colors:['#FFD43B'],dur:.9,size:18});
+  }else if(cloud){
+    for(let i=0;i<8;i++){const c=document.createElement('span');c.className='egg-weather-cloud';c.textContent='☁';c.style.left=Math.random()*82+'%';c.style.top=(18+Math.random()*55)+'%';c.style.animationDelay=(Math.random()*.5)+'s';layer.appendChild(c);}
+  }else if(snow){
+    eggRain(['❄'],26,{x:card.getBoundingClientRect().left+card.offsetWidth/2,y:card.getBoundingClientRect().top,spread:card.offsetWidth,colors:['#e7f5ff','#fff'],dur:1.4,size:14});
+  }else{
+    for(let i=0;i<16;i++){const s=document.createElement('span');s.className='egg-weather-spark';s.textContent='✦';s.style.left=(8+Math.random()*84)+'%';s.style.top=(12+Math.random()*62)+'%';s.style.animationDelay=(Math.random()*.35)+'s';layer.appendChild(s);}
+  }
+  setTimeout(()=>layer.remove(),2300);
+}
+function eggPerfectClose(){
+  const key='egg_perfect_close_'+eggTodayKey();
+  if(localStorage.getItem(key))return;
+  localStorage.setItem(key,'1');
+  const st=document.createElement('div');st.className='egg-stamp';st.textContent='Caja cerrada';document.body.appendChild(st);
+  launchConfetti();
+  setTimeout(()=>st.remove(),1900);
+}
+function eggCheckLuckyValue(value,source,el){
+  value=Number(value)||0;
+  if(value<1000)return;
+  const tail=String(Math.abs(Math.round(value))).slice(-3);
+  const milestone=value>=100000&&value%100000===0;
+  if(!['777','000','123','999'].includes(tail)&&!milestone)return;
+  const key='egg_lucky_'+eggTodayKey()+'_'+source+'_'+value;
+  if(sessionStorage.getItem(key))return;
+  sessionStorage.setItem(key,'1');
+  const r=el?.getBoundingClientRect?.();
+  eggPop(tail==='777'?'Jackpot':'Total de la suerte','$'+value.toLocaleString('es-AR'));
+  eggRain(['7','★','$'],55,{x:r?r.left+r.width/2:innerWidth/2,y:r?r.top:120,spread:180,colors:['#FFD43B','#5FD68A','#fff'],dur:1.2,size:18});
+}
+function eggAmountFromText(txt){return Number(String(txt||'').replace(/[^\d-]/g,''))||0;}
+function eggCollectSticker(id,label,el){
+  const found=new Set(JSON.parse(localStorage.getItem(EGG_STICKERS_KEY)||'[]'));
+  const was=found.has(id);
+  found.add(id);localStorage.setItem(EGG_STICKERS_KEY,JSON.stringify([...found]));
+  el.classList.add('found');
+  showToast((was?'Sticker ya encontrado: ':'Sticker encontrado: ')+label+' ('+found.size+'/5)');
+  if(found.size>=5&&!sessionStorage.getItem('egg_stickers_full')){
+    sessionStorage.setItem('egg_stickers_full','1');eggPop('Colección completa','stickers del kiosco');launchConfetti();
+  }
+}
+function eggAddStickers(){
+  const found=new Set(JSON.parse(localStorage.getItem(EGG_STICKERS_KEY)||'[]'));
+  const visible=el=>{if(!el)return false;const r=el.getBoundingClientRect();const cs=getComputedStyle(el);return r.width>0&&r.height>0&&cs.display!=='none'&&cs.visibility!=='hidden';};
+  [
+    ['clima','Clima',['#infoWidgetMobile','#infoWidgetCard'],'☀','left:8px;top:8px'],
+    ['dolar','Dólar',['#infoWidgetMobile','#infoWidgetCard'],'$','right:8px;top:52px'],
+    ['historial','Historial','#btnHistorial','◷','right:-6px;top:-7px'],
+    ['caja','Caja','#btnCierreManual','✓','right:-6px;top:-7px'],
+    ['turno','Turno','#heroCard','★','right:16px;bottom:16px;top:auto']
+  ].forEach(([id,label,sel,mark,pos])=>{
+    const targets=(Array.isArray(sel)?sel:[sel]).map(s=>document.querySelector(s)).filter(Boolean);
+    const target=targets.find(visible)||targets[0];if(!target||target.querySelector(`[data-egg-sticker="${id}"]`))return;
+    document.querySelectorAll(`[data-egg-sticker="${id}"]`).forEach(el=>{if(el.parentElement!==target)el.remove();});
+    if(getComputedStyle(target).position==='static')target.style.position='relative';
+    const s=document.createElement('span');s.className='egg-sticker'+(found.has(id)?' found':'');s.dataset.eggSticker=id;s.textContent=mark;s.title='Sticker '+label;s.setAttribute('aria-label','Sticker '+label);s.setAttribute('role','button');s.style.cssText+=pos;
+    s.addEventListener('click',e=>{e.stopPropagation();eggCollectSticker(id,label,s);});
+    s.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();eggCollectSticker(id,label,s);}});
+    s.tabIndex=0;target.appendChild(s);
+  });
+}
+function initEasterEggs(){
+  const konami=['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'];let k=0;
+  document.addEventListener('keydown',e=>{if(/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;const key=e.key.length===1?e.key.toLowerCase():e.key;k=key===konami[k]?k+1:(key===konami[0]?1:0);if(k===konami.length){k=0;eggArcade();}});
+  let logoTaps=0,logoTimer=null;document.getElementById('logoName')?.addEventListener('click',e=>{if(e.target.closest('.logo-ball'))return;logoTaps++;clearTimeout(logoTimer);logoTimer=setTimeout(()=>logoTaps=0,1600);if(logoTaps>=8){logoTaps=0;eggArcade();}});
+  let ballTaps=0,ballTimer=null;document.addEventListener('click',e=>{const ball=e.target.closest('.logo-ball');if(!ball)return;e.stopPropagation();ballTaps++;clearTimeout(ballTimer);ballTimer=setTimeout(()=>ballTaps=0,900);if(ballTaps>=3){ballTaps=0;eggBallGoal(ball);}});
+  const dollarTaps={};document.addEventListener('click',e=>{const card=e.target.closest('.iw-dolar');if(!card)return;const label=card.querySelector('.iw-dolar-label')?.textContent?.trim();if(!['MEP','Blue','BLUE'].includes(label))return;dollarTaps[label]=(dollarTaps[label]||0)+1;clearTimeout(card._eggDollarTimer);card._eggDollarTimer=setTimeout(()=>dollarTaps[label]=0,1400);if(dollarTaps[label]>=5){dollarTaps[label]=0;eggDolarLoco(card);}});
+  document.addEventListener('click',e=>{const icon=e.target.closest('.iw-weather-emoji');if(icon)eggWeather(icon);});
+  let champTimer=null;document.addEventListener('pointerdown',e=>{if(!e.target.closest('.logo-flag'))return;champTimer=setTimeout(()=>{document.body.classList.add('egg-champion');eggPop('Modo campeón','aguante el kiosco');eggRain(['★','🇦🇷','⚽'],70,{colors:['#74ACDF','#fff','#FFD43B'],dur:1.4,size:18});launchConfetti();setTimeout(()=>document.body.classList.remove('egg-champion'),5200);},850);});
+  ['pointerup','pointercancel','pointerleave'].forEach(ev=>document.addEventListener(ev,()=>{clearTimeout(champTimer);}));
+  const watchLucky=id=>{const el=document.getElementById(id);if(!el)return;const check=()=>eggCheckLuckyValue(eggAmountFromText(el.textContent),id,el);new MutationObserver(check).observe(el,{childList:true,characterData:true,subtree:true});check();};
+  ['mvTotal','cvTotal','cmTotalDia','heroMiniTotal'].forEach(watchLucky);
+  const cmSub=document.getElementById('cmTotalDiaSub');if(cmSub){const check=()=>{if(cmSub.textContent.includes(CM_TURNOS.length+' de '+CM_TURNOS.length))eggPerfectClose();};new MutationObserver(check).observe(cmSub,{childList:true,characterData:true,subtree:true});check();}
+  setTimeout(eggAddStickers,1200);
+  setInterval(eggAddStickers,5000);
+}
+
 (function initCelebracion(){
   const localKey=()=>{const d=new Date();return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;};
   function check(){
@@ -4270,6 +4442,7 @@ function launchConfetti(){
   check();
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)check();});
 })();
+initEasterEggs();
 </script>
 </body>
 </html>
