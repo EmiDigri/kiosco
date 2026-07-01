@@ -161,21 +161,17 @@ html{overflow-x:hidden;overflow-y:scroll}
 @keyframes egg-weather-spark{0%{opacity:0;transform:scale(.4) rotate(0)}30%{opacity:1}100%{opacity:0;transform:scale(1.7) rotate(80deg)}}
 .egg-weather-cloud{font-size:18px;opacity:.18;animation:egg-weather-cloud 2s ease-out forwards}
 @keyframes egg-weather-cloud{0%{opacity:0;transform:translateX(-12px)}25%{opacity:.42}100%{opacity:0;transform:translateX(32px)}}
-.egg-sticker{--egg-tilt:-7deg;position:absolute;z-index:12;right:6px;top:6px;width:28px;height:24px;display:flex;align-items:center;justify-content:center;border-radius:58% 42% 55% 45%/52% 62% 38% 48%;background:linear-gradient(145deg,#fffdf5 0%,#ffe8ed 56%,#ffd166 100%);border:2px solid #181A22;color:#181A22;font-size:14px;font-weight:900;line-height:1;opacity:.42;cursor:pointer;transition:opacity .18s,transform .18s,filter .18s,box-shadow .18s;user-select:none;overflow:visible;box-shadow:0 2px 0 #f25c54,0 6px 14px rgba(0,0,0,.24);transform:rotate(var(--egg-tilt)) scale(.92)}
-.egg-sticker::before{content:'';position:absolute;right:-14px;top:-4px;width:25px;height:10px;border:2px solid #181A22;border-radius:999px;background:repeating-linear-gradient(90deg,#fffdf5 0 5px,#f25c54 5px 10px);box-shadow:0 2px 0 rgba(0,0,0,.14);transform:rotate(18deg);transform-origin:2px 50%;z-index:-1;animation:egg-tail-peek 2.6s ease-in-out infinite}
-.egg-sticker::after{content:'';position:absolute;left:5px;top:4px;width:5px;height:5px;border-radius:50%;background:#fff;box-shadow:9px 12px 0 -2px rgba(116,192,252,.95);opacity:.85}
-.egg-sticker:hover,.egg-sticker:focus{opacity:1;transform:rotate(var(--egg-tilt)) scale(1.17);filter:saturate(1.18);box-shadow:0 3px 0 #f25c54,0 10px 18px rgba(0,0,0,.3);outline:none}
-.egg-sticker:hover::before,.egg-sticker:focus::before{animation:egg-tail-wag .24s ease-in-out infinite}
-.egg-sticker.found{opacity:.9;color:#063B2A;background:linear-gradient(145deg,#fffdf5 0%,#d9ffe8 58%,#74C0FC 100%);box-shadow:0 2px 0 #5FD68A,0 7px 16px rgba(0,0,0,.24)}
-.egg-sticker.collecting{opacity:1;animation:egg-sticker-found .76s cubic-bezier(.19,1,.22,1)}
-.egg-sticker.collecting::before{animation:egg-tail-wag .14s ease-in-out 7}
-.egg-sticker-burst{position:fixed;z-index:10005;left:0;top:0;pointer-events:none;color:#FFD43B;font-size:16px;font-weight:900;text-shadow:0 2px 0 #181A22;animation:egg-sticker-burst .72s ease-out forwards}
-.egg-sticker-callout{position:fixed;z-index:10005;left:0;top:0;pointer-events:none;transform:translate(-50%,-100%) rotate(-3deg);padding:6px 10px;border:2px solid #181A22;border-radius:999px;background:#fffdf5;color:#181A22;font-size:11px;font-weight:900;letter-spacing:.02em;box-shadow:0 3px 0 #74C0FC,0 9px 18px rgba(0,0,0,.25);animation:egg-sticker-callout .95s ease-out forwards;white-space:nowrap}
-@keyframes egg-tail-peek{0%,72%,100%{transform:rotate(18deg)}76%{transform:rotate(34deg)}81%{transform:rotate(-10deg)}86%{transform:rotate(30deg)}}
-@keyframes egg-tail-wag{0%,100%{transform:rotate(26deg)}50%{transform:rotate(-20deg)}}
-@keyframes egg-sticker-found{0%{transform:rotate(var(--egg-tilt)) scale(.78)}22%{transform:rotate(calc(var(--egg-tilt) - 16deg)) scale(1.34)}48%{transform:rotate(calc(var(--egg-tilt) + 12deg)) scale(.96)}72%{transform:rotate(calc(var(--egg-tilt) - 6deg)) scale(1.12)}100%{transform:rotate(var(--egg-tilt)) scale(1)}}
-@keyframes egg-sticker-burst{0%{opacity:0;transform:translate(-50%,-50%) scale(.35) rotate(0)}20%{opacity:1}100%{opacity:0;transform:translate(calc(-50% + var(--egg-x)),calc(-50% + var(--egg-y))) scale(1.25) rotate(140deg)}}
-@keyframes egg-sticker-callout{0%{opacity:0;transform:translate(-50%,-82%) rotate(-8deg) scale(.74)}18%,70%{opacity:1;transform:translate(-50%,-112%) rotate(-3deg) scale(1)}100%{opacity:0;transform:translate(-50%,-142%) rotate(4deg) scale(.94)}}
+.egg-sticker{--egg-tilt:-7deg;position:absolute;z-index:12;right:6px;top:6px;width:14px;height:14px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);color:rgba(255,255,255,.75);font-size:9px;font-weight:900;line-height:1;opacity:.16;cursor:pointer;transition:opacity .16s,transform .16s,background .16s,border-color .16s,box-shadow .16s;user-select:none;overflow:visible;box-shadow:none;transform:rotate(var(--egg-tilt)) scale(.9)}
+.egg-sticker::before{content:'';position:absolute;inset:-7px;border-radius:50%;background:transparent}
+.egg-sticker::after{content:'';position:absolute;right:-2px;top:2px;width:4px;height:4px;border-radius:50%;background:rgba(255,212,59,.75);opacity:.55}
+.egg-sticker:hover,.egg-sticker:focus{opacity:.95;transform:rotate(var(--egg-tilt)) scale(1.25);background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.46);box-shadow:0 0 14px rgba(255,212,59,.26);outline:none}
+.egg-sticker.found{opacity:.36;color:#5FD68A;background:rgba(95,214,138,.12);border-color:rgba(95,214,138,.32)}
+.egg-sticker.collecting{opacity:1;animation:egg-sticker-found .52s cubic-bezier(.19,1,.22,1)}
+.egg-sticker-burst{position:fixed;z-index:10005;left:0;top:0;pointer-events:none;color:#FFD43B;font-size:11px;font-weight:900;text-shadow:0 1px 0 rgba(0,0,0,.35);animation:egg-sticker-burst .62s ease-out forwards}
+.egg-sticker-callout{position:fixed;z-index:10005;left:0;top:0;pointer-events:none;transform:translate(-50%,-100%) rotate(-2deg);max-width:min(260px,calc(100vw - 28px));padding:6px 9px;border:1px solid rgba(255,255,255,.22);border-radius:8px;background:rgba(22,22,25,.94);color:#fff;font-size:11px;font-weight:800;letter-spacing:0;box-shadow:0 8px 22px rgba(0,0,0,.26);animation:egg-sticker-callout 1.25s ease-out forwards;white-space:normal;text-align:center}
+@keyframes egg-sticker-found{0%{transform:rotate(var(--egg-tilt)) scale(.8)}32%{transform:rotate(calc(var(--egg-tilt) - 9deg)) scale(1.45)}64%{transform:rotate(calc(var(--egg-tilt) + 6deg)) scale(1.05)}100%{transform:rotate(var(--egg-tilt)) scale(1)}}
+@keyframes egg-sticker-burst{0%{opacity:0;transform:translate(-50%,-50%) scale(.35) rotate(0)}18%{opacity:1}100%{opacity:0;transform:translate(calc(-50% + var(--egg-x)),calc(-50% + var(--egg-y))) scale(1.05) rotate(115deg)}}
+@keyframes egg-sticker-callout{0%{opacity:0;transform:translate(-50%,-82%) rotate(-5deg) scale(.86)}18%,72%{opacity:1;transform:translate(-50%,-116%) rotate(-2deg) scale(1)}100%{opacity:0;transform:translate(-50%,-142%) rotate(2deg) scale(.94)}}
 .egg-stamp{position:fixed;left:50%;top:50%;z-index:10003;pointer-events:none;transform:translate(-50%,-50%) rotate(-8deg) scale(.65);border:3px solid #5FD68A;color:#5FD68A;border-radius:14px;padding:14px 22px;font-size:26px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;background:rgba(8,11,26,.72);box-shadow:0 0 35px rgba(95,214,138,.24);animation:egg-stamp 1.8s cubic-bezier(.22,1,.36,1) forwards}
 @keyframes egg-stamp{0%{opacity:0;transform:translate(-50%,-50%) rotate(-14deg) scale(1.8)}18%,78%{opacity:1;transform:translate(-50%,-50%) rotate(-8deg) scale(1)}100%{opacity:0;transform:translate(-50%,-50%) rotate(-8deg) scale(.9)}}
 body.egg-arcade .hero-card,body.egg-champion .hero-card{box-shadow:0 0 0 1px rgba(116,172,223,.35),0 0 42px rgba(116,172,223,.22)!important}
@@ -4292,6 +4288,13 @@ function launchConfetti(){
 
 /* ─── EASTER EGGS ─── */
 const EGG_STICKERS_KEY='kiosco_easter_stickers_v1';
+const EGG_STICKER_PHRASES={
+  clima:'Pronostico del kiosco: entran nubes, salen facturas.',
+  dolar:'El dolar pregunto si habia vuelto y se fue.',
+  historial:'Archivo secreto: alguien compro un alfajor y dijo "despues te pago".',
+  caja:'Caja dice: si cierra justo, se prende una luz invisible.',
+  turno:'Turno desbloqueado: mate tibio, paciencia premium.'
+};
 function eggTodayKey(){return fechaHoy?fechaHoy():new Date().toISOString().slice(0,10);}
 function eggMotionOk(){return !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;}
 function eggPop(title,sub){
@@ -4396,7 +4399,7 @@ function eggStickerCelebrate(id,label,el,was){
   setTimeout(()=>el.classList.remove('collecting'),780);
   const call=document.createElement('div');
   call.className='egg-sticker-callout';
-  call.textContent=(was?'¡Otra vez!':'¡Encontrado!')+' '+label;
+  call.textContent=was?'Ya estaba cazado. '+(EGG_STICKER_PHRASES[id]||label):(EGG_STICKER_PHRASES[id]||('Secreto de kiosco: '+label));
   call.style.left=Math.min(innerWidth-92,Math.max(92,r.left+r.width/2))+'px';
   call.style.top=Math.max(44,r.top-8)+'px';
   document.body.appendChild(call);
@@ -4424,7 +4427,7 @@ function eggCollectSticker(id,label,el){
   found.add(id);localStorage.setItem(EGG_STICKERS_KEY,JSON.stringify([...found]));
   el.classList.add('found');
   eggStickerCelebrate(id,label,el,was);
-  showToast((was?'Sticker ya encontrado: ':'Sticker encontrado: ')+label+' ('+found.size+'/5)');
+  showToast((was?'Secreto repetido: ':'Secreto encontrado: ')+label+' ('+found.size+'/5)');
   if(found.size>=5&&!sessionStorage.getItem('egg_stickers_full')){
     sessionStorage.setItem('egg_stickers_full','1');eggPop('Colección completa','stickers del kiosco');launchConfetti();
   }
