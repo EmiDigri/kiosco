@@ -133,11 +133,15 @@ html{overflow-x:hidden;overflow-y:scroll}
 @media(max-width:900px){.iw-temp-row{margin-bottom:9px}.iw-forecast-mobile{display:grid}}
 .iw-dolares{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px}
 .iw-dolar{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:7px 5px;text-align:center}
-.iw-dolar-label{font-size:9px;font-weight:700;letter-spacing:.09em;color:var(--text-soft);text-transform:uppercase;margin-bottom:4px}
+.iw-dolar-label{display:inline-flex;align-items:center;justify-content:center;gap:4px;font-size:9px;font-weight:700;letter-spacing:.09em;color:var(--text-soft);text-transform:uppercase;margin-bottom:4px}
 .iw-dolar-val{display:flex;align-items:center;justify-content:center;gap:4px;font-size:12.5px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums;line-height:1}
 .iw-dolar-var{font-size:10px;font-weight:700;line-height:1}
 .iw-dolar-var.up{color:#5FD68A}
 .iw-dolar-var.down{color:#f87171}
+.iw-mep-bill{position:relative;width:16px;height:10px;border:1px solid rgba(95,214,138,.72);border-radius:2px;background:linear-gradient(135deg,#d9ffe8 0%,#7ee2a0 52%,#2f9f5f 100%);color:#063b2a;padding:0;display:inline-flex;align-items:center;justify-content:center;font-size:7px;font-weight:900;line-height:1;letter-spacing:0;cursor:pointer;opacity:.72;transform:rotate(-8deg);box-shadow:0 1px 4px rgba(0,0,0,.22);transition:opacity .16s,transform .16s,box-shadow .16s}
+.iw-mep-bill::before{content:'';position:absolute;inset:2px;border:1px solid rgba(6,59,42,.26);border-radius:1px;pointer-events:none}
+.iw-mep-bill:hover,.iw-mep-bill:focus{opacity:1;transform:rotate(-8deg) scale(1.18);box-shadow:0 0 12px rgba(95,214,138,.4);outline:none}
+.iw-mep-bill span{position:relative;z-index:1}
 .iw-feriado{font-size:12px;color:var(--text-mid);border-top:1px solid var(--glass-border);padding-top:8px;line-height:1.45}
 .iw-feriado-lbl{font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--text-soft);margin-bottom:3px}
 .iw-feriados-grid{display:flex;flex-direction:column;gap:8px}
@@ -147,6 +151,10 @@ html{overflow-x:hidden;overflow-y:scroll}
 .egg-layer{position:fixed;inset:0;z-index:10000;pointer-events:none;overflow:hidden}
 .egg-rain-item{position:fixed;z-index:10001;pointer-events:none;font-weight:850;font-size:15px;line-height:1;animation:egg-fall var(--egg-dur,1.7s) linear forwards;filter:drop-shadow(0 2px 5px rgba(0,0,0,.28))}
 @keyframes egg-fall{0%{opacity:0;transform:translate3d(0,-20px,0) rotate(-12deg) scale(.8)}10%{opacity:1}100%{opacity:0;transform:translate3d(var(--egg-dx,0px),105vh,0) rotate(22deg) scale(1)}}
+.egg-dollar-rain{display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:18px;padding:0 5px;border:1px solid rgba(6,59,42,.42);border-radius:4px;background:linear-gradient(135deg,#eefdf0 0%,#8de6a8 52%,#2e9d5f 100%);color:#063b2a!important;font-size:10px!important;font-weight:900!important;letter-spacing:0!important;box-shadow:0 2px 0 rgba(6,59,42,.25),0 8px 18px rgba(0,0,0,.28);animation:egg-dollar-fall var(--egg-dur,2.5s) linear forwards!important}
+.egg-dollar-rain::before{content:'';position:absolute;inset:3px;border:1px solid rgba(6,59,42,.2);border-radius:2px}
+.egg-dollar-rain::after{content:'';position:absolute;left:50%;top:50%;width:8px;height:8px;border-radius:50%;border:1px solid rgba(6,59,42,.22);transform:translate(-50%,-50%)}
+@keyframes egg-dollar-fall{0%{opacity:0;transform:translate3d(0,-32px,0) rotate(var(--egg-r0,-18deg)) scale(.84)}8%{opacity:1}100%{opacity:0;transform:translate3d(var(--egg-dx,0px),112vh,0) rotate(var(--egg-r1,160deg)) scale(1)}}
 .egg-pop{position:fixed;left:50%;top:18%;transform:translate(-50%,-50%);z-index:10002;pointer-events:none;background:rgba(8,11,26,.78);border:1px solid rgba(255,255,255,.18);color:var(--text);border-radius:16px;padding:12px 18px;font-size:18px;font-weight:850;letter-spacing:0;text-align:center;box-shadow:0 18px 60px rgba(0,0,0,.35);backdrop-filter:blur(14px);animation:egg-pop .95s cubic-bezier(.22,1,.36,1) forwards}
 .egg-pop small{display:block;margin-top:3px;font-size:11px;font-weight:700;color:var(--text-soft);text-transform:uppercase;letter-spacing:.12em}
 @keyframes egg-pop{0%{opacity:0;transform:translate(-50%,-35%) scale(.75)}18%,78%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-62%) scale(.96)}}
@@ -177,7 +185,7 @@ html{overflow-x:hidden;overflow-y:scroll}
 body.egg-arcade .hero-card,body.egg-champion .hero-card{box-shadow:0 0 0 1px rgba(116,172,223,.35),0 0 42px rgba(116,172,223,.22)!important}
 body.egg-arcade .logo-name{color:#fff;text-shadow:0 0 10px #74c0fc,0 0 22px rgba(116,192,252,.55)}
 body.egg-champion .logo-flag{filter:drop-shadow(0 0 8px rgba(116,172,223,.9)) drop-shadow(0 0 16px rgba(255,255,255,.5))}
-@media(prefers-reduced-motion:reduce){.egg-rain-item,.egg-pop,.egg-weather-drop,.egg-weather-spark,.egg-weather-cloud,.egg-stamp,.egg-sticker::before,.egg-sticker.collecting,.egg-sticker.collecting::before,.egg-sticker-burst,.egg-sticker-callout{animation-duration:.01ms!important}}
+@media(prefers-reduced-motion:reduce){.egg-rain-item,.egg-dollar-rain,.egg-pop,.egg-weather-drop,.egg-weather-spark,.egg-weather-cloud,.egg-stamp,.egg-sticker::before,.egg-sticker.collecting,.egg-sticker.collecting::before,.egg-sticker-burst,.egg-sticker-callout{animation-duration:.01ms!important}}
 .hero-card{position:relative;z-index:1;transition:transform .08s ease;will-change:transform;margin-bottom:0!important;background:var(--glass);border:1px solid var(--glass-border);border-radius:28px;padding:28px 26px 24px;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);overflow:hidden}
 .hero-card::before{content:'';position:absolute;inset:0;border-radius:28px;background:linear-gradient(135deg,rgba(61,90,254,.08) 0%,transparent 60%);pointer-events:none}
 .hero-shimmer{position:absolute;top:0;left:-100%;width:60%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.04),transparent);animation:shimmerSlide 3s ease-in-out infinite}
@@ -4186,9 +4194,9 @@ async function fetchInfoWidget(){
     </div>
     ${forecastMob?`<div class="iw-forecast iw-forecast-mobile">${forecastMob}</div>`:''}
     <div class="iw-dolares">
-      <div class="iw-dolar"><div class="iw-dolar-label">Oficial</div><div class="iw-dolar-val">${fmt(ofVal)}${varTag(ofPct)}</div></div>
-      <div class="iw-dolar"><div class="iw-dolar-label">MEP</div><div class="iw-dolar-val">${fmt(mepVal)}${varTag(mepPct)}</div></div>
-      <div class="iw-dolar"><div class="iw-dolar-label">Blue</div><div class="iw-dolar-val">${fmt(blVal)}${varTag(blPct)}</div></div>
+      <div class="iw-dolar" data-dolar-kind="Oficial"><div class="iw-dolar-label">Oficial</div><div class="iw-dolar-val">${fmt(ofVal)}${varTag(ofPct)}</div></div>
+      <div class="iw-dolar" data-dolar-kind="MEP"><div class="iw-dolar-label"><span>MEP</span><button class="iw-mep-bill" type="button" aria-label="Activar dólar loco" title="Dólar loco"><span>$</span></button></div><div class="iw-dolar-val">${fmt(mepVal)}${varTag(mepPct)}</div></div>
+      <div class="iw-dolar" data-dolar-kind="Blue"><div class="iw-dolar-label">Blue</div><div class="iw-dolar-val">${fmt(blVal)}${varTag(blPct)}</div></div>
     </div>
     ${feriado||fsl?`<div class="iw-feriado"><div class="iw-feriados-grid">
       ${feriado?`<div><div class="iw-feriado-lbl">Próximo feriado</div>${feriado}</div>`:''}
@@ -4321,6 +4329,23 @@ function eggRain(items,count,opts){
     setTimeout(()=>s.remove(),2600);
   }
 }
+function eggDollarRain(count){
+  const labels=['US$','$100','$50','USD','$'];
+  for(let i=0;i<count;i++){
+    const s=document.createElement('span');
+    s.className='egg-rain-item egg-dollar-rain';
+    s.textContent=labels[i%labels.length];
+    s.style.left=(Math.random()*innerWidth)+'px';
+    s.style.top=-(28+Math.random()*innerHeight*.72)+'px';
+    s.style.setProperty('--egg-dx',((Math.random()-.5)*(innerWidth<600?190:300)).toFixed(0)+'px');
+    s.style.setProperty('--egg-dur',(1.9+Math.random()*1.7)+'s');
+    s.style.setProperty('--egg-r0',((-24+Math.random()*48).toFixed(0))+'deg');
+    s.style.setProperty('--egg-r1',((120+Math.random()*260).toFixed(0))+'deg');
+    s.style.animationDelay=(Math.random()*.55)+'s';
+    document.body.appendChild(s);
+    setTimeout(()=>s.remove(),4600);
+  }
+}
 function eggArcade(){
   document.body.classList.add('egg-arcade');
   eggPop('Modo Kiosco Arcade','cheat activado');
@@ -4348,9 +4373,9 @@ function eggBallGoal(ball){
 }
 function eggDolarLoco(card){
   const val=card.querySelector('.iw-dolar-val')?.innerText.replace(/\s+/g,' ')||'$';
-  const down=card.querySelector('.iw-dolar-var.down');
   eggPop('Dólar loco',val);
-  eggRain([val,'$','ARS','USD'],70,{x:card.getBoundingClientRect().left+card.offsetWidth/2,y:card.getBoundingClientRect().top,spread:220,colors:down?['#f87171','#fff','#f4a435']:['#5FD68A','#fff','#74C0FC'],dur:1.35,size:14});
+  eggDollarRain(innerWidth<600?150:240);
+  setTimeout(()=>eggDollarRain(innerWidth<600?55:90),260);
 }
 function eggWeather(icon){
   const card=icon.closest('#infoWidgetCard,#infoWidgetMobile')||document.getElementById('infoWidgetCard');
@@ -4457,7 +4482,7 @@ function initEasterEggs(){
   document.addEventListener('keydown',e=>{if(/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;const key=e.key.length===1?e.key.toLowerCase():e.key;k=key===konami[k]?k+1:(key===konami[0]?1:0);if(k===konami.length){k=0;eggArcade();}});
   let logoTaps=0,logoTimer=null;document.getElementById('logoName')?.addEventListener('click',e=>{if(e.target.closest('.logo-ball'))return;logoTaps++;clearTimeout(logoTimer);logoTimer=setTimeout(()=>logoTaps=0,1600);if(logoTaps>=8){logoTaps=0;eggArcade();}});
   let ballTaps=0,ballTimer=null;document.addEventListener('click',e=>{const ball=e.target.closest('.logo-ball');if(!ball)return;e.stopPropagation();ballTaps++;clearTimeout(ballTimer);ballTimer=setTimeout(()=>ballTaps=0,900);if(ballTaps>=3){ballTaps=0;eggBallGoal(ball);}});
-  const dollarTaps={};document.addEventListener('click',e=>{const card=e.target.closest('.iw-dolar');if(!card)return;const label=card.querySelector('.iw-dolar-label')?.textContent?.trim();if(!['MEP','Blue','BLUE'].includes(label))return;dollarTaps[label]=(dollarTaps[label]||0)+1;clearTimeout(card._eggDollarTimer);card._eggDollarTimer=setTimeout(()=>dollarTaps[label]=0,1400);if(dollarTaps[label]>=5){dollarTaps[label]=0;eggDolarLoco(card);}});
+  const dollarTaps={};document.addEventListener('click',e=>{const bill=e.target.closest('.iw-mep-bill');if(bill){const card=bill.closest('.iw-dolar');if(card)eggDolarLoco(card);return;}const card=e.target.closest('.iw-dolar');if(!card)return;const label=card.dataset.dolarKind||card.querySelector('.iw-dolar-label')?.textContent?.trim();if(!['MEP','Blue','BLUE'].includes(label))return;dollarTaps[label]=(dollarTaps[label]||0)+1;clearTimeout(card._eggDollarTimer);card._eggDollarTimer=setTimeout(()=>dollarTaps[label]=0,1400);if(dollarTaps[label]>=5){dollarTaps[label]=0;eggDolarLoco(card);}});
   document.addEventListener('click',e=>{const icon=e.target.closest('.iw-weather-emoji');if(icon)eggWeather(icon);});
   let champTimer=null;document.addEventListener('pointerdown',e=>{if(!e.target.closest('.logo-flag'))return;champTimer=setTimeout(()=>{document.body.classList.add('egg-champion');eggPop('Modo campeón','aguante el kiosco');eggRain(['★','🇦🇷','⚽'],70,{colors:['#74ACDF','#fff','#FFD43B'],dur:1.4,size:18});launchConfetti();setTimeout(()=>document.body.classList.remove('egg-champion'),5200);},850);});
   ['pointerup','pointercancel','pointerleave'].forEach(ev=>document.addEventListener(ev,()=>{clearTimeout(champTimer);}));
