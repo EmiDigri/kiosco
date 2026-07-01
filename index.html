@@ -154,9 +154,18 @@ html{overflow-x:hidden;overflow-y:scroll}
 .egg-layer{position:fixed;inset:0;z-index:10000;pointer-events:none;overflow:hidden}
 .egg-rain-item{position:fixed;z-index:10001;pointer-events:none;font-weight:850;font-size:15px;line-height:1;animation:egg-fall var(--egg-dur,1.7s) linear forwards;filter:drop-shadow(0 2px 5px rgba(0,0,0,.28))}
 @keyframes egg-fall{0%{opacity:0;transform:translate3d(0,-20px,0) rotate(-12deg) scale(.8)}10%{opacity:1}100%{opacity:0;transform:translate3d(var(--egg-dx,0px),105vh,0) rotate(22deg) scale(1)}}
-.egg-dollar-rain{display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:18px;padding:0 5px;border:1px solid rgba(6,59,42,.42);border-radius:4px;background:linear-gradient(135deg,#eefdf0 0%,#8de6a8 52%,#2e9d5f 100%);color:#063b2a!important;font-size:10px!important;font-weight:900!important;letter-spacing:0!important;box-shadow:0 2px 0 rgba(6,59,42,.25),0 8px 18px rgba(0,0,0,.28);animation:egg-dollar-fall var(--egg-dur,2.5s) linear forwards!important}
-.egg-dollar-rain::before{content:'';position:absolute;inset:3px;border:1px solid rgba(6,59,42,.2);border-radius:2px}
-.egg-dollar-rain::after{content:'';position:absolute;left:50%;top:50%;width:8px;height:8px;border-radius:50%;border:1px solid rgba(6,59,42,.22);transform:translate(-50%,-50%)}
+.egg-dollar-rain{width:64px;height:28px;padding:0;border:1px solid rgba(23,61,39,.78);border-radius:2px;background:linear-gradient(135deg,#e6ecd8 0%,#b9c8a3 48%,#779775 100%);color:#173d27!important;font-family:Georgia,'Times New Roman',serif!important;font-size:7px!important;font-weight:800!important;letter-spacing:0!important;box-shadow:0 2px 2px rgba(8,24,14,.24),0 10px 18px rgba(0,0,0,.28);animation:egg-dollar-fall var(--egg-dur,2.5s) linear forwards!important;overflow:hidden}
+.egg-dollar-rain::before{content:'';position:absolute;inset:3px;border:1px solid rgba(23,61,39,.52);border-radius:1px;background:repeating-linear-gradient(0deg,rgba(23,61,39,.08) 0 1px,transparent 1px 3px),linear-gradient(90deg,rgba(255,255,255,.16),transparent 28%,rgba(23,61,39,.08) 50%,transparent 72%,rgba(255,255,255,.12))}
+.egg-dollar-rain::after{content:'';position:absolute;left:50%;top:50%;width:21px;height:17px;border-radius:50%;border:1px solid rgba(23,61,39,.5);background:radial-gradient(circle at 58% 35%,rgba(255,255,255,.18),transparent 18%),radial-gradient(circle,rgba(23,61,39,.18),transparent 64%);transform:translate(-50%,-50%)}
+.egg-dollar-rain .bill-corner{position:absolute;z-index:1;font-size:8px;font-weight:900;line-height:1;color:#183b27}
+.egg-dollar-rain .bill-corner.tl{left:5px;top:4px}
+.egg-dollar-rain .bill-corner.br{right:5px;bottom:4px;transform:rotate(180deg)}
+.egg-dollar-rain .bill-center{position:absolute;z-index:2;left:50%;top:50%;transform:translate(-50%,-50%);font-size:8px;font-weight:900;white-space:nowrap}
+.egg-dollar-rain .bill-line{position:absolute;z-index:1;left:50%;top:5px;transform:translateX(-50%);font-size:3.6px;font-weight:700;letter-spacing:.08em;white-space:nowrap;color:rgba(24,66,41,.72)}
+.egg-dollar-rain .bill-line.bottom{top:auto;bottom:5px}
+.egg-dollar-rain .bill-portrait{position:absolute;z-index:1;left:50%;top:50%;width:15px;height:15px;border-radius:50%;transform:translate(-50%,-50%);opacity:.82}
+.egg-dollar-rain .bill-portrait::before{content:'';position:absolute;left:4px;top:2px;width:7px;height:8px;border-radius:50% 45% 48% 45%;background:#173d27;box-shadow:-1px 7px 0 2px #173d27;opacity:.44}
+.egg-dollar-rain .bill-portrait::after{content:'';position:absolute;left:8px;top:4px;width:4px;height:3px;border-radius:50%;border-top:1px solid #e6ecd8;transform:rotate(-18deg);opacity:.62}
 @keyframes egg-dollar-fall{0%{opacity:0;transform:translate3d(0,-32px,0) rotate(var(--egg-r0,-18deg)) scale(.84)}8%{opacity:1}100%{opacity:0;transform:translate3d(var(--egg-dx,0px),112vh,0) rotate(var(--egg-r1,160deg)) scale(1)}}
 .egg-pop{position:fixed;left:50%;top:18%;transform:translate(-50%,-50%);z-index:10002;pointer-events:none;background:rgba(8,11,26,.78);border:1px solid rgba(255,255,255,.18);color:var(--text);border-radius:16px;padding:12px 18px;font-size:18px;font-weight:850;letter-spacing:0;text-align:center;box-shadow:0 18px 60px rgba(0,0,0,.35);backdrop-filter:blur(14px);animation:egg-pop .95s cubic-bezier(.22,1,.36,1) forwards}
 .egg-pop small{display:block;margin-top:3px;font-size:11px;font-weight:700;color:var(--text-soft);text-transform:uppercase;letter-spacing:.12em}
@@ -4344,11 +4353,12 @@ function eggRain(items,count,opts){
   }
 }
 function eggDollarRain(count){
-  const labels=['US$','$100','$50','USD','$'];
+  const labels=['100','50','20','10','5'];
   for(let i=0;i<count;i++){
     const s=document.createElement('span');
     s.className='egg-rain-item egg-dollar-rain';
-    s.textContent=labels[i%labels.length];
+    const label=labels[i%labels.length];
+    s.innerHTML=`<span class="bill-corner tl">${label}</span><span class="bill-line">FEDERAL RESERVE</span><span class="bill-portrait"></span><span class="bill-center">$${label}</span><span class="bill-line bottom">UNITED STATES</span><span class="bill-corner br">${label}</span>`;
     s.style.left=(Math.random()*innerWidth)+'px';
     s.style.top=-(28+Math.random()*innerHeight*.72)+'px';
     s.style.setProperty('--egg-dx',((Math.random()-.5)*(innerWidth<600?190:300)).toFixed(0)+'px');
