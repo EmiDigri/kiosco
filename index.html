@@ -146,7 +146,10 @@ html{overflow-x:hidden;overflow-y:scroll}
 .iw-feriado-lbl{font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--text-soft);margin-bottom:3px}
 .iw-feriados-grid{display:flex;flex-direction:column;gap:8px}
 .info-widget-loading{font-size:12px;color:var(--text-soft)}
-.iw-weather-emoji{font-size:20px;vertical-align:middle;line-height:1;display:inline-block;margin-left:4px}
+.iw-weather-emoji{position:relative;vertical-align:middle;line-height:1;display:inline-flex;align-items:center;justify-content:center;margin-left:4px;cursor:pointer;filter:drop-shadow(0 0 0 rgba(255,255,255,0));transition:filter .18s,text-shadow .18s}
+.iw-weather-emoji::before{content:'';position:absolute;inset:-8px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.28),rgba(116,192,252,.12) 42%,transparent 70%);opacity:0;transform:scale(.72);transition:opacity .18s,transform .18s;pointer-events:none;z-index:-1}
+.iw-weather-emoji:hover,.iw-weather-emoji:focus,.iw-weather-emoji.weather-lit{filter:drop-shadow(0 0 8px rgba(255,255,255,.65)) drop-shadow(0 0 18px rgba(116,192,252,.42));text-shadow:0 0 12px rgba(255,255,255,.55);outline:none}
+.iw-weather-emoji:hover::before,.iw-weather-emoji:focus::before,.iw-weather-emoji.weather-lit::before{opacity:1;transform:scale(1)}
 #infoWidgetCard,#infoWidgetMobile{position:relative;overflow:hidden}
 .egg-layer{position:fixed;inset:0;z-index:10000;pointer-events:none;overflow:hidden}
 .egg-rain-item{position:fixed;z-index:10001;pointer-events:none;font-weight:850;font-size:15px;line-height:1;animation:egg-fall var(--egg-dur,1.7s) linear forwards;filter:drop-shadow(0 2px 5px rgba(0,0,0,.28))}
@@ -169,23 +172,42 @@ html{overflow-x:hidden;overflow-y:scroll}
 @keyframes egg-weather-spark{0%{opacity:0;transform:scale(.4) rotate(0)}30%{opacity:1}100%{opacity:0;transform:scale(1.7) rotate(80deg)}}
 .egg-weather-cloud{font-size:18px;opacity:.18;animation:egg-weather-cloud 2s ease-out forwards}
 @keyframes egg-weather-cloud{0%{opacity:0;transform:translateX(-12px)}25%{opacity:.42}100%{opacity:0;transform:translateX(32px)}}
-.egg-sticker{--egg-tilt:-7deg;position:absolute;z-index:12;right:6px;top:6px;width:14px;height:14px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);color:rgba(255,255,255,.75);font-size:9px;font-weight:900;line-height:1;opacity:.16;cursor:pointer;transition:opacity .16s,transform .16s,background .16s,border-color .16s,box-shadow .16s;user-select:none;overflow:visible;box-shadow:none;transform:rotate(var(--egg-tilt)) scale(.9)}
-.egg-sticker::before{content:'';position:absolute;inset:-7px;border-radius:50%;background:transparent}
-.egg-sticker::after{content:'';position:absolute;right:-2px;top:2px;width:4px;height:4px;border-radius:50%;background:rgba(255,212,59,.75);opacity:.55}
-.egg-sticker:hover,.egg-sticker:focus{opacity:.95;transform:rotate(var(--egg-tilt)) scale(1.25);background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.46);box-shadow:0 0 14px rgba(255,212,59,.26);outline:none}
-.egg-sticker.found{opacity:.36;color:#5FD68A;background:rgba(95,214,138,.12);border-color:rgba(95,214,138,.32)}
-.egg-sticker.collecting{opacity:1;animation:egg-sticker-found .52s cubic-bezier(.19,1,.22,1)}
-.egg-sticker-burst{position:fixed;z-index:10005;left:0;top:0;pointer-events:none;color:#FFD43B;font-size:11px;font-weight:900;text-shadow:0 1px 0 rgba(0,0,0,.35);animation:egg-sticker-burst .62s ease-out forwards}
-.egg-sticker-callout{position:fixed;z-index:10005;left:0;top:0;pointer-events:none;transform:translate(-50%,-100%) rotate(-2deg);max-width:min(260px,calc(100vw - 28px));padding:6px 9px;border:1px solid rgba(255,255,255,.22);border-radius:8px;background:rgba(22,22,25,.94);color:#fff;font-size:11px;font-weight:800;letter-spacing:0;box-shadow:0 8px 22px rgba(0,0,0,.26);animation:egg-sticker-callout 1.25s ease-out forwards;white-space:normal;text-align:center}
-@keyframes egg-sticker-found{0%{transform:rotate(var(--egg-tilt)) scale(.8)}32%{transform:rotate(calc(var(--egg-tilt) - 9deg)) scale(1.45)}64%{transform:rotate(calc(var(--egg-tilt) + 6deg)) scale(1.05)}100%{transform:rotate(var(--egg-tilt)) scale(1)}}
-@keyframes egg-sticker-burst{0%{opacity:0;transform:translate(-50%,-50%) scale(.35) rotate(0)}18%{opacity:1}100%{opacity:0;transform:translate(calc(-50% + var(--egg-x)),calc(-50% + var(--egg-y))) scale(1.05) rotate(115deg)}}
-@keyframes egg-sticker-callout{0%{opacity:0;transform:translate(-50%,-82%) rotate(-5deg) scale(.86)}18%,72%{opacity:1;transform:translate(-50%,-116%) rotate(-2deg) scale(1)}100%{opacity:0;transform:translate(-50%,-142%) rotate(2deg) scale(.94)}}
+.egg-weather-stage{position:fixed;inset:0;z-index:9999;pointer-events:none;overflow:hidden;animation:egg-weather-stage 4.6s ease-out forwards}
+.egg-weather-stage::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at var(--egg-x,50%) var(--egg-y,24%),rgba(255,255,255,.28),transparent 22%),linear-gradient(180deg,rgba(8,11,26,.18),rgba(8,11,26,.04));opacity:.88;animation:egg-weather-fade 4.6s ease-out forwards}
+.egg-weather-stage.storm::before{background:linear-gradient(180deg,rgba(9,12,24,.74),rgba(9,12,24,.2))}
+.egg-weather-stage.rain::before{background:linear-gradient(180deg,rgba(20,42,72,.48),rgba(11,18,33,.08))}
+.egg-weather-stage.snow::before{background:linear-gradient(180deg,rgba(209,236,255,.34),rgba(255,255,255,.07))}
+.egg-weather-stage.fog::before,.egg-weather-stage.cloud::before{background:linear-gradient(180deg,rgba(170,185,205,.32),rgba(25,31,44,.06))}
+.egg-weather-stage.heat::before{background:radial-gradient(circle at var(--egg-x,50%) var(--egg-y,24%),rgba(255,212,59,.34),transparent 28%),linear-gradient(180deg,rgba(255,160,64,.18),rgba(255,255,255,.03))}
+.egg-weather-stage.moon::before{background:radial-gradient(circle at var(--egg-x,50%) var(--egg-y,24%),rgba(210,230,255,.32),transparent 26%),linear-gradient(180deg,rgba(8,13,35,.42),rgba(8,11,26,.08))}
+.egg-weather-piece,.egg-weather-orb,.egg-weather-cloudlet,.egg-weather-bolt,.egg-weather-fogband{position:fixed;z-index:10000;pointer-events:none}
+.egg-weather-drop-full{width:2px;height:26px;border-radius:999px;background:linear-gradient(180deg,rgba(180,225,255,0),rgba(116,192,252,.96));filter:drop-shadow(0 0 5px rgba(116,192,252,.45));animation:egg-weather-rain-full var(--egg-dur,1.35s) linear forwards}
+.egg-weather-snow-full{font-size:16px;color:#fff;text-shadow:0 0 10px rgba(231,245,255,.86);animation:egg-weather-snow-full var(--egg-dur,3.2s) linear forwards}
+.egg-weather-spark-full{font-size:18px;color:#FFD43B;text-shadow:0 0 16px rgba(255,212,59,.8);animation:egg-weather-spark-full var(--egg-dur,1.4s) ease-out forwards}
+.egg-weather-wind-full{font-size:15px;color:rgba(255,255,255,.78);animation:egg-weather-wind-full var(--egg-dur,2.4s) ease-in-out forwards}
+.egg-weather-orb{width:92px;height:92px;border-radius:50%;left:calc(var(--egg-x,50%) - 46px);top:calc(var(--egg-y,24%) - 46px);background:radial-gradient(circle,#fff9c4 0 32%,#FFD43B 45%,rgba(255,180,64,.2) 68%,transparent 72%);box-shadow:0 0 40px rgba(255,212,59,.75),0 0 100px rgba(255,212,59,.28);animation:egg-weather-orb 4s ease-out forwards}
+.egg-weather-orb.moon{background:radial-gradient(circle at 62% 38%,transparent 0 27%,#f8fbff 29% 58%,rgba(205,224,255,.2) 70%,transparent 74%);box-shadow:0 0 36px rgba(210,230,255,.72),0 0 90px rgba(116,192,252,.18)}
+.egg-weather-cloudlet{font-size:54px;color:rgba(255,255,255,.36);text-shadow:0 8px 24px rgba(0,0,0,.25);animation:egg-weather-cloudlet var(--egg-dur,4s) ease-out forwards}
+.egg-weather-bolt{font-size:78px;color:#FFD43B;text-shadow:0 0 22px rgba(255,212,59,.9),0 0 60px rgba(255,255,255,.45);animation:egg-weather-bolt 1.05s ease-out forwards}
+.egg-weather-fogband{height:42px;width:140vw;left:-20vw;border-radius:999px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.18),rgba(255,255,255,.34),rgba(255,255,255,.12),transparent);filter:blur(10px);animation:egg-weather-fogband var(--egg-dur,3.5s) ease-out forwards}
+.egg-weather-flash{animation:egg-weather-flash .72s ease-out 2}
+@keyframes egg-weather-stage{0%{opacity:0}10%,78%{opacity:1}100%{opacity:0}}
+@keyframes egg-weather-fade{0%{opacity:0}14%,82%{opacity:.9}100%{opacity:0}}
+@keyframes egg-weather-rain-full{0%{opacity:0;transform:translate3d(var(--egg-x0,0),-36px,0) rotate(12deg)}10%{opacity:1}100%{opacity:0;transform:translate3d(var(--egg-dx,0),112vh,0) rotate(12deg)}}
+@keyframes egg-weather-snow-full{0%{opacity:0;transform:translate3d(0,-24px,0) rotate(0deg)}12%{opacity:1}100%{opacity:0;transform:translate3d(var(--egg-dx,0),108vh,0) rotate(240deg)}}
+@keyframes egg-weather-spark-full{0%{opacity:0;transform:scale(.25) rotate(0)}20%{opacity:1}100%{opacity:0;transform:scale(1.8) rotate(130deg)}}
+@keyframes egg-weather-wind-full{0%{opacity:0;transform:translate3d(-18vw,0,0) rotate(-8deg)}16%,70%{opacity:1}100%{opacity:0;transform:translate3d(118vw,var(--egg-dy,0),0) rotate(18deg)}}
+@keyframes egg-weather-orb{0%{opacity:0;transform:scale(.35)}18%,72%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1.18)}}
+@keyframes egg-weather-cloudlet{0%{opacity:0;transform:translateX(-18vw) scale(.88)}16%,72%{opacity:1}100%{opacity:0;transform:translateX(42vw) scale(1.08)}}
+@keyframes egg-weather-bolt{0%,100%{opacity:0;transform:translateY(-18px) scale(.72)}12%,32%{opacity:1;transform:translateY(0) scale(1)}44%{opacity:.2}}
+@keyframes egg-weather-fogband{0%{opacity:0;transform:translateX(-12vw)}22%,76%{opacity:1}100%{opacity:0;transform:translateX(18vw)}}
+@keyframes egg-weather-flash{0%,100%{filter:none}18%,48%{filter:brightness(1.45)}30%{filter:brightness(2.25)}}
 .egg-stamp{position:fixed;left:50%;top:50%;z-index:10003;pointer-events:none;transform:translate(-50%,-50%) rotate(-8deg) scale(.65);border:3px solid #5FD68A;color:#5FD68A;border-radius:14px;padding:14px 22px;font-size:26px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;background:rgba(8,11,26,.72);box-shadow:0 0 35px rgba(95,214,138,.24);animation:egg-stamp 1.8s cubic-bezier(.22,1,.36,1) forwards}
 @keyframes egg-stamp{0%{opacity:0;transform:translate(-50%,-50%) rotate(-14deg) scale(1.8)}18%,78%{opacity:1;transform:translate(-50%,-50%) rotate(-8deg) scale(1)}100%{opacity:0;transform:translate(-50%,-50%) rotate(-8deg) scale(.9)}}
 body.egg-arcade .hero-card,body.egg-champion .hero-card{box-shadow:0 0 0 1px rgba(116,172,223,.35),0 0 42px rgba(116,172,223,.22)!important}
 body.egg-arcade .logo-name{color:#fff;text-shadow:0 0 10px #74c0fc,0 0 22px rgba(116,192,252,.55)}
 body.egg-champion .logo-flag{filter:drop-shadow(0 0 8px rgba(116,172,223,.9)) drop-shadow(0 0 16px rgba(255,255,255,.5))}
-@media(prefers-reduced-motion:reduce){.egg-rain-item,.egg-dollar-rain,.egg-pop,.egg-weather-drop,.egg-weather-spark,.egg-weather-cloud,.egg-stamp,.egg-sticker::before,.egg-sticker.collecting,.egg-sticker.collecting::before,.egg-sticker-burst,.egg-sticker-callout{animation-duration:.01ms!important}}
+@media(prefers-reduced-motion:reduce){.egg-rain-item,.egg-dollar-rain,.egg-pop,.egg-weather-drop,.egg-weather-spark,.egg-weather-cloud,.egg-weather-stage,.egg-weather-stage::before,.egg-weather-piece,.egg-weather-orb,.egg-weather-cloudlet,.egg-weather-bolt,.egg-weather-fogband,.egg-stamp{animation-duration:.01ms!important}}
 .hero-card{position:relative;z-index:1;transition:transform .08s ease;will-change:transform;margin-bottom:0!important;background:var(--glass);border:1px solid var(--glass-border);border-radius:28px;padding:28px 26px 24px;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);overflow:hidden}
 .hero-card::before{content:'';position:absolute;inset:0;border-radius:28px;background:linear-gradient(135deg,rgba(61,90,254,.08) 0%,transparent 60%);pointer-events:none}
 .hero-shimmer{position:absolute;top:0;left:-100%;width:60%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.04),transparent);animation:shimmerSlide 3s ease-in-out infinite}
@@ -4181,7 +4203,7 @@ async function fetchInfoWidget(){
   const fmt=v=>v!=null?'$'+Math.round(Number(v)).toLocaleString('es-AR'):'—';
   const varTag=p=>p==null?'':` <span class="iw-dolar-var ${p>=0?'up':'down'}">${p>=0?'▲':'▼'}${Math.abs(p).toFixed(1)}%</span>`;
   const we=getWeatherEmoji(temp,wxCode,wxWind,wxIsDay);
-  const tempDisp=temp!=null?`${temp}°${we?`<span class="iw-weather-emoji ${we.cls}">${we.emoji}</span>`:''}`:' —';
+  const tempDisp=temp!=null?`${temp}°${we?`<span class="iw-weather-emoji ${we.cls}" role="button" tabindex="0" aria-label="Activar clima en pantalla" title="Activar clima">${we.emoji}</span>`:''}`:' —';
   const forecastDesk=iwPronosticoHtml(wxForecast,4);
   const forecastMob=iwPronosticoHtml(wxForecast,3);
   const html=`
@@ -4295,14 +4317,6 @@ function launchConfetti(){
 }
 
 /* ─── EASTER EGGS ─── */
-const EGG_STICKERS_KEY='kiosco_easter_stickers_v1';
-const EGG_STICKER_PHRASES={
-  clima:'Pronostico del kiosco: entran nubes, salen facturas.',
-  dolar:'El dolar pregunto si habia vuelto y se fue.',
-  historial:'Archivo secreto: alguien compro un alfajor y dijo "despues te pago".',
-  caja:'Caja dice: si cierra justo, se prende una luz invisible.',
-  turno:'Turno desbloqueado: mate tibio, paciencia premium.'
-};
 function eggTodayKey(){return fechaHoy?fechaHoy():new Date().toISOString().slice(0,10);}
 function eggMotionOk(){return !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;}
 function eggPop(title,sub){
@@ -4378,22 +4392,58 @@ function eggDolarLoco(card){
   setTimeout(()=>eggDollarRain(innerWidth<600?55:90),260);
 }
 function eggWeather(icon){
-  const card=icon.closest('#infoWidgetCard,#infoWidgetMobile')||document.getElementById('infoWidgetCard');
-  if(!card)return;
-  const layer=document.createElement('div');layer.className='egg-weather-layer';card.appendChild(layer);
   const txt=icon.textContent||'',cls=icon.className||'';
-  const storm=/⛈|rain|drizzle|storm/.test(txt+cls),cloud=/☁|🌫|cloud|fog/.test(txt+cls),snow=/🌨|❄|snow|freeze/.test(txt+cls);
-  if(storm){
-    for(let i=0;i<34;i++){const d=document.createElement('span');d.className='egg-weather-drop';d.style.left=Math.random()*100+'%';d.style.animationDelay=(Math.random()*.45)+'s';layer.appendChild(d);}
-    if(/⛈|storm/.test(txt+cls))eggRain(['⚡'],12,{x:card.getBoundingClientRect().left+card.offsetWidth/2,y:card.getBoundingClientRect().top+24,spread:card.offsetWidth,colors:['#FFD43B'],dur:.9,size:18});
-  }else if(cloud){
-    for(let i=0;i<8;i++){const c=document.createElement('span');c.className='egg-weather-cloud';c.textContent='☁';c.style.left=Math.random()*82+'%';c.style.top=(18+Math.random()*55)+'%';c.style.animationDelay=(Math.random()*.5)+'s';layer.appendChild(c);}
-  }else if(snow){
-    eggRain(['❄'],26,{x:card.getBoundingClientRect().left+card.offsetWidth/2,y:card.getBoundingClientRect().top,spread:card.offsetWidth,colors:['#e7f5ff','#fff'],dur:1.4,size:14});
+  document.querySelectorAll('.egg-weather-stage').forEach(el=>el.remove());
+  let kind='clear';
+  if(/storm|⛈/.test(cls+txt))kind='storm';
+  else if(/rain|drizzle|🌧|🌦/.test(cls+txt))kind='rain';
+  else if(/snow|freeze|🌨|❄/.test(cls+txt))kind='snow';
+  else if(/wind|💨/.test(cls+txt))kind='wind';
+  else if(/fog|🌫/.test(cls+txt))kind='fog';
+  else if(/cloud|☁/.test(cls+txt))kind='cloud';
+  else if(/hot|flame|warm|🥵|🔥|☀/.test(cls+txt))kind='heat';
+  else if(/moon|🌙/.test(cls+txt))kind='moon';
+  const r=icon.getBoundingClientRect();
+  const stage=document.createElement('div');
+  stage.className='egg-weather-stage '+kind+(kind==='storm'?' egg-weather-flash':'');
+  stage.style.setProperty('--egg-x',(r.left+r.width/2)+'px');
+  stage.style.setProperty('--egg-y',(r.top+r.height/2)+'px');
+  document.body.appendChild(stage);
+  const add=(clsName,text,styles)=>{
+    const el=document.createElement('span');
+    el.className=clsName;
+    if(text)el.textContent=text;
+    Object.entries(styles||{}).forEach(([k,v])=>el.style.setProperty(k,v));
+    stage.appendChild(el);
+    return el;
+  };
+  const rain=n=>{for(let i=0;i<n;i++)add('egg-weather-piece egg-weather-drop-full','',{left:Math.random()*innerWidth+'px',top:-(30+Math.random()*innerHeight*.65)+'px','--egg-dx':((Math.random()-.5)*150)+'px','--egg-dur':(.95+Math.random()*.9)+'s','animation-delay':(Math.random()*.55)+'s'});};
+  const snow=n=>{for(let i=0;i<n;i++)add('egg-weather-piece egg-weather-snow-full',['✦','❄','*'][i%3],{left:Math.random()*innerWidth+'px',top:-(24+Math.random()*innerHeight*.55)+'px','--egg-dx':((Math.random()-.5)*220)+'px','--egg-dur':(2.8+Math.random()*2.2)+'s','animation-delay':(Math.random()*.7)+'s'});};
+  const sparks=n=>{for(let i=0;i<n;i++)add('egg-weather-piece egg-weather-spark-full',['✦','★','•'][i%3],{left:(8+Math.random()*84)+'vw',top:(8+Math.random()*62)+'vh','--egg-dur':(1.1+Math.random()*1.1)+'s','animation-delay':(Math.random()*.6)+'s'});};
+  const clouds=n=>{for(let i=0;i<n;i++)add('egg-weather-cloudlet','☁',{left:(-8+Math.random()*82)+'vw',top:(10+Math.random()*44)+'vh','--egg-dur':(3.2+Math.random()*1.6)+'s','animation-delay':(Math.random()*.7)+'s'});};
+  const fog=n=>{for(let i=0;i<n;i++)add('egg-weather-fogband','',{top:(14+i*13+Math.random()*6)+'vh','--egg-dur':(3.2+Math.random()*1.4)+'s','animation-delay':(Math.random()*.45)+'s'});};
+  if(kind==='storm'){
+    clouds(6);rain(innerWidth<600?95:150);fog(2);
+    for(let i=0;i<3;i++)add('egg-weather-bolt','⚡',{left:(18+Math.random()*64)+'vw',top:(9+Math.random()*34)+'vh','animation-delay':(.18+i*.42)+'s'});
+  }else if(kind==='rain'){
+    clouds(5);rain(innerWidth<600?75:120);fog(2);
+  }else if(kind==='snow'){
+    fog(3);snow(innerWidth<600?60:95);
+  }else if(kind==='wind'){
+    clouds(4);
+    for(let i=0;i<40;i++)add('egg-weather-piece egg-weather-wind-full',['〰','ticket','•'][i%3],{left:'-18vw',top:(8+Math.random()*74)+'vh','--egg-dy':((Math.random()-.5)*150)+'px','--egg-dur':(1.7+Math.random()*1.5)+'s','animation-delay':(Math.random()*.95)+'s'});
+  }else if(kind==='fog'||kind==='cloud'){
+    fog(kind==='fog'?7:4);clouds(kind==='fog'?5:8);
+  }else if(kind==='moon'){
+    add('egg-weather-orb moon','',{});
+    sparks(innerWidth<600?35:60);clouds(3);
   }else{
-    for(let i=0;i<16;i++){const s=document.createElement('span');s.className='egg-weather-spark';s.textContent='✦';s.style.left=(8+Math.random()*84)+'%';s.style.top=(12+Math.random()*62)+'%';s.style.animationDelay=(Math.random()*.35)+'s';layer.appendChild(s);}
+    add('egg-weather-orb','',{});
+    sparks(innerWidth<600?38:70);
+    if(kind==='heat')for(let i=0;i<14;i++)add('egg-weather-fogband','',{top:(18+i*5)+'vh','--egg-dur':(2.2+Math.random()*.8)+'s','animation-delay':(Math.random()*.4)+'s'});
+    else clouds(3);
   }
-  setTimeout(()=>layer.remove(),2300);
+  setTimeout(()=>stage.remove(),5000);
 }
 function eggPerfectClose(){
   const key='egg_perfect_close_'+eggTodayKey();
@@ -4417,80 +4467,21 @@ function eggCheckLuckyValue(value,source,el){
   eggRain(['7','★','$'],55,{x:r?r.left+r.width/2:innerWidth/2,y:r?r.top:120,spread:180,colors:['#FFD43B','#5FD68A','#fff'],dur:1.2,size:18});
 }
 function eggAmountFromText(txt){return Number(String(txt||'').replace(/[^\d-]/g,''))||0;}
-function eggStickerCelebrate(id,label,el,was){
-  if(!el)return;
-  const r=el.getBoundingClientRect();
-  el.classList.remove('collecting');void el.offsetWidth;el.classList.add('collecting');
-  setTimeout(()=>el.classList.remove('collecting'),780);
-  const call=document.createElement('div');
-  call.className='egg-sticker-callout';
-  call.textContent=was?'Ya estaba cazado. '+(EGG_STICKER_PHRASES[id]||label):(EGG_STICKER_PHRASES[id]||('Secreto de kiosco: '+label));
-  call.style.left=Math.min(innerWidth-92,Math.max(92,r.left+r.width/2))+'px';
-  call.style.top=Math.max(44,r.top-8)+'px';
-  document.body.appendChild(call);
-  setTimeout(()=>call.remove(),1000);
-  const bits=['✦','★','+','!'];
-  for(let i=0;i<12;i++){
-    const b=document.createElement('span');
-    const ang=(Math.PI*2*i/12)+(Math.random()*.38);
-    const dist=24+Math.random()*28;
-    b.className='egg-sticker-burst';
-    b.textContent=bits[i%bits.length];
-    b.style.left=(r.left+r.width/2)+'px';
-    b.style.top=(r.top+r.height/2)+'px';
-    b.style.color=['#FFD43B','#f25c54','#74C0FC','#5FD68A'][i%4];
-    b.style.setProperty('--egg-x',Math.cos(ang)*dist+'px');
-    b.style.setProperty('--egg-y',Math.sin(ang)*dist+'px');
-    document.body.appendChild(b);
-    setTimeout(()=>b.remove(),780);
-  }
-  if(!was)eggRain(['★','✦'],10,{x:r.left+r.width/2,y:r.top,spread:72,colors:['#FFD43B','#74C0FC','#fff'],dur:.82,size:13});
-}
-function eggCollectSticker(id,label,el){
-  const found=new Set(JSON.parse(localStorage.getItem(EGG_STICKERS_KEY)||'[]'));
-  const was=found.has(id);
-  found.add(id);localStorage.setItem(EGG_STICKERS_KEY,JSON.stringify([...found]));
-  el.classList.add('found');
-  eggStickerCelebrate(id,label,el,was);
-  showToast((was?'Secreto repetido: ':'Secreto encontrado: ')+label+' ('+found.size+'/5)');
-  if(found.size>=5&&!sessionStorage.getItem('egg_stickers_full')){
-    sessionStorage.setItem('egg_stickers_full','1');eggPop('Colección completa','stickers del kiosco');launchConfetti();
-  }
-}
-function eggAddStickers(){
-  const found=new Set(JSON.parse(localStorage.getItem(EGG_STICKERS_KEY)||'[]'));
-  const visible=el=>{if(!el)return false;const r=el.getBoundingClientRect();const cs=getComputedStyle(el);return r.width>0&&r.height>0&&cs.display!=='none'&&cs.visibility!=='hidden';};
-  [
-    ['clima','Clima',['#infoWidgetMobile','#infoWidgetCard'],'☀','left:8px;top:8px','-10deg'],
-    ['dolar','Dólar',['#infoWidgetMobile','#infoWidgetCard'],'$','right:8px;top:52px','8deg'],
-    ['historial','Historial','#btnHistorial','◷','right:-6px;top:-7px','-7deg'],
-    ['caja','Caja','#btnCierreManual','✓','right:-6px;top:-7px','9deg'],
-    ['turno','Turno','#heroCard','★','right:16px;bottom:16px;top:auto','-12deg']
-  ].forEach(([id,label,sel,mark,pos,tilt])=>{
-    const targets=(Array.isArray(sel)?sel:[sel]).map(s=>document.querySelector(s)).filter(Boolean);
-    const target=targets.find(visible)||targets[0];if(!target||target.querySelector(`[data-egg-sticker="${id}"]`))return;
-    document.querySelectorAll(`[data-egg-sticker="${id}"]`).forEach(el=>{if(el.parentElement!==target)el.remove();});
-    if(getComputedStyle(target).position==='static')target.style.position='relative';
-    const s=document.createElement('span');s.className='egg-sticker'+(found.has(id)?' found':'');s.dataset.eggSticker=id;s.dataset.eggLabel=label;s.textContent=mark;s.title='Sticker '+label;s.setAttribute('aria-label','Sticker '+label);s.setAttribute('role','button');s.style.cssText+=pos;s.style.setProperty('--egg-tilt',tilt);
-    s.addEventListener('click',e=>{e.stopPropagation();eggCollectSticker(id,label,s);});
-    s.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();eggCollectSticker(id,label,s);}});
-    s.tabIndex=0;target.appendChild(s);
-  });
-}
 function initEasterEggs(){
   const konami=['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'];let k=0;
   document.addEventListener('keydown',e=>{if(/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;const key=e.key.length===1?e.key.toLowerCase():e.key;k=key===konami[k]?k+1:(key===konami[0]?1:0);if(k===konami.length){k=0;eggArcade();}});
   let logoTaps=0,logoTimer=null;document.getElementById('logoName')?.addEventListener('click',e=>{if(e.target.closest('.logo-ball'))return;logoTaps++;clearTimeout(logoTimer);logoTimer=setTimeout(()=>logoTaps=0,1600);if(logoTaps>=8){logoTaps=0;eggArcade();}});
   let ballTaps=0,ballTimer=null;document.addEventListener('click',e=>{const ball=e.target.closest('.logo-ball');if(!ball)return;e.stopPropagation();ballTaps++;clearTimeout(ballTimer);ballTimer=setTimeout(()=>ballTaps=0,900);if(ballTaps>=3){ballTaps=0;eggBallGoal(ball);}});
   const dollarTaps={};document.addEventListener('click',e=>{const bill=e.target.closest('.iw-mep-bill');if(bill){const card=bill.closest('.iw-dolar');if(card)eggDolarLoco(card);return;}const card=e.target.closest('.iw-dolar');if(!card)return;const label=card.dataset.dolarKind||card.querySelector('.iw-dolar-label')?.textContent?.trim();if(!['MEP','Blue','BLUE'].includes(label))return;dollarTaps[label]=(dollarTaps[label]||0)+1;clearTimeout(card._eggDollarTimer);card._eggDollarTimer=setTimeout(()=>dollarTaps[label]=0,1400);if(dollarTaps[label]>=5){dollarTaps[label]=0;eggDolarLoco(card);}});
+  document.addEventListener('pointerover',e=>{const icon=e.target.closest('.iw-weather-emoji');if(icon)icon.classList.add('weather-lit');});
+  document.addEventListener('pointerout',e=>{const icon=e.target.closest('.iw-weather-emoji');if(icon&&!icon.contains(e.relatedTarget))icon.classList.remove('weather-lit');});
   document.addEventListener('click',e=>{const icon=e.target.closest('.iw-weather-emoji');if(icon)eggWeather(icon);});
+  document.addEventListener('keydown',e=>{const icon=e.target.closest('.iw-weather-emoji');if(icon&&(e.key==='Enter'||e.key===' ')){e.preventDefault();eggWeather(icon);}});
   let champTimer=null;document.addEventListener('pointerdown',e=>{if(!e.target.closest('.logo-flag'))return;champTimer=setTimeout(()=>{document.body.classList.add('egg-champion');eggPop('Modo campeón','aguante el kiosco');eggRain(['★','🇦🇷','⚽'],70,{colors:['#74ACDF','#fff','#FFD43B'],dur:1.4,size:18});launchConfetti();setTimeout(()=>document.body.classList.remove('egg-champion'),5200);},850);});
   ['pointerup','pointercancel','pointerleave'].forEach(ev=>document.addEventListener(ev,()=>{clearTimeout(champTimer);}));
   const watchLucky=id=>{const el=document.getElementById(id);if(!el)return;const check=()=>eggCheckLuckyValue(eggAmountFromText(el.textContent),id,el);new MutationObserver(check).observe(el,{childList:true,characterData:true,subtree:true});check();};
   ['mvTotal','cvTotal','cmTotalDia','heroMiniTotal'].forEach(watchLucky);
   const cmSub=document.getElementById('cmTotalDiaSub');if(cmSub){const check=()=>{if(cmSub.textContent.includes(CM_TURNOS.length+' de '+CM_TURNOS.length))eggPerfectClose();};new MutationObserver(check).observe(cmSub,{childList:true,characterData:true,subtree:true});check();}
-  setTimeout(eggAddStickers,1200);
-  setInterval(eggAddStickers,5000);
 }
 
 (function initCelebracion(){
