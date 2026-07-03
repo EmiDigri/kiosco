@@ -170,8 +170,9 @@ html{overflow-x:hidden;overflow-y:scroll}
 .egg-pop{position:fixed;left:50%;top:18%;transform:translate(-50%,-50%);z-index:10002;pointer-events:none;background:rgba(8,11,26,.78);border:1px solid rgba(255,255,255,.18);color:var(--text);border-radius:16px;padding:12px 18px;font-size:18px;font-weight:850;letter-spacing:0;text-align:center;box-shadow:0 18px 60px rgba(0,0,0,.35);backdrop-filter:blur(14px);animation:egg-pop .95s cubic-bezier(.22,1,.36,1) forwards}
 .egg-pop small{display:block;margin-top:3px;font-size:11px;font-weight:700;color:var(--text-soft);text-transform:uppercase;letter-spacing:.12em}
 @keyframes egg-pop{0%{opacity:0;transform:translate(-50%,-35%) scale(.75)}18%,78%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-62%) scale(.96)}}
-.egg-goal{position:fixed;z-index:10000;right:18px;top:96px;width:52px;height:74px;border:2px solid rgba(255,255,255,.75);border-left:none;border-radius:0 12px 12px 0;pointer-events:none;box-shadow:0 0 0 999px transparent}
-.egg-goal::before{content:'';position:absolute;inset:5px;background:linear-gradient(90deg,rgba(255,255,255,.14) 1px,transparent 1px),linear-gradient(0deg,rgba(255,255,255,.14) 1px,transparent 1px);background-size:10px 10px;border-radius:0 8px 8px 0}
+.egg-goal{position:fixed;z-index:10000;right:20px;top:90px;width:100px;height:130px;border:4px solid #fff;border-left:none;border-radius:0;pointer-events:none;box-shadow:0 0 18px rgba(255,255,255,.35),inset 0 0 0 2px rgba(0,0,0,.25);image-rendering:pixelated;overflow:hidden}
+.egg-goal::before{content:'';position:absolute;inset:4px;background:linear-gradient(90deg,rgba(255,255,255,.12) 1px,transparent 1px),linear-gradient(0deg,rgba(255,255,255,.12) 1px,transparent 1px);background-size:12px 12px}
+.egg-goal canvas{position:absolute;inset:0;image-rendering:pixelated}
 .egg-ball-flight{position:fixed!important;z-index:10002!important;pointer-events:none!important;margin:0!important;filter:contrast(1.25) saturate(1.35)}
 .egg-pop.retro{font-family:'Press Start 2P',monospace;background:#0b0e1a;border:3px solid #FFD43B;border-radius:4px;padding:16px 20px;box-shadow:0 0 0 3px #0b0e1a,0 0 28px rgba(255,212,59,.55);color:#FFD43B;text-shadow:2px 2px 0 #1a1a2e;font-size:14px;letter-spacing:1px;backdrop-filter:none;image-rendering:pixelated}
 .egg-pop.retro small{font-family:'Press Start 2P',monospace;color:#74C0FC;font-size:7px;letter-spacing:.5px;text-shadow:1px 1px 0 #1a1a2e;margin-top:9px}
@@ -2062,6 +2063,7 @@ img,svg,canvas{max-width:100%}
 <script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/MotionPathPlugin.min.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/CustomBounce.min.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/CustomEase.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/matter-js@0.19.0/build/matter.min.js" defer></script>
 </head>
 <body>
 <!-- Fondo liviano: sin blobs, grano ni emojis flotantes -->
@@ -4495,6 +4497,63 @@ function eggEnsureGsap(){
   eggGsapReady=true;
   return true;
 }
+// Red del arco con fisica real (Matter.js): grilla de nodos anclados en el
+// travesano y los dos postes, unidos por constraints tipo soga. Al llegar la
+// pelota se le aplica un impulso a los nodos del punto de impacto y la red
+// rebota/vibra sola gracias al motor de fisica, en vez de una animacion fija.
+function eggBuildNetPhysics(goalEl){
+  if(!window.Matter||!eggMotionOk())return null;
+  const w=100,h=130,cols=7,rows=9,marginX=6,marginY=4;
+  const canvas=document.createElement('canvas');
+  canvas.width=w*2;canvas.height=h*2;
+  canvas.style.width=w+'px';canvas.style.height=h+'px';
+  goalEl.appendChild(canvas);
+  const ctx=canvas.getContext('2d');ctx.scale(2,2);
+  const engine=Matter.Engine.create();
+  engine.world.gravity.y=0.4;
+  const usableW=w-marginX*2,usableH=h-marginY*2;
+  const nodes=[];
+  for(let ry=0;ry<rows;ry++){
+    nodes[ry]=[];
+    for(let rx=0;rx<cols;rx++){
+      const x=marginX+usableW*(rx/(cols-1)),y=marginY+usableH*(ry/(rows-1));
+      const isAnchor=ry===0||rx===0||rx===cols-1;
+      const body=Matter.Bodies.circle(x,y,1.4,{isStatic:isAnchor,friction:0,frictionAir:0.08,restitution:0.35});
+      nodes[ry][rx]=body;
+      Matter.World.add(engine.world,body);
+    }
+  }
+  for(let ry=0;ry<rows;ry++)for(let rx=0;rx<cols;rx++){
+    if(rx<cols-1)Matter.World.add(engine.world,Matter.Constraint.create({bodyA:nodes[ry][rx],bodyB:nodes[ry][rx+1],stiffness:.85,damping:.15,length:usableW/(cols-1)}));
+    if(ry<rows-1)Matter.World.add(engine.world,Matter.Constraint.create({bodyA:nodes[ry][rx],bodyB:nodes[ry+1][rx],stiffness:.85,damping:.15,length:usableH/(rows-1)}));
+  }
+  let running=true;
+  (function tick(){
+    if(!running)return;
+    Matter.Engine.update(engine,16.667);
+    ctx.clearRect(0,0,w,h);
+    ctx.strokeStyle='rgba(255,255,255,.85)';ctx.lineWidth=1;
+    for(let ry=0;ry<rows;ry++)for(let rx=0;rx<cols;rx++){
+      const n=nodes[ry][rx];
+      if(rx<cols-1){const n2=nodes[ry][rx+1];ctx.beginPath();ctx.moveTo(n.position.x,n.position.y);ctx.lineTo(n2.position.x,n2.position.y);ctx.stroke();}
+      if(ry<rows-1){const n2=nodes[ry+1][rx];ctx.beginPath();ctx.moveTo(n.position.x,n.position.y);ctx.lineTo(n2.position.x,n2.position.y);ctx.stroke();}
+    }
+    requestAnimationFrame(tick);
+  })();
+  return{
+    impact(nx,ny,strength){
+      const rx=Math.round(nx*(cols-1)),ry=Math.round(ny*(rows-1));
+      for(let dyi=-1;dyi<=1;dyi++)for(let dxi=-1;dxi<=1;dxi++){
+        const r=ry+dyi,c=rx+dxi;
+        if(r<0||r>=rows||c<0||c>=cols)continue;
+        const body=nodes[r][c];
+        if(body.isStatic)continue;
+        Matter.Body.applyForce(body,body.position,{x:strength*0.018,y:strength*0.01});
+      }
+    },
+    destroy(){running=false;Matter.World.clear(engine.world,false);Matter.Engine.clear(engine);canvas.remove();}
+  };
+}
 function eggBallGoal(ball){
   if(!ball||ball.dataset.goalBusy==='1')return;
   ball.dataset.goalBusy='1';
@@ -4505,12 +4564,20 @@ function eggBallGoal(ball){
   clone.style.opacity='1';clone.style.animation='none';
   document.body.appendChild(clone);
   const goal=document.createElement('div');goal.className='egg-goal';document.body.appendChild(goal);
-  const dx=innerWidth-r.left-86,dy=Math.max(20,92-r.top);
+  const net=eggBuildNetPhysics(goal);
+  const dx=innerWidth-r.left-70,dy=Math.max(20,155-r.top);
   const finish=()=>{
     eggRetroFlash();eggShake();
     eggPopRetro('¡GOOOL!','pelota al ángulo');
-    eggPixelBurst(innerWidth-58,96,26);
-    clone.remove();goal.remove();ball.dataset.goalBusy='0';
+    eggPixelBurst(innerWidth-70,155,26);
+    clone.remove();
+    if(net){
+      net.impact(.55,.35,26);
+      setTimeout(()=>{net.destroy();goal.remove();},1400);
+    }else{
+      goal.remove();
+    }
+    ball.dataset.goalBusy='0';
   };
   if(eggEnsureGsap()&&eggMotionOk()){
     const midX=dx*.55,midY=dy-150-Math.random()*40;
