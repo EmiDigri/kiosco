@@ -181,8 +181,8 @@ html{overflow-x:hidden;overflow-y:scroll}
 @keyframes egg-weather-spark{0%{opacity:0;transform:scale(.4) rotate(0)}30%{opacity:1}100%{opacity:0;transform:scale(1.7) rotate(80deg)}}
 .egg-weather-cloud{font-size:18px;opacity:.18;animation:egg-weather-cloud 2s ease-out forwards}
 @keyframes egg-weather-cloud{0%{opacity:0;transform:translateX(-12px)}25%{opacity:.42}100%{opacity:0;transform:translateX(32px)}}
-.egg-weather-stage{position:fixed;inset:0;z-index:9999;pointer-events:none;overflow:hidden;animation:egg-weather-stage 4.6s ease-out forwards}
-.egg-weather-stage::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at var(--egg-x,50%) var(--egg-y,24%),rgba(255,255,255,.28),transparent 22%),linear-gradient(180deg,rgba(8,11,26,.18),rgba(8,11,26,.04));opacity:.88;animation:egg-weather-fade 4.6s ease-out forwards}
+.egg-weather-stage{position:fixed;inset:0;z-index:9999;pointer-events:none;overflow:hidden;animation:egg-weather-stage var(--egg-stage-dur,4.6s) ease-out forwards}
+.egg-weather-stage::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at var(--egg-x,50%) var(--egg-y,24%),rgba(255,255,255,.28),transparent 22%),linear-gradient(180deg,rgba(8,11,26,.18),rgba(8,11,26,.04));opacity:.88;animation:egg-weather-fade var(--egg-stage-dur,4.6s) ease-out forwards}
 .egg-weather-stage.storm::before{background:linear-gradient(180deg,rgba(9,12,24,.74),rgba(9,12,24,.2))}
 .egg-weather-stage.rain::before{background:linear-gradient(180deg,rgba(20,42,72,.48),rgba(11,18,33,.08))}
 .egg-weather-stage.snow::before{background:linear-gradient(180deg,rgba(209,236,255,.34),rgba(255,255,255,.07))}
@@ -236,10 +236,17 @@ html{overflow-x:hidden;overflow-y:scroll}
 @keyframes egg-weather-rays{0%{opacity:0;transform:rotate(0)}14%,70%{opacity:1}100%{opacity:0;transform:rotate(80deg)}}
 .egg-weather-shooting{position:fixed;z-index:10000;pointer-events:none;width:150px;height:2.5px;border-radius:999px;background:linear-gradient(90deg,#fff,rgba(180,215,255,.1));filter:drop-shadow(0 0 8px rgba(255,255,255,.9));opacity:0;animation:egg-weather-shooting var(--egg-dur,1.15s) ease-in forwards}
 @keyframes egg-weather-shooting{0%{opacity:0;transform:rotate(26deg) translateX(0)}12%{opacity:1}100%{opacity:0;transform:rotate(26deg) translateX(58vw)}}
+.egg-weather-cloud-big{position:fixed;z-index:9997;pointer-events:none;border-radius:50%;background:radial-gradient(ellipse at 38% 32%,rgba(255,255,255,.95),rgba(255,255,255,.6) 46%,rgba(255,255,255,0) 74%);filter:blur(3px);opacity:0;animation:egg-weather-cloud-big var(--egg-dur,7s) linear forwards}
+.egg-weather-cloud-big.dark{background:radial-gradient(ellipse at 38% 32%,rgba(74,82,102,.95),rgba(48,54,70,.72) 48%,rgba(48,54,70,0) 76%);filter:blur(4px) brightness(.82)}
+@keyframes egg-weather-cloud-big{0%{opacity:0;transform:translateX(-38vw)}14%,84%{opacity:var(--egg-op,.85)}100%{opacity:0;transform:translateX(138vw)}}
+.egg-weather-shadow-sweep{position:fixed;z-index:9996;pointer-events:none;inset:0;background:linear-gradient(100deg,transparent 0%,rgba(0,0,0,.2) 44%,rgba(0,0,0,.3) 55%,transparent 100%);mix-blend-mode:multiply;opacity:0;animation:egg-weather-shadow-sweep var(--egg-dur,4.6s) ease-in-out forwards}
+@keyframes egg-weather-shadow-sweep{0%{transform:translateX(-65vw);opacity:0}16%{opacity:1}82%{opacity:1}100%{transform:translateX(65vw);opacity:0}}
+.egg-weather-mist-wall{position:fixed;z-index:9997;pointer-events:none;inset:0;background:linear-gradient(180deg,rgba(215,222,235,0) 0%,rgba(215,222,235,.5) 32%,rgba(215,222,235,.68) 52%,rgba(215,222,235,.32) 74%,rgba(215,222,235,0) 100%);filter:blur(7px);opacity:0;animation:egg-weather-mist-wall 4.6s ease-in-out forwards}
+@keyframes egg-weather-mist-wall{0%{opacity:0}18%,72%{opacity:1}100%{opacity:0}}
 body.egg-arcade .hero-card,body.egg-champion .hero-card{box-shadow:0 0 0 1px rgba(116,172,223,.35),0 0 42px rgba(116,172,223,.22)!important}
 body.egg-arcade .logo-name{color:#fff;text-shadow:0 0 10px #74c0fc,0 0 22px rgba(116,192,252,.55)}
 body.egg-champion .logo-flag{filter:drop-shadow(0 0 8px rgba(116,172,223,.9)) drop-shadow(0 0 16px rgba(255,255,255,.5))}
-@media(prefers-reduced-motion:reduce){.egg-rain-item,.egg-dollar-rain,.egg-pop,.egg-weather-drop,.egg-weather-spark,.egg-weather-cloud,.egg-weather-stage,.egg-weather-stage::before,.egg-weather-piece,.egg-weather-orb,.egg-weather-cloudlet,.egg-weather-bolt,.egg-weather-fogband,.egg-stamp,.egg-flash,.egg-ring,.egg-coin.fall,.egg-gold-vignette,.egg-lucky-glow,.egg-weather-splash,.egg-weather-rays,.egg-weather-shooting,.app.egg-shake{animation-duration:.01ms!important}}
+@media(prefers-reduced-motion:reduce){.egg-rain-item,.egg-dollar-rain,.egg-pop,.egg-weather-drop,.egg-weather-spark,.egg-weather-cloud,.egg-weather-stage,.egg-weather-stage::before,.egg-weather-piece,.egg-weather-orb,.egg-weather-cloudlet,.egg-weather-bolt,.egg-weather-fogband,.egg-stamp,.egg-flash,.egg-ring,.egg-coin.fall,.egg-gold-vignette,.egg-lucky-glow,.egg-weather-splash,.egg-weather-rays,.egg-weather-shooting,.egg-weather-cloud-big,.egg-weather-shadow-sweep,.egg-weather-mist-wall,.app.egg-shake{animation-duration:.01ms!important}}
 .hero-card{position:relative;z-index:1;transition:transform .08s ease;will-change:transform;margin-bottom:0!important;background:var(--glass);border:1px solid var(--glass-border);border-radius:28px;padding:28px 26px 24px;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);overflow:hidden}
 .hero-card::before{content:'';position:absolute;inset:0;border-radius:28px;background:linear-gradient(135deg,rgba(61,90,254,.08) 0%,transparent 60%);pointer-events:none}
 .hero-shimmer{position:absolute;top:0;left:-100%;width:60%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.04),transparent);animation:shimmerSlide 3s ease-in-out infinite}
@@ -4469,11 +4476,13 @@ function eggWeather(icon){
   else if(/cloud|☁/.test(cls+txt))kind='cloud';
   else if(/hot|flame|warm|🥵|🔥|☀/.test(cls+txt))kind='heat';
   else if(/moon|🌙/.test(cls+txt))kind='moon';
+  const usesBigClouds=['storm','rain','wind','fog','cloud'].includes(kind);
   const r=icon.getBoundingClientRect();
   const stage=document.createElement('div');
   stage.className='egg-weather-stage '+kind+(kind==='storm'?' egg-weather-flash':'');
   stage.style.setProperty('--egg-x',(r.left+r.width/2)+'px');
   stage.style.setProperty('--egg-y',(r.top+r.height/2)+'px');
+  if(usesBigClouds)stage.style.setProperty('--egg-stage-dur','9.4s');
   document.body.appendChild(stage);
   const add=(clsName,text,styles)=>{
     const el=document.createElement('span');
@@ -4487,21 +4496,25 @@ function eggWeather(icon){
   const snow=n=>{for(let i=0;i<n;i++){const far=Math.random()<.45;add('egg-weather-piece egg-weather-snow-full',['✦','❄','*'][i%3],{left:Math.random()*innerWidth+'px',top:-(24+Math.random()*innerHeight*.55)+'px','font-size':(far?9+Math.random()*6:15+Math.random()*10)+'px','filter':far?'blur(1.4px)':'none','--egg-dx':((Math.random()-.5)*260)+'px','--egg-dur':(far?3.6+Math.random()*2.4:2.4+Math.random()*1.8)+'s','animation-delay':(Math.random()*.7)+'s'});}};
   const sparks=n=>{for(let i=0;i<n;i++)add('egg-weather-piece egg-weather-spark-full',['✦','★','•'][i%3],{left:(8+Math.random()*84)+'vw',top:(8+Math.random()*62)+'vh','--egg-dur':(1.1+Math.random()*1.1)+'s','animation-delay':(Math.random()*.6)+'s'});};
   const clouds=n=>{for(let i=0;i<n;i++)add('egg-weather-cloudlet','☁',{left:(-8+Math.random()*82)+'vw',top:(10+Math.random()*44)+'vh','--egg-dur':(3.2+Math.random()*1.6)+'s','animation-delay':(Math.random()*.7)+'s'});};
+  const bigClouds=(n,dark)=>{for(let i=0;i<n;i++){const size=190+Math.random()*280;add('egg-weather-cloud-big'+(dark?' dark':''),'',{width:size+'px',height:(size*.52)+'px',top:(2+Math.random()*40)+'vh','--egg-dur':(5+Math.random()*4.2)+'s','--egg-op':(dark?.7+Math.random()*.25:.55+Math.random()*.35).toFixed(2),'animation-delay':(Math.random()*1.3)+'s'});}};
+  const shadowSweep=(n,delayStep)=>{for(let i=0;i<n;i++)add('egg-weather-shadow-sweep','',{'--egg-dur':(4+Math.random()*1.4)+'s','animation-delay':(i*(delayStep||1.6))+'s'});};
+  const mistWall=()=>add('egg-weather-mist-wall','',{});
   const fog=n=>{for(let i=0;i<n;i++)add('egg-weather-fogband','',{top:(14+i*13+Math.random()*6)+'vh','--egg-dur':(3.2+Math.random()*1.4)+'s','animation-delay':(Math.random()*.45)+'s'});};
   const splash=n=>{for(let i=0;i<n;i++)add('egg-weather-splash','',{left:Math.random()*innerWidth+'px',bottom:(4+Math.random()*30)+'px','animation-delay':(Math.random()*3.2)+'s'});};
   if(kind==='storm'){
-    clouds(7);rain(innerWidth<600?115:185);fog(2);splash(innerWidth<600?24:42);
+    bigClouds(6,true);clouds(7);rain(innerWidth<600?115:185);fog(2);splash(innerWidth<600?24:42);shadowSweep(2,2.1);
     for(let i=0;i<4;i++)add('egg-weather-bolt','⚡',{left:(14+Math.random()*70)+'vw',top:(7+Math.random()*36)+'vh','font-size':(66+Math.random()*46)+'px','animation-delay':(.15+i*.5)+'s'});
     eggFlash(.2);eggFlash(1.15);eggShake();
   }else if(kind==='rain'){
-    clouds(5);rain(innerWidth<600?85:135);fog(2);splash(innerWidth<600?20:36);
+    bigClouds(5,true);clouds(5);rain(innerWidth<600?85:135);fog(2);splash(innerWidth<600?20:36);shadowSweep(1);
   }else if(kind==='snow'){
-    fog(3);snow(innerWidth<600?70:110);
+    mistWall();fog(3);snow(innerWidth<600?70:110);
   }else if(kind==='wind'){
-    clouds(4);
+    bigClouds(5);clouds(4);
     for(let i=0;i<52;i++)add('egg-weather-piece egg-weather-wind-full',['🍃','🍂','〰','•'][i%4],{left:'-18vw',top:(8+Math.random()*74)+'vh','font-size':(12+Math.random()*12)+'px','--egg-dy':((Math.random()-.5)*220)+'px','--egg-dur':(1.4+Math.random()*1.6)+'s','animation-delay':(Math.random()*1.1)+'s'});
   }else if(kind==='fog'||kind==='cloud'){
-    fog(kind==='fog'?7:4);clouds(kind==='fog'?5:8);
+    bigClouds(kind==='fog'?5:7);fog(kind==='fog'?8:4);clouds(kind==='fog'?4:8);shadowSweep(kind==='fog'?1:2,1.8);
+    if(kind==='fog')mistWall();
   }else if(kind==='moon'){
     add('egg-weather-orb moon','',{});
     sparks(innerWidth<600?40:70);clouds(3);
@@ -4513,7 +4526,7 @@ function eggWeather(icon){
     if(kind==='heat')for(let i=0;i<14;i++)add('egg-weather-fogband','',{top:(18+i*5)+'vh','--egg-dur':(2.2+Math.random()*.8)+'s','animation-delay':(Math.random()*.4)+'s'});
     else clouds(3);
   }
-  setTimeout(()=>stage.remove(),5000);
+  setTimeout(()=>stage.remove(),usesBigClouds?10800:5000);
 }
 function eggPerfectClose(){
   const key='egg_perfect_close_'+eggTodayKey();
