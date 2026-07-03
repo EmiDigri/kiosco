@@ -4466,34 +4466,40 @@ function eggDolarLoco(card){
   eggDollarRain(innerWidth<600?150:240);
   setTimeout(()=>eggDollarRain(innerWidth<600?55:90),260);
 }
-// Nieve realista con tsParticles (si esta disponible); si no cargo, no hace nada
-// y el llamador debe usar el fallback de emojis dibujados a mano.
-async function eggSnowParticles(){
+// Particulas reales con tsParticles para cada tipo de clima (si esta disponible).
+// Si la libreria no cargo (CDN bloqueado, sin internet), resuelve false y el
+// llamador debe usar su fallback de emojis dibujados a mano.
+function eggWeatherParticles(kind){
   const box=document.getElementById('eggParticlesBox');
-  if(!window.tsParticles||!box)return false;
+  if(!window.tsParticles||!box)return Promise.resolve(false);
+  const mobile=innerWidth<600;
+  let particles=null;
+  if(kind==='storm'){
+    particles={number:{value:mobile?160:260},color:{value:['#bcdfff','#eaf4ff']},opacity:{value:{min:.5,max:.95}},size:{value:{min:1,max:2.6}},shape:{type:'circle'},move:{enable:true,direction:'bottom',straight:true,speed:{min:18,max:30},outModes:{default:'out'}}};
+  }else if(kind==='rain'){
+    particles={number:{value:mobile?110:180},color:{value:'#74c0fc'},opacity:{value:{min:.4,max:.85}},size:{value:{min:1,max:2.2}},shape:{type:'circle'},move:{enable:true,direction:'bottom',straight:true,speed:{min:12,max:20},outModes:{default:'out'}}};
+  }else if(kind==='snow'){
+    particles={number:{value:mobile?90:150},color:{value:'#ffffff'},opacity:{value:{min:.35,max:.9}},size:{value:{min:1.5,max:5}},shape:{type:'circle'},move:{enable:true,direction:'bottom',speed:{min:1,max:3.2},straight:false,outModes:{default:'out'}},wobble:{enable:true,distance:14,speed:{min:-4,max:4}}};
+  }else if(kind==='wind'){
+    particles={number:{value:mobile?50:80},color:{value:['#ffffff','#bcefc9']},opacity:{value:{min:.4,max:.85}},size:{value:{min:2,max:5}},shape:{type:'circle'},move:{enable:true,direction:'right',straight:false,speed:{min:8,max:16},outModes:{default:'out'}},wobble:{enable:true,distance:22,speed:{min:-6,max:6}}};
+  }else if(kind==='fog'||kind==='cloud'){
+    particles={number:{value:mobile?18:28},color:{value:'#ffffff'},opacity:{value:{min:.06,max:.22}},size:{value:{min:50,max:110}},shape:{type:'circle'},move:{enable:true,direction:'right',straight:false,speed:{min:.3,max:1},outModes:{default:'out'}}};
+  }else if(kind==='moon'){
+    particles={number:{value:mobile?70:110},color:{value:'#ffffff'},opacity:{value:{min:.2,max:1},animation:{enable:true,speed:1.4,minimumValue:.15,sync:false}},size:{value:{min:.6,max:2.4}},shape:{type:'star'},move:{enable:false}};
+  }else{
+    particles={number:{value:mobile?55:90},color:{value:['#FFD43B','#ffffff']},opacity:{value:{min:.3,max:.9},animation:{enable:true,speed:1.2,minimumValue:.2,sync:false}},size:{value:{min:1,max:3}},shape:{type:'circle'},move:{enable:true,direction:'top',straight:false,speed:{min:.4,max:1.6},outModes:{default:'out'}}};
+  }
   box.innerHTML='<div id="eggParticlesCanvas" style="position:absolute;inset:0"></div>';
   box.style.display='block';
-  try{
-    await tsParticles.load({id:'eggParticlesCanvas',options:{
-      fpsLimit:60,
-      detectRetina:true,
-      particles:{
-        number:{value:innerWidth<600?90:150},
-        color:{value:'#ffffff'},
-        opacity:{value:{min:.35,max:.9}},
-        size:{value:{min:1.5,max:5}},
-        shape:{type:'circle'},
-        move:{enable:true,direction:'bottom',speed:{min:1,max:3.2},straight:false,outModes:{default:'out'}},
-        wobble:{enable:true,distance:14,speed:{min:-4,max:4}}
-      }
-    }});
-  }catch(e){box.style.display='none';box.innerHTML='';return false;}
-  setTimeout(()=>{
-    const inst=window.tsParticles?.domItem?.(0);
-    if(inst)inst.destroy();
-    box.style.display='none';box.innerHTML='';
-  },9000);
-  return true;
+  const isLong=['storm','rain','wind','fog','cloud','snow'].includes(kind);
+  return tsParticles.load({id:'eggParticlesCanvas',options:{fpsLimit:60,detectRetina:true,particles}}).then(()=>{
+    setTimeout(()=>{
+      const inst=window.tsParticles?.domItem?.(0);
+      if(inst)inst.destroy();
+      box.style.display='none';box.innerHTML='';
+    },isLong?9000:4400);
+    return true;
+  }).catch(()=>{box.style.display='none';box.innerHTML='';return false;});
 }
 function eggWeather(icon){
   const txt=icon.textContent||'',cls=icon.className||'';
@@ -4532,31 +4538,36 @@ function eggWeather(icon){
   const mistWall=()=>add('egg-weather-mist-wall','',{});
   const fog=n=>{for(let i=0;i<n;i++)add('egg-weather-fogband','',{top:(14+i*13+Math.random()*6)+'vh','--egg-dur':(3.2+Math.random()*1.4)+'s','animation-delay':(Math.random()*.45)+'s'});};
   const splash=n=>{for(let i=0;i<n;i++)add('egg-weather-splash','',{left:Math.random()*innerWidth+'px',bottom:(4+Math.random()*30)+'px','animation-delay':(Math.random()*3.2)+'s'});};
+  const windFallback=()=>{for(let i=0;i<52;i++)add('egg-weather-piece egg-weather-wind-full',['🍃','🍂','〰','•'][i%4],{left:'-18vw',top:(8+Math.random()*74)+'vh','font-size':(12+Math.random()*12)+'px','--egg-dy':((Math.random()-.5)*220)+'px','--egg-dur':(1.4+Math.random()*1.6)+'s','animation-delay':(Math.random()*1.1)+'s'});};
   if(kind==='storm'){
-    bigClouds(6,true);clouds(7);rain(innerWidth<600?115:185);fog(2);splash(innerWidth<600?24:42);shadowSweep(2,2.1);
+    bigClouds(6,true);clouds(7);fog(2);splash(innerWidth<600?24:42);shadowSweep(2,2.1);
     for(let i=0;i<4;i++)add('egg-weather-bolt','⚡',{left:(14+Math.random()*70)+'vw',top:(7+Math.random()*36)+'vh','font-size':(66+Math.random()*46)+'px','animation-delay':(.15+i*.5)+'s'});
     eggFlash(.2);eggFlash(1.15);eggShake();
+    eggWeatherParticles('storm').then(ok=>{if(!ok)rain(innerWidth<600?115:185);});
   }else if(kind==='rain'){
-    bigClouds(5,true);clouds(5);rain(innerWidth<600?85:135);fog(2);splash(innerWidth<600?20:36);shadowSweep(1);
+    bigClouds(5,true);clouds(5);fog(2);splash(innerWidth<600?20:36);shadowSweep(1);
+    eggWeatherParticles('rain').then(ok=>{if(!ok)rain(innerWidth<600?85:135);});
   }else if(kind==='snow'){
     bigClouds(6);clouds(4);mistWall();fog(4);shadowSweep(1);
-    eggSnowParticles().then(ok=>{if(!ok)snow(innerWidth<600?110:170);});
+    eggWeatherParticles('snow').then(ok=>{if(!ok)snow(innerWidth<600?110:170);});
   }else if(kind==='wind'){
     bigClouds(5);clouds(4);
-    for(let i=0;i<52;i++)add('egg-weather-piece egg-weather-wind-full',['🍃','🍂','〰','•'][i%4],{left:'-18vw',top:(8+Math.random()*74)+'vh','font-size':(12+Math.random()*12)+'px','--egg-dy':((Math.random()-.5)*220)+'px','--egg-dur':(1.4+Math.random()*1.6)+'s','animation-delay':(Math.random()*1.1)+'s'});
+    eggWeatherParticles('wind').then(ok=>{if(!ok)windFallback();});
   }else if(kind==='fog'||kind==='cloud'){
     bigClouds(kind==='fog'?5:7);fog(kind==='fog'?8:4);clouds(kind==='fog'?4:8);shadowSweep(kind==='fog'?1:2,1.8);
     if(kind==='fog')mistWall();
+    eggWeatherParticles(kind);
   }else if(kind==='moon'){
     add('egg-weather-orb moon','',{});
-    sparks(innerWidth<600?40:70);clouds(3);
+    clouds(3);
     for(let i=0;i<3;i++)add('egg-weather-shooting','',{left:(4+Math.random()*34)+'vw',top:(6+Math.random()*22)+'vh','--egg-dur':(.95+Math.random()*.5)+'s','animation-delay':(.35+i*1.25)+'s'});
+    eggWeatherParticles('moon').then(ok=>{if(!ok)sparks(innerWidth<600?40:70);});
   }else{
     add('egg-weather-rays','',{});
     add('egg-weather-orb','',{});
-    sparks(innerWidth<600?42:80);
     if(kind==='heat')for(let i=0;i<14;i++)add('egg-weather-fogband','',{top:(18+i*5)+'vh','--egg-dur':(2.2+Math.random()*.8)+'s','animation-delay':(Math.random()*.4)+'s'});
     else clouds(3);
+    eggWeatherParticles(kind).then(ok=>{if(!ok)sparks(innerWidth<600?42:80);});
   }
   setTimeout(()=>stage.remove(),usesBigClouds?10800:5000);
 }
