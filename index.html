@@ -4476,7 +4476,7 @@ function eggWeather(icon){
   else if(/cloud|☁/.test(cls+txt))kind='cloud';
   else if(/hot|flame|warm|🥵|🔥|☀/.test(cls+txt))kind='heat';
   else if(/moon|🌙/.test(cls+txt))kind='moon';
-  const usesBigClouds=['storm','rain','wind','fog','cloud'].includes(kind);
+  const usesBigClouds=['storm','rain','wind','fog','cloud','snow'].includes(kind);
   const r=icon.getBoundingClientRect();
   const stage=document.createElement('div');
   stage.className='egg-weather-stage '+kind+(kind==='storm'?' egg-weather-flash':'');
@@ -4508,7 +4508,7 @@ function eggWeather(icon){
   }else if(kind==='rain'){
     bigClouds(5,true);clouds(5);rain(innerWidth<600?85:135);fog(2);splash(innerWidth<600?20:36);shadowSweep(1);
   }else if(kind==='snow'){
-    mistWall();fog(3);snow(innerWidth<600?70:110);
+    bigClouds(6);clouds(4);mistWall();fog(4);shadowSweep(1);snow(innerWidth<600?110:170);
   }else if(kind==='wind'){
     bigClouds(5);clouds(4);
     for(let i=0;i<52;i++)add('egg-weather-piece egg-weather-wind-full',['🍃','🍂','〰','•'][i%4],{left:'-18vw',top:(8+Math.random()*74)+'vh','font-size':(12+Math.random()*12)+'px','--egg-dy':((Math.random()-.5)*220)+'px','--egg-dur':(1.4+Math.random()*1.6)+'s','animation-delay':(Math.random()*1.1)+'s'});
