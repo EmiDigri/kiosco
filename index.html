@@ -2052,9 +2052,11 @@ img,svg,canvas{max-width:100%}
 
 
 </style>
+<script src="https://cdn.jsdelivr.net/npm/tsparticles-slim@2/tsparticles.slim.bundle.min.js" defer></script>
 </head>
 <body>
 <!-- Fondo liviano: sin blobs, grano ni emojis flotantes -->
+<div id="eggParticlesBox" style="position:fixed;inset:0;z-index:9999;pointer-events:none;display:none"></div>
 
 <div class="app">
   <div class="header">
@@ -4464,6 +4466,35 @@ function eggDolarLoco(card){
   eggDollarRain(innerWidth<600?150:240);
   setTimeout(()=>eggDollarRain(innerWidth<600?55:90),260);
 }
+// Nieve realista con tsParticles (si esta disponible); si no cargo, no hace nada
+// y el llamador debe usar el fallback de emojis dibujados a mano.
+async function eggSnowParticles(){
+  const box=document.getElementById('eggParticlesBox');
+  if(!window.tsParticles||!box)return false;
+  box.innerHTML='<div id="eggParticlesCanvas" style="position:absolute;inset:0"></div>';
+  box.style.display='block';
+  try{
+    await tsParticles.load({id:'eggParticlesCanvas',options:{
+      fpsLimit:60,
+      detectRetina:true,
+      particles:{
+        number:{value:innerWidth<600?90:150},
+        color:{value:'#ffffff'},
+        opacity:{value:{min:.35,max:.9}},
+        size:{value:{min:1.5,max:5}},
+        shape:{type:'circle'},
+        move:{enable:true,direction:'bottom',speed:{min:1,max:3.2},straight:false,outModes:{default:'out'}},
+        wobble:{enable:true,distance:14,speed:{min:-4,max:4}}
+      }
+    }});
+  }catch(e){box.style.display='none';box.innerHTML='';return false;}
+  setTimeout(()=>{
+    const inst=window.tsParticles?.domItem?.(0);
+    if(inst)inst.destroy();
+    box.style.display='none';box.innerHTML='';
+  },9000);
+  return true;
+}
 function eggWeather(icon){
   const txt=icon.textContent||'',cls=icon.className||'';
   document.querySelectorAll('.egg-weather-stage').forEach(el=>el.remove());
@@ -4508,7 +4539,8 @@ function eggWeather(icon){
   }else if(kind==='rain'){
     bigClouds(5,true);clouds(5);rain(innerWidth<600?85:135);fog(2);splash(innerWidth<600?20:36);shadowSweep(1);
   }else if(kind==='snow'){
-    bigClouds(6);clouds(4);mistWall();fog(4);shadowSweep(1);snow(innerWidth<600?110:170);
+    bigClouds(6);clouds(4);mistWall();fog(4);shadowSweep(1);
+    eggSnowParticles().then(ok=>{if(!ok)snow(innerWidth<600?110:170);});
   }else if(kind==='wind'){
     bigClouds(5);clouds(4);
     for(let i=0;i<52;i++)add('egg-weather-piece egg-weather-wind-full',['🍃','🍂','〰','•'][i%4],{left:'-18vw',top:(8+Math.random()*74)+'vh','font-size':(12+Math.random()*12)+'px','--egg-dy':((Math.random()-.5)*220)+'px','--egg-dur':(1.4+Math.random()*1.6)+'s','animation-delay':(Math.random()*1.1)+'s'});
