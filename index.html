@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Kiosco</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -172,7 +172,12 @@ html{overflow-x:hidden;overflow-y:scroll}
 @keyframes egg-pop{0%{opacity:0;transform:translate(-50%,-35%) scale(.75)}18%,78%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-62%) scale(.96)}}
 .egg-goal{position:fixed;z-index:10000;right:18px;top:96px;width:52px;height:74px;border:2px solid rgba(255,255,255,.75);border-left:none;border-radius:0 12px 12px 0;pointer-events:none;box-shadow:0 0 0 999px transparent}
 .egg-goal::before{content:'';position:absolute;inset:5px;background:linear-gradient(90deg,rgba(255,255,255,.14) 1px,transparent 1px),linear-gradient(0deg,rgba(255,255,255,.14) 1px,transparent 1px);background-size:10px 10px;border-radius:0 8px 8px 0}
-.egg-ball-flight{position:fixed!important;z-index:10002!important;pointer-events:none!important;margin:0!important}
+.egg-ball-flight{position:fixed!important;z-index:10002!important;pointer-events:none!important;margin:0!important;filter:contrast(1.25) saturate(1.35)}
+.egg-pop.retro{font-family:'Press Start 2P',monospace;background:#0b0e1a;border:3px solid #FFD43B;border-radius:4px;padding:16px 20px;box-shadow:0 0 0 3px #0b0e1a,0 0 28px rgba(255,212,59,.55);color:#FFD43B;text-shadow:2px 2px 0 #1a1a2e;font-size:14px;letter-spacing:1px;backdrop-filter:none;image-rendering:pixelated}
+.egg-pop.retro small{font-family:'Press Start 2P',monospace;color:#74C0FC;font-size:7px;letter-spacing:.5px;text-shadow:1px 1px 0 #1a1a2e;margin-top:9px}
+.egg-pixel{position:fixed;z-index:10001;pointer-events:none;image-rendering:pixelated;box-shadow:0 0 0 1px rgba(0,0,0,.35)}
+.egg-retro-scan{position:fixed;inset:0;z-index:10001;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.22) 0 2px,transparent 2px 4px),radial-gradient(circle,rgba(255,255,255,.12),transparent 70%);opacity:0;animation:egg-retro-scan .55s steps(3) forwards}
+@keyframes egg-retro-scan{0%{opacity:0}25%{opacity:1}100%{opacity:0}}
 .egg-weather-layer{position:absolute;inset:0;z-index:2;pointer-events:none;overflow:hidden;border-radius:inherit}
 .egg-weather-drop,.egg-weather-spark,.egg-weather-cloud{position:absolute;pointer-events:none;line-height:1}
 .egg-weather-drop{top:-12px;width:2px;height:12px;border-radius:999px;background:#74c0fc;opacity:.8;animation:egg-weather-drop 1.15s linear forwards}
@@ -246,7 +251,7 @@ html{overflow-x:hidden;overflow-y:scroll}
 body.egg-arcade .hero-card,body.egg-champion .hero-card{box-shadow:0 0 0 1px rgba(116,172,223,.35),0 0 42px rgba(116,172,223,.22)!important}
 body.egg-arcade .logo-name{color:#fff;text-shadow:0 0 10px #74c0fc,0 0 22px rgba(116,192,252,.55)}
 body.egg-champion .logo-flag{filter:drop-shadow(0 0 8px rgba(116,172,223,.9)) drop-shadow(0 0 16px rgba(255,255,255,.5))}
-@media(prefers-reduced-motion:reduce){.egg-rain-item,.egg-dollar-rain,.egg-pop,.egg-weather-drop,.egg-weather-spark,.egg-weather-cloud,.egg-weather-stage,.egg-weather-stage::before,.egg-weather-piece,.egg-weather-orb,.egg-weather-cloudlet,.egg-weather-bolt,.egg-weather-fogband,.egg-stamp,.egg-flash,.egg-ring,.egg-coin.fall,.egg-gold-vignette,.egg-lucky-glow,.egg-weather-splash,.egg-weather-rays,.egg-weather-shooting,.egg-weather-cloud-big,.egg-weather-shadow-sweep,.egg-weather-mist-wall,.app.egg-shake{animation-duration:.01ms!important}}
+@media(prefers-reduced-motion:reduce){.egg-rain-item,.egg-dollar-rain,.egg-pop,.egg-weather-drop,.egg-weather-spark,.egg-weather-cloud,.egg-weather-stage,.egg-weather-stage::before,.egg-weather-piece,.egg-weather-orb,.egg-weather-cloudlet,.egg-weather-bolt,.egg-weather-fogband,.egg-stamp,.egg-flash,.egg-ring,.egg-coin.fall,.egg-gold-vignette,.egg-lucky-glow,.egg-weather-splash,.egg-weather-rays,.egg-weather-shooting,.egg-weather-cloud-big,.egg-weather-shadow-sweep,.egg-weather-mist-wall,.egg-retro-scan,.app.egg-shake{animation-duration:.01ms!important}}
 .hero-card{position:relative;z-index:1;transition:transform .08s ease;will-change:transform;margin-bottom:0!important;background:var(--glass);border:1px solid var(--glass-border);border-radius:28px;padding:28px 26px 24px;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);overflow:hidden}
 .hero-card::before{content:'';position:absolute;inset:0;border-radius:28px;background:linear-gradient(135deg,rgba(61,90,254,.08) 0%,transparent 60%);pointer-events:none}
 .hero-shimmer{position:absolute;top:0;left:-100%;width:60%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.04),transparent);animation:shimmerSlide 3s ease-in-out infinite}
@@ -4441,6 +4446,39 @@ function eggArcade(){
   eggRain(['★','$','+1','777'],80,{colors:['#74C0FC','#FFD43B','#5FD68A','#fff'],dur:1.6});
   setTimeout(()=>document.body.classList.remove('egg-arcade'),6500);
 }
+function eggPopRetro(title,sub){
+  const el=document.createElement('div');
+  el.className='egg-pop retro';
+  el.innerHTML=`${title}${sub?`<small>${sub}</small>`:''}`;
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),1300);
+}
+function eggRetroFlash(){
+  if(!eggMotionOk())return;
+  const f=document.createElement('div');f.className='egg-retro-scan';document.body.appendChild(f);
+  setTimeout(()=>f.remove(),600);
+}
+function eggPixelBurst(x,y,n){
+  const colors=['#FFD43B','#5FD68A','#74C0FC','#fff','#ff5d5d'];
+  for(let i=0;i<n;i++){
+    const angle=(i%8)*(Math.PI/4)+(Math.random()-.5)*.35;
+    const dist=70+Math.random()*90;
+    const size=5+Math.floor(Math.random()*3)*2;
+    const p=document.createElement('span');
+    p.className='egg-pixel';
+    p.style.left=(x-size/2)+'px';p.style.top=(y-size/2)+'px';
+    p.style.width=size+'px';p.style.height=size+'px';
+    p.style.background=colors[i%colors.length];
+    document.body.appendChild(p);
+    const dx=Math.cos(angle)*dist,dy=Math.sin(angle)*dist-20;
+    p.animate([
+      {transform:'translate(0,0) scale(1)',opacity:1,offset:0},
+      {transform:`translate(${dx*.7}px,${dy*.7-16}px) scale(1)`,opacity:1,offset:.55},
+      {transform:`translate(${dx}px,${dy+50}px) scale(.8)`,opacity:0,offset:1}
+    ],{duration:650+Math.random()*260,easing:'steps(6)'}).onfinish=()=>p.remove();
+    setTimeout(()=>p.remove(),1000);
+  }
+}
 function eggBallGoal(ball){
   if(!ball||ball.dataset.goalBusy==='1')return;
   ball.dataset.goalBusy='1';
@@ -4458,7 +4496,12 @@ function eggBallGoal(ball){
     {transform:`translate(${dx*.76}px,${dy+26}px) rotate(780deg)`,offset:.76},
     {transform:`translate(${dx}px,${dy}px) rotate(1040deg)`,offset:1}
   ],{duration:1450,easing:'cubic-bezier(.22,1,.36,1)'});
-  anim.onfinish=()=>{eggPop('GOOOL','pelota al ángulo');eggRain(['⚽','★'],32,{x:innerWidth-58,y:96,spread:120,colors:['#fff','#74C0FC','#FFD43B'],dur:1.05,size:18});clone.remove();goal.remove();ball.dataset.goalBusy='0';};
+  anim.onfinish=()=>{
+    eggRetroFlash();eggShake();
+    eggPopRetro('¡GOOOL!','pelota al ángulo');
+    eggPixelBurst(innerWidth-58,96,26);
+    clone.remove();goal.remove();ball.dataset.goalBusy='0';
+  };
 }
 function eggDolarLoco(card){
   const val=card.querySelector('.iw-dolar-val')?.innerText.replace(/\s+/g,' ')||'$';
