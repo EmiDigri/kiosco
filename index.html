@@ -2058,6 +2058,10 @@ img,svg,canvas{max-width:100%}
 
 </style>
 <script src="https://cdn.jsdelivr.net/npm/tsparticles-slim@2/tsparticles.slim.bundle.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/MotionPathPlugin.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/CustomBounce.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/CustomEase.min.js" defer></script>
 </head>
 <body>
 <!-- Fondo liviano: sin blobs, grano ni emojis flotantes -->
@@ -4479,6 +4483,18 @@ function eggPixelBurst(x,y,n){
     setTimeout(()=>p.remove(),1000);
   }
 }
+let eggGsapReady=false,eggNetBounceReady=false;
+function eggEnsureGsap(){
+  if(eggGsapReady)return true;
+  if(!window.gsap||!window.MotionPathPlugin)return false;
+  gsap.registerPlugin(MotionPathPlugin);
+  if(window.CustomBounce&&window.CustomEase){
+    gsap.registerPlugin(CustomBounce,CustomEase);
+    if(!eggNetBounceReady){CustomBounce.create('eggNetBounce',{strength:.55,squash:3,squashID:'eggNetBounce-squash'});eggNetBounceReady=true;}
+  }
+  eggGsapReady=true;
+  return true;
+}
 function eggBallGoal(ball){
   if(!ball||ball.dataset.goalBusy==='1')return;
   ball.dataset.goalBusy='1';
@@ -4490,18 +4506,30 @@ function eggBallGoal(ball){
   document.body.appendChild(clone);
   const goal=document.createElement('div');goal.className='egg-goal';document.body.appendChild(goal);
   const dx=innerWidth-r.left-86,dy=Math.max(20,92-r.top);
-  const anim=clone.animate([
-    {transform:'translate(0,0) rotate(0deg)',offset:0},
-    {transform:`translate(${dx*.42}px,${dy-52}px) rotate(420deg)`,offset:.45},
-    {transform:`translate(${dx*.76}px,${dy+26}px) rotate(780deg)`,offset:.76},
-    {transform:`translate(${dx}px,${dy}px) rotate(1040deg)`,offset:1}
-  ],{duration:1450,easing:'cubic-bezier(.22,1,.36,1)'});
-  anim.onfinish=()=>{
+  const finish=()=>{
     eggRetroFlash();eggShake();
     eggPopRetro('¡GOOOL!','pelota al ángulo');
     eggPixelBurst(innerWidth-58,96,26);
     clone.remove();goal.remove();ball.dataset.goalBusy='0';
   };
+  if(eggEnsureGsap()&&eggMotionOk()){
+    const midX=dx*.55,midY=dy-150-Math.random()*40;
+    const tl=gsap.timeline({onComplete:finish});
+    tl.to(clone,{duration:.16,scaleX:1.3,scaleY:.72,transformOrigin:'50% 100%',ease:'power2.out'},0)
+      .to(clone,{duration:1.1,ease:'power1.inOut',motionPath:{path:[{x:0,y:0},{x:midX,y:midY},{x:dx,y:dy}],curviness:1.3}},0)
+      .to(clone,{duration:1.1,ease:'none',rotation:'+=900'},0)
+      .to(clone,{duration:.2,scaleX:1,scaleY:1,ease:'power2.out'},.16)
+      .to(clone,{duration:.28,scaleX:1.55,scaleY:.5,transformOrigin:'50% 100%',ease:eggNetBounceReady?'eggNetBounce-squash':'power2.out'},'-=.04')
+      .to(clone,{duration:.34,scaleX:1,scaleY:1,ease:'elastic.out(1,.4)'});
+  }else{
+    const anim=clone.animate([
+      {transform:'translate(0,0) rotate(0deg)',offset:0},
+      {transform:`translate(${dx*.42}px,${dy-52}px) rotate(420deg)`,offset:.45},
+      {transform:`translate(${dx*.76}px,${dy+26}px) rotate(780deg)`,offset:.76},
+      {transform:`translate(${dx}px,${dy}px) rotate(1040deg)`,offset:1}
+    ],{duration:1450,easing:'cubic-bezier(.22,1,.36,1)'});
+    anim.onfinish=finish;
+  }
 }
 function eggDolarLoco(card){
   const val=card.querySelector('.iw-dolar-val')?.innerText.replace(/\s+/g,' ')||'$';
