@@ -2059,6 +2059,7 @@ img,svg,canvas{max-width:100%}
 
 </style>
 <script src="https://cdn.jsdelivr.net/npm/tsparticles-slim@2/tsparticles.slim.bundle.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/tsparticles-preset-fire@2/tsparticles.preset.fire.bundle.min.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/MotionPathPlugin.min.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/CustomBounce.min.js" defer></script>
@@ -2068,6 +2069,7 @@ img,svg,canvas{max-width:100%}
 <body>
 <!-- Fondo liviano: sin blobs, grano ni emojis flotantes -->
 <div id="eggParticlesBox" style="position:fixed;inset:0;z-index:9999;pointer-events:none;display:none"></div>
+<div id="eggBallFireBox" style="position:fixed;z-index:4000;pointer-events:none;display:none"></div>
 
 <div class="app">
   <div class="header">
@@ -4554,9 +4556,46 @@ function eggBuildNetPhysics(goalEl){
     destroy(){running=false;Matter.World.clear(engine.world,false);Matter.Engine.clear(engine);canvas.remove();}
   };
 }
+// Aura de fuego sobre la pelotita al pasar el cursor, con el preset "fire"
+// oficial de tsParticles (mismo motor que ya usamos para el clima).
+let eggFirePresetReady=false,eggFireContainer=null;
+async function eggEnsureFirePreset(){
+  if(eggFirePresetReady)return true;
+  if(!window.tsParticles||!window.loadFirePreset)return false;
+  await loadFirePreset(tsParticles);
+  eggFirePresetReady=true;
+  return true;
+}
+async function eggBallFireStart(ball){
+  if(eggFireContainer||!eggMotionOk())return;
+  const box=document.getElementById('eggBallFireBox');
+  if(!box)return;
+  eggFireContainer='loading';
+  const ok=await eggEnsureFirePreset();
+  if(!ok){eggFireContainer=null;return;}
+  const r=ball.getBoundingClientRect(),pad=16;
+  box.style.left=(r.left-pad)+'px';box.style.top=(r.top-pad)+'px';
+  box.style.width=(r.width+pad*2)+'px';box.style.height=(r.height+pad*2)+'px';
+  box.innerHTML='<div id="eggBallFireCanvas" style="position:absolute;inset:0"></div>';
+  box.style.display='block';
+  try{
+    eggFireContainer=await tsParticles.load({id:'eggBallFireCanvas',options:{
+      preset:'fire',
+      fullScreen:{enable:false},
+      particles:{number:{value:22},move:{speed:{min:2,max:5}},size:{value:{min:1,max:3}}}
+    }});
+  }catch(e){eggFireContainer=null;box.style.display='none';box.innerHTML='';}
+}
+function eggBallFireStop(){
+  if(eggFireContainer&&eggFireContainer!=='loading')eggFireContainer.destroy();
+  eggFireContainer=null;
+  const box=document.getElementById('eggBallFireBox');
+  if(box){box.style.display='none';box.innerHTML='';}
+}
 function eggBallGoal(ball){
   if(!ball||ball.dataset.goalBusy==='1')return;
   ball.dataset.goalBusy='1';
+  eggBallFireStop();
   const r=ball.getBoundingClientRect();
   const clone=ball.cloneNode(true);
   clone.className='logo-ball egg-ball-flight';
@@ -4748,7 +4787,9 @@ function initEasterEggs(){
   const konami=['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'];let k=0;
   document.addEventListener('keydown',e=>{if(/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;const key=e.key.length===1?e.key.toLowerCase():e.key;k=key===konami[k]?k+1:(key===konami[0]?1:0);if(k===konami.length){k=0;eggArcade();}});
   let logoTaps=0,logoTimer=null;document.getElementById('logoName')?.addEventListener('click',e=>{if(e.target.closest('.logo-ball'))return;logoTaps++;clearTimeout(logoTimer);logoTimer=setTimeout(()=>logoTaps=0,1600);if(logoTaps>=8){logoTaps=0;eggArcade();}});
-  let ballTaps=0,ballTimer=null;document.addEventListener('click',e=>{const ball=e.target.closest('.logo-ball');if(!ball)return;e.stopPropagation();ballTaps++;clearTimeout(ballTimer);ballTimer=setTimeout(()=>ballTaps=0,900);if(ballTaps>=3){ballTaps=0;eggBallGoal(ball);}});
+  document.addEventListener('click',e=>{const ball=e.target.closest('.logo-ball');if(!ball)return;e.stopPropagation();eggBallGoal(ball);});
+  document.addEventListener('pointerover',e=>{const ball=e.target.closest('.logo-ball');if(ball)eggBallFireStart(ball);});
+  document.addEventListener('pointerout',e=>{const ball=e.target.closest('.logo-ball');if(ball&&!ball.contains(e.relatedTarget))eggBallFireStop();});
   const dollarTaps={};document.addEventListener('click',e=>{const bill=e.target.closest('.iw-mep-bill');if(bill){const card=bill.closest('.iw-dolar');if(card)eggDolarLoco(card);return;}const card=e.target.closest('.iw-dolar');if(!card)return;const label=card.dataset.dolarKind||card.querySelector('.iw-dolar-label')?.textContent?.trim();if(!['MEP','Blue','BLUE'].includes(label))return;dollarTaps[label]=(dollarTaps[label]||0)+1;clearTimeout(card._eggDollarTimer);card._eggDollarTimer=setTimeout(()=>dollarTaps[label]=0,1400);if(dollarTaps[label]>=5){dollarTaps[label]=0;eggDolarLoco(card);}});
   document.addEventListener('pointerover',e=>{const icon=e.target.closest('.iw-weather-emoji');if(icon)icon.classList.add('weather-lit');});
   document.addEventListener('pointerout',e=>{const icon=e.target.closest('.iw-weather-emoji');if(icon&&!icon.contains(e.relatedTarget))icon.classList.remove('weather-lit');});
