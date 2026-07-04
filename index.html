@@ -4236,7 +4236,15 @@ async function fetchInfoWidget(){
   if(!el)return;
   // Cada fuente con su propio try/catch para que una falla no rompa el widget
   let temp=null,sens=null,wxCode=null,wxWind=null,wxIsDay=1,wxForecast=[];
-  try{const m=await fetch('https://api.open-meteo.com/v1/forecast?latitude=-34.6037&longitude=-58.3816&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,is_day&daily=weather_code,temperature_2m_max,temperature_2m_min&forecast_days=5&timezone=America/Argentina/Buenos_Aires').then(r=>r.json());temp=m?.current?.temperature_2m;sens=m?.current?.apparent_temperature;wxCode=m?.current?.weather_code;wxWind=m?.current?.wind_speed_10m;wxIsDay=m?.current?.is_day??1;wxForecast=iwPronosticoDias(m?.daily);}catch(e){}
+  // api.open-meteo.com es inalcanzable desde varios ISP argentinos (bug conocido:
+  // github.com/open-meteo/open-meteo/issues/1669), asi que pasamos por nuestro
+  // proxy en Vercel primero y solo si falla probamos el fetch directo.
+  try{
+    const m=await fetch('/api/weather').then(r=>{if(!r.ok)throw new Error(r.status);return r.json();});
+    temp=m?.current?.temperature_2m;sens=m?.current?.apparent_temperature;wxCode=m?.current?.weather_code;wxWind=m?.current?.wind_speed_10m;wxIsDay=m?.current?.is_day??1;wxForecast=iwPronosticoDias(m?.daily);
+  }catch(e){
+    try{const m=await fetch('https://api.open-meteo.com/v1/forecast?latitude=-34.6037&longitude=-58.3816&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,is_day&daily=weather_code,temperature_2m_max,temperature_2m_min&forecast_days=5&timezone=America/Argentina/Buenos_Aires').then(r=>r.json());temp=m?.current?.temperature_2m;sens=m?.current?.apparent_temperature;wxCode=m?.current?.weather_code;wxWind=m?.current?.wind_speed_10m;wxIsDay=m?.current?.is_day??1;wxForecast=iwPronosticoDias(m?.daily);}catch(e2){}
+  }
 
   let ofVal=null,mepVal=null,blVal=null,ofPct=null,mepPct=null,blPct=null;
   try{
