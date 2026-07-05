@@ -4,7 +4,9 @@ const MP_TOKEN = 'APP_USR-2677690000928530-060419-6c49e8560bd0de2e71129377f502b6
 
 function turnoDeHora(hora) {
   const h = parseInt(hora.split(':')[0]);
-  if (h >= 7 && h < 12) return 'Vale';
+  // Las transferencias de madrugada (00-06:59) se asignan a Vale, que arranca
+  // el dia y las ve en pantalla apenas abre. Ver TURNOS_SEMANA.capturaDesdeH en index.html.
+  if (h < 12) return 'Vale';
   if (h >= 12 && h < 17) return 'Ani';
   if (h >= 17 && h < 23) return 'Marta';
   return 'Fuera de horario';

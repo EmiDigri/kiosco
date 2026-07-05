@@ -9,7 +9,9 @@ function turnoDeHora(h, esDomingo) {
     if (h >= 16 && h < 23) return 'Turno 2';
     return 'Fuera de horario';
   }
-  if (h >= 7 && h < 12) return 'Vale';
+  // Las transferencias de madrugada (00-06:59) se asignan a Vale, que arranca
+  // el dia y las ve en pantalla apenas abre. Ver TURNOS_SEMANA.capturaDesdeH en index.html.
+  if (h < 12) return 'Vale';
   if (h >= 12 && h < 17) return 'Ani';
   if (h >= 17 && h < 23) return 'Marta';
   return 'Fuera de horario';
