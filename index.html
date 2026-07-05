@@ -127,9 +127,10 @@ html{overflow-x:hidden;overflow-y:scroll}
 .iw-forecast-mobile{display:none;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:-3px 0 12px}
 .iw-forecast-day{display:flex;align-items:center;justify-content:center;gap:4px;min-width:0;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07);border-radius:9px;padding:5px 4px;white-space:nowrap;overflow:hidden}
 .iw-forecast-dow{font-size:9px;font-weight:800;color:var(--text-soft);letter-spacing:0;text-transform:uppercase;line-height:1}
-.iw-forecast-emoji{font-size:14px;line-height:1;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto}
+.iw-forecast-emoji{line-height:1;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto}
+.iw-forecast-emoji img{width:15px;height:15px;display:block}
 .iw-forecast-temp{font-size:10px;font-weight:750;color:var(--text);font-variant-numeric:tabular-nums;line-height:1;letter-spacing:0}
-@media(min-width:1200px){.iw-forecast-desktop{display:grid}.iw-forecast-day{gap:6px;padding:7px 8px;border-radius:11px;min-height:34px}.iw-forecast-dow{font-size:10.5px}.iw-forecast-emoji{font-size:17px}.iw-forecast-temp{font-size:12.5px}}
+@media(min-width:1200px){.iw-forecast-desktop{display:grid}.iw-forecast-day{gap:6px;padding:7px 8px;border-radius:11px;min-height:34px}.iw-forecast-dow{font-size:10.5px}.iw-forecast-emoji img{width:18px;height:18px}.iw-forecast-temp{font-size:12.5px}}
 @media(max-width:900px){.iw-temp-row{margin-bottom:9px}.iw-forecast-mobile{display:grid}}
 .iw-dolares{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px}
 .iw-dolar{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:7px 5px;text-align:center}
@@ -146,6 +147,7 @@ html{overflow-x:hidden;overflow-y:scroll}
 .iw-feriados-grid{display:flex;flex-direction:column;gap:8px}
 .info-widget-loading{font-size:12px;color:var(--text-soft)}
 .iw-weather-emoji{position:relative;vertical-align:middle;line-height:1;display:inline-flex;align-items:center;justify-content:center;margin-left:4px;cursor:pointer;filter:drop-shadow(0 0 0 rgba(255,255,255,0));transition:filter .18s,text-shadow .18s}
+.iw-weather-emoji img{width:24px;height:24px;display:block}
 .iw-weather-emoji::before{content:'';position:absolute;inset:-8px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.28),rgba(116,192,252,.12) 42%,transparent 70%);opacity:0;transform:scale(.72);transition:opacity .18s,transform .18s;pointer-events:none;z-index:-1}
 .iw-weather-emoji:hover,.iw-weather-emoji:focus,.iw-weather-emoji.weather-lit{filter:drop-shadow(0 0 8px rgba(255,255,255,.65)) drop-shadow(0 0 18px rgba(116,192,252,.42));text-shadow:0 0 12px rgba(255,255,255,.55);outline:none}
 .iw-weather-emoji:hover::before,.iw-weather-emoji:focus::before,.iw-weather-emoji.weather-lit::before{opacity:1;transform:scale(1)}
@@ -4117,26 +4119,31 @@ async function fetchFeriadosInfo(){
   }
   return {feriado,fsl};
 }
-function getWeatherEmoji(temp,code,wind,isDay){
+const MC_BASE='https://cdn.jsdelivr.net/npm/@meteocons/svg/fill/';
+function mcUrl(slug){return MC_BASE+slug+'.svg';}
+function getWeatherIcon(temp,code,wind,isDay){
   const t=Number(temp),c=Number(code),w=Number(wind)||0;
-  // Condiciones específicas (códigos WMO de Open-Meteo) — aplican de día y de noche
-  if(c>=95)                         return{emoji:'⛈️',cls:'iw-emoji-storm'};
-  if((c>=71&&c<=77)||c===85||c===86)return{emoji:'🌨️',cls:'iw-emoji-snow'};
-  if(c>=80&&c<=82)                  return{emoji:'🌧️',cls:'iw-emoji-rain'};
-  if(c>=51&&c<=67)                  return{emoji:'🌦️',cls:'iw-emoji-drizzle'};
-  if(c===45||c===48)                return{emoji:'🌫️',cls:'iw-emoji-fog'};
-  if(w>50)                          return{emoji:'💨',cls:'iw-emoji-windy'};
-  if(c===3)                         return{emoji:'☁️',cls:'iw-emoji-cloudy'};
-  // De noche: luna en vez de sol
-  if(!isDay)                        return{emoji:'🌙',cls:'iw-emoji-moon'};
-  // De día con cielo parcialmente despejado o despejado: temperatura decide
-  if(c===2)                         return{emoji:'⛅',cls:'iw-emoji-partly'};
-  if(temp==null)return null;
-  if(t<8)  return{emoji:'❄️',cls:'iw-emoji-freeze'};
-  if(t<22) return{emoji:'🌤️',cls:'iw-emoji-mild'};
-  if(t<28) return{emoji:'☀️',cls:'iw-emoji-warm'};
-  if(t<34) return{emoji:'🥵',cls:'iw-emoji-hot'};
-  return{emoji:'🔥',cls:'iw-emoji-flame'};
+  const dn=isDay?'day':'night';
+  // Condiciones especificas (codigos WMO de Open-Meteo) — aplican de dia y de noche.
+  // Iconos de Meteocons (@meteocons/svg, estilo fill, animados via SVG nativo).
+  if(c>=95)return{slug:c>=96?`thunderstorms-extreme-${dn}`:`thunderstorms-${dn}`,cls:'iw-emoji-storm'};
+  if((c>=71&&c<=77)||c===85||c===86)return{slug:(c===75||c===77||c===86)?'extreme-snow':'snow',cls:'iw-emoji-snow'};
+  if(c===66||c===67)return{slug:'sleet',cls:'iw-emoji-rain'};
+  if(c>=80&&c<=82)return{slug:c===82?'extreme-rain':'rain',cls:'iw-emoji-rain'};
+  if(c>=61&&c<=65)return{slug:c===65?'extreme-rain':'rain',cls:'iw-emoji-rain'};
+  if(c>=51&&c<=57)return{slug:'drizzle',cls:'iw-emoji-drizzle'};
+  if(c===45||c===48)return{slug:`fog-${dn}`,cls:'iw-emoji-fog'};
+  if(w>50)return{slug:'wind',cls:'iw-emoji-windy'};
+  if(c===3)return{slug:`overcast-${dn}`,cls:'iw-emoji-cloudy'};
+  if(c===2)return{slug:`partly-cloudy-${dn}`,cls:'iw-emoji-cloudy'};
+  // De noche: la cobertura de nubes ya se resolvio arriba; sin nubes, luna segun cuan despejado
+  if(!isDay)return{slug:c===1?'mostly-clear-night':'clear-night',cls:'iw-emoji-moon'};
+  // De dia y despejado (o sin dato de nubes): la temperatura define variedad e intensidad
+  if(temp==null)return c===1?{slug:'mostly-clear-day',cls:'iw-emoji-mild'}:null;
+  const tempCls=t<8?'iw-emoji-freeze':t<22?'iw-emoji-mild':t<28?'iw-emoji-warm':t<34?'iw-emoji-hot':'iw-emoji-flame';
+  if(c===1)return{slug:'mostly-clear-day',cls:tempCls};
+  if(t>=34)return{slug:'sun-hot',cls:'iw-emoji-flame'};
+  return{slug:'clear-day',cls:tempCls};
 }
 function iwPronosticoDias(daily){
   const time=daily?.time||[],codes=daily?.weather_code||[],maxs=daily?.temperature_2m_max||[],mins=daily?.temperature_2m_min||[];
@@ -4145,9 +4152,9 @@ function iwPronosticoDias(daily){
   for(let i=1;i<time.length&&out.length<4;i++){
     const d=new Date(`${time[i]}T12:00:00`);
     const max=Math.round(Number(maxs[i])),min=Math.round(Number(mins[i]));
-    const wx=getWeatherEmoji(max,codes[i],0,true);
+    const wx=getWeatherIcon(max,codes[i],0,true);
     if(!Number.isFinite(max)||!Number.isFinite(min))continue;
-    out.push({dia:labels[d.getDay()],emoji:wx?.emoji||'☀️',cls:wx?.cls||'iw-emoji-warm',min,max});
+    out.push({dia:labels[d.getDay()],slug:wx?.slug||'clear-day',cls:wx?.cls||'iw-emoji-warm',min,max});
   }
   return out;
 }
@@ -4155,7 +4162,7 @@ function iwPronosticoHtml(items,count){
   return (items||[]).slice(0,count).map(d=>`
     <div class="iw-forecast-day">
       <span class="iw-forecast-dow">${d.dia}</span>
-      <span class="iw-forecast-emoji">${d.emoji}</span>
+      <span class="iw-forecast-emoji"><img src="${mcUrl(d.slug)}" alt="" loading="lazy"></span>
       <span class="iw-forecast-temp">${d.min}/${d.max}°</span>
     </div>`).join('');
 }
@@ -4175,60 +4182,6 @@ async function iwFetchDolarDirecto(){
   tipos.forEach((tipo,i)=>{out[tipo]=rows[i].status==='fulfilled'?iwDolarDesdeSerie(rows[i].value):null;});
   if(!out.oficial&&!out.blue&&!out.bolsa)throw new Error('sin cotizaciones');
   return out;
-}
-let _iwEmojiRaf=null;
-function iwAnimarEmoji(){
-  if(_iwEmojiRaf){cancelAnimationFrame(_iwEmojiRaf);_iwEmojiRaf=null;}
-  function step(ts){
-    const t=ts/1000;
-    document.querySelectorAll('.iw-emoji-freeze').forEach(el=>{
-      el.style.transform=`rotate(${(Math.sin(t*18)*5).toFixed(1)}deg)`;
-    });
-    document.querySelectorAll('.iw-emoji-mild').forEach(el=>{
-      el.style.transform=`translateY(${(Math.sin(t*1.5)*2.5).toFixed(2)}px)`;
-    });
-    document.querySelectorAll('.iw-emoji-warm').forEach(el=>{
-      el.style.transform=`rotate(${(t*18%360).toFixed(1)}deg)`;
-    });
-    document.querySelectorAll('.iw-emoji-hot').forEach(el=>{
-      const sc=1+Math.sin(t*3)*0.12;
-      el.style.transform=`scale(${sc.toFixed(3)})`;
-    });
-    document.querySelectorAll('.iw-emoji-flame').forEach(el=>{
-      const rot=Math.sin(t*7.5)*6,sc=1+Math.sin(t*10)*0.13;
-      el.style.transform=`rotate(${rot.toFixed(1)}deg) scale(${sc.toFixed(3)})`;
-    });
-    document.querySelectorAll('.iw-emoji-partly').forEach(el=>{
-      el.style.transform=`rotate(${(Math.sin(t*1.2)*8).toFixed(1)}deg)`;
-    });
-    document.querySelectorAll('.iw-emoji-cloudy').forEach(el=>{
-      el.style.transform=`translateX(${(Math.sin(t*0.8)*3).toFixed(2)}px)`;
-    });
-    document.querySelectorAll('.iw-emoji-fog').forEach(el=>{
-      const sc=1+Math.sin(t*0.9)*0.07;
-      el.style.transform=`scale(${sc.toFixed(3)})`;
-    });
-    document.querySelectorAll('.iw-emoji-drizzle').forEach(el=>{
-      el.style.transform=`translateY(${(Math.sin(t*3.5)*2).toFixed(2)}px)`;
-    });
-    document.querySelectorAll('.iw-emoji-rain').forEach(el=>{
-      el.style.transform=`translateY(${(Math.sin(t*4)*3).toFixed(2)}px)`;
-    });
-    document.querySelectorAll('.iw-emoji-storm').forEach(el=>{
-      el.style.transform=`rotate(${(Math.sin(t*12)*8).toFixed(1)}deg)`;
-    });
-    document.querySelectorAll('.iw-emoji-snow').forEach(el=>{
-      el.style.transform=`rotate(${(t*25%360).toFixed(1)}deg)`;
-    });
-    document.querySelectorAll('.iw-emoji-windy').forEach(el=>{
-      el.style.transform=`rotate(${(Math.sin(t*3)*20).toFixed(1)}deg)`;
-    });
-    document.querySelectorAll('.iw-emoji-moon').forEach(el=>{
-      el.style.transform=`rotate(${(Math.sin(t*0.6)*8).toFixed(1)}deg)`;
-    });
-    _iwEmojiRaf=requestAnimationFrame(step);
-  }
-  _iwEmojiRaf=requestAnimationFrame(step);
 }
 async function fetchInfoWidget(){
   const el=document.getElementById('infoWidgetContent');
@@ -4266,8 +4219,8 @@ async function fetchInfoWidget(){
   const {feriado,fsl}=await fetchFeriadosInfo().catch(()=>({feriado:null,fsl:null}));
   const fmt=v=>v!=null?'$'+Math.round(Number(v)).toLocaleString('es-AR'):'—';
   const varTag=p=>p==null?'':` <span class="iw-dolar-var ${p>=0?'up':'down'}">${p>=0?'▲':'▼'}${Math.abs(p).toFixed(1)}%</span>`;
-  const we=getWeatherEmoji(temp,wxCode,wxWind,wxIsDay);
-  const tempDisp=temp!=null?`${temp}°${we?`<span class="iw-weather-emoji ${we.cls}" role="button" tabindex="0" aria-label="Activar clima en pantalla" title="Activar clima">${we.emoji}</span>`:''}`:' —';
+  const we=getWeatherIcon(temp,wxCode,wxWind,wxIsDay);
+  const tempDisp=temp!=null?`${temp}°${we?`<span class="iw-weather-emoji ${we.cls}" role="button" tabindex="0" aria-label="Activar clima en pantalla" title="Activar clima"><img src="${mcUrl(we.slug)}" alt="" loading="lazy"></span>`:''}`:' —';
   const forecastDesk=iwPronosticoHtml(wxForecast,4);
   const forecastMob=iwPronosticoHtml(wxForecast,3);
   const html=`
@@ -4292,7 +4245,6 @@ async function fetchInfoWidget(){
   el.innerHTML=html;
   const elM=document.getElementById('infoWidgetContentMobile');
   if(elM)elM.innerHTML=html;
-  iwAnimarEmoji();
 }
 fetchInfoWidget();
 setInterval(fetchInfoWidget,15*60*1000);
