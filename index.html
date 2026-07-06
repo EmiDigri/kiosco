@@ -3153,6 +3153,9 @@ async function histCargarMes(){
     }
   }
   gastos=histDeduplicarGastos(gastos);
+  // Igual que en histFetchDia: las filas de Supabase no traen excluido seteado,
+  // lo derivamos del status real para no sumar rechazados/cancelados al mes.
+  pagos.forEach(p=>{if(p.excluido===undefined)p.excluido=!p.es_enviada&&!!p.status&&p.status!=='approved';});
   histRowsPagosMes=pagos;histRowsCierresMes=cierres;histRowsGastosMes=gastos;
   histResumenMes=histAgruparPorDia(pagos,cierres,gastos);
   renderCalendarioMes();
@@ -3345,6 +3348,10 @@ async function histFetchDia(dia){
   if(!cierres.length&&loc.cierres.length)cierres=loc.cierres;
   if(!gastos.length&&loc.gastos.length)gastos=loc.gastos;
   gastos=histDeduplicarGastos(gastos);
+  // Las filas que vienen directo de Supabase no traen el flag excluido seteado
+  // (eso solo pasa en el camino de respaldo por localStorage): lo derivamos del
+  // status real del pago para no contar rechazados/cancelados como validos.
+  pagos.forEach(p=>{if(p.excluido===undefined)p.excluido=!p.es_enviada&&!!p.status&&p.status!=='approved';});
   return {pagos,cierres,gastos};
 }
 async function mostrarDetalleDia(dia){
@@ -3386,8 +3393,9 @@ async function mostrarDetalleDia(dia){
     const cierre=cierres.find(c=>c.turno===t.nombre);
     const movs=pagosValidos.filter(p=>p.turno===t.nombre).sort((a,b)=>(a.hora||'').localeCompare(b.hora||''));
     const enviados=pagos.filter(p=>p.es_enviada&&p.turno===t.nombre);
+    const excluidos=pagos.filter(p=>p.excluido&&p.turno===t.nombre).sort((a,b)=>(a.hora||'').localeCompare(b.hora||''));
     const gastosTurno=gastos.filter(g=>g.turno===t.nombre||({Vale:'CM',Ani:'CT',Marta:'CN'}[t.nombre]===g.caja));
-    if(!cierre&&!movs.length&&!gastosTurno.length&&!enviados.length)return;
+    if(!cierre&&!movs.length&&!gastosTurno.length&&!enviados.length&&!excluidos.length)return;
     huboAlgo=true;
     const mpTot=movs.reduce((a,m)=>a+(Number(m.monto)||0),0);
     const transf=movs.filter(m=>m.tipo==='Transferencia recibida').reduce((a,m)=>a+(Number(m.monto)||0),0);
@@ -3414,6 +3422,7 @@ async function mostrarDetalleDia(dia){
       <div class="hist-stat-chip"><span style="color:#F0B860">●</span> Point ${histMoney(point)}</div>
       <div class="hist-stat-chip">🎯 Ticket ${histMoney(ticket)}</div>
       ${enviados.length?`<div class="hist-stat-chip" style="color:var(--amber)">↗ Enviadas ${histMoney(enviados.reduce((a,e)=>a+(Number(e.monto)||0),0))}</div>`:''}
+      ${excluidos.length?`<div class="hist-stat-chip" style="color:#f45555">✕ Excluidos ${histMoney(excluidos.reduce((a,e)=>a+(Number(e.monto)||0),0))}</div>`:''}
     </div><div class="hist-movs-title">${movs.length} movimientos MercadoPago</div>`;
     if(movs.length){
       movs.forEach(m=>{const pill=m.tipo==='Venta Point'?'<span class="tipo-pill tp-p">Point Smart</span>':'<span class="tipo-pill tp-t">Transferencia</span>';movsHTML+=`<div class="t-row"><span class="t-hora">${esMadrugada(m.hora)?'🌙 ':''}${m.hora||'--:--'}</span><span class="t-nombre"><span class="t-n"${esMadrugada(m.hora)?' style="color:#a78bfa;font-weight:700"':''}>${esMadrugada(m.hora)?'Transferencia fuera de horario':(cmEsc?cmEsc(m.nombre):m.nombre)}</span>${cardLogoHtml(m)}</span>${pill}<span class="t-monto">${histMoney(m.monto)}</span></div>`;});
@@ -3421,6 +3430,10 @@ async function mostrarDetalleDia(dia){
     if(enviados.length){
       movsHTML+=`<div class="hist-movs-title" style="margin-top:10px;color:var(--amber)">↗ Transferencias enviadas</div>`;
       enviados.sort((a,b)=>(a.hora||'').localeCompare(b.hora||'')).forEach(e=>{movsHTML+=`<div class="t-row"><span class="t-hora">${e.hora||'--:--'}</span><span class="t-nombre">${cmEsc?cmEsc(e.nombre):e.nombre}</span><span class="tipo-pill" style="background:rgba(245,158,11,.15);color:var(--amber)">Enviada</span><span class="t-monto" style="color:var(--amber)">-${histMoney(e.monto)}</span></div>`;});
+    }
+    if(excluidos.length){
+      movsHTML+=`<div class="hist-movs-title" style="margin-top:10px;color:#f45555">✕ Movimientos excluidos</div>`;
+      excluidos.forEach(e=>{movsHTML+=`<div class="t-row"><span class="t-hora">${e.hora||'--:--'}</span><span class="t-nombre">${cmEsc?cmEsc(e.nombre):e.nombre}</span><span class="tipo-pill" style="background:rgba(244,85,85,.12);color:#f45555;border:1px solid rgba(244,85,85,.25)">${motivoExclusionTexto(e.status||e.motivo)}</span><span class="t-monto" style="color:#f45555">${histMoney(e.monto)}</span></div>`;});
     }
     html+=`<div class="hist-turno-card" id="${cardId}">
       <div class="hist-turno-header">
