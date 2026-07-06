@@ -1782,6 +1782,13 @@ body{
 .hist-met-kpi-val.neg{color:#f87171}
 .hist-met-chart-card{background:rgba(255,255,255,.04);border:1px solid var(--glass-border);border-radius:16px;padding:16px 14px}
 .hist-met-chart-title{font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--text-soft);margin-bottom:12px}
+.hist-semana-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+.hist-semana-row:last-child{border-bottom:none}
+.hist-semana-rango{font-size:12px;font-weight:600;color:var(--text-mid)}
+.hist-semana-total{font-size:14px;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums}
+.hist-semana-completos{font-size:9.5px;color:var(--text-soft);white-space:nowrap}
+.hist-proyeccion-val{font-size:26px;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums}
+.hist-proyeccion-sub{font-size:11px;color:var(--text-soft);margin-top:4px;line-height:1.4}
 @media(max-width:720px){
   .hist-met-kpis{grid-template-columns:repeat(2,1fr)!important}
   .hist-met-kpi-val{font-size:15px!important}
@@ -2944,6 +2951,39 @@ function histRenderMetricas(y,m,last){
   }
   const promDiario=diasConMP>0?totalMP/diasConMP:0;
   const ticketMP=totalMovs>0?totalMP/totalMovs:0;
+  // Semanas (Lun-Dom) del mes + dias "completos" (con el cierre de caja de todos los
+  // turnos cargado) para no mezclar dias que solo tienen MercadoPago sincronizado
+  // con dias donde ya se cargo el efectivo a mano.
+  const semanas=[];
+  let sumCompletos=0,diasCompletos=0;
+  for(let d=1;d<=last;d++){
+    const dowLun=(new Date(y,m-1,d).getDay()+6)%7; // 0=Lun...6=Dom
+    if(!semanas.length||dowLun===0)semanas.push({inicio:d,fin:d,total:0,diasCompletos:0,diasTotales:0});
+    const semana=semanas[semanas.length-1];
+    semana.fin=d;semana.diasTotales++;
+    const dia=histIso(y,m,d);
+    const data=histResumenMes[dia];
+    const turnosEsperados=dowLun===6?2:3;
+    const completo=!!(data&&data.cierres.length>=turnosEsperados);
+    const total=data?(data.cajaTotal>0?data.cajaTotal:data.mpTotal):0;
+    semana.total+=total;
+    if(completo){semana.diasCompletos++;sumCompletos+=data.cajaTotal;diasCompletos++;}
+  }
+  const hoyReal=new Date();
+  const esMesActual=y===hoyReal.getFullYear()&&m===hoyReal.getMonth()+1;
+  const proyeccion=diasCompletos>0?sumCompletos/diasCompletos*last:null;
+  const proyeccionHtml=!esMesActual?
+    `<div style="font-size:12.5px;color:var(--text-soft)">La proyección solo se muestra para el mes en curso.</div>`
+    :proyeccion==null?
+    `<div style="font-size:12.5px;color:var(--text-soft)">Todavía no hay ningún día con el cierre de caja completo (efectivo + MercadoPago) este mes. En cuanto cargues los cierres, acá aparece la proyección.</div>`
+    :`<div class="hist-proyeccion-val">${histMoney(proyeccion)}</div>
+      <div class="hist-proyeccion-sub">Si se mantiene el ritmo de los ${diasCompletos} día${diasCompletos===1?'':'s'} con cierre completo, así cerraría el mes.</div>`;
+  const semanasHtml=semanas.map((s,i)=>`
+    <div class="hist-semana-row">
+      <span class="hist-semana-rango">Semana ${i+1} · ${s.inicio}-${s.fin}</span>
+      <span class="hist-semana-total">${s.total>0?histMoney(s.total):'—'}</span>
+      <span class="hist-semana-completos">${s.diasCompletos}/${s.diasTotales} días con cierre</span>
+    </div>`).join('');
   el.innerHTML=`
     <div class="hist-met-kpis">
       <div class="hist-met-kpi"><div class="hist-met-kpi-label">Promedio diario MP</div><div class="hist-met-kpi-val">${histMoneyCompact(promDiario)||'—'}</div></div>
@@ -2951,7 +2991,9 @@ function histRenderMetricas(y,m,last){
       <div class="hist-met-kpi"><div class="hist-met-kpi-label">Días activos</div><div class="hist-met-kpi-val">${diasActivos}</div></div>
       <div class="hist-met-kpi" id="histVsMesAnt"><div class="hist-met-kpi-label">vs mes anterior</div><div class="hist-met-kpi-val" style="font-size:13px;opacity:.35">···</div></div>
     </div>
-    <div class="hist-met-chart-card" id="histChartCard"><div class="hist-met-chart-title">Evolución diaria del mes</div>${histSvgBarsDias(dailyVals,last,y,m)}</div>`;
+    <div class="hist-met-chart-card" id="histChartCard"><div class="hist-met-chart-title">Evolución diaria del mes</div>${histSvgBarsDias(dailyVals,last,y,m)}</div>
+    <div class="hist-met-chart-card" style="margin-top:12px"><div class="hist-met-chart-title">Proyección de facturación</div>${proyeccionHtml}</div>
+    <div class="hist-met-chart-card" style="margin-top:12px"><div class="hist-met-chart-title">Totales por semana</div>${semanasHtml}</div>`;
   const chartCard=el.querySelector('#histChartCard');
   if(chartCard)histAnimarGraficoDias(chartCard);
   const prevM=m===1?12:m-1,prevY=m===1?y-1:y;
