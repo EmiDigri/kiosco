@@ -12,16 +12,22 @@ function turnoDeHora(hora) {
   return 'Fuera de horario';
 }
 
+// Estados terminales que vale la pena guardar. Se ignoran los intermedios
+// (pending, in_process, authorized, in_mediation) porque todavia pueden
+// cambiar de estado y generarian filas ruidosas o duplicadas.
+const ESTADOS_TERMINALES = ['approved', 'rejected', 'cancelled'];
+
 async function procesarPago(pagoId) {
   const mpRes = await fetch(`https://api.mercadopago.com/v1/payments/${pagoId}`, {
     headers: { Authorization: `Bearer ${MP_TOKEN}` }
   });
   const pago = await mpRes.json();
 
-  if (pago.status !== 'approved') return;
+  if (!ESTADOS_TERMINALES.includes(pago.status)) return;
   if (!pago.transaction_amount || pago.transaction_amount <= 0) return;
 
-  const d = new Date(pago.date_approved);
+  // date_approved es null en pagos rechazados/cancelados: usamos date_created como respaldo.
+  const d = new Date(pago.date_approved || pago.date_created);
   const fecha = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   const hora = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
 
