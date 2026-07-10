@@ -1092,7 +1092,9 @@ body.light .t-row{
   border-bottom-color:var(--border-soft)!important;
 }
 
-*,*::before,*::after{
+*:not(#fcMount):not(#fcMount *),
+*:not(#fcMount):not(#fcMount *)::before,
+*:not(#fcMount):not(#fcMount *)::after{
   animation:none!important;
   transition:none!important;
   scroll-behavior:auto!important;
