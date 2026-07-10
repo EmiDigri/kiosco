@@ -4413,17 +4413,18 @@ function iwFechaDolarMasNueva(items){
   return items.filter(Boolean).sort((a,b)=>String(a).localeCompare(String(b))).pop()||null;
 }
 function iwFmtDolarUpdated(fecha,checkedAt){
-  const consulta=(checkedAt||new Date()).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+  const chequeado=(checkedAt||new Date()).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',hour12:false});
   let fechaTxt='sin fecha';
   if(fecha){
     const hasTime=/T|\d{2}:\d{2}/.test(String(fecha));
     const d=new Date(hasTime?fecha:`${fecha}T12:00:00`);
     if(!Number.isNaN(d.getTime())){
-      fechaTxt=d.toLocaleDateString('es-AR',{day:'2-digit',month:'short'});
-      if(hasTime)fechaTxt+=' '+d.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+      const meses=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+      fechaTxt=`${d.getDate()} ${meses[d.getMonth()]}`;
+      if(hasTime)fechaTxt+=` ${d.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',hour12:false})}`;
     }
   }
-  return `Dólar actualizado: ${fechaTxt} · consulta ${consulta}`;
+  return `Cotización del ${fechaTxt} · chequeado ${chequeado}`;
 }
 async function iwFetchDolarDirecto(){
   const tipos=['oficial','blue','bolsa'];
@@ -4472,7 +4473,7 @@ async function fetchInfoWidget(){
   const {feriado,fsl}=await fetchFeriadosInfo().catch(()=>({feriado:null,fsl:null}));
   const fmt=v=>v!=null?'$'+Math.round(Number(v)).toLocaleString('es-AR'):'—';
   const varTag=p=>p==null?'':` <span class="iw-dolar-var ${p>=0?'up':'down'}">${p>=0?'▲':'▼'}${Math.abs(p).toFixed(1)}%</span>`;
-  const dolarUpdated=[ofVal,mepVal,blVal].some(v=>v!=null)?iwFmtDolarUpdated(dolarFecha,dolarCheckedAt):'Dólar: sin datos actualizados';
+  const dolarUpdated=[ofVal,mepVal,blVal].some(v=>v!=null)?iwFmtDolarUpdated(dolarFecha,dolarCheckedAt):'Dólar sin datos por ahora';
   const we=getWeatherIcon(temp,wxCode,wxWind,wxIsDay);
   const tempDisp=temp!=null?`${temp}°${we?`<span class="iw-weather-emoji ${we.cls}" role="button" tabindex="0" aria-label="Activar clima en pantalla" title="Activar clima"><img src="${mcUrl(we.slug)}" alt="" loading="lazy"></span>`:''}`:' —';
   const forecastDesk=iwPronosticoHtml(wxForecast,4);
