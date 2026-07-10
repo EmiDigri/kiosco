@@ -2175,6 +2175,9 @@ img,svg,canvas{max-width:100%}
 .pulse-metric-value{font-size:25px;font-weight:850;color:var(--text);line-height:1.05;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pulse-metric-note{font-size:10.5px;font-weight:650;color:var(--text-mid);margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pulse-metric-note.up{color:#5FD68A}.pulse-metric-note.down{color:#f87171}
+.pulse-pace-row{display:flex;gap:14px}
+.pulse-pace-item{min-width:0}
+.pulse-metric-value.pace-mini{font-size:18px}
 .pulse-chart{position:relative;height:92px;padding:8px 2px 18px;border-bottom:1px solid var(--glass-border)}
 .pulse-gridlines{position:absolute;left:0;right:0;top:8px;bottom:18px;z-index:0;pointer-events:none}
 .pulse-grid-line{position:absolute;top:0;bottom:0;width:1px;background:rgba(255,255,255,.055)}
@@ -2208,6 +2211,7 @@ body.light .pulse-now,body.light .pulse-now::before{background:#334155}
   .pulse-metric{padding:0 10px}.pulse-metric:nth-child(2){padding-right:0}
   .pulse-metric:nth-child(3){grid-column:1/-1;border-left:none;border-top:1px solid var(--glass-border);padding:12px 0 0}
   .pulse-metric-value{font-size:21px}.pulse-metric-note{font-size:9.5px}
+  .pulse-pace-row{gap:8px}.pulse-metric-value.pace-mini{font-size:16px}
   .pulse-chart{height:82px}.pulse-bars{gap:2px}
   .pulse-event{width:3px;height:3px;margin-left:-1.5px;margin-bottom:-1.5px}
   .pulse-foot{font-size:9px;align-items:flex-start}.pulse-foot span:last-child{text-align:right}
@@ -3805,13 +3809,26 @@ function pulseRender(rows){
   const avgPartial=compCount?comparables.reduce((a,d)=>a+d.partial,0)/compCount:0;
   const avgFull=compCount?comparables.reduce((a,d)=>a+d.full,0)/compCount:0;
   const enough=compCount>=3&&avgPartial>0;
-  let paceValue='Sin referencia',paceNote=`${compCount} de 3 días comparables`,paceClass='';
+  let paceValue='Sin referencia',paceNote=`${compCount} de 3 ${pulseWeekdayPlural(todayDow)}`,paceClass='';
   if(enough&&todayTotal>0){
     const pct=Math.round((todayTotal-avgPartial)/avgPartial*100);
     paceValue=Math.abs(pct)<=2?'En ritmo':`${pct>0?'+':''}${pct}%`;
-    paceNote=`vs ${compCount} ${pulseWeekdayPlural(todayDow)} a esta hora`;
+    paceNote=`vs ${compCount} ${pulseWeekdayPlural(todayDow)}`;
     paceClass=pct>2?'up':pct<-2?'down':'';
-  }else if(todayTotal===0){paceValue='Esperando';paceNote='Todavía no ingresaron cobros';}
+  }else if(todayTotal===0){paceValue='Esperando';paceNote='Sin cobros aún';}
+  const rolling30From=pulseIso(new Date(now.getFullYear(),now.getMonth(),now.getDate()-30));
+  const rolling30=Array.from(byDate.keys()).filter(d=>d<today&&d>=rolling30From).sort((a,b)=>b.localeCompare(a)).map(fecha=>{
+    const dayRows=byDate.get(fecha)||[];
+    return{fecha,partial:dayRows.filter(r=>String(r.hora).slice(0,5)<=cutoff).reduce((a,r)=>a+(Number(r.monto)||0),0),full:dayRows.reduce((a,r)=>a+(Number(r.monto)||0),0)};
+  }).filter(d=>d.full>0&&d.partial>0);
+  const compCount30=rolling30.length,avgPartial30=compCount30?rolling30.reduce((a,d)=>a+d.partial,0)/compCount30:0;
+  let pace30Value='Sin referencia',pace30Note=`${compCount30} de 3 días`,pace30Class='';
+  if(compCount30>=3&&avgPartial30>0&&todayTotal>0){
+    const pct30=Math.round((todayTotal-avgPartial30)/avgPartial30*100);
+    pace30Value=Math.abs(pct30)<=2?'En ritmo':`${pct30>0?'+':''}${pct30}%`;
+    pace30Note=`vs ${compCount30} días`;
+    pace30Class=pct30>2?'up':pct30<-2?'down':'';
+  }else if(todayTotal===0){pace30Value='—';pace30Note='';}
   let projectionValue='—',projectionNote='Necesita 3 días comparables';
   const nowMins=now.getHours()*60+now.getMinutes();
   if(enough&&todayTotal>0){
@@ -3846,7 +3863,7 @@ function pulseRender(rows){
   content.innerHTML=`
     <div class="pulse-metrics">
       <div class="pulse-metric"><div class="pulse-metric-label">Mercado Pago hoy</div><div class="pulse-metric-value">${pulseMoney(todayTotal)}</div><div class="pulse-metric-note">${todayRows.length} movimiento${todayRows.length===1?'':'s'} hasta ${cutoff}</div></div>
-      <div class="pulse-metric"><div class="pulse-metric-label">Ritmo del día</div><div class="pulse-metric-value">${paceValue}</div><div class="pulse-metric-note ${paceClass}">${paceNote}</div></div>
+      <div class="pulse-metric"><div class="pulse-metric-label">Ritmo del día</div><div class="pulse-pace-row"><div class="pulse-pace-item"><div class="pulse-metric-value pace-mini">${paceValue}</div><div class="pulse-metric-note ${paceClass}">${paceNote}</div></div><div class="pulse-pace-item"><div class="pulse-metric-value pace-mini">${pace30Value}</div><div class="pulse-metric-note ${pace30Class}">${pace30Note}</div></div></div></div>
       <div class="pulse-metric"><div class="pulse-metric-label">Proyección de cierre</div><div class="pulse-metric-value">${projectionValue}</div><div class="pulse-metric-note">${projectionNote}</div></div>
     </div>
     <div class="pulse-chart" role="img" aria-label="Actividad de Mercado Pago durante las 24 horas del día">
