@@ -105,15 +105,6 @@ html{overflow-x:hidden;overflow-y:scroll}
 .hero-time-icon::before{content:'';position:absolute;left:9px;top:4px;width:1.5px;height:6px;border-radius:2px;background:var(--accent)}
 .hero-time-icon::after{content:'';position:absolute;left:9px;top:9px;width:5px;height:1.5px;border-radius:2px;background:var(--accent);transform-origin:left center;transform:rotate(35deg)}
 .hero-time-label-row{display:flex;align-items:center;gap:6px}
-.shift-progress-card{width:300px;max-width:100%;border:1px solid var(--glass-border);background:var(--glass);border-radius:14px;padding:10px 12px;margin:0 auto 12px;box-shadow:var(--shadow-sm,0 1px 2px rgba(0,0,0,.18))}
-.shift-progress-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:7px}
-.shift-progress-title{min-width:0;font-size:10px;font-weight:850;letter-spacing:.12em;text-transform:uppercase;color:var(--text-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.shift-progress-pct{font-size:12px;font-weight:850;color:var(--accent);font-variant-numeric:tabular-nums;white-space:nowrap}
-.shift-progress{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:8px}
-.shift-progress-time{font-size:10px;font-weight:650;color:var(--text-soft);font-variant-numeric:tabular-nums;white-space:nowrap}
-.shift-progress-track{position:relative;height:6px;background:rgba(255,255,255,.09);border-radius:999px;overflow:visible}
-.shift-progress-fill{position:absolute;left:0;top:0;height:100%;width:0;border-radius:999px;background:linear-gradient(90deg,var(--accent),#8C9BFF);box-shadow:0 0 14px rgba(124,144,255,.28);transition:width .35s ease}
-.shift-progress-dot{position:absolute;right:-5px;top:50%;width:10px;height:10px;border-radius:999px;background:#f4f1ed;border:2px solid var(--accent);transform:translateY(-50%);box-shadow:0 0 0 4px rgba(124,144,255,.12)}
 .cursor-glow{pointer-events:none;position:fixed;width:340px;height:340px;border-radius:50%;background:radial-gradient(circle,rgba(61,90,254,.1) 0%,transparent 70%);transform:translate(-50%,-50%);top:0;left:0;z-index:0;transition:opacity .3s ease;opacity:0}
 .hero-clock-col{display:flex;flex-direction:column;align-items:center;justify-content:center;margin:16px 0}
 .iw-mobile-card{display:none;background:var(--glass);border:1px solid var(--glass-border);border-radius:16px;padding:14px 16px;margin-bottom:14px}
@@ -1054,7 +1045,6 @@ body.light{
 }
 
 body.light .hero-time-widget,
-body.light .shift-progress-card,
 body.light .iw-mobile-card,
 body.light .iw-forecast-day,
 body.light .iw-dolar,
@@ -1075,9 +1065,6 @@ body.light .hero-side-card-total,
 body.light .cm-mp-card{
   background:var(--accent-soft)!important;
   border-color:#B8C5FF!important;
-}
-body.light .shift-progress-track{
-  background:#D7E0EC!important;
 }
 body.light .turno-chip,
 body.light .count-pill,
@@ -2208,19 +2195,6 @@ img,svg,canvas{max-width:100%}
       </div>
 
       <div class="hero-clock-col">
-        <div class="shift-progress-card" id="shiftProgressCard" aria-label="Progreso del turno">
-          <div class="shift-progress-head">
-            <span class="shift-progress-title" id="shiftProgressTitle">Progreso del turno</span>
-            <strong class="shift-progress-pct" id="shiftProgressPct">—</strong>
-          </div>
-          <div class="shift-progress">
-            <span class="shift-progress-time" id="shiftProgressStart">—</span>
-            <div class="shift-progress-track">
-              <div class="shift-progress-fill" id="shiftProgressFill"><span class="shift-progress-dot" id="shiftProgressDot"></span></div>
-            </div>
-            <span class="shift-progress-time" id="shiftProgressEnd">—</span>
-          </div>
-        </div>
         <div class="neon-clock" id="neonClock"><div id="fcMount"></div></div>
         <div id="heroFecha" style="font-size:12px;color:#86b3e6;margin-top:13px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;text-shadow:0 0 8px rgba(56,189,248,.35)">—</div>
       </div>
@@ -2621,26 +2595,6 @@ if(turno){
   document.getElementById('turnoHorario').textContent='Todos los turnos · 7 am – 11 pm';
   document.getElementById('btnTxt').textContent='Ver resumen del día';
 }
-
-function fmtTurnoHora(mins){return`${Math.floor(mins/60)}:${String(mins%60).padStart(2,'0')}`;}
-function updateShiftProgress(){
-  const card=document.getElementById('shiftProgressCard'),title=document.getElementById('shiftProgressTitle'),pctEl=document.getElementById('shiftProgressPct'),startEl=document.getElementById('shiftProgressStart'),endEl=document.getElementById('shiftProgressEnd'),fill=document.getElementById('shiftProgressFill');
-  if(!card||!title||!pctEl||!startEl||!endEl||!fill)return;
-  const t=turno||turnoReciente||null;
-  if(!t){
-    title.textContent='Jornada en cierre';pctEl.textContent='—';startEl.textContent=esDomingo?'9:00':'7:00';endEl.textContent='23:00';fill.style.width='100%';return;
-  }
-  const start=t.desdeH*60+t.desdeM,end=visFin(t),now=new Date(),mins=now.getHours()*60+now.getMinutes();
-  const raw=turno?((mins-start)/(end-start))*100:100;
-  const pct=Math.max(0,Math.min(100,raw));
-  title.textContent=turno?`Progreso de ${t.nombre}`:`${t.nombre} terminado`;
-  pctEl.textContent=turno?`${Math.round(pct)}%`:'Listo';
-  startEl.textContent=fmtTurnoHora(start);
-  endEl.textContent=fmtTurnoHora(end);
-  fill.style.width=`${pct}%`;
-}
-updateShiftProgress();
-setInterval(updateShiftProgress,60*1000);
 
 function showToast(msg){
   const t=document.getElementById('toast');
