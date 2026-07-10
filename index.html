@@ -3403,6 +3403,7 @@ async function mostrarDetalleDia(dia){
     const totalTurno=cierre?(Number(cierre.total_turno)||0):mpTot;
     const cardId='hist-dia-'+t.nombre.replace(/\s/g,'');
     let cierreHTML='';
+    const btnCierreManual=`<button class="hist-btn-cierre-manual" data-dia="${dia}" data-turno="${t.nombre}" style="margin-top:10px;padding:7px 12px;background:rgba(240,184,96,.13);color:#F0B860;border:1px solid rgba(240,184,96,.28);border-radius:8px;font-weight:600;font-size:11.5px;cursor:pointer">${cierre?'Editar cierre manual':'Cargar cierre manual'}</button>`;
     if(cierre){
       cierreHTML=`<div class="hist-cierre-block"><div class="hist-cierre-title">Cierre manual</div>
         <div class="hist-cierre-row"><span>Apertura</span><strong>${histMoney(cierre.apertura)}</strong></div>
@@ -3412,9 +3413,10 @@ async function mostrarDetalleDia(dia){
         <div class="hist-cierre-row"><span>MPO</span><strong>${histMoney(cierre.mpo)}</strong></div>
         <div class="hist-cierre-row"><span>Gastos caja</span><strong>${histMoney(cierre.gastos_caja)}</strong></div>
         <div class="hist-cierre-row"><span>Total turno</span><strong>${histMoney(totalTurno)}</strong></div>
+        ${btnCierreManual}
       </div>`;
     }else{
-      cierreHTML='<div class="hist-cierre-block"><div class="hist-cierre-title">Cierre manual</div><div class="hist-cierre-row"><span>Este turno todavía no tiene cierre manual guardado.</span><strong>—</strong></div></div>';
+      cierreHTML=`<div class="hist-cierre-block"><div class="hist-cierre-title">Cierre manual</div><div class="hist-cierre-row"><span>Este turno todavía no tiene cierre manual guardado.</span><strong>—</strong></div>${btnCierreManual}</div>`;
     }
     const ticket=movs.length?Math.round(mpTot/movs.length):0;
     let movsHTML=`<div class="hist-turno-stats">
@@ -3450,6 +3452,9 @@ async function mostrarDetalleDia(dia){
   cont.querySelectorAll('.hist-turno-card').forEach(card=>{
     const header=card.querySelector('.hist-turno-header'),body=card.querySelector('.hist-turno-body');
     header.addEventListener('click',()=>{card.classList.toggle('open');body.style.maxHeight=card.classList.contains('open')?body.scrollHeight+'px':'0';});
+  });
+  cont.querySelectorAll('.hist-btn-cierre-manual').forEach(btn=>{
+    btn.addEventListener('click',e=>{e.stopPropagation();cmAbrir(btn.dataset.dia,btn.dataset.turno);});
   });
   document.getElementById('historialOverlay').scrollTop=0;
   const btnRec=document.getElementById('btnRecuperarMP');
@@ -3609,7 +3614,7 @@ function renderOtrosTurnos(){
       btn.disabled=true;btn.innerHTML=`<span class="t-dot" style="background:${t.color}"></span>Cargando...`;
       try{const results=await fetchMovimientos(t.capturaDesdeH??t.desdeH,t.capturaDesdeM??t.desdeM,t.hastaH,t.hastaM);const parsed=parsearMovimientos(results);guardarTurno(t.nombre,parsed.movs,parsed.excluidos,parsed.enviadas);const tNombreActual=(turno||turnoReciente||{nombre:''}).nombre;renderTurnosHoy(tNombreActual);
 actualizarHeroSide();
-const heroBtnCierre=document.getElementById('heroBtnCierre');if(heroBtnCierre)heroBtnCierre.addEventListener('click',cmAbrir);
+const heroBtnCierre=document.getElementById('heroBtnCierre');if(heroBtnCierre)heroBtnCierre.addEventListener('click',()=>cmAbrir());
 const heroBtnHistorial2=document.getElementById('heroBtnHistorial2');if(heroBtnHistorial2)heroBtnHistorial2.addEventListener('click',()=>document.getElementById('btnHistorial')?.click());setTimeout(()=>{const card=document.querySelector(`#turnosHoySection [data-turno="${t.nombre}"]`)||document.querySelector(`#turnosHoyPortada [data-turno="${t.nombre}"]`)||document.getElementById('turnosHoySection');if(card)card.scrollIntoView({behavior:'smooth',block:'start'});},300);showToast((t.nombre.startsWith('Turno')?t.nombre:'Turno de '+t.nombre)+' cargado ✓');}
       catch(err){showToast('No se pudo conectar con MercadoPago');console.error(err);}
       btn.disabled=false;btn.innerHTML=`<span class="t-dot" style="background:${t.color}"></span>Ver turno de ${t.nombre}`;
@@ -3621,18 +3626,27 @@ renderOtrosTurnos();
 
 
 // ─── CIERRE MANUAL ───
-const CM_TURNOS=esDomingo?['Turno 1','Turno 2']:['Vale','Ani','Marta'];
-const CM_COLORS=esDomingo?{'Turno 1':'#3D5AFE','Turno 2':'#6B7FFF'}:{Vale:'#7C90FF',Ani:'#A78BFA',Marta:'#4FCCBE'};
-const CM_TURNO_CAJA=esDomingo?{'Turno 1':'CM','Turno 2':'CT'}:{Vale:'CM',Ani:'CT',Marta:'CN'};
-const CM_CAJA_TURNO=esDomingo?{CM:'Turno 1',CT:'Turno 2'}:{CM:'Vale',CT:'Ani',CN:'Marta'};
+// CM_TURNOS/CM_COLORS/CM_TURNO_CAJA/CM_CAJA_TURNO dependen de si el día en
+// cuestión es domingo. Se recalculan en cmAbrir() según la fecha objetivo
+// (no siempre "hoy"), por eso quedan como variables mutables en vez de const.
+function cmEsDomingo(fecha){const[y,m,d]=fecha.split('-').map(Number);return new Date(y,m-1,d).getDay()===0;}
+function cmTurnosDe(esDom){return esDom?['Turno 1','Turno 2']:['Vale','Ani','Marta'];}
+function cmColoresDe(esDom){return esDom?{'Turno 1':'#3D5AFE','Turno 2':'#6B7FFF'}:{Vale:'#7C90FF',Ani:'#A78BFA',Marta:'#4FCCBE'};}
+function cmTurnoCajaDe(esDom){return esDom?{'Turno 1':'CM','Turno 2':'CT'}:{Vale:'CM',Ani:'CT',Marta:'CN'};}
+function cmCajaTurnoDe(esDom){return esDom?{CM:'Turno 1',CT:'Turno 2'}:{CM:'Vale',CT:'Ani',CN:'Marta'};}
+let CM_TURNOS=cmTurnosDe(esDomingo);
+let CM_COLORS=cmColoresDe(esDomingo);
+let CM_TURNO_CAJA=cmTurnoCajaDe(esDomingo);
+let CM_CAJA_TURNO=cmCajaTurnoDe(esDomingo);
 // Mapa universal para sincronizar datos de días anteriores sin importar el día actual
 const CM_TURNO_CAJA_ALL={Vale:'CM',Ani:'CT',Marta:'CN','Turno 1':'CM','Turno 2':'CT'};
 const CM_STORAGE_KEY='kiosco_cierre_manual';
+let cmFechaObjetivo=fechaHoy(),cmMpPorTurnoCache=null;
 let cmTurnoActivo=esDomingo?'Turno 1':'Vale',cmCierres={},cmGastos=[],cmCajaSeleccionada='';
 const cmFmt=n=>'$'+(Number(n)||0).toLocaleString('es-AR');
 function cmEsc(s){return String(s||'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
-function cmLeerData(){try{const all=JSON.parse(localStorage.getItem(CM_STORAGE_KEY)||'{}');const data=all[fechaHoy()]||{};cmCierres=data.cierres||{};cmGastos=data.gastos||[];}catch(e){cmCierres={};cmGastos=[];}}
-function cmGuardarData(){let all={};try{all=JSON.parse(localStorage.getItem(CM_STORAGE_KEY)||'{}');}catch(e){}all[fechaHoy()]={cierres:cmCierres,gastos:cmGastos,guardadoEn:new Date().toISOString()};localStorage.setItem(CM_STORAGE_KEY,JSON.stringify(all));}
+function cmLeerData(){try{const all=JSON.parse(localStorage.getItem(CM_STORAGE_KEY)||'{}');const data=all[cmFechaObjetivo]||{};cmCierres=data.cierres||{};cmGastos=data.gastos||[];}catch(e){cmCierres={};cmGastos=[];}}
+function cmGuardarData(){let all={};try{all=JSON.parse(localStorage.getItem(CM_STORAGE_KEY)||'{}');}catch(e){}all[cmFechaObjetivo]={cierres:cmCierres,gastos:cmGastos,guardadoEn:new Date().toISOString()};localStorage.setItem(CM_STORAGE_KEY,JSON.stringify(all));}
 function cmUid(){return 'g_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,9);}
 async function cmSbWrite(path,method,body,prefer){
   const headers={'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json'};
@@ -3644,7 +3658,7 @@ async function cmSbWrite(path,method,body,prefer){
 async function cmGuardarCierreRemoto(turno,data){
   const gastosCaja=cmGastosDeCaja(turno);
   const payload={
-    fecha:fechaHoy(),turno,
+    fecha:cmFechaObjetivo,turno,
     apertura:Number(data.apertura)||0,
     efectivo:Number(data.efectivo)||0,
     once_monto:Number(data.once)||0,
@@ -3658,7 +3672,7 @@ async function cmGuardarCierreRemoto(turno,data){
 }
 async function cmGuardarGastoRemoto(g){
   if(!g.uid)g.uid=cmUid();
-  const payload={uid:g.uid,fecha:fechaHoy(),nombre:g.nombre,monto:Number(g.monto)||0,caja:g.caja||null,turno:g.turno||CM_CAJA_TURNO[g.caja]||null};
+  const payload={uid:g.uid,fecha:cmFechaObjetivo,nombre:g.nombre,monto:Number(g.monto)||0,caja:g.caja||null,turno:g.turno||CM_CAJA_TURNO[g.caja]||null};
   await cmSbWrite('gastos_caja?on_conflict=uid','POST',payload,'resolution=merge-duplicates,return=minimal');
 }
 async function cmEliminarGastoRemoto(g){
@@ -3667,7 +3681,7 @@ async function cmEliminarGastoRemoto(g){
 }
 async function cmCargarDataRemotaHoy(){
   try{
-    const dia=fechaHoy();
+    const dia=cmFechaObjetivo;
     const [cierres,gastos]=await Promise.all([
       histSbSelect(`cierres_caja?fecha=eq.${dia}&order=turno.asc&limit=50`),
       histSbSelect(`gastos_caja?fecha=eq.${dia}&order=created_at.asc&limit=300`)
@@ -3735,7 +3749,10 @@ async function cmSyncLocales(){
   if(partes.length)showToast(partes.join(' y ')+' sincronizado'+((gCount+cCount)!==1?'s':'')+' ✓');
   cmRenderSyncStatus();
 }
-function cmMpTurno(nombreTurno){const hist=leerHistorial();const datosDia=hist[fechaHoy()]||{};const datosTurno=datosDia[nombreTurno];if(!datosTurno||!Array.isArray(datosTurno.movs))return 0;return datosTurno.movs.reduce((a,m)=>a+(Number(m.monto)||0),0);}
+function cmMpTurno(nombreTurno){
+  if(cmMpPorTurnoCache)return cmMpPorTurnoCache[nombreTurno]||0;
+  const hist=leerHistorial();const datosDia=hist[cmFechaObjetivo]||{};const datosTurno=datosDia[nombreTurno];if(!datosTurno||!Array.isArray(datosTurno.movs))return 0;return datosTurno.movs.reduce((a,m)=>a+(Number(m.monto)||0),0);
+}
 function cmGastosDeCaja(nombreTurno){const caja=CM_TURNO_CAJA[nombreTurno];return cmGastos.filter(g=>g.caja===caja).reduce((a,g)=>a+(Number(g.monto)||0),0);}
 function cmRenderTurnoBtns(){const row=document.getElementById('cmTurnoRow');if(!row)return;row.innerHTML=CM_TURNOS.map(t=>`<button class="cm-turno-btn ${t===cmTurnoActivo?'active':''}" data-turno="${t}" style="${t===cmTurnoActivo?'background:'+CM_COLORS[t]:''}">${t}</button>`).join('');row.querySelectorAll('.cm-turno-btn').forEach(btn=>btn.addEventListener('click',()=>{cmTurnoActivo=btn.dataset.turno;cmCargarFormularioTurno();}));}
 function cmCargarFormularioTurno(){cmRenderTurnoBtns();const c=cmCierres[cmTurnoActivo],mp=cmMpTurno(cmTurnoActivo);document.getElementById('cmMpTurnoNombre').textContent=cmTurnoActivo;document.getElementById('cmMpValor').textContent=cmFmt(mp);document.getElementById('cmBdMp').textContent=cmFmt(mp);document.getElementById('cmBtnGuardar').textContent='Guardar cierre de '+cmTurnoActivo;document.getElementById('cmApertura').value=c?c.apertura:10000;document.getElementById('cmOnce').value=c?c.once:0;document.getElementById('cmMpo').value=c?c.mpo:0;const esMarta=cmTurnoActivo==='Marta';document.getElementById('cmFieldEfectivo').style.display=esMarta?'block':'none';document.getElementById('cmFieldTotal').style.display=esMarta?'none':'block';if(esMarta){document.getElementById('cmEfectivo').value=c?c.efectivo:'';}else{document.getElementById('cmTotalInput').value=c&&c.total_turno?c.total_turno:'';}cmCalcularTotalTurno();}
@@ -3745,9 +3762,51 @@ function cmRenderGastos(){const list=document.getElementById('cmGastoList');if(!
 function cmAgregarGasto(){const nombre=document.getElementById('cmGastoNombre').value.trim(),monto=Number(document.getElementById('cmGastoMonto').value)||0;if(!nombre||!monto){showToast('Cargá concepto y monto');return;}const g={uid:cmUid(),nombre,monto,caja:cmCajaSeleccionada,turno:CM_CAJA_TURNO[cmCajaSeleccionada]||'',creadoEn:new Date().toISOString()};cmGastos.push(g);document.getElementById('cmGastoNombre').value='';document.getElementById('cmGastoMonto').value='';cmCajaSeleccionada='';document.querySelectorAll('.cm-caja-btn').forEach(b=>b.classList.remove('active'));const noBtn=document.querySelector('.cm-caja-btn[data-caja=""]');if(noBtn)noBtn.classList.add('active');cmGuardarData();cmRenderGastos();cmCalcularTotalTurno();cmRenderResumen();cmRenderSyncStatus();showToast('Gasto agregado ✓');cmGuardarGastoRemoto(g).then(()=>{g.synced=true;cmGuardarData();cmRenderSyncStatus();}).catch(e=>showToast('Guardado local. Se sincroniza al reabrir.'));}
 function cmRenderResumen(){const cont=document.getElementById('cmResumenTurnos');if(!cont)return;let totalDia=0,cerrados=0,sumMp=0,sumEf=0,sumOnce=0,sumMpo=0;cont.innerHTML=CM_TURNOS.map(t=>{const c=cmCierres[t];if(!c){return `<div class="cm-resumen-turno"><div class="cm-resumen-head"><div class="cm-resumen-name"><span class="cm-resumen-dot" style="background:${CM_COLORS[t]}"></span>${t}</div><div class="cm-pendiente">Sin cerrar</div></div></div>`;}cerrados++;const mp=Number(c.mp)||cmMpTurno(t),gCaja=cmGastosDeCaja(t),total=mp+(Number(c.efectivo)||0)+(Number(c.once)||0)+gCaja;totalDia+=total;sumMp+=mp;sumEf+=Number(c.efectivo)||0;sumOnce+=Number(c.once)||0;sumMpo+=Number(c.mpo)||0;return `<div class="cm-resumen-turno"><div class="cm-resumen-head"><div class="cm-resumen-name"><span class="cm-resumen-dot" style="background:${CM_COLORS[t]}"></span>${t}</div><div class="cm-resumen-total">${cmFmt(total)}</div></div><div class="cm-resumen-detail"><span>Apertura ${cmFmt(c.apertura)}</span><span>MP ${cmFmt(mp)}</span><span>Efectivo ${cmFmt(c.efectivo)}</span>${Number(c.once)>0?`<span>Once ${cmFmt(c.once)}</span>`:''}${Number(c.mpo)>0?`<span>MPO ${cmFmt(c.mpo)}</span>`:''}${gCaja>0?`<span>Gastos caja ${cmFmt(gCaja)}</span>`:''}</div></div>`;}).join('');document.getElementById('cmTotalDia').textContent=cmFmt(totalDia);document.getElementById('cmTotalDiaSub').textContent=cerrados+' de '+CM_TURNOS.length+' turnos cerrados';document.getElementById('cmTotMp').textContent=cmFmt(sumMp);document.getElementById('cmTotEfectivo').textContent=cmFmt(sumEf);document.getElementById('cmTotOnce').textContent=cmFmt(sumOnce);document.getElementById('cmTotMpo').textContent=cmFmt(sumMpo);document.getElementById('cmResumenGastos').textContent=cmFmt(cmGastos.reduce((a,g)=>a+(Number(g.monto)||0),0));}
 function cmCambiarVista(view){document.querySelectorAll('.cm-tab').forEach(t=>t.classList.toggle('active',t.dataset.cmView===view));document.querySelectorAll('.cm-view').forEach(v=>v.classList.remove('active'));const el=document.getElementById('cm-view-'+view);if(el)el.classList.add('active');if(view==='resumen')cmRenderResumen();if(view==='gastos')cmRenderGastos();}
-async function cmAbrir(){lockBody();cmLeerData();cmRenderSyncStatus();await cmSyncLocales();await cmCargarDataRemotaHoy();cmRenderSyncStatus();const t=(turno||turnoReciente||{}).nombre;if(CM_TURNOS.includes(t))cmTurnoActivo=t;const fh=document.getElementById('cmHeaderFecha');if(fh)fh.textContent=new Date().toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'});const hintEl=document.getElementById('cmHintCajas');if(hintEl)hintEl.textContent=esDomingo?'CM = Turno 1 · CT = Turno 2. Si marcás una caja, ese gasto se suma de nuevo al total de ese turno.':'CM = Vale · CT = Ani · CN = Marta. Si marcás una caja, ese gasto se suma de nuevo al total de ese turno.';const btnCN=document.querySelector('.cm-caja-btn[data-caja="CN"]');if(btnCN)btnCN.style.display=esDomingo?'none':'';const pfx=document.getElementById('cmMpTurnoPrefix');if(pfx)pfx.textContent=esDomingo?'':'turno ';document.getElementById('cierreManualOverlay').classList.add('open');cmCambiarVista('turno');cmCargarFormularioTurno();cmRenderGastos();cmRenderResumen();}
-function cmCerrar(){document.getElementById('cierreManualOverlay').classList.remove('open');unlockBody();}
-const btnCierreManual=document.getElementById('btnCierreManual');if(btnCierreManual)btnCierreManual.addEventListener('click',cmAbrir);
+async function cmAbrir(fecha,turnoInicial){
+  lockBody();
+  cmFechaObjetivo=fecha||fechaHoy();
+  const esHoy=cmFechaObjetivo===fechaHoy();
+  const esDom=cmEsDomingo(cmFechaObjetivo);
+  CM_TURNOS=cmTurnosDe(esDom);CM_COLORS=cmColoresDe(esDom);CM_TURNO_CAJA=cmTurnoCajaDe(esDom);CM_CAJA_TURNO=cmCajaTurnoDe(esDom);
+  cmLeerData();
+  cmRenderSyncStatus();
+  await cmSyncLocales();
+  if(esHoy){
+    cmMpPorTurnoCache=null;
+    await cmCargarDataRemotaHoy();
+  }else{
+    try{
+      const{pagos,cierres,gastos}=await histFetchDia(cmFechaObjetivo);
+      const pagosValidos=pagos.filter(p=>!p.es_enviada&&!p.excluido);
+      cmMpPorTurnoCache={};
+      CM_TURNOS.forEach(t=>{cmMpPorTurnoCache[t]=pagosValidos.filter(p=>p.turno===t).reduce((a,p)=>a+(Number(p.monto)||0),0);});
+      if(Array.isArray(cierres)&&cierres.length){cierres.forEach(c=>{cmCierres[c.turno]={apertura:Number(c.apertura)||0,efectivo:Number(c.efectivo)||0,once:Number(c.once_monto)||0,mpo:Number(c.mpo)||0,mp:Number(c.mp)||0,total_turno:Number(c.total_turno)||0,guardadoEn:c.updated_at||c.created_at||new Date().toISOString(),synced:true};});}
+      if(Array.isArray(gastos)&&gastos.length){cmGastos=gastos.map(g=>({uid:g.uid,nombre:g.nombre,monto:Number(g.monto)||0,caja:g.caja||'',turno:g.turno||CM_CAJA_TURNO[g.caja]||'',creadoEn:g.created_at,synced:true}));}
+      cmGuardarData();
+    }catch(e){console.warn('No pude cargar datos remotos de '+cmFechaObjetivo+':',e.message);}
+  }
+  cmRenderSyncStatus();
+  const t=turnoInicial||(esHoy?(turno||turnoReciente||{}).nombre:null);
+  cmTurnoActivo=CM_TURNOS.includes(t)?t:CM_TURNOS[0];
+  const fh=document.getElementById('cmHeaderFecha');if(fh)fh.textContent=esHoy?new Date().toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'}):formatFecha(cmFechaObjetivo);
+  const hintEl=document.getElementById('cmHintCajas');if(hintEl)hintEl.textContent=esDom?'CM = Turno 1 · CT = Turno 2. Si marcás una caja, ese gasto se suma de nuevo al total de ese turno.':'CM = Vale · CT = Ani · CN = Marta. Si marcás una caja, ese gasto se suma de nuevo al total de ese turno.';
+  const btnCN=document.querySelector('.cm-caja-btn[data-caja="CN"]');if(btnCN)btnCN.style.display=esDom?'none':'';
+  const pfx=document.getElementById('cmMpTurnoPrefix');if(pfx)pfx.textContent=esDom?'':'turno ';
+  document.getElementById('cierreManualOverlay').classList.add('open');
+  cmCambiarVista('turno');cmCargarFormularioTurno();cmRenderGastos();cmRenderResumen();
+}
+function cmCerrar(){
+  document.getElementById('cierreManualOverlay').classList.remove('open');
+  const fechaCerrada=cmFechaObjetivo;
+  // Si se cerro el cierre manual de un dia pasado abierto desde el Historial,
+  // refrescamos ese detalle para reflejar los cambios sin tener que reabrirlo.
+  if(fechaCerrada!==fechaHoy()&&document.getElementById('histVistaDetalle')?.style.display==='block'){
+    mostrarDetalleDia(fechaCerrada);
+  }
+  // No destrabar el scroll si el Historial sigue abierto detras.
+  if(!document.getElementById('historialOverlay')?.classList.contains('open'))unlockBody();
+}
+const btnCierreManual=document.getElementById('btnCierreManual');if(btnCierreManual)btnCierreManual.addEventListener('click',()=>cmAbrir());
 const btnCerrarCierreManual=document.getElementById('btnCerrarCierreManual');if(btnCerrarCierreManual)btnCerrarCierreManual.addEventListener('click',cmCerrar);
 document.querySelectorAll('.cm-tab').forEach(tab=>tab.addEventListener('click',()=>cmCambiarVista(tab.dataset.cmView)));
 ['cmApertura','cmEfectivo','cmOnce','cmMpo'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('input',cmCalcularTotalTurno);});
@@ -4017,7 +4076,7 @@ function actualizarHeroSide(movs){
 const tNombreActual=(turno||turnoReciente||{nombre:''}).nombre;
 renderTurnosHoy(tNombreActual);
 actualizarHeroSide();
-const heroBtnCierre=document.getElementById('heroBtnCierre');if(heroBtnCierre)heroBtnCierre.addEventListener('click',cmAbrir);
+const heroBtnCierre=document.getElementById('heroBtnCierre');if(heroBtnCierre)heroBtnCierre.addEventListener('click',()=>cmAbrir());
 const heroBtnHistorial2=document.getElementById('heroBtnHistorial2');if(heroBtnHistorial2)heroBtnHistorial2.addEventListener('click',()=>document.getElementById('btnHistorial')?.click());
 
 // ─── TEMA ───
