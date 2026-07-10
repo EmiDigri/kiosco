@@ -3309,7 +3309,7 @@ function renderCalendarioMes(){
     if(dia===today)cls.push('today');
     if(data.cierres.length)cls.push('has-cierre');
     if(dia===topDia&&topVal>0)cls.push('best-day');
-    const emoji=(dia===topDia&&topVal>0?'<span class="hist-day-marker" tabindex="0" role="img" aria-label="Mayor recaudación del mes" data-tooltip="Mayor recaudación del mes"><span class="hist-day-emoji hist-day-flame" aria-hidden="true">🔥</span></span>':dia===botDia&&botVal<Infinity?'<span class="hist-day-marker" tabindex="0" role="img" aria-label="Menor recaudación del mes" data-tooltip="Menor recaudación del mes"><span class="hist-day-emoji hist-day-skull" aria-hidden="true">💀</span></span>':'')+(data.madrugada?'<span class="hist-day-emoji hist-day-moon" title="Hubo transferencias entre 00:00 y 06:59">🌙</span>':'');
+    const emoji=(dia===topDia&&topVal>0?'<span class="hist-day-marker" tabindex="0" role="img" aria-label="Mayor recaudación del mes" data-tooltip="Mayor recaudación del mes"><span class="hist-day-emoji hist-day-flame" aria-hidden="true">🔥</span></span>':dia===botDia&&botVal<Infinity?'<span class="hist-day-marker" tabindex="0" role="img" aria-label="Menor recaudación del mes" data-tooltip="Menor recaudación del mes"><span class="hist-day-emoji hist-day-skull" aria-hidden="true">💀</span></span>':'')+(data.madrugada?'<span class="hist-day-marker" tabindex="0" role="img" aria-label="Transferencias de madrugada, entre las 00:00 y las 06:59" data-tooltip="Transferencias de madrugada · 00:00 a 06:59"><span class="hist-day-emoji hist-day-moon" aria-hidden="true">🌙</span></span>':'');
     const compact=histMoneyCompact(principal);
     html+=`<div class="${cls.join(' ')}" data-dia="${dia}">
       <div><div class="hist-day-num">${d}${emoji}</div>${badges.length?`<div class="hist-day-badges">${badges.map(b=>`<span class="hist-day-badge badge-${b.toLowerCase()}">${b}</span>`).join('')}</div>`:''}</div>
@@ -3469,7 +3469,7 @@ async function mostrarDetalleDia(dia){
   if(cell){
     const principal=totalCaja>0?totalCaja:totalMP;const mainEl=cell.querySelector('.hist-day-main');if(mainEl)mainEl.textContent=principal?histMoney(principal):'—';const subEl=cell.querySelector('.hist-day-sub');if(subEl)subEl.textContent=totalMovs?`${totalMovs} movs · MP ${histMoney(totalMP)}`:'sin movimientos';const compactEl=cell.querySelector('.hist-day-compact');if(compactEl)compactEl.textContent=histMoneyCompact(principal);
     const numEl=cell.querySelector('.hist-day-num');
-    if(numEl&&tieneMadrugada&&!numEl.querySelector('.hist-day-moon'))numEl.insertAdjacentHTML('beforeend','<span class="hist-day-emoji hist-day-moon" title="Hubo transferencias entre 00:00 y 06:59">🌙</span>');
+    if(numEl&&tieneMadrugada&&!numEl.querySelector('.hist-day-moon'))numEl.insertAdjacentHTML('beforeend','<span class="hist-day-marker" tabindex="0" role="img" aria-label="Transferencias de madrugada, entre las 00:00 y las 06:59" data-tooltip="Transferencias de madrugada · 00:00 a 06:59"><span class="hist-day-emoji hist-day-moon" aria-hidden="true">🌙</span></span>');
   }
   document.getElementById('histTotalGlobal').textContent=histMoney(totalCaja>0?totalCaja:totalMP);
   document.getElementById('histTotalSub').textContent=`Caja ${histMoney(totalCaja)} · MercadoPago ${histMoney(totalMP)} · ${totalMovs} movimientos`;
