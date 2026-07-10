@@ -1735,6 +1735,35 @@ body{
 .hist-day-main,.hist-sum-value,.hist-day-sub{font-variant-numeric:tabular-nums}
 .hist-day-compact{display:none}
 .hist-day-emoji{display:inline-block;font-size:13px;margin-left:3px;vertical-align:middle;line-height:1}
+.hist-day-marker{display:inline-block;position:relative;margin-left:3px;vertical-align:middle;line-height:1;cursor:help;outline:none}
+.hist-day-marker .hist-day-emoji{margin-left:0}
+.hist-day-marker::after{
+  content:attr(data-tooltip);
+  position:absolute;
+  left:50%;
+  bottom:calc(100% + 8px);
+  transform:translateX(-50%);
+  width:max-content;
+  max-width:190px;
+  padding:6px 8px;
+  border:1px solid var(--glass-border);
+  border-radius:6px;
+  background:#111318;
+  color:#f4f1ed;
+  box-shadow:0 6px 18px rgba(0,0,0,.28);
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  font-size:10px;
+  font-weight:700;
+  line-height:1.25;
+  letter-spacing:0;
+  text-align:center;
+  white-space:normal;
+  opacity:0;
+  visibility:hidden;
+  pointer-events:none;
+  z-index:20;
+}
+.hist-day-marker:hover::after,.hist-day-marker:focus-visible::after{opacity:1;visibility:visible}
 .hist-day-cell.has-cierre .hist-day-main{color:var(--green)}
 .hist-day-cell:not(.empty):not(.has-cierre):has(.hist-day-badge){background:rgba(255,255,255,.055)}
 .hist-day-cell.today{box-shadow:0 0 0 1px rgba(124,144,255,.35),0 6px 18px rgba(124,144,255,.18)}
@@ -3280,7 +3309,7 @@ function renderCalendarioMes(){
     if(dia===today)cls.push('today');
     if(data.cierres.length)cls.push('has-cierre');
     if(dia===topDia&&topVal>0)cls.push('best-day');
-    const emoji=(dia===topDia&&topVal>0?'<span class="hist-day-emoji hist-day-flame">🔥</span>':dia===botDia&&botVal<Infinity?'<span class="hist-day-emoji hist-day-skull">💀</span>':'')+(data.madrugada?'<span class="hist-day-emoji hist-day-moon" title="Hubo transferencias entre 00:00 y 06:59">🌙</span>':'');
+    const emoji=(dia===topDia&&topVal>0?'<span class="hist-day-marker" tabindex="0" role="img" aria-label="Mayor recaudación del mes" data-tooltip="Mayor recaudación del mes"><span class="hist-day-emoji hist-day-flame" aria-hidden="true">🔥</span></span>':dia===botDia&&botVal<Infinity?'<span class="hist-day-marker" tabindex="0" role="img" aria-label="Menor recaudación del mes" data-tooltip="Menor recaudación del mes"><span class="hist-day-emoji hist-day-skull" aria-hidden="true">💀</span></span>':'')+(data.madrugada?'<span class="hist-day-emoji hist-day-moon" title="Hubo transferencias entre 00:00 y 06:59">🌙</span>':'');
     const compact=histMoneyCompact(principal);
     html+=`<div class="${cls.join(' ')}" data-dia="${dia}">
       <div><div class="hist-day-num">${d}${emoji}</div>${badges.length?`<div class="hist-day-badges">${badges.map(b=>`<span class="hist-day-badge badge-${b.toLowerCase()}">${b}</span>`).join('')}</div>`:''}</div>
