@@ -2176,6 +2176,8 @@ img,svg,canvas{max-width:100%}
 .pulse-metric-note{font-size:10.5px;font-weight:650;color:var(--text-mid);margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pulse-metric-note.up{color:#5FD68A}.pulse-metric-note.down{color:#f87171}
 .pulse-chart{position:relative;height:92px;padding:8px 2px 18px;border-bottom:1px solid var(--glass-border)}
+.pulse-gridlines{position:absolute;left:0;right:0;top:8px;bottom:18px;z-index:0;pointer-events:none}
+.pulse-grid-line{position:absolute;top:0;bottom:0;width:1px;background:rgba(255,255,255,.055)}
 .pulse-bars{position:absolute;left:0;right:0;top:8px;bottom:18px;display:grid;grid-template-columns:repeat(24,minmax(3px,1fr));align-items:end;gap:3px;z-index:1}
 .pulse-bar-col{height:100%;display:flex;align-items:flex-end;justify-content:center;position:relative}
 .pulse-bar{width:100%;max-width:22px;height:var(--pulse-h,2%);min-height:2px;border-radius:3px 3px 1px 1px;background:rgba(124,144,255,.28);border-top:1px solid rgba(163,177,255,.28)}
@@ -2189,13 +2191,15 @@ img,svg,canvas{max-width:100%}
 body.light .pulse-tooltip{background:#fff;color:#1b1e2b;border-color:rgba(20,20,40,.12);box-shadow:0 6px 18px rgba(20,20,40,.18)}
 .pulse-now{position:absolute;top:3px;bottom:14px;width:1px;background:rgba(244,241,237,.52);z-index:2;pointer-events:none}
 .pulse-now::before{content:'';position:absolute;top:0;left:50%;width:5px;height:5px;border-radius:50%;background:#f4f1ed;transform:translate(-50%,-50%);box-shadow:0 0 8px rgba(255,255,255,.55)}
-.pulse-axis{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:space-between;color:var(--text-soft);font-size:8.5px;font-weight:700;font-variant-numeric:tabular-nums}
+.pulse-axis{position:absolute;left:0;right:0;bottom:0;height:14px;color:var(--text-soft);font-size:8.5px;font-weight:700;font-variant-numeric:tabular-nums}
+.pulse-axis span{position:absolute;top:0;transform:translateX(-50%)}
 .pulse-foot{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:10px;font-size:10px;color:var(--text-soft)}
 .pulse-foot strong{color:var(--text-mid);font-weight:750}
 .pulse-loading{height:128px;display:flex;align-items:center;justify-content:center;color:var(--text-soft);font-size:11px}
 body.light .kiosk-pulse{background:linear-gradient(90deg,rgba(37,76,232,.07),rgba(36,150,130,.035) 46%,rgba(255,255,255,.45))}
 body.light .pulse-event{background:#254CE8;box-shadow:none}
 body.light .pulse-event.is-latest{background:#16835f;box-shadow:0 0 0 4px rgba(22,131,95,.12)}
+body.light .pulse-grid-line{background:rgba(20,20,40,.07)}
 body.light .pulse-now,body.light .pulse-now::before{background:#334155}
 @media(max-width:720px){
   .kiosk-pulse{margin:2px -2px 14px;padding:15px 10px 13px}
@@ -3823,6 +3827,10 @@ function pulseRender(rows){
   todayRows.forEach(r=>{const h=Math.max(0,Math.min(23,Math.floor(pulseMinutes(r.hora)/60)));hourTotals[h]+=Number(r.monto)||0;});
   const maxHour=Math.max(1,...hourTotals),peakHour=hourTotals.indexOf(Math.max(...hourTotals));
   const bars=hourTotals.map((value,h)=>`<div class="pulse-bar-col${h===now.getHours()?' is-current':''}" title="${String(h).padStart(2,'0')}:00 · ${pulseMoney(value)}"><span class="pulse-bar" style="--pulse-h:${value?Math.max(6,(value/maxHour)*100):2}%"></span></div>`).join('');
+  const axisHours=[0,3,6,9,12,15,18,21];
+  const axisLeft=h=>((h+.5)/24*100).toFixed(2);
+  const gridlines=axisHours.map(h=>`<span class="pulse-grid-line" style="left:${axisLeft(h)}%"></span>`).join('');
+  const axisLabels=axisHours.map(h=>`<span style="left:${axisLeft(h)}%">${String(h).padStart(2,'0')}</span>`).join('');
   const eventRows=todayRows,maxPayment=Math.max(1,...eventRows.map(r=>Number(r.monto)||0));
   const newKeys=[];
   const events=eventRows.map((r,i)=>{
@@ -3842,8 +3850,8 @@ function pulseRender(rows){
       <div class="pulse-metric"><div class="pulse-metric-label">Proyección de cierre</div><div class="pulse-metric-value">${projectionValue}</div><div class="pulse-metric-note">${projectionNote}</div></div>
     </div>
     <div class="pulse-chart" role="img" aria-label="Actividad de Mercado Pago durante las 24 horas del día">
-      <div class="pulse-bars">${bars}</div><div class="pulse-events">${events}</div><span class="pulse-now" style="left:${nowLeft}%"></span>
-      <div class="pulse-axis"><span>00</span><span>06</span><span>12</span><span>18</span><span>23</span></div>
+      <div class="pulse-gridlines">${gridlines}</div><div class="pulse-bars">${bars}</div><div class="pulse-events">${events}</div><span class="pulse-now" style="left:${nowLeft}%"></span>
+      <div class="pulse-axis">${axisLabels}</div>
     </div>
     <div class="pulse-foot"><span><strong>${peakText}</strong></span><span>Actualizado ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}</span></div>`;
   const currentKeys=todayRows.map(pulseRowKey);pulseKnownKeys=new Set(currentKeys);
