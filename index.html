@@ -3812,7 +3812,7 @@ function pulseRender(rows){
   let paceValue='Sin referencia',paceNote=`${compCount} de 3 ${pulseWeekdayPlural(todayDow)}`,paceClass='';
   if(enough&&todayTotal>0){
     const pct=Math.round((todayTotal-avgPartial)/avgPartial*100);
-    paceValue=Math.abs(pct)<=2?'En ritmo':`${pct>0?'+':''}${pct}%`;
+    paceValue=`${pct>0?'+':''}${pct}%`;
     paceNote=`vs ${compCount} ${pulseWeekdayPlural(todayDow)}`;
     paceClass=pct>2?'up':pct<-2?'down':'';
   }else if(todayTotal===0){paceValue='Esperando';paceNote='Sin cobros aún';}
@@ -3825,7 +3825,7 @@ function pulseRender(rows){
   let pace30Value='Sin referencia',pace30Note=`${compCount30} de 3 días`,pace30Class='';
   if(compCount30>=3&&avgPartial30>0&&todayTotal>0){
     const pct30=Math.round((todayTotal-avgPartial30)/avgPartial30*100);
-    pace30Value=Math.abs(pct30)<=2?'En ritmo':`${pct30>0?'+':''}${pct30}%`;
+    pace30Value=`${pct30>0?'+':''}${pct30}%`;
     pace30Note=`vs ${compCount30} días`;
     pace30Class=pct30>2?'up':pct30<-2?'down':'';
   }else if(todayTotal===0){pace30Value='—';pace30Note='';}
