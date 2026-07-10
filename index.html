@@ -3772,12 +3772,13 @@ function pulseWeekdayPlural(day){return['domingos','lunes','martes','miércoles'
 function pulseReplay(elements){
   if(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)return;
   const dots=elements||Array.from(document.querySelectorAll('#pulseContent .pulse-event'));
+  const spacing=dots.length>1?Math.max(8,Math.min(34,1900/(dots.length-1))):0;
   dots.forEach((el,i)=>{
     el.animate([
       {opacity:.08,transform:'translateY(12px) scale(.25)'},
       {opacity:1,transform:'translateY(-5px) scale(2.15)',offset:.65},
       {opacity:el.classList.contains('is-latest')?1:.72,transform:'translateY(0) scale(1)'}
-    ],{duration:420,delay:Math.min(i*26,1900),easing:'cubic-bezier(.2,.8,.2,1)',fill:'backwards'});
+    ],{duration:420,delay:i*spacing,easing:'cubic-bezier(.2,.8,.2,1)',fill:'backwards'});
   });
 }
 function pulseRender(rows){
@@ -3818,7 +3819,7 @@ function pulseRender(rows){
   todayRows.forEach(r=>{const h=Math.max(0,Math.min(23,Math.floor(pulseMinutes(r.hora)/60)));hourTotals[h]+=Number(r.monto)||0;});
   const maxHour=Math.max(1,...hourTotals),peakHour=hourTotals.indexOf(Math.max(...hourTotals));
   const bars=hourTotals.map((value,h)=>`<div class="pulse-bar-col${h===now.getHours()?' is-current':''}" title="${String(h).padStart(2,'0')}:00 · ${pulseMoney(value)}"><span class="pulse-bar" style="--pulse-h:${value?Math.max(6,(value/maxHour)*100):2}%"></span></div>`).join('');
-  const eventRows=todayRows.slice(-80),maxPayment=Math.max(1,...eventRows.map(r=>Number(r.monto)||0));
+  const eventRows=todayRows,maxPayment=Math.max(1,...eventRows.map(r=>Number(r.monto)||0));
   const newKeys=[];
   const events=eventRows.map((r,i)=>{
     const key=pulseRowKey(r),isLatest=i===eventRows.length-1,isNew=pulseHasRendered&&!pulseKnownKeys.has(key);if(isNew)newKeys.push(key);
