@@ -2176,7 +2176,7 @@ img,svg,canvas{max-width:100%}
 .pulse-metric-note{font-size:10.5px;font-weight:650;color:var(--text-mid);margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pulse-metric-note.up{color:#5FD68A}.pulse-metric-note.down{color:#f87171}
 .pulse-pace-row{display:flex;gap:14px}
-.pulse-pace-item{min-width:0}
+.pulse-pace-item{min-width:0;cursor:help}
 .pulse-metric-value.pace-mini{font-size:18px}
 .pulse-chart{position:relative;height:92px;padding:8px 2px 18px;border-bottom:1px solid var(--glass-border)}
 .pulse-gridlines{position:absolute;left:0;right:0;top:8px;bottom:18px;z-index:0;pointer-events:none}
@@ -3829,6 +3829,8 @@ function pulseRender(rows){
     pace30Note=`vs ${compCount30} días`;
     pace30Class=pct30>2?'up':pct30<-2?'down':'';
   }else if(todayTotal===0){pace30Value='—';pace30Note='';}
+  const paceTip=`Compara lo vendido hoy hasta las ${cutoff} con el promedio de los últimos ${compCount} ${pulseWeekdayPlural(todayDow)} a esa misma hora.`;
+  const pace30Tip=`Compara lo vendido hoy hasta las ${cutoff} con el promedio de los últimos ${compCount30} días (cualquier día de la semana) a esa misma hora.`;
   let projectionValue='—',projectionNote='Necesita 3 días comparables';
   const nowMins=now.getHours()*60+now.getMinutes();
   if(enough&&todayTotal>0){
@@ -3863,7 +3865,7 @@ function pulseRender(rows){
   content.innerHTML=`
     <div class="pulse-metrics">
       <div class="pulse-metric"><div class="pulse-metric-label">Mercado Pago hoy</div><div class="pulse-metric-value">${pulseMoney(todayTotal)}</div><div class="pulse-metric-note">${todayRows.length} movimiento${todayRows.length===1?'':'s'} hasta ${cutoff}</div></div>
-      <div class="pulse-metric"><div class="pulse-metric-label">Ritmo del día</div><div class="pulse-pace-row"><div class="pulse-pace-item"><div class="pulse-metric-value pace-mini">${paceValue}</div><div class="pulse-metric-note ${paceClass}">${paceNote}</div></div><div class="pulse-pace-item"><div class="pulse-metric-value pace-mini">${pace30Value}</div><div class="pulse-metric-note ${pace30Class}">${pace30Note}</div></div></div></div>
+      <div class="pulse-metric"><div class="pulse-metric-label">Ritmo del día</div><div class="pulse-pace-row"><div class="pulse-pace-item" title="${cmEsc?cmEsc(paceTip):paceTip}"><div class="pulse-metric-value pace-mini">${paceValue}</div><div class="pulse-metric-note ${paceClass}">${paceNote}</div></div><div class="pulse-pace-item" title="${cmEsc?cmEsc(pace30Tip):pace30Tip}"><div class="pulse-metric-value pace-mini">${pace30Value}</div><div class="pulse-metric-note ${pace30Class}">${pace30Note}</div></div></div></div>
       <div class="pulse-metric"><div class="pulse-metric-label">Proyección de cierre</div><div class="pulse-metric-value">${projectionValue}</div><div class="pulse-metric-note">${projectionNote}</div></div>
     </div>
     <div class="pulse-chart" role="img" aria-label="Actividad de Mercado Pago durante las 24 horas del día">
