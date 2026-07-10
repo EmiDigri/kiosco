@@ -4413,7 +4413,7 @@ function iwFechaDolarMasNueva(items){
   return items.filter(Boolean).sort((a,b)=>String(a).localeCompare(String(b))).pop()||null;
 }
 function iwFmtDolarUpdated(fecha,checkedAt){
-  const chequeado=(checkedAt||new Date()).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',hour12:false});
+  const hora=(checkedAt||new Date()).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',hour12:false});
   let fechaTxt='sin fecha';
   if(fecha){
     const hasTime=/T|\d{2}:\d{2}/.test(String(fecha));
@@ -4424,7 +4424,7 @@ function iwFmtDolarUpdated(fecha,checkedAt){
       if(hasTime)fechaTxt+=` ${d.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',hour12:false})}`;
     }
   }
-  return `Cotización del ${fechaTxt} · chequeado ${chequeado}`;
+  return `Última actualización: ${fechaTxt} · ${hora}`;
 }
 async function iwFetchDolarDirecto(){
   const tipos=['oficial','blue','bolsa'];
