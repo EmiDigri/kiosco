@@ -4158,15 +4158,6 @@ btnTheme.addEventListener('click',()=>{const isLight=document.body.classList.tog
 
 // ─── RELOJ ───
 function fmtHoraCorta(h,m){return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;}
-function progresoTurno(t,now){
-  if(!t)return 0;
-  const actual=now.getHours()*60+now.getMinutes();
-  const inicio=t.desdeH*60+t.desdeM;
-  const fin=t.hastaH*60+t.hastaM;
-  if(actual<=inicio)return 0;
-  if(actual>=fin)return 100;
-  return Math.max(0,Math.min(100,((actual-inicio)/(fin-inicio))*100));
-}
 const _DIAS=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
 const _MESES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 // ─── FECHA DEL HERO (el reloj en si lo maneja FlipClock.js, ver mas abajo) ───
