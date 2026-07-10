@@ -1726,6 +1726,8 @@ body{
   font-weight:800;
   color:var(--text);
 }
+.hist-cierre-badge{padding:5px 10px;border-radius:7px;font-weight:700;font-size:10.5px;white-space:nowrap}
+.hist-cierre-badge.done{background:rgba(95,214,138,.15);color:var(--green,#5FD68A);border:1px solid rgba(95,214,138,.32)}
 .hist-cierre-block{
   background:rgba(95,214,138,.06);
   border:1px solid rgba(95,214,138,.22);
@@ -3403,7 +3405,7 @@ async function mostrarDetalleDia(dia){
     const totalTurno=cierre?(Number(cierre.total_turno)||0):mpTot;
     const cardId='hist-dia-'+t.nombre.replace(/\s/g,'');
     let cierreHTML='';
-    const btnCierreManual=`<button class="hist-btn-cierre-manual" data-dia="${dia}" data-turno="${t.nombre}" style="margin-top:10px;padding:7px 12px;background:rgba(240,184,96,.13);color:#F0B860;border:1px solid rgba(240,184,96,.28);border-radius:8px;font-weight:600;font-size:11.5px;cursor:pointer">${cierre?'Editar cierre manual':'Cargar cierre manual'}</button>`;
+    const btnEditarCierre=`<button class="hist-btn-cierre-manual" data-dia="${dia}" data-turno="${t.nombre}" style="margin-top:10px;padding:7px 12px;background:rgba(240,184,96,.13);color:#F0B860;border:1px solid rgba(240,184,96,.28);border-radius:8px;font-weight:600;font-size:11.5px;cursor:pointer">Editar cierre manual</button>`;
     if(cierre){
       cierreHTML=`<div class="hist-cierre-block"><div class="hist-cierre-title">Cierre manual</div>
         <div class="hist-cierre-row"><span>Apertura</span><strong>${histMoney(cierre.apertura)}</strong></div>
@@ -3413,11 +3415,14 @@ async function mostrarDetalleDia(dia){
         <div class="hist-cierre-row"><span>MPO</span><strong>${histMoney(cierre.mpo)}</strong></div>
         <div class="hist-cierre-row"><span>Gastos caja</span><strong>${histMoney(cierre.gastos_caja)}</strong></div>
         <div class="hist-cierre-row"><span>Total turno</span><strong>${histMoney(totalTurno)}</strong></div>
-        ${btnCierreManual}
+        ${btnEditarCierre}
       </div>`;
     }else{
-      cierreHTML=`<div class="hist-cierre-block"><div class="hist-cierre-title">Cierre manual</div><div class="hist-cierre-row"><span>Este turno todavía no tiene cierre manual guardado.</span><strong>—</strong></div>${btnCierreManual}</div>`;
+      cierreHTML=`<div class="hist-cierre-block"><div class="hist-cierre-title">Cierre manual</div><div class="hist-cierre-row"><span>Este turno todavía no tiene cierre manual guardado. Usá el botón de arriba para cargarlo.</span><strong>—</strong></div></div>`;
     }
+    const cierreEstadoHeader=cierre
+      ?`<span class="hist-cierre-badge done">✓ Cierre hecho</span>`
+      :`<button class="hist-btn-cierre-manual" data-dia="${dia}" data-turno="${t.nombre}" style="padding:5px 10px;background:rgba(240,184,96,.15);color:#F0B860;border:1px solid rgba(240,184,96,.32);border-radius:7px;font-weight:700;font-size:10.5px;cursor:pointer;white-space:nowrap">Cargar cierre</button>`;
     const ticket=movs.length?Math.round(mpTot/movs.length):0;
     let movsHTML=`<div class="hist-turno-stats">
       <div class="hist-stat-chip"><span style="color:#7C90FF">●</span> Transf. ${histMoney(transf)}</div>
@@ -3440,7 +3445,7 @@ async function mostrarDetalleDia(dia){
     html+=`<div class="hist-turno-card" id="${cardId}">
       <div class="hist-turno-header">
         <div class="hist-turno-left"><span class="hist-turno-dot" style="background:${t.color}"></span><div><div class="hist-turno-nombre">${t.nombre}</div><div class="hist-turno-horario">${t.label||''}</div></div></div>
-        <div style="display:flex;align-items:center;gap:8px"><div class="hist-turno-right"><div class="hist-turno-total">${histMoney(totalTurno)}</div></div><svg class="hist-turno-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+        <div style="display:flex;align-items:center;gap:8px">${cierreEstadoHeader}<div class="hist-turno-right"><div class="hist-turno-total">${histMoney(totalTurno)}</div></div><svg class="hist-turno-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
       </div>
       <div class="hist-turno-body"><div class="hist-turno-body-inner">${cierreHTML}${movsHTML}</div></div>
     </div>`;
