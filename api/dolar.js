@@ -36,6 +36,7 @@ export default async function handler(req, res) {
   try {
     const [oficial, blue, bolsa] = await Promise.allSettled(TIPOS.map(fetchTipo));
     res.status(200).json({
+      actualizadoEn: new Date().toISOString(),
       oficial: oficial.status === 'fulfilled' ? oficial.value : null,
       blue:    blue.status    === 'fulfilled' ? blue.value    : null,
       bolsa:   bolsa.status   === 'fulfilled' ? bolsa.value   : null,

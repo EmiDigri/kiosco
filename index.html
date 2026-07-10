@@ -19,13 +19,13 @@
   --radius:20px;--radius-sm:14px;
 }
 body.light{
-  --bg1:#F0F2FF;--bg2:#E8ECFF;--bg3:#DDE3FF;
-  --mesh1:#C7D0FF;--mesh2:#B3BEFF;--mesh3:#A5B4FC;
-  --glass:rgba(255,255,255,0.7);--glass-border:rgba(61,90,254,0.15);--glass-hover:rgba(255,255,255,0.85);
-  --text:#0D1040;--text-mid:rgba(13,16,64,0.65);--text-soft:rgba(13,16,64,0.4);
-  --accent:#3D5AFE;--accent-dim:#2541CC;
-  --amber:#C97B00;--amber-dim:rgba(244,164,53,0.12);
-  --red:#D93025;--red-dim:rgba(217,48,37,0.1);
+  --bg1:#F5F7FB;--bg2:#EEF3F9;--bg3:#E6ECF5;
+  --mesh1:#C8D7F4;--mesh2:#D7E8DD;--mesh3:#E9D8FD;
+  --glass:#FFFFFF;--glass-border:#C7D2E0;--glass-hover:#EEF4FF;
+  --text:#111827;--text-mid:#334155;--text-soft:#5B6B80;
+  --accent:#254CE8;--accent-dim:#1E3EC0;
+  --amber:#A95A00;--amber-dim:#FFF2D8;
+  --red:#B91C1C;--red-dim:#FFE4E6;
 }
 body.light .mesh-blob{opacity:.35}
 body.light .grain{opacity:.015}
@@ -105,6 +105,10 @@ html{overflow-x:hidden;overflow-y:scroll}
 .hero-time-icon::before{content:'';position:absolute;left:9px;top:4px;width:1.5px;height:6px;border-radius:2px;background:var(--accent)}
 .hero-time-icon::after{content:'';position:absolute;left:9px;top:9px;width:5px;height:1.5px;border-radius:2px;background:var(--accent);transform-origin:left center;transform:rotate(35deg)}
 .hero-time-label-row{display:flex;align-items:center;gap:6px}
+.shift-progress-card{width:300px;max-width:100%;border:1px solid var(--glass-border);background:var(--glass);border-radius:14px;padding:10px 12px;margin:0 auto 12px;box-shadow:var(--shadow-sm,0 1px 2px rgba(0,0,0,.18))}
+.shift-progress-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:7px}
+.shift-progress-title{min-width:0;font-size:10px;font-weight:850;letter-spacing:.12em;text-transform:uppercase;color:var(--text-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.shift-progress-pct{font-size:12px;font-weight:850;color:var(--accent);font-variant-numeric:tabular-nums;white-space:nowrap}
 .shift-progress{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:8px}
 .shift-progress-time{font-size:10px;font-weight:650;color:var(--text-soft);font-variant-numeric:tabular-nums;white-space:nowrap}
 .shift-progress-track{position:relative;height:6px;background:rgba(255,255,255,.09);border-radius:999px;overflow:visible}
@@ -137,6 +141,7 @@ html{overflow-x:hidden;overflow-y:scroll}
 .iw-dolar-var{font-size:10px;font-weight:700;line-height:1}
 .iw-dolar-var.up{color:#5FD68A}
 .iw-dolar-var.down{color:#f87171}
+.iw-dolar-updated{margin:-3px 1px 10px;text-align:right;font-size:10.5px;font-weight:700;line-height:1.25;color:var(--text-mid);font-variant-numeric:tabular-nums}
 .iw-mep-bill{position:relative;width:15px;height:15px;border:none;background:transparent;padding:0;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;opacity:.82;transition:opacity .16s,transform .16s,filter .16s}
 .iw-mep-bill:hover,.iw-mep-bill:focus{opacity:1;transform:scale(1.18);filter:drop-shadow(0 0 6px rgba(0,243,151,.45));outline:none}
 .iw-mep-bill svg{display:block}
@@ -1018,21 +1023,86 @@ body.egg-champion .logo-flag{filter:drop-shadow(0 0 8px rgba(116,172,223,.9)) dr
 }
 
 body.light{
-  --bg1:#F4F1E8!important;
-  --bg2:#F4F1E8!important;
-  --bg3:#F4F1E8!important;
+  --bg1:#F5F7FB!important;
+  --bg2:#EEF3F9!important;
+  --bg3:#E6ECF5!important;
   --glass:#FFFFFF!important;
-  --glass-border:#DED8C9!important;
-  --glass-hover:#F8F4EA!important;
-  --text:#25231F!important;
-  --text-mid:#6E675C!important;
-  --text-soft:#948B7E!important;
-  --accent:#6376E8!important;
-  --accent-dim:#4F61CE!important;
-  --amber:#B87924!important;
-  --amber-dim:#FFF0D9!important;
-  --red:#C75050!important;
-  --red-dim:#FFE6E6!important;
+  --glass-border:#C7D2E0!important;
+  --glass-hover:#EEF4FF!important;
+  --text:#111827!important;
+  --text-mid:#334155!important;
+  --text-soft:#5B6B80!important;
+  --accent:#254CE8!important;
+  --accent-dim:#1E3EC0!important;
+  --amber:#A95A00!important;
+  --amber-dim:#FFF2D8!important;
+  --red:#B91C1C!important;
+  --red-dim:#FFE4E6!important;
+  --green:#16834A!important;
+  --teal:#0F766E!important;
+  --violet:#6D28D9!important;
+  --surface:#FFFFFF!important;
+  --border:#C7D2E0!important;
+  --border-soft:#E1E7F0!important;
+  --ink:#111827!important;
+  --ink-mid:#334155!important;
+  --ink-soft:#5B6B80!important;
+  --accent-soft:#E8EDFF!important;
+  --amber-soft:#FFF2D8!important;
+  --shadow-sm:0 1px 2px rgba(15,23,42,.08),0 1px 0 rgba(255,255,255,.75) inset!important;
+  --shadow-md:0 1px 2px rgba(15,23,42,.08),0 14px 32px rgba(15,23,42,.12)!important;
+}
+
+body.light .hero-time-widget,
+body.light .shift-progress-card,
+body.light .iw-mobile-card,
+body.light .iw-forecast-day,
+body.light .iw-dolar,
+body.light .hist-sum-card,
+body.light .hist-day-cell,
+body.light .hist-met-kpi,
+body.light .hist-met-chart-card{
+  background:#FFFFFF!important;
+  border-color:var(--glass-border)!important;
+  box-shadow:var(--shadow-sm)!important;
+}
+body.light .hero-side-card,
+body.light .hist-detail-card{
+  background:#FFFFFF!important;
+  border-color:var(--glass-border)!important;
+}
+body.light .hero-side-card-total,
+body.light .cm-mp-card{
+  background:var(--accent-soft)!important;
+  border-color:#B8C5FF!important;
+}
+body.light .shift-progress-track{
+  background:#D7E0EC!important;
+}
+body.light .turno-chip,
+body.light .count-pill,
+body.light .tp-t,
+body.light .hist-day-badge{
+  background:var(--accent-soft)!important;
+  border-color:#B8C5FF!important;
+  color:var(--accent)!important;
+}
+body.light .tp-p,
+body.light .cm-gasto-total{
+  background:var(--amber-dim)!important;
+  border-color:#F2C77D!important;
+  color:var(--amber)!important;
+}
+body.light .hist-cierre-block,
+body.light .hist-day-cell.has-cierre{
+  background:#EAFBF1!important;
+  border-color:#96E4B8!important;
+}
+body.light .hist-cierre-row,
+body.light .hist-gasto-line,
+body.light .hist-semana-row,
+body.light .t-row{
+  border-bottom-color:var(--border-soft)!important;
 }
 
 *,*::before,*::after{
@@ -2138,6 +2208,19 @@ img,svg,canvas{max-width:100%}
       </div>
 
       <div class="hero-clock-col">
+        <div class="shift-progress-card" id="shiftProgressCard" aria-label="Progreso del turno">
+          <div class="shift-progress-head">
+            <span class="shift-progress-title" id="shiftProgressTitle">Progreso del turno</span>
+            <strong class="shift-progress-pct" id="shiftProgressPct">—</strong>
+          </div>
+          <div class="shift-progress">
+            <span class="shift-progress-time" id="shiftProgressStart">—</span>
+            <div class="shift-progress-track">
+              <div class="shift-progress-fill" id="shiftProgressFill"><span class="shift-progress-dot" id="shiftProgressDot"></span></div>
+            </div>
+            <span class="shift-progress-time" id="shiftProgressEnd">—</span>
+          </div>
+        </div>
         <div class="neon-clock" id="neonClock"><div id="fcMount"></div></div>
         <div id="heroFecha" style="font-size:12px;color:#86b3e6;margin-top:13px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;text-shadow:0 0 8px rgba(56,189,248,.35)">—</div>
       </div>
@@ -2538,6 +2621,26 @@ if(turno){
   document.getElementById('turnoHorario').textContent='Todos los turnos · 7 am – 11 pm';
   document.getElementById('btnTxt').textContent='Ver resumen del día';
 }
+
+function fmtTurnoHora(mins){return`${Math.floor(mins/60)}:${String(mins%60).padStart(2,'0')}`;}
+function updateShiftProgress(){
+  const card=document.getElementById('shiftProgressCard'),title=document.getElementById('shiftProgressTitle'),pctEl=document.getElementById('shiftProgressPct'),startEl=document.getElementById('shiftProgressStart'),endEl=document.getElementById('shiftProgressEnd'),fill=document.getElementById('shiftProgressFill');
+  if(!card||!title||!pctEl||!startEl||!endEl||!fill)return;
+  const t=turno||turnoReciente||null;
+  if(!t){
+    title.textContent='Jornada en cierre';pctEl.textContent='—';startEl.textContent=esDomingo?'9:00':'7:00';endEl.textContent='23:00';fill.style.width='100%';return;
+  }
+  const start=t.desdeH*60+t.desdeM,end=visFin(t),now=new Date(),mins=now.getHours()*60+now.getMinutes();
+  const raw=turno?((mins-start)/(end-start))*100:100;
+  const pct=Math.max(0,Math.min(100,raw));
+  title.textContent=turno?`Progreso de ${t.nombre}`:`${t.nombre} terminado`;
+  pctEl.textContent=turno?`${Math.round(pct)}%`:'Listo';
+  startEl.textContent=fmtTurnoHora(start);
+  endEl.textContent=fmtTurnoHora(end);
+  fill.style.width=`${pct}%`;
+}
+updateShiftProgress();
+setInterval(updateShiftProgress,60*1000);
 
 function showToast(msg){
   const t=document.getElementById('toast');
@@ -4306,6 +4409,22 @@ function iwDolarDesdeSerie(data){
   }
   return{fecha:last.fecha,venta:current,compra:last.compra,pct:prev!=null?((current-prev)/prev*100):null};
 }
+function iwFechaDolarMasNueva(items){
+  return items.filter(Boolean).sort((a,b)=>String(a).localeCompare(String(b))).pop()||null;
+}
+function iwFmtDolarUpdated(fecha,checkedAt){
+  const consulta=(checkedAt||new Date()).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+  let fechaTxt='sin fecha';
+  if(fecha){
+    const hasTime=/T|\d{2}:\d{2}/.test(String(fecha));
+    const d=new Date(hasTime?fecha:`${fecha}T12:00:00`);
+    if(!Number.isNaN(d.getTime())){
+      fechaTxt=d.toLocaleDateString('es-AR',{day:'2-digit',month:'short'});
+      if(hasTime)fechaTxt+=' '+d.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+    }
+  }
+  return `Dólar actualizado: ${fechaTxt} · consulta ${consulta}`;
+}
 async function iwFetchDolarDirecto(){
   const tipos=['oficial','blue','bolsa'];
   const rows=await Promise.allSettled(tipos.map(tipo=>fetch(`https://api.argentinadatos.com/v1/cotizaciones/dolares/${tipo}`).then(r=>{if(!r.ok)throw new Error(r.status);return r.json();})));
@@ -4329,27 +4448,31 @@ async function fetchInfoWidget(){
     try{const m=await fetch('https://api.open-meteo.com/v1/forecast?latitude=-34.6037&longitude=-58.3816&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,is_day&daily=weather_code,temperature_2m_max,temperature_2m_min&forecast_days=5&timezone=America/Argentina/Buenos_Aires').then(r=>r.json());temp=m?.current?.temperature_2m;sens=m?.current?.apparent_temperature;wxCode=m?.current?.weather_code;wxWind=m?.current?.wind_speed_10m;wxIsDay=m?.current?.is_day??1;wxForecast=iwPronosticoDias(m?.daily);}catch(e2){}
   }
 
-  let ofVal=null,mepVal=null,blVal=null,ofPct=null,mepPct=null,blPct=null;
+  let ofVal=null,mepVal=null,blVal=null,ofPct=null,mepPct=null,blPct=null,dolarFecha=null,dolarCheckedAt=new Date();
   try{
     const d=await fetch('/api/dolar').then(r=>{if(!r.ok)throw new Error(r.status);return r.json();});
     ofVal=d.oficial?.venta;ofPct=d.oficial?.pct;
     mepVal=d.bolsa?.venta;mepPct=d.bolsa?.pct;
     blVal=d.blue?.venta;blPct=d.blue?.pct;
+    dolarFecha=iwFechaDolarMasNueva([d.oficial?.fecha,d.bolsa?.fecha,d.blue?.fecha]);
+    if(d.actualizadoEn)dolarCheckedAt=new Date(d.actualizadoEn);
   }catch(e){
     try{
       const d=await iwFetchDolarDirecto();
       ofVal=d.oficial?.venta;ofPct=d.oficial?.pct;
       mepVal=d.bolsa?.venta;mepPct=d.bolsa?.pct;
       blVal=d.blue?.venta;blPct=d.blue?.pct;
+      dolarFecha=iwFechaDolarMasNueva([d.oficial?.fecha,d.bolsa?.fecha,d.blue?.fecha]);
     }catch(e1){
       // fallback final: valores actuales sin variación
-      try{const d=await fetch('https://dolarapi.com/v1/dolares').then(r=>r.json());ofVal=d.find(x=>x.casa==='oficial')?.venta;mepVal=d.find(x=>x.casa==='bolsa')?.venta;blVal=d.find(x=>x.casa==='blue')?.venta;}catch(e2){}
+      try{const d=await fetch('https://dolarapi.com/v1/dolares').then(r=>r.json());const of=d.find(x=>x.casa==='oficial'),mep=d.find(x=>x.casa==='bolsa'),bl=d.find(x=>x.casa==='blue');ofVal=of?.venta;mepVal=mep?.venta;blVal=bl?.venta;dolarFecha=iwFechaDolarMasNueva([of?.fechaActualizacion,mep?.fechaActualizacion,bl?.fechaActualizacion]);}catch(e2){}
     }
   }
 
   const {feriado,fsl}=await fetchFeriadosInfo().catch(()=>({feriado:null,fsl:null}));
   const fmt=v=>v!=null?'$'+Math.round(Number(v)).toLocaleString('es-AR'):'—';
   const varTag=p=>p==null?'':` <span class="iw-dolar-var ${p>=0?'up':'down'}">${p>=0?'▲':'▼'}${Math.abs(p).toFixed(1)}%</span>`;
+  const dolarUpdated=[ofVal,mepVal,blVal].some(v=>v!=null)?iwFmtDolarUpdated(dolarFecha,dolarCheckedAt):'Dólar: sin datos actualizados';
   const we=getWeatherIcon(temp,wxCode,wxWind,wxIsDay);
   const tempDisp=temp!=null?`${temp}°${we?`<span class="iw-weather-emoji ${we.cls}" role="button" tabindex="0" aria-label="Activar clima en pantalla" title="Activar clima"><img src="${mcUrl(we.slug)}" alt="" loading="lazy"></span>`:''}`:' —';
   const forecastDesk=iwPronosticoHtml(wxForecast,4);
@@ -4368,6 +4491,7 @@ async function fetchInfoWidget(){
       <div class="iw-dolar" data-dolar-kind="MEP"><div class="iw-dolar-label"><span>MEP</span><button class="iw-mep-bill" type="button" aria-label="Activar dólar loco" title="Dólar loco"><svg width="15" height="15" viewBox="0 0 32 32"><path d="M2 10C2 8.89543 2.89543 8 4 8H15L17 9L19 8H28C29.1046 8 30 8.89543 30 10V24C30 25.1046 29.1046 26 28 26H4C2.89543 26 2 25.1046 2 24V10Z" fill="#00F397"/><path d="M3 11C3 9.89543 3.89543 9 5 9H27C28.1046 9 29 9.89543 29 11V23C29 24.1046 28.1046 25 27 25H5C3.89543 25 3 24.1046 3 23V11ZM5 10C4.44772 10 4 10.4477 4 11V23C4 23.5523 4.44772 24 5 24H27C27.5523 24 28 23.5523 28 23V11C28 10.4477 27.5523 10 27 10H5ZM2 28C2 29.1046 2.89543 30 4 30H15L17 29L19 30H28C29.1046 30 30 29.1046 30 28V24C30 25.1046 29.1046 26 28 26H4C2.89543 26 2 25.1046 2 24V28ZM26 17C26 19.4853 23.9853 21.5 21.5 21.5C19.0147 21.5 17 19.4853 17 17C17 14.5147 19.0147 12.5 21.5 12.5C23.9853 12.5 26 14.5147 26 17Z" fill="#008463"/><path d="M19 8H15V27H19V8Z" fill="#FFF478"/><path d="M19 26H15V30H19V26Z" fill="#F3AD61"/><path d="M9.5 12C9.77614 12 10 12.2239 10 12.5V13.045C10.8338 13.1973 11.5169 13.7231 11.8244 14.42C11.9539 14.7136 11.7017 15 11.3808 15C11.1374 15 10.9326 14.8271 10.7943 14.6267C10.5505 14.2733 10.1003 14 9.5 14C8.56986 14 8 14.6561 8 15.25C8 15.8439 8.56986 16.5 9.5 16.5C10.8807 16.5 12 17.5074 12 18.75C12 19.8385 11.1411 20.7465 10 20.955V21.5C10 21.7761 9.77614 22 9.5 22C9.22386 22 9 21.7761 9 21.5V20.955C8.1662 20.8027 7.48309 20.2769 7.17562 19.58C7.04607 19.2864 7.29827 19 7.61918 19C7.86263 19 8.06741 19.1729 8.20565 19.3733C8.44948 19.7267 8.89971 20 9.5 20C10.4301 20 11 19.3439 11 18.75C11 18.1561 10.4301 17.5 9.5 17.5C8.11929 17.5 7 16.4926 7 15.25C7 14.1615 7.85888 13.2535 9 13.045V12.5C9 12.2239 9.22386 12 9.5 12Z" fill="white"/></svg></button></div><div class="iw-dolar-val">${fmt(mepVal)}${varTag(mepPct)}</div></div>
       <div class="iw-dolar" data-dolar-kind="Blue"><div class="iw-dolar-label">Blue</div><div class="iw-dolar-val">${fmt(blVal)}${varTag(blPct)}</div></div>
     </div>
+    <div class="iw-dolar-updated">${dolarUpdated}</div>
     ${feriado||fsl?`<div class="iw-feriado"><div class="iw-feriados-grid">
       ${feriado?`<div><div class="iw-feriado-lbl">Próximo feriado</div>${feriado}</div>`:''}
       ${fsl?`<div><div class="iw-feriado-lbl">Próximo finde largo</div>${fsl}</div>`:''}
