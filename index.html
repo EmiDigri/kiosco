@@ -2181,8 +2181,12 @@ img,svg,canvas{max-width:100%}
 .pulse-bar{width:100%;max-width:22px;height:var(--pulse-h,2%);min-height:2px;border-radius:3px 3px 1px 1px;background:rgba(124,144,255,.28);border-top:1px solid rgba(163,177,255,.28)}
 .pulse-bar-col.is-current .pulse-bar{background:var(--accent);border-color:#9cacff;box-shadow:0 0 12px rgba(124,144,255,.35)}
 .pulse-events{position:absolute;left:0;right:0;top:8px;bottom:18px;z-index:3;pointer-events:none}
-.pulse-event{position:absolute;width:4px;height:4px;margin-left:-2px;margin-bottom:-2px;border-radius:50%;background:#f4f1ed;box-shadow:0 0 6px rgba(255,255,255,.5);opacity:.72}
+.pulse-event{position:absolute;width:4px;height:4px;margin-left:-2px;margin-bottom:-2px;border-radius:50%;background:#f4f1ed;box-shadow:0 0 6px rgba(255,255,255,.5);opacity:.72;pointer-events:auto;cursor:pointer}
 .pulse-event.is-latest{width:7px;height:7px;margin-left:-3.5px;margin-bottom:-3.5px;background:#5FD68A;box-shadow:0 0 0 4px rgba(95,214,138,.13),0 0 15px rgba(95,214,138,.65);opacity:1}
+.pulse-event.is-max{width:8px;height:8px;margin-left:-4px;margin-bottom:-4px;background:#FFD43B;box-shadow:0 0 0 4px rgba(255,212,59,.2),0 0 18px rgba(255,212,59,.8);opacity:1;z-index:4}
+.pulse-tooltip{position:fixed;z-index:99999;background:rgba(10,14,26,.96);color:#f4f1ed;font-size:11px;font-weight:750;white-space:nowrap;padding:5px 9px;border-radius:7px;border:1px solid rgba(255,255,255,.14);box-shadow:0 6px 18px rgba(0,0,0,.4);pointer-events:none;opacity:0;transform:translate(-50%,-6px);transition:opacity .12s ease,transform .12s ease;font-variant-numeric:tabular-nums}
+.pulse-tooltip.show{opacity:1;transform:translate(-50%,-10px)}
+body.light .pulse-tooltip{background:#fff;color:#1b1e2b;border-color:rgba(20,20,40,.12);box-shadow:0 6px 18px rgba(20,20,40,.18)}
 .pulse-now{position:absolute;top:3px;bottom:14px;width:1px;background:rgba(244,241,237,.52);z-index:2;pointer-events:none}
 .pulse-now::before{content:'';position:absolute;top:0;left:50%;width:5px;height:5px;border-radius:50%;background:#f4f1ed;transform:translate(-50%,-50%);box-shadow:0 0 8px rgba(255,255,255,.55)}
 .pulse-axis{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:space-between;color:var(--text-soft);font-size:8.5px;font-weight:700;font-variant-numeric:tabular-nums}
@@ -3823,8 +3827,10 @@ function pulseRender(rows){
   const newKeys=[];
   const events=eventRows.map((r,i)=>{
     const key=pulseRowKey(r),isLatest=i===eventRows.length-1,isNew=pulseHasRendered&&!pulseKnownKeys.has(key);if(isNew)newKeys.push(key);
-    const left=Math.max(.25,Math.min(99.75,pulseMinutes(r.hora)/1440*100)),bottom=8+Math.min(78,Math.sqrt((Number(r.monto)||0)/maxPayment)*70);
-    return`<span class="pulse-event${isLatest?' is-latest':''}${isNew?' is-new':''}" data-pulse-key="${key}" style="left:${left}%;bottom:${bottom}%"></span>`;
+    const monto=Number(r.monto)||0,isMax=maxPayment>1&&monto===maxPayment;
+    const left=Math.max(.25,Math.min(99.75,pulseMinutes(r.hora)/1440*100)),bottom=8+Math.min(78,Math.sqrt(monto/maxPayment)*70);
+    const tip=`${String(r.hora).slice(0,5)} · ${pulseMoney(monto)}${isMax?' · pago más alto del día':''}`;
+    return`<span class="pulse-event${isLatest?' is-latest':''}${isMax?' is-max':''}${isNew?' is-new':''}" data-pulse-key="${key}" data-pulse-tip="${cmEsc?cmEsc(tip):tip}" style="left:${left}%;bottom:${bottom}%"></span>`;
   }).join('');
   const nowLeft=Math.max(.25,Math.min(99.75,nowMins/1440*100));
   const historicBest=Math.max(0,...comparables.map(d=>d.full));
@@ -3847,6 +3853,31 @@ function pulseRender(rows){
     pulseHasRendered=true;
   });
 }
+// Tooltip compartido para los puntitos del pulso: vive en <body> (no adentro
+// de .kiosk-pulse, que tiene overflow:hidden para contener la animacion de
+// replay) asi nunca se recorta, sin importar donde este el puntito.
+(function initPulseTooltip(){
+  let tipEl=null;
+  function ensureTip(){
+    if(tipEl)return tipEl;
+    tipEl=document.createElement('div');
+    tipEl.className='pulse-tooltip';
+    document.body.appendChild(tipEl);
+    return tipEl;
+  }
+  function show(dot){
+    const tip=ensureTip(),texto=dot.dataset.pulseTip;if(!texto)return;
+    tip.textContent=texto;
+    const r=dot.getBoundingClientRect();
+    tip.style.left=(r.left+r.width/2)+'px';
+    tip.style.top=r.top+'px';
+    tip.classList.add('show');
+  }
+  function hide(){if(tipEl)tipEl.classList.remove('show');}
+  document.addEventListener('pointerover',e=>{const dot=e.target.closest('.pulse-event');if(dot)show(dot);});
+  document.addEventListener('pointerout',e=>{const dot=e.target.closest('.pulse-event');if(dot&&!dot.contains(e.relatedTarget))hide();});
+  document.addEventListener('scroll',hide,true);
+})();
 async function cargarPulsoKiosco(){
   if(pulseLoading)return;pulseLoading=true;
   try{pulseRender(await pulseFetchRows());}
