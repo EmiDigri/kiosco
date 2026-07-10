@@ -3774,10 +3774,14 @@ function pulseLocalRows(desde){
 }
 async function pulseFetchRows(){
   const now=new Date(),fromDate=new Date(now.getFullYear(),now.getMonth(),now.getDate()-63),desde=pulseIso(fromDate),hasta=pulseIso(now);
-  let remote=[];
-  try{remote=await histSbSelectAll(`pagos?select=id,fecha,hora,monto,nombre,tipo,status,es_enviada&fecha=gte.${desde}&fecha=lte.${hasta}&order=fecha.asc,hora.asc`);}catch(e){console.log('Pulso: usando respaldo local');}
+  let remote=[],remoteOk=false;
+  try{remote=await histSbSelectAll(`pagos?select=id,fecha,hora,monto,nombre,tipo,status,es_enviada&fecha=gte.${desde}&fecha=lte.${hasta}&order=fecha.asc,hora.asc`);remoteOk=true;}catch(e){console.log('Pulso: usando respaldo local');}
+  // Solo se usa el historial local (distinto en cada dispositivo) si Supabase
+  // realmente fallo; si no, mezclarlo siempre generaba totales distintos
+  // segun que quedo cacheado en el localStorage de cada aparato.
+  const source=remoteOk?remote:[...remote,...pulseLocalRows(desde)];
   const merged=[],seen=new Set();
-  [...remote,...pulseLocalRows(desde)].forEach(r=>{if(!pulseValidRow(r))return;const k=pulseRowKey(r);if(seen.has(k))return;seen.add(k);merged.push(r);});
+  source.forEach(r=>{if(!pulseValidRow(r))return;const k=pulseRowKey(r);if(seen.has(k))return;seen.add(k);merged.push(r);});
   return merged;
 }
 function pulseWeekdayPlural(day){return['domingos','lunes','martes','miércoles','jueves','viernes','sábados'][day];}
