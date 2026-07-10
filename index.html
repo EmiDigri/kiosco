@@ -2151,6 +2151,60 @@ img,svg,canvas{max-width:100%}
   .hero-card{display:block!important}
 }
 
+/* ─── PULSO DEL KIOSCO ─── */
+.kiosk-pulse{
+  position:relative;
+  margin:4px 0 18px;
+  padding:18px 20px 16px;
+  border-top:1px solid var(--glass-border);
+  border-bottom:1px solid var(--glass-border);
+  background:linear-gradient(90deg,rgba(124,144,255,.07),rgba(79,204,190,.035) 46%,transparent);
+  overflow:hidden;
+}
+.pulse-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:16px}
+.pulse-heading{display:flex;align-items:center;gap:9px;min-width:0}
+.pulse-live-dot{width:8px;height:8px;border-radius:50%;background:#5FD68A;box-shadow:0 0 0 4px rgba(95,214,138,.12),0 0 14px rgba(95,214,138,.55);flex:0 0 auto}
+.pulse-title{font-size:12px;font-weight:850;letter-spacing:.1em;text-transform:uppercase;color:var(--text)}
+.pulse-status{font-size:10px;font-weight:650;color:var(--text-soft);white-space:nowrap}
+.pulse-replay{width:30px;height:30px;border:1px solid var(--glass-border);border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:var(--glass);color:var(--text-mid);font-size:11px;cursor:pointer;flex:0 0 auto}
+.pulse-replay:hover,.pulse-replay:focus-visible{border-color:var(--accent);color:var(--text);background:var(--glass-hover);outline:none}
+.pulse-metrics{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;margin-bottom:18px}
+.pulse-metric{min-width:0;padding:0 18px;border-left:1px solid var(--glass-border)}
+.pulse-metric:first-child{padding-left:0;border-left:none}
+.pulse-metric-label{font-size:9.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--text-soft);margin-bottom:5px}
+.pulse-metric-value{font-size:25px;font-weight:850;color:var(--text);line-height:1.05;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pulse-metric-note{font-size:10.5px;font-weight:650;color:var(--text-mid);margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pulse-metric-note.up{color:#5FD68A}.pulse-metric-note.down{color:#f87171}
+.pulse-chart{position:relative;height:92px;padding:8px 2px 18px;border-bottom:1px solid var(--glass-border)}
+.pulse-bars{position:absolute;left:0;right:0;top:8px;bottom:18px;display:grid;grid-template-columns:repeat(24,minmax(3px,1fr));align-items:end;gap:3px;z-index:1}
+.pulse-bar-col{height:100%;display:flex;align-items:flex-end;justify-content:center;position:relative}
+.pulse-bar{width:100%;max-width:22px;height:var(--pulse-h,2%);min-height:2px;border-radius:3px 3px 1px 1px;background:rgba(124,144,255,.28);border-top:1px solid rgba(163,177,255,.28)}
+.pulse-bar-col.is-current .pulse-bar{background:var(--accent);border-color:#9cacff;box-shadow:0 0 12px rgba(124,144,255,.35)}
+.pulse-events{position:absolute;left:0;right:0;top:8px;bottom:18px;z-index:3;pointer-events:none}
+.pulse-event{position:absolute;width:4px;height:4px;margin-left:-2px;margin-bottom:-2px;border-radius:50%;background:#f4f1ed;box-shadow:0 0 6px rgba(255,255,255,.5);opacity:.72}
+.pulse-event.is-latest{width:7px;height:7px;margin-left:-3.5px;margin-bottom:-3.5px;background:#5FD68A;box-shadow:0 0 0 4px rgba(95,214,138,.13),0 0 15px rgba(95,214,138,.65);opacity:1}
+.pulse-now{position:absolute;top:3px;bottom:14px;width:1px;background:rgba(244,241,237,.52);z-index:2;pointer-events:none}
+.pulse-now::before{content:'';position:absolute;top:0;left:50%;width:5px;height:5px;border-radius:50%;background:#f4f1ed;transform:translate(-50%,-50%);box-shadow:0 0 8px rgba(255,255,255,.55)}
+.pulse-axis{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:space-between;color:var(--text-soft);font-size:8.5px;font-weight:700;font-variant-numeric:tabular-nums}
+.pulse-foot{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:10px;font-size:10px;color:var(--text-soft)}
+.pulse-foot strong{color:var(--text-mid);font-weight:750}
+.pulse-loading{height:128px;display:flex;align-items:center;justify-content:center;color:var(--text-soft);font-size:11px}
+body.light .kiosk-pulse{background:linear-gradient(90deg,rgba(37,76,232,.07),rgba(36,150,130,.035) 46%,rgba(255,255,255,.45))}
+body.light .pulse-event{background:#254CE8;box-shadow:none}
+body.light .pulse-event.is-latest{background:#16835f;box-shadow:0 0 0 4px rgba(22,131,95,.12)}
+body.light .pulse-now,body.light .pulse-now::before{background:#334155}
+@media(max-width:720px){
+  .kiosk-pulse{margin:2px -2px 14px;padding:15px 10px 13px}
+  .pulse-head{margin-bottom:14px}.pulse-status{display:none}
+  .pulse-metrics{grid-template-columns:1fr 1fr;row-gap:14px;margin-bottom:15px}
+  .pulse-metric{padding:0 10px}.pulse-metric:nth-child(2){padding-right:0}
+  .pulse-metric:nth-child(3){grid-column:1/-1;border-left:none;border-top:1px solid var(--glass-border);padding:12px 0 0}
+  .pulse-metric-value{font-size:21px}.pulse-metric-note{font-size:9.5px}
+  .pulse-chart{height:82px}.pulse-bars{gap:2px}
+  .pulse-event{width:3px;height:3px;margin-left:-1.5px;margin-bottom:-1.5px}
+  .pulse-foot{font-size:9px;align-items:flex-start}.pulse-foot span:last-child{text-align:right}
+}
+
 
 
 </style>
@@ -2268,6 +2322,18 @@ img,svg,canvas{max-width:100%}
   <div class="iw-mobile-card" id="infoWidgetMobile">
     <div id="infoWidgetContentMobile"><div class="info-widget-loading">Cargando…</div></div>
   </div>
+
+  <section class="kiosk-pulse" id="kioskPulse" aria-label="Pulso de cobros de Mercado Pago">
+    <div class="pulse-head">
+      <div class="pulse-heading">
+        <span class="pulse-live-dot" aria-hidden="true"></span>
+        <span class="pulse-title">Pulso del kiosco</span>
+        <span class="pulse-status">Mercado Pago · actualización cada 5 min</span>
+      </div>
+      <button class="pulse-replay" id="pulseReplay" type="button" title="Reproducir el movimiento del día" aria-label="Reproducir el movimiento del día">▶</button>
+    </div>
+    <div id="pulseContent"><div class="pulse-loading">Leyendo el movimiento de hoy…</div></div>
+  </section>
 
   <!-- cursor glow desactivado para mejor rendimiento -->
   <div class="otros-turnos-row" id="otrosTurnosRow"></div>
@@ -2892,6 +2958,7 @@ function guardarTurno(nombreTurno,movs,excluidos,enviadas,fecha){
   if(!hist[hoyK])hist[hoyK]={};
   hist[hoyK][nombreTurno]={movs,excluidos,enviadas:enviadas||[],guardadoEn:new Date().toISOString()};
   localStorage.setItem(STORAGE_KEY,JSON.stringify(hist));
+  if(hoyK===fechaHoy()&&typeof programarPulso==='function')programarPulso(250);
 }
 function leerHistorial(){try{return JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}');}catch(e){return{};}}
 function formatFecha(isoDate){
@@ -3668,6 +3735,127 @@ function parsearMovimientos(results){
   movs.sort(sortFn);enviadas.sort(sortFn);
   return{movs,excluidos,enviadas};
 }
+
+// ─── PULSO DEL KIOSCO ───
+let pulseRefreshTimer=null,pulseLoading=false,pulseKnownKeys=new Set(),pulseHasRendered=false;
+function pulseIso(d){return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+function pulseDate(iso){const[y,m,d]=iso.split('-').map(Number);return new Date(y,m-1,d);}
+function pulseMinutes(hora){if(typeof hora!=='string')return 0;const[h,m]=hora.slice(0,5).split(':').map(Number);return(Number(h)||0)*60+(Number(m)||0);}
+function pulseMoney(n){return'$'+Math.round(Number(n)||0).toLocaleString('es-AR');}
+function pulseMoneyShort(n){
+  n=Number(n)||0;
+  if(n>=1000000)return'$'+(n/1000000).toLocaleString('es-AR',{maximumFractionDigits:1})+' M';
+  if(n>=1000)return'$'+Math.round(n/1000).toLocaleString('es-AR')+' mil';
+  return pulseMoney(n);
+}
+function pulseRowKey(r){return`${r.fecha}|${String(r.hora||'').slice(0,5)}|${Math.round((Number(r.monto)||0)*100)}|${String(r.nombre||'').trim().toLowerCase()}`;}
+function pulseValidRow(r){return r&&r.fecha&&r.hora&&(Number(r.monto)||0)>0&&r.es_enviada!==true&&String(r.es_enviada)!=='true'&&(!r.status||r.status==='approved');}
+function pulseLocalRows(desde){
+  const rows=[],hist=leerHistorial();
+  Object.entries(hist).forEach(([fecha,turnos])=>{
+    if(fecha<desde||!turnos||typeof turnos!=='object')return;
+    Object.values(turnos).forEach(data=>{
+      (Array.isArray(data?.movs)?data.movs:[]).forEach(m=>rows.push({fecha,hora:m.hora,monto:m.monto,nombre:m.nombre,tipo:m.tipo,status:'approved',es_enviada:false}));
+    });
+  });
+  return rows;
+}
+async function pulseFetchRows(){
+  const now=new Date(),fromDate=new Date(now.getFullYear(),now.getMonth(),now.getDate()-63),desde=pulseIso(fromDate),hasta=pulseIso(now);
+  let remote=[];
+  try{remote=await histSbSelectAll(`pagos?select=id,fecha,hora,monto,nombre,tipo,status,es_enviada&fecha=gte.${desde}&fecha=lte.${hasta}&order=fecha.asc,hora.asc`);}catch(e){console.log('Pulso: usando respaldo local');}
+  const merged=[],seen=new Set();
+  [...remote,...pulseLocalRows(desde)].forEach(r=>{if(!pulseValidRow(r))return;const k=pulseRowKey(r);if(seen.has(k))return;seen.add(k);merged.push(r);});
+  return merged;
+}
+function pulseWeekdayPlural(day){return['domingos','lunes','martes','miércoles','jueves','viernes','sábados'][day];}
+function pulseReplay(elements){
+  if(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)return;
+  const dots=elements||Array.from(document.querySelectorAll('#pulseContent .pulse-event'));
+  dots.forEach((el,i)=>{
+    el.animate([
+      {opacity:.08,transform:'translateY(12px) scale(.25)'},
+      {opacity:1,transform:'translateY(-5px) scale(2.15)',offset:.65},
+      {opacity:el.classList.contains('is-latest')?1:.72,transform:'translateY(0) scale(1)'}
+    ],{duration:420,delay:Math.min(i*26,1900),easing:'cubic-bezier(.2,.8,.2,1)',fill:'backwards'});
+  });
+}
+function pulseRender(rows){
+  const content=document.getElementById('pulseContent');if(!content)return;
+  const now=new Date(),today=pulseIso(now),cutoff=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  const byDate=new Map();
+  rows.forEach(r=>{if(!byDate.has(r.fecha))byDate.set(r.fecha,[]);byDate.get(r.fecha).push(r);});
+  const todayRows=(byDate.get(today)||[]).filter(r=>String(r.hora).slice(0,5)<=cutoff).sort((a,b)=>String(a.hora).localeCompare(String(b.hora)));
+  const todayTotal=todayRows.reduce((a,r)=>a+(Number(r.monto)||0),0),todayDow=now.getDay();
+  const comparableDates=Array.from(byDate.keys()).filter(d=>d<today&&pulseDate(d).getDay()===todayDow).sort((a,b)=>b.localeCompare(a)).slice(0,8);
+  const comparables=comparableDates.map(fecha=>{
+    const dayRows=byDate.get(fecha)||[];
+    return{fecha,partial:dayRows.filter(r=>String(r.hora).slice(0,5)<=cutoff).reduce((a,r)=>a+(Number(r.monto)||0),0),full:dayRows.reduce((a,r)=>a+(Number(r.monto)||0),0)};
+  }).filter(d=>d.full>0&&d.partial>0);
+  const compCount=comparables.length;
+  const avgPartial=compCount?comparables.reduce((a,d)=>a+d.partial,0)/compCount:0;
+  const avgFull=compCount?comparables.reduce((a,d)=>a+d.full,0)/compCount:0;
+  const enough=compCount>=3&&avgPartial>0;
+  let paceValue='Sin referencia',paceNote=`${compCount} de 3 días comparables`,paceClass='';
+  if(enough&&todayTotal>0){
+    const pct=Math.round((todayTotal-avgPartial)/avgPartial*100);
+    paceValue=Math.abs(pct)<=2?'En ritmo':`${pct>0?'+':''}${pct}%`;
+    paceNote=`vs ${compCount} ${pulseWeekdayPlural(todayDow)} a esta hora`;
+    paceClass=pct>2?'up':pct<-2?'down':'';
+  }else if(todayTotal===0){paceValue='Esperando';paceNote='Todavía no ingresaron cobros';}
+  let projectionValue='—',projectionNote='Necesita 3 días comparables';
+  const nowMins=now.getHours()*60+now.getMinutes();
+  if(enough&&todayTotal>0){
+    if(nowMins>=22*60){projectionValue=pulseMoneyShort(todayTotal);projectionNote='Cierre MP observado hasta ahora';}
+    else{
+      const ratio=Math.max(1,Math.min(4,avgFull/avgPartial));
+      const projected=Math.max(todayTotal,todayTotal*ratio),low=Math.max(todayTotal,projected*.92),high=projected*1.08;
+      projectionValue=`${pulseMoneyShort(low)} – ${pulseMoneyShort(high)}`;
+      projectionNote='Rango estimado al cierre de MP';
+    }
+  }
+  const hourTotals=Array.from({length:24},()=>0);
+  todayRows.forEach(r=>{const h=Math.max(0,Math.min(23,Math.floor(pulseMinutes(r.hora)/60)));hourTotals[h]+=Number(r.monto)||0;});
+  const maxHour=Math.max(1,...hourTotals),peakHour=hourTotals.indexOf(Math.max(...hourTotals));
+  const bars=hourTotals.map((value,h)=>`<div class="pulse-bar-col${h===now.getHours()?' is-current':''}" title="${String(h).padStart(2,'0')}:00 · ${pulseMoney(value)}"><span class="pulse-bar" style="--pulse-h:${value?Math.max(6,(value/maxHour)*100):2}%"></span></div>`).join('');
+  const eventRows=todayRows.slice(-80),maxPayment=Math.max(1,...eventRows.map(r=>Number(r.monto)||0));
+  const newKeys=[];
+  const events=eventRows.map((r,i)=>{
+    const key=pulseRowKey(r),isLatest=i===eventRows.length-1,isNew=pulseHasRendered&&!pulseKnownKeys.has(key);if(isNew)newKeys.push(key);
+    const left=Math.max(.25,Math.min(99.75,pulseMinutes(r.hora)/1440*100)),bottom=8+Math.min(78,Math.sqrt((Number(r.monto)||0)/maxPayment)*70);
+    return`<span class="pulse-event${isLatest?' is-latest':''}${isNew?' is-new':''}" data-pulse-key="${key}" style="left:${left}%;bottom:${bottom}%"></span>`;
+  }).join('');
+  const nowLeft=Math.max(.25,Math.min(99.75,nowMins/1440*100));
+  const historicBest=Math.max(0,...comparables.map(d=>d.full));
+  const peakText=todayTotal>historicBest&&historicBest>0?'Mejor día comparable superado':hourTotals[peakHour]>0?`Pico: ${String(peakHour).padStart(2,'0')}:00 · ${pulseMoney(hourTotals[peakHour])}`:'Todavía sin cobros hoy';
+  content.innerHTML=`
+    <div class="pulse-metrics">
+      <div class="pulse-metric"><div class="pulse-metric-label">Mercado Pago hoy</div><div class="pulse-metric-value">${pulseMoney(todayTotal)}</div><div class="pulse-metric-note">${todayRows.length} movimiento${todayRows.length===1?'':'s'} hasta ${cutoff}</div></div>
+      <div class="pulse-metric"><div class="pulse-metric-label">Ritmo del día</div><div class="pulse-metric-value">${paceValue}</div><div class="pulse-metric-note ${paceClass}">${paceNote}</div></div>
+      <div class="pulse-metric"><div class="pulse-metric-label">Proyección de cierre</div><div class="pulse-metric-value">${projectionValue}</div><div class="pulse-metric-note">${projectionNote}</div></div>
+    </div>
+    <div class="pulse-chart" role="img" aria-label="Actividad de Mercado Pago durante las 24 horas del día">
+      <div class="pulse-bars">${bars}</div><div class="pulse-events">${events}</div><span class="pulse-now" style="left:${nowLeft}%"></span>
+      <div class="pulse-axis"><span>00</span><span>06</span><span>12</span><span>18</span><span>23</span></div>
+    </div>
+    <div class="pulse-foot"><span><strong>${peakText}</strong></span><span>Actualizado ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}</span></div>`;
+  const currentKeys=todayRows.map(pulseRowKey);pulseKnownKeys=new Set(currentKeys);
+  requestAnimationFrame(()=>{
+    const fresh=Array.from(document.querySelectorAll('#pulseContent .pulse-event.is-new'));
+    if(fresh.length)pulseReplay(fresh);else if(!pulseHasRendered){const latest=document.querySelector('#pulseContent .pulse-event.is-latest');if(latest)pulseReplay([latest]);}
+    pulseHasRendered=true;
+  });
+}
+async function cargarPulsoKiosco(){
+  if(pulseLoading)return;pulseLoading=true;
+  try{pulseRender(await pulseFetchRows());}
+  catch(e){const content=document.getElementById('pulseContent');if(content)content.innerHTML='<div class="pulse-loading">No se pudo leer el pulso por ahora</div>';console.error(e);}
+  finally{pulseLoading=false;}
+}
+function programarPulso(delay=0){clearTimeout(pulseRefreshTimer);pulseRefreshTimer=setTimeout(cargarPulsoKiosco,delay);}
+document.getElementById('pulseReplay')?.addEventListener('click',()=>pulseReplay());
+programarPulso();
+setInterval(cargarPulsoKiosco,5*60*1000);
 
 document.getElementById('btnCargar').addEventListener('click',async()=>{
   const btn=document.getElementById('btnCargar'),dot=document.getElementById('sDot'),txt=document.getElementById('sTxt'),btxt=document.getElementById('btnTxt');
