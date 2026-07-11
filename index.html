@@ -3922,6 +3922,89 @@ document.getElementById('pulseReplay')?.addEventListener('click',()=>pulseReplay
 programarPulso();
 setInterval(cargarPulsoKiosco,5*60*1000);
 
+// ─── ACTUALIZACIÓN AUTOMÁTICA DEL TURNO ───
+const AUTO_TURNO_KEY='kiosco_turno_automatico_v1';
+const AUTO_TURNO_INTERVAL=5*60*1000;
+let autoTurnoTimer=null,autoTurnoBusy=false;
+function autoTurnoLeer(){try{return JSON.parse(localStorage.getItem(AUTO_TURNO_KEY)||'null');}catch(e){return null;}}
+function autoTurnoGuardar(state){localStorage.setItem(AUTO_TURNO_KEY,JSON.stringify(state));}
+function autoTurnoBuscar(state){return state&&TURNOS.find(t=>t.nombre===state.turno)||null;}
+function autoTurnoHora(ts){return new Date(ts).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',hour12:false});}
+function autoTurnoMovKey(m){return`${m.hora}|${Number(m.monto)||0}|${m.tipo||''}|${m.nombre||''}`;}
+function autoTurnoMinutosAhora(){const now=new Date();return now.getHours()*60+now.getMinutes();}
+function autoTurnoLimite(t){return visFin(t)+10;}
+function autoTurnoDemasiadoTarde(state,t){return state.fecha!==fechaHoy();}
+function autoTurnoAplicarUI(message){
+  const state=autoTurnoLeer(),t=autoTurnoBuscar(state);if(!state||!t||autoTurnoDemasiadoTarde(state,t))return false;
+  const dot=document.getElementById('sDot'),txt=document.getElementById('sTxt'),btxt=document.getElementById('btnTxt');
+  if(dot)dot.classList.add('activo');
+  if(btxt)btxt.textContent='Actualizar ahora';
+  if(txt)txt.textContent=message||`Automático activo · próxima revisión ${autoTurnoHora(state.nextAt||Date.now()+AUTO_TURNO_INTERVAL)}`;
+  return true;
+}
+function autoTurnoSiguienteDelay(t){
+  const now=new Date(),limit=autoTurnoLimite(t),end=new Date(now.getFullYear(),now.getMonth(),now.getDate(),Math.floor(limit/60),limit%60,0);
+  return Math.max(1000,Math.min(AUTO_TURNO_INTERVAL,end.getTime()-Date.now()));
+}
+function autoTurnoProgramar(delay){
+  const state=autoTurnoLeer(),t=autoTurnoBuscar(state);if(!state||!t)return;
+  clearTimeout(autoTurnoTimer);
+  const wait=delay===undefined?autoTurnoSiguienteDelay(t):Math.max(250,delay);
+  state.nextAt=Date.now()+wait;autoTurnoGuardar(state);
+  autoTurnoTimer=setTimeout(autoTurnoActualizar,wait);
+  autoTurnoAplicarUI();
+}
+function autoTurnoDesactivar(message){
+  clearTimeout(autoTurnoTimer);autoTurnoTimer=null;localStorage.removeItem(AUTO_TURNO_KEY);
+  const dot=document.getElementById('sDot'),txt=document.getElementById('sTxt'),btxt=document.getElementById('btnTxt');
+  if(dot)dot.classList.remove('activo');
+  if(txt&&message)txt.textContent=message;
+  if(btxt)btxt.textContent=turnoReciente?'Ver mi turno de hoy':turno?'Cargar mi turno':'Ver resumen del día';
+}
+function autoTurnoActivar(t,parsed){
+  const state={fecha:fechaHoy(),turno:t.nombre,lastCount:parsed.movs.length,lastSync:Date.now(),nextAt:Date.now()+AUTO_TURNO_INTERVAL};
+  autoTurnoGuardar(state);autoTurnoProgramar(autoTurnoSiguienteDelay(t));
+  autoTurnoAplicarUI(`Automático activo · ${parsed.movs.length} movimientos · próxima ${autoTurnoHora(autoTurnoLeer().nextAt)}`);
+}
+async function autoTurnoActualizar(){
+  const state=autoTurnoLeer(),t=autoTurnoBuscar(state);if(!state||!t||autoTurnoBusy)return;
+  if(autoTurnoDemasiadoTarde(state,t)){autoTurnoDesactivar('Actualización automática finalizada');return;}
+  const finalSync=autoTurnoMinutosAhora()>=autoTurnoLimite(t);
+  autoTurnoBusy=true;
+  try{
+    const hist=leerHistorial(),before=hist[state.fecha]?.[t.nombre],beforeMovs=Array.isArray(before?.movs)?before.movs:[],beforeKeys=new Set(beforeMovs.map(autoTurnoMovKey));
+    const results=await fetchMovimientos(t.capturaDesdeH??t.desdeH,t.capturaDesdeM??t.desdeM,t.hastaH,t.hastaM),parsed=parsearMovimientos(results);
+    const nuevos=parsed.movs.filter(m=>!beforeKeys.has(autoTurnoMovKey(m))).length;
+    guardarTurno(t.nombre,parsed.movs,parsed.excluidos,parsed.enviadas);
+    document.getElementById('resultados').style.display='block';renderTurno(parsed.movs,parsed.excluidos,parsed.enviadas);
+    state.lastCount=parsed.movs.length;state.lastSync=Date.now();autoTurnoGuardar(state);
+    if(finalSync){
+      autoTurnoDesactivar(`Turno completo · ${parsed.movs.length} movimientos actualizados`);
+      showToast('Turno completo y actualizado ✓');
+    }else{
+      autoTurnoProgramar();
+      const hora=autoTurnoHora(Date.now());
+      autoTurnoAplicarUI(nuevos?`${nuevos} movimiento${nuevos===1?' nuevo':'s nuevos'} · actualizado ${hora}`:`Automático activo · sin movimientos nuevos · ${hora}`);
+      if(nuevos)showToast(`${nuevos} movimiento${nuevos===1?' nuevo':'s nuevos'} agregado${nuevos===1?'':'s'} ✓`);
+    }
+  }catch(e){
+    const retry=60*1000,stateNow=autoTurnoLeer();
+    if(stateNow){stateNow.nextAt=Date.now()+retry;autoTurnoGuardar(stateNow);clearTimeout(autoTurnoTimer);autoTurnoTimer=setTimeout(autoTurnoActualizar,retry);autoTurnoAplicarUI(`Automático activo · sin conexión, reintento ${autoTurnoHora(stateNow.nextAt)}`);}
+    console.error('Actualización automática:',e);
+  }finally{autoTurnoBusy=false;}
+}
+function autoTurnoRestaurar(){
+  const state=autoTurnoLeer(),t=autoTurnoBuscar(state);if(!state||!t)return;
+  if(autoTurnoDemasiadoTarde(state,t)){autoTurnoDesactivar();return;}
+  const hist=leerHistorial(),saved=hist[state.fecha]?.[t.nombre];
+  if(saved&&Array.isArray(saved.movs)){document.getElementById('resultados').style.display='block';renderTurno(saved.movs,saved.excluidos||[],saved.enviadas||[]);}
+  const due=(state.nextAt||0)-Date.now();autoTurnoProgramar(due<=0?500:Math.min(due,AUTO_TURNO_INTERVAL));
+}
+function autoTurnoReanudarSiCorresponde(){const state=autoTurnoLeer();if(state&&Date.now()>=(state.nextAt||0))autoTurnoProgramar(300);}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)autoTurnoReanudarSiCorresponde();});
+window.addEventListener('focus',autoTurnoReanudarSiCorresponde);
+window.addEventListener('online',()=>{if(autoTurnoLeer())autoTurnoProgramar(300);});
+
 document.getElementById('btnCargar').addEventListener('click',async()=>{
   const btn=document.getElementById('btnCargar'),dot=document.getElementById('sDot'),txt=document.getElementById('sTxt'),btxt=document.getElementById('btnTxt');
   const ef=EFECTOS[efectoDelDia()];
@@ -3944,6 +4027,7 @@ document.getElementById('btnCargar').addEventListener('click',async()=>{
       document.getElementById('resultados').style.display='block';
       guardarTurno(t.nombre,parsed.movs,parsed.excluidos,parsed.enviadas);
       renderTurno(parsed.movs,parsed.excluidos,parsed.enviadas);
+      if(turno&&t.nombre===turno.nombre)autoTurnoActivar(t,parsed);
     }
     const portada=document.getElementById('turnosHoyPortada');
     if(portada)portada.style.display='none';
@@ -3953,6 +4037,7 @@ document.getElementById('btnCargar').addEventListener('click',async()=>{
     ef.l.e(btn);showToast('No se pudo conectar con MercadoPago');console.error(err);
   }
 });
+autoTurnoRestaurar();
 
 // ─── BOTONES OTROS TURNOS ───
 function renderOtrosTurnos(){
@@ -4193,7 +4278,7 @@ function _btnExito(btn){
     btn.disabled=false;
     if(ic)ic.innerHTML='<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>';
     const btxt=document.getElementById('btnTxt');
-    if(btxt)btxt.textContent='Cargar mi turno';
+    if(!autoTurnoAplicarUI()&&btxt)btxt.textContent='Cargar mi turno';
   },3000);
 }
 
