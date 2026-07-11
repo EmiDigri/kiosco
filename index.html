@@ -3957,6 +3957,16 @@ function autoTurnoAplicarUI(message){
   if(txt)txt.textContent=message||`Automático activo · próxima revisión ${autoTurnoHora(state.nextAt||Date.now()+AUTO_TURNO_INTERVAL)}`;
   return true;
 }
+function autoTurnoDestello(){
+  if(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)return;
+  const dot=document.getElementById('sDot'),txt=document.getElementById('sTxt');
+  dot?.animate([
+    {transform:'scale(1)',boxShadow:'0 0 0 0 rgba(95,214,138,0)'},
+    {transform:'scale(2.25)',boxShadow:'0 0 0 6px rgba(95,214,138,.2)',offset:.45},
+    {transform:'scale(1)',boxShadow:'0 0 0 0 rgba(95,214,138,0)'}
+  ],{duration:680,easing:'cubic-bezier(.2,.8,.2,1)'});
+  txt?.animate([{opacity:.55},{opacity:1,color:'#5FD68A',offset:.45},{opacity:1}],{duration:760,easing:'ease-out'});
+}
 function autoTurnoSiguienteDelay(t){
   const now=new Date(),limit=autoTurnoLimite(t),end=new Date(now.getFullYear(),now.getMonth(),now.getDate(),Math.floor(limit/60),limit%60,0);
   return Math.max(1000,Math.min(AUTO_TURNO_INTERVAL,end.getTime()-Date.now()));
@@ -3986,6 +3996,7 @@ async function autoTurnoActualizar(){
   if(autoTurnoDemasiadoTarde(state,t)){autoTurnoDesactivar('Actualización automática finalizada');return;}
   const finalSync=autoTurnoMinutosAhora()>=autoTurnoLimite(t);
   autoTurnoBusy=true;
+  autoTurnoAplicarUI('Revisando movimientos…');
   try{
     const hist=leerHistorial(),before=hist[state.fecha]?.[t.nombre],beforeMovs=Array.isArray(before?.movs)?before.movs:[],beforeKeys=new Set(beforeMovs.map(autoTurnoMovKey));
     const results=await fetchMovimientos(t.capturaDesdeH??t.desdeH,t.capturaDesdeM??t.desdeM,t.hastaH,t.hastaM),parsed=parsearMovimientos(results);
@@ -3995,11 +4006,14 @@ async function autoTurnoActualizar(){
     state.lastCount=parsed.movs.length;state.lastSync=Date.now();autoTurnoGuardar(state);
     if(finalSync){
       autoTurnoDesactivar(`Turno completo · ${parsed.movs.length} movimientos actualizados`);
+      autoTurnoDestello();
       showToast('Turno completo y actualizado ✓');
     }else{
       autoTurnoProgramar();
-      const hora=autoTurnoHora(Date.now());
-      autoTurnoAplicarUI(nuevos?`${nuevos} movimiento${nuevos===1?' nuevo':'s nuevos'} · actualizado ${hora}`:`Automático activo · sin movimientos nuevos · ${hora}`);
+      const hora=autoTurnoHora(Date.now()),nextAt=autoTurnoLeer()?.nextAt;
+      const resultado=nuevos?`${nuevos} movimiento${nuevos===1?' nuevo':'s nuevos'}`:'sin movimientos nuevos';
+      autoTurnoAplicarUI(`Revisión ${hora} ✓ · ${resultado} · próxima ${autoTurnoHora(nextAt)}`);
+      autoTurnoDestello();
       if(nuevos)showToast(`${nuevos} movimiento${nuevos===1?' nuevo':'s nuevos'} agregado${nuevos===1?'':'s'} ✓`);
     }
   }catch(e){
