@@ -4608,6 +4608,19 @@ function getWeatherIcon(temp,code,wind,isDay){
   if(t>=34)return{slug:'sun-hot',cls:'iw-emoji-flame'};
   return{slug:'clear-day',cls:tempCls};
 }
+function weatherSlugTexto(slug){
+  return({
+    'thunderstorms-day':'Tormenta','thunderstorms-night':'Tormenta',
+    'thunderstorms-extreme-day':'Tormenta fuerte','thunderstorms-extreme-night':'Tormenta fuerte',
+    'extreme-snow':'Nevada intensa','snow':'Nieve','sleet':'Aguanieve',
+    'extreme-rain':'Lluvia intensa','rain':'Lluvia','drizzle':'Llovizna',
+    'fog-day':'Niebla','fog-night':'Niebla','wind':'Viento fuerte',
+    'overcast-day':'Nublado','overcast-night':'Nublado',
+    'partly-cloudy-day':'Parcialmente nublado','partly-cloudy-night':'Parcialmente nublado',
+    'mostly-clear-day':'Mayormente soleado','mostly-clear-night':'Mayormente despejado',
+    'clear-night':'Despejado','sun-hot':'Sol fuerte','clear-day':'Soleado'
+  })[slug]||'Clima estable';
+}
 function iwPronosticoDias(daily){
   const time=daily?.time||[],codes=daily?.weather_code||[],maxs=daily?.temperature_2m_max||[],mins=daily?.temperature_2m_min||[];
   const labels=['DOM','LUN','MAR','MIÉ','JUE','VIE','SÁB'];
@@ -4617,7 +4630,7 @@ function iwPronosticoDias(daily){
     const max=Math.round(Number(maxs[i])),min=Math.round(Number(mins[i]));
     const wx=getWeatherIcon(max,codes[i],0,true);
     if(!Number.isFinite(max)||!Number.isFinite(min))continue;
-    out.push({dia:labels[d.getDay()],slug:wx?.slug||'clear-day',cls:wx?.cls||'iw-emoji-warm',min,max});
+    out.push({dia:labels[d.getDay()],slug:wx?.slug||'clear-day',cls:wx?.cls||'iw-emoji-warm',desc:weatherSlugTexto(wx?.slug),min,max});
   }
   return out;
 }
@@ -4625,7 +4638,7 @@ function iwPronosticoHtml(items,count){
   return (items||[]).slice(0,count).map(d=>`
     <div class="iw-forecast-day">
       <span class="iw-forecast-dow">${d.dia}</span>
-      <span class="iw-forecast-emoji"><img src="${mcUrl(d.slug)}" alt="" loading="lazy"></span>
+      <span class="iw-forecast-emoji" title="${d.dia}: ${d.desc} · ${d.min}°/${d.max}°"><img src="${mcUrl(d.slug)}" alt="${d.desc}" loading="lazy"></span>
       <span class="iw-forecast-temp">${d.min}/${d.max}°</span>
     </div>`).join('');
 }
