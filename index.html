@@ -4717,7 +4717,8 @@ async function fetchInfoWidget(){
   const varTag=p=>p==null?'':` <span class="iw-dolar-var ${p>=0?'up':'down'}">${p>=0?'▲':'▼'}${Math.abs(p).toFixed(1)}%</span>`;
   const dolarUpdated=[ofVal,mepVal,blVal].some(v=>v!=null)?iwFmtDolarUpdated(dolarFecha,dolarCheckedAt):'Dólar sin datos por ahora';
   const we=getWeatherIcon(temp,wxCode,wxWind,wxIsDay);
-  const tempDisp=temp!=null?`${temp}°${we?`<span class="iw-weather-emoji ${we.cls}" role="button" tabindex="0" aria-label="Activar clima en pantalla" title="Activar clima"><img src="${mcUrl(we.slug)}" alt="" loading="lazy"></span>`:''}`:' —';
+  const weDesc=we?weatherSlugTexto(we.slug):'';
+  const tempDisp=temp!=null?`${temp}°${we?`<span class="iw-weather-emoji ${we.cls}" role="button" tabindex="0" aria-label="Activar clima en pantalla" title="${weDesc} · click para activar"><img src="${mcUrl(we.slug)}" alt="${weDesc}" loading="lazy"></span>`:''}`:' —';
   const forecastDesk=iwPronosticoHtml(wxForecast,4);
   const forecastMob=iwPronosticoHtml(wxForecast,3);
   const html=`
