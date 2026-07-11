@@ -3851,9 +3851,21 @@ function pulseRender(rows){
   const hourTotals=Array.from({length:24},()=>0);
   todayRows.forEach(r=>{const h=Math.max(0,Math.min(23,Math.floor(pulseMinutes(r.hora)/60)));hourTotals[h]+=Number(r.monto)||0;});
   const maxHour=Math.max(1,...hourTotals),peakHour=hourTotals.indexOf(Math.max(...hourTotals));
-  const bars=hourTotals.map((value,h)=>`<div class="pulse-bar-col${h===now.getHours()?' is-current':''}" title="${String(h).padStart(2,'0')}:00 · ${pulseMoney(value)}"><span class="pulse-bar" style="--pulse-h:${value?Math.max(6,(value/maxHour)*100):2}%"></span></div>`).join('');
-  const axisHours=[0,3,6,9,12,15,18,21];
-  const axisLeft=h=>((h+.5)/24*100).toFixed(2);
+  const usualStartMinutes=Math.min(...TURNOS.map(t=>t.desdeH*60+t.desdeM));
+  const usualEndMinutes=Math.max(...TURNOS.map(visFin));
+  const movementMinutes=todayRows.map(r=>pulseMinutes(r.hora));
+  const outsideRows=todayRows.filter(r=>{const mins=pulseMinutes(r.hora);return mins<usualStartMinutes||mins>usualEndMinutes;});
+  let rangeStartHour=Math.floor(usualStartMinutes/60),rangeEndHour=Math.ceil(usualEndMinutes/60);
+  if(movementMinutes.length){
+    const firstMovement=Math.min(...movementMinutes),lastMovement=Math.max(...movementMinutes);
+    if(firstMovement<usualStartMinutes)rangeStartHour=Math.floor(firstMovement/60);
+    if(lastMovement>usualEndMinutes)rangeEndHour=Math.min(24,Math.floor(lastMovement/60)+1);
+  }
+  const rangeHours=Math.max(1,rangeEndHour-rangeStartHour),rangeStartMinutes=rangeStartHour*60,rangeDurationMinutes=rangeHours*60;
+  const visibleHourTotals=hourTotals.slice(rangeStartHour,rangeEndHour);
+  const bars=visibleHourTotals.map((value,i)=>{const h=rangeStartHour+i;return`<div class="pulse-bar-col${h===now.getHours()?' is-current':''}" title="${String(h).padStart(2,'0')}:00 · ${pulseMoney(value)}"><span class="pulse-bar" style="--pulse-h:${value?Math.max(6,(value/maxHour)*100):2}%"></span></div>`;}).join('');
+  const axisHours=[...new Set([0,.2,.4,.6,.8,1].map(p=>Math.round(rangeStartHour+rangeHours*p)))];
+  const axisLeft=h=>Math.max(.8,Math.min(99.2,(h-rangeStartHour)/rangeHours*100)).toFixed(2);
   const gridlines=axisHours.map(h=>`<span class="pulse-grid-line" style="left:${axisLeft(h)}%"></span>`).join('');
   const axisLabels=axisHours.map(h=>`<span style="left:${axisLeft(h)}%">${String(h).padStart(2,'0')}</span>`).join('');
   const eventRows=todayRows,maxPayment=Math.max(1,...eventRows.map(r=>Number(r.monto)||0));
@@ -3861,24 +3873,27 @@ function pulseRender(rows){
   const events=eventRows.map((r,i)=>{
     const key=pulseRowKey(r),isLatest=i===eventRows.length-1,isNew=pulseHasRendered&&!pulseKnownKeys.has(key);if(isNew)newKeys.push(key);
     const monto=Number(r.monto)||0,isMax=maxPayment>1&&monto===maxPayment;
-    const left=Math.max(.25,Math.min(99.75,pulseMinutes(r.hora)/1440*100)),bottom=8+Math.min(78,Math.sqrt(monto/maxPayment)*70);
+    const left=Math.max(.25,Math.min(99.75,(pulseMinutes(r.hora)-rangeStartMinutes)/rangeDurationMinutes*100)),bottom=8+Math.min(78,Math.sqrt(monto/maxPayment)*70);
     const tip=`${String(r.hora).slice(0,5)} · ${pulseMoney(monto)}${isMax?' · pago más alto del día':''}`;
     return`<span class="pulse-event${isLatest?' is-latest':''}${isMax?' is-max':''}${isNew?' is-new':''}" data-pulse-key="${key}" data-pulse-tip="${cmEsc?cmEsc(tip):tip}" style="left:${left}%;bottom:${bottom}%"></span>`;
   }).join('');
-  const nowLeft=Math.max(.25,Math.min(99.75,nowMins/1440*100));
+  const nowVisible=nowMins>=rangeStartMinutes&&nowMins<=rangeStartMinutes+rangeDurationMinutes;
+  const nowLeft=Math.max(.25,Math.min(99.75,(nowMins-rangeStartMinutes)/rangeDurationMinutes*100));
+  const nowMarker=nowVisible?`<span class="pulse-now" style="left:${nowLeft}%"></span>`:'';
   const historicBest=Math.max(0,...comparables.map(d=>d.full));
   const peakText=todayTotal>historicBest&&historicBest>0?'Mejor día comparable superado':hourTotals[peakHour]>0?`Pico: ${String(peakHour).padStart(2,'0')}:00 · ${pulseMoney(hourTotals[peakHour])}`:'Todavía sin cobros hoy';
+  const outsideText=outsideRows.length?` · ${outsideRows.length} movimiento${outsideRows.length===1?'':'s'} fuera de horario`:'';
   content.innerHTML=`
     <div class="pulse-metrics">
       <div class="pulse-metric"><div class="pulse-metric-label">Mercado Pago hoy</div><div class="pulse-metric-value">${pulseMoney(todayTotal)}</div><div class="pulse-metric-note">${todayRows.length} movimiento${todayRows.length===1?'':'s'} hasta ${cutoff}</div></div>
       <div class="pulse-metric"><div class="pulse-metric-label">Ritmo del día</div><div class="pulse-pace-row"><div class="pulse-pace-item" title="${cmEsc?cmEsc(paceTip):paceTip}"><div class="pulse-metric-value pace-mini">${paceValue}</div><div class="pulse-metric-note ${paceClass}">${paceNote}</div></div><div class="pulse-pace-item" title="${cmEsc?cmEsc(pace30Tip):pace30Tip}"><div class="pulse-metric-value pace-mini">${pace30Value}</div><div class="pulse-metric-note ${pace30Class}">${pace30Note}</div></div></div></div>
       <div class="pulse-metric"><div class="pulse-metric-label">Proyección de cierre</div><div class="pulse-metric-value">${projectionValue}</div><div class="pulse-metric-note">${projectionNote}</div></div>
     </div>
-    <div class="pulse-chart" role="img" aria-label="Actividad de Mercado Pago durante las 24 horas del día">
-      <div class="pulse-gridlines">${gridlines}</div><div class="pulse-bars">${bars}</div><div class="pulse-events">${events}</div><span class="pulse-now" style="left:${nowLeft}%"></span>
+    <div class="pulse-chart" role="img" aria-label="Actividad de Mercado Pago entre las ${String(rangeStartHour).padStart(2,'0')}:00 y las ${String(rangeEndHour).padStart(2,'0')}:00">
+      <div class="pulse-gridlines">${gridlines}</div><div class="pulse-bars" style="grid-template-columns:repeat(${rangeHours},minmax(3px,1fr))">${bars}</div><div class="pulse-events">${events}</div>${nowMarker}
       <div class="pulse-axis">${axisLabels}</div>
     </div>
-    <div class="pulse-foot"><span><strong>${peakText}</strong></span><span>Actualizado ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}</span></div>`;
+    <div class="pulse-foot"><span><strong>${peakText}</strong>${outsideText}</span><span>Actualizado ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}</span></div>`;
   const currentKeys=todayRows.map(pulseRowKey);pulseKnownKeys=new Set(currentKeys);
   requestAnimationFrame(()=>{
     const fresh=Array.from(document.querySelectorAll('#pulseContent .pulse-event.is-new'));
