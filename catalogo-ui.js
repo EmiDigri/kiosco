@@ -251,6 +251,8 @@
     const retail = data.retailReference || {};
     const wholesale = data.wholesaleReference || {};
     const saved = readSavedPrices()[product.ean] || {};
+    const catRecord = catByEan(product.ean);
+    const savedCat = catRecord?.categoria || '';
     const suggestedUnits = wholesale.unitsPerPackMedian > 1 ? Math.round(wholesale.unitsPerPackMedian) : null;
     const unitsValue = saved.units || suggestedUnits || '';
     const image = /^https:\/\//.test(data.image || '')
@@ -293,6 +295,13 @@
         <div class="price-own-head">
           <div><div class="price-own-title">Tu precio y tu margen</div><div class="price-own-sub">Precio de venta, costo y bulto</div></div>
           <span class="price-saved" id="priceSavedStatus">Guardado para este EAN</span>
+        </div>
+        <div class="price-cat-row">
+          <div class="price-field">
+            <label for="priceOwnCategory">Categoría para tu catálogo</label>
+            <input class="price-input" id="priceOwnCategory" list="catCategoriasList" maxlength="40" placeholder="Ej. Golosinas" value="${escapeHtml(savedCat)}">
+            <div class="price-field-hint">Al calcular, este producto se guarda en “Mi catálogo”.</div>
+          </div>
         </div>
         <form class="price-calc-form" id="priceCalcForm" data-ean="${escapeHtml(product.ean)}">
           <div class="price-field">
@@ -409,8 +418,26 @@
       cost: hasRealCost ? realCost : null,
       units: Number.isFinite(units) && units > 0 ? Math.round(units) : null,
     });
+
+    // Alimenta el catálogo del kiosco con este producto (precio, costo, margen).
+    const product = state.detail.product || {};
+    const categoria = (document.getElementById('priceOwnCategory')?.value || '').trim() || 'Kiosco varios';
+    const existing = catByEan(product.ean);
+    catUpsert({
+      uid: existing ? existing.uid : undefined,
+      ean: product.ean ? String(product.ean) : null,
+      nombre: product.name || 'Producto',
+      marca: product.brand || '',
+      presentacion: product.presentation || '',
+      categoria,
+      costo: cost || 0,
+      precio: sale,
+      unidades: Number.isFinite(units) && units > 0 ? Math.round(units) : null,
+      origen: existing ? existing.origen : 'preciosclaros',
+    }, { rerender: false });
+
     document.getElementById('priceSavedStatus').classList.add('show');
-    if (shouldNotify) notify('Precio y cálculo guardados');
+    if (shouldNotify) notify('Guardado en tu catálogo ✓');
   }
 
   async function loadDetail(ean) {
@@ -483,6 +510,283 @@
       notify('No se pudo obtener la ubicación');
     }, { enableHighAccuracy: false, timeout: 8000, maximumAge: 10 * 60 * 1000 });
   });
+
+  // ─────────────────────────────────────────────────────────────
+  // MI CATÁLOGO (beta): base de productos del kiosco con precio,
+  // costo y margen. Guarda local al instante y sincroniza a Supabase
+  // (tabla `catalogo`), con el mismo patrón offline-first del cierre manual.
+  // ─────────────────────────────────────────────────────────────
+  const CATALOG_STORAGE_KEY = 'kiosco_catalogo_v1';
+  const SB_URL = 'https://pilfeptwylgufhbmmday.supabase.co';
+  const SB_KEY = 'sb_publishable_AE6T1LMQuY2T8mf0uD_ANA_Bh4nk_ej';
+  const cat = {
+    tabSearch: document.getElementById('priceTabSearch'),
+    tabCatalog: document.getElementById('priceTabCatalog'),
+    viewSearch: document.getElementById('priceViewSearch'),
+    viewCatalog: document.getElementById('priceViewCatalog'),
+    count: document.getElementById('priceCatalogCount'),
+    total: document.getElementById('catTotal'),
+    sync: document.getElementById('catSyncStatus'),
+    addBtn: document.getElementById('catAddBtn'),
+    form: document.getElementById('catManualForm'),
+    formTitle: document.getElementById('catFormTitle'),
+    editUid: document.getElementById('catEditUid'),
+    fNombre: document.getElementById('catNombre'),
+    fCategoria: document.getElementById('catCategoria'),
+    fCosto: document.getElementById('catCosto'),
+    fPrecio: document.getElementById('catPrecio'),
+    fUnidades: document.getElementById('catUnidades'),
+    cancelBtn: document.getElementById('catCancelBtn'),
+    list: document.getElementById('catList'),
+  };
+
+  function catUid() { return 'c_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8); }
+  function catNum(value) { const n = Number(value); return Number.isFinite(n) && n > 0 ? Math.round(n * 100) / 100 : null; }
+  function readCatalog() {
+    try { const all = JSON.parse(localStorage.getItem(CATALOG_STORAGE_KEY) || '{}'); return all && typeof all === 'object' ? all : {}; } catch { return {}; }
+  }
+  function writeCatalog(all) { try { localStorage.setItem(CATALOG_STORAGE_KEY, JSON.stringify(all)); } catch { /* persistencia bloqueada */ } }
+  function catItems() { return Object.values(readCatalog()); }
+  function catByEan(ean) { if (!ean) return null; const target = String(ean); return catItems().find(record => record.ean === target) || null; }
+  function catMargin(record) {
+    const sale = Number(record.precio), cost = Number(record.costo);
+    if (!Number.isFinite(sale) || sale <= 0 || !Number.isFinite(cost) || cost <= 0) return null;
+    return ((sale - cost) / sale) * 100;
+  }
+  function marginClass(margin) { if (!Number.isFinite(margin)) return ''; if (margin >= 25) return 'good'; if (margin >= 12) return 'warn'; return 'bad'; }
+  function marginText(margin) { return Number.isFinite(margin) ? `${margin.toLocaleString('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%` : '—'; }
+
+  async function catSbWrite(path, method, body, prefer) {
+    const headers = { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' };
+    if (prefer) headers.Prefer = prefer;
+    const response = await fetch(`${SB_URL}/rest/v1/${path}`, { method, headers, body: body !== undefined ? JSON.stringify(body) : undefined });
+    if (!response.ok) throw new Error(await response.text());
+    return response;
+  }
+  function catRecordToRow(record) {
+    return {
+      uid: record.uid, ean: record.ean || null, nombre: record.nombre || '',
+      marca: record.marca || null, presentacion: record.presentacion || null,
+      categoria: record.categoria || 'Kiosco varios',
+      costo: Number(record.costo) || 0, precio: Number(record.precio) || 0,
+      unidades_bulto: record.unidades ? Number(record.unidades) : null,
+      origen: record.origen || 'manual', updated_at: record.savedAt || new Date().toISOString(),
+    };
+  }
+  async function catSaveRemote(record) {
+    await catSbWrite('catalogo?on_conflict=uid', 'POST', catRecordToRow(record), 'resolution=merge-duplicates,return=minimal');
+  }
+  async function catDeleteRemote(uid) {
+    await catSbWrite(`catalogo?uid=eq.${encodeURIComponent(uid)}`, 'DELETE', undefined, 'return=minimal');
+  }
+  function catCountPending() { return catItems().filter(record => !record.synced).length; }
+  function renderCatSyncStatus() {
+    if (!cat.sync) return;
+    const pending = catCountPending();
+    if (pending > 0) { cat.sync.className = 'cat-sync-status pend'; cat.sync.textContent = '⟳ ' + pending + ' sin subir'; }
+    else { cat.sync.className = 'cat-sync-status ok'; cat.sync.textContent = catItems().length ? '✓ Sincronizado' : ''; }
+  }
+  function updateCatalogCount() {
+    const total = catItems().length;
+    if (cat.count) cat.count.textContent = String(total);
+    if (cat.total) cat.total.textContent = total + (total === 1 ? ' producto' : ' productos');
+  }
+
+  // Guarda un producto local al instante y lo sube a Supabase en segundo plano.
+  function catUpsert(record, options = {}) {
+    const all = readCatalog();
+    if (!record.uid) record.uid = catUid();
+    record.savedAt = new Date().toISOString();
+    record.synced = false;
+    all[record.uid] = { ...record };
+    writeCatalog(all);
+    updateCatalogCount();
+    renderCatSyncStatus();
+    if (options.rerender !== false) renderCatalog();
+    const target = { ...record };
+    catSaveRemote(target).then(() => {
+      const current = readCatalog();
+      if (current[target.uid]) { current[target.uid].synced = true; writeCatalog(current); renderCatSyncStatus(); }
+    }).catch(() => { if (options.toast) notify('Guardado local. Se sube cuando haya conexión.'); });
+    if (options.toast) notify(options.toast);
+    return record;
+  }
+
+  async function catSyncLocal() {
+    const all = readCatalog();
+    let changed = false;
+    for (const uid of Object.keys(all)) {
+      const record = all[uid];
+      if (!record || record.synced) continue;
+      try { await catSaveRemote(record); record.synced = true; changed = true; } catch { /* se reintenta la próxima vez */ }
+    }
+    if (changed) writeCatalog(all);
+    renderCatSyncStatus();
+  }
+
+  async function catLoadRemote() {
+    try {
+      const response = await fetch(`${SB_URL}/rest/v1/catalogo?select=*&order=categoria.asc,nombre.asc`, {
+        cache: 'no-store', headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` },
+      });
+      if (!response.ok) throw new Error(await response.text());
+      const rows = await response.json();
+      const all = readCatalog();
+      rows.forEach(row => {
+        const local = all[row.uid];
+        if (local && local.synced === false) return; // un cambio local sin subir tiene prioridad
+        all[row.uid] = {
+          uid: row.uid, ean: row.ean || null, nombre: row.nombre || '',
+          marca: row.marca || '', presentacion: row.presentacion || '',
+          categoria: row.categoria || 'Kiosco varios',
+          costo: Number(row.costo) || 0, precio: Number(row.precio) || 0,
+          unidades: row.unidades_bulto ? Number(row.unidades_bulto) : null,
+          origen: row.origen || 'manual', savedAt: row.updated_at || new Date().toISOString(), synced: true,
+        };
+      });
+      writeCatalog(all);
+    } catch { /* sin conexión o tabla aún no creada: seguimos con lo local */ }
+  }
+
+  function catGroups() {
+    const groups = {};
+    catItems().forEach(record => { const key = record.categoria || 'Kiosco varios'; (groups[key] = groups[key] || []).push(record); });
+    return Object.keys(groups).sort((a, b) => a.localeCompare(b, 'es')).map(category => ({
+      category,
+      rows: groups[category].sort((a, b) => String(a.nombre).localeCompare(String(b.nombre), 'es')),
+    }));
+  }
+
+  function renderCatalog() {
+    if (!cat.list) return;
+    const items = catItems();
+    if (!items.length) {
+      cat.list.innerHTML = '<div class="cat-empty"><strong>Tu catálogo está vacío</strong><span>Guardá tu precio y costo desde “Buscar precios”, o tocá “Agregar producto” para cargar librería y todo lo que no esté en Precios Claros.</span></div>';
+      return;
+    }
+    cat.list.innerHTML = catGroups().map(group => {
+      const margins = group.rows.map(catMargin).filter(Number.isFinite);
+      const avg = margins.length ? margins.reduce((a, b) => a + b, 0) / margins.length : null;
+      const meta = `${group.rows.length} ${group.rows.length === 1 ? 'producto' : 'productos'}${Number.isFinite(avg) ? ` · margen prom. ${marginText(avg)}` : ''}`;
+      const rows = group.rows.map(record => {
+        const margin = catMargin(record);
+        const sub = [record.marca, record.presentacion].filter(Boolean).join(' · ');
+        const origen = record.origen === 'manual' ? '<span class="cat-origin">manual</span>' : '<span class="cat-origin">Precios Claros</span>';
+        return `<div class="cat-row" data-uid="${escapeHtml(record.uid)}">
+          <div class="cat-row-main">
+            <div class="cat-row-name">${escapeHtml(record.nombre)}</div>
+            <div class="cat-row-brand">${sub ? escapeHtml(sub) + ' · ' : ''}${origen}</div>
+          </div>
+          <div class="cat-cell"><div class="cat-cell-label">Costo</div><div class="cat-cell-value">${record.costo ? money(record.costo) : '—'}</div></div>
+          <div class="cat-cell"><div class="cat-cell-label">Venta</div><div class="cat-cell-value">${record.precio ? money(record.precio) : '—'}</div></div>
+          <div class="cat-cell"><div class="cat-cell-label">Margen</div><div class="cat-cell-value margin ${marginClass(margin)}">${marginText(margin)}</div></div>
+          <div class="cat-row-actions">
+            <button class="cat-icon-btn edit" type="button" data-uid="${escapeHtml(record.uid)}" title="Editar" aria-label="Editar producto"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
+            <button class="cat-icon-btn del" type="button" data-uid="${escapeHtml(record.uid)}" title="Eliminar" aria-label="Eliminar producto"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
+          </div>
+        </div>`;
+      }).join('');
+      return `<div class="cat-group"><div class="cat-group-head"><span class="cat-group-name">${escapeHtml(group.category)}</span><span class="cat-group-meta">${meta}</span></div>${rows}</div>`;
+    }).join('');
+  }
+
+  function openManualForm(record) {
+    if (!cat.form) return;
+    cat.form.hidden = false;
+    cat.addBtn.textContent = 'Cerrar formulario';
+    cat.addBtn.classList.add('close');
+    cat.editUid.value = record?.uid || '';
+    cat.formTitle.textContent = record ? 'Editar producto' : 'Nuevo producto';
+    cat.fNombre.value = record?.nombre || '';
+    cat.fCategoria.value = record?.categoria || '';
+    cat.fCosto.value = record && record.costo ? record.costo : '';
+    cat.fPrecio.value = record && record.precio ? record.precio : '';
+    cat.fUnidades.value = record && record.unidades ? record.unidades : '';
+    setTimeout(() => cat.fNombre.focus(), 40);
+  }
+  function closeManualForm() {
+    if (!cat.form) return;
+    cat.form.hidden = true;
+    cat.form.reset();
+    cat.editUid.value = '';
+    cat.addBtn.textContent = '+ Agregar producto';
+    cat.addBtn.classList.remove('close');
+  }
+
+  function showCatalogView(showCatalog) {
+    if (!cat.viewSearch || !cat.viewCatalog) return;
+    cat.viewSearch.hidden = showCatalog;
+    cat.viewCatalog.hidden = !showCatalog;
+    cat.tabSearch.classList.toggle('active', !showCatalog);
+    cat.tabCatalog.classList.toggle('active', showCatalog);
+    cat.tabSearch.setAttribute('aria-selected', String(!showCatalog));
+    cat.tabCatalog.setAttribute('aria-selected', String(showCatalog));
+    if (showCatalog) { updateCatalogCount(); renderCatSyncStatus(); renderCatalog(); }
+  }
+
+  if (cat.tabSearch && cat.tabCatalog) {
+    cat.tabSearch.addEventListener('click', () => showCatalogView(false));
+    cat.tabCatalog.addEventListener('click', () => showCatalogView(true));
+    cat.addBtn.addEventListener('click', () => { if (cat.form.hidden) openManualForm(null); else closeManualForm(); });
+    cat.cancelBtn.addEventListener('click', closeManualForm);
+    cat.form.addEventListener('submit', event => {
+      event.preventDefault();
+      const nombre = cat.fNombre.value.trim();
+      const categoria = cat.fCategoria.value.trim() || 'Kiosco varios';
+      const precio = catNum(cat.fPrecio.value);
+      const costo = catNum(cat.fCosto.value);
+      const unitsRaw = Number(cat.fUnidades.value);
+      const unidades = Number.isFinite(unitsRaw) && unitsRaw > 0 ? Math.round(unitsRaw) : null;
+      if (!nombre) { cat.fNombre.focus(); notify('Poné el nombre del producto'); return; }
+      if (!precio) { cat.fPrecio.focus(); notify('Poné el precio de venta'); return; }
+      const editUid = cat.editUid.value || undefined;
+      const existing = editUid ? readCatalog()[editUid] : null;
+      catUpsert({
+        uid: editUid,
+        ean: existing ? existing.ean : null,
+        nombre,
+        marca: existing ? existing.marca : '',
+        presentacion: existing ? existing.presentacion : '',
+        categoria, costo: costo || 0, precio, unidades,
+        origen: existing ? existing.origen : 'manual',
+      }, { toast: editUid ? 'Producto actualizado ✓' : 'Producto agregado ✓' });
+      closeManualForm();
+    });
+    cat.list.addEventListener('click', event => {
+      const editBtn = event.target.closest('.cat-icon-btn.edit');
+      const delBtn = event.target.closest('.cat-icon-btn.del');
+      if (editBtn) {
+        const record = readCatalog()[editBtn.dataset.uid];
+        if (record) { openManualForm(record); cat.form.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+        return;
+      }
+      if (delBtn) {
+        const uid = delBtn.dataset.uid;
+        const record = readCatalog()[uid];
+        if (!record) return;
+        if (!window.confirm(`¿Eliminar “${record.nombre}” del catálogo?`)) return;
+        const all = readCatalog();
+        delete all[uid];
+        writeCatalog(all);
+        renderCatalog();
+        updateCatalogCount();
+        renderCatSyncStatus();
+        catDeleteRemote(uid).catch(() => notify('Borrado local. Supabase no respondió.'));
+      }
+    });
+    // Al abrir la referencia: refrescamos contador, subimos pendientes y traemos lo remoto.
+    openButton.addEventListener('click', () => {
+      updateCatalogCount();
+      renderCatSyncStatus();
+      catSyncLocal();
+      catLoadRemote().then(() => {
+        updateCatalogCount();
+        renderCatSyncStatus();
+        if (!cat.viewCatalog.hidden) renderCatalog();
+      });
+    });
+    updateCatalogCount();
+  }
 
   syncLocationControl();
 })();
