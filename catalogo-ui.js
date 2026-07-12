@@ -258,7 +258,7 @@
       <button class="price-result${item.id === state.selectedMl ? ' active' : ''}" type="button" data-ml-id="${escapeHtml(item.id)}" aria-pressed="${item.id === state.selectedMl ? 'true' : 'false'}">
         <div class="price-result-brand">MercadoLibre</div>
         <div class="price-result-name">${escapeHtml(item.title)}</div>
-        <div class="price-result-meta"><span>Publicado a <strong>${money(item.price)}</strong></span></div>
+        <div class="price-result-meta">${item.price ? `<span>Publicado a <strong>${money(item.price)}</strong></span>` : '<span>Con foto · sin precio publicado</span>'}</div>
       </button>`).join('');
   }
 

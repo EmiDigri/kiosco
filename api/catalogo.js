@@ -98,19 +98,44 @@ async function mlAccessToken(forceRefresh = false) {
   }
 }
 
-function mlImage(item) {
-  const raw = item?.thumbnail || '';
-  if (!raw) return null;
-  // El thumbnail viene chico (…-I.jpg); la variante -O.jpg es la imagen original.
-  return raw.replace(/^http:/, 'https:').replace(/-[A-Z]\.jpg$/, '-O.jpg');
-}
-
+// La búsqueda general (/sites/MLA/search) devuelve "forbidden" incluso con
+// token de cuenta: ML la cerró para apps nuevas. La vía que SÍ funciona es la
+// búsqueda de CATÁLOGO: /products/search da los productos (nombre + id), y
+// por cada uno /products/{id} trae las fotos y /products/{id}/items los
+// precios reales de las publicaciones activas.
 function mlSearchRequest(token, query, limit, signal) {
-  const params = new URLSearchParams({ q: query, limit: String(Math.min(50, limit * 3)) });
-  return fetch(`https://api.mercadolibre.com/sites/MLA/search?${params}`, {
+  const params = new URLSearchParams({ status: 'active', site_id: 'MLA', q: query, limit: String(Math.min(10, Math.max(limit, 4))) });
+  return fetch(`https://api.mercadolibre.com/products/search?${params}`, {
     headers: { Authorization: `Bearer ${token}`, accept: 'application/json' },
     signal,
   });
+}
+
+// Completa un producto de catálogo con su foto y el precio mediano de sus
+// publicaciones activas. Si algo falla, se descarta ese producto y listo.
+async function mlHydrate(token, product, signal) {
+  try {
+    const headers = { Authorization: `Bearer ${token}`, accept: 'application/json' };
+    const [detailRes, itemsRes] = await Promise.all([
+      fetch(`https://api.mercadolibre.com/products/${product.id}`, { headers, signal }),
+      fetch(`https://api.mercadolibre.com/products/${product.id}/items?limit=5`, { headers, signal }),
+    ]);
+    const detail = detailRes.ok ? await detailRes.json().catch(() => null) : null;
+    const listing = itemsRes.ok ? await itemsRes.json().catch(() => null) : null;
+    const prices = (Array.isArray(listing?.results) ? listing.results : [])
+      .map(row => Number(row?.price))
+      .filter(value => Number.isFinite(value) && value > 0);
+    const rawUrl = detail?.pictures?.[0]?.url || null;
+    return {
+      id: String(product.id),
+      title: String(product.name || 'Producto'),
+      price: prices.length ? median(prices) : null,
+      image: rawUrl ? String(rawUrl).replace(/^http:/, 'https:') : null,
+      permalink: `https://www.mercadolibre.com.ar/p/${product.id}`,
+    };
+  } catch {
+    return null;
+  }
 }
 
 async function mlSearch(query, limit = 8) {
@@ -118,7 +143,7 @@ async function mlSearch(query, limit = 8) {
   let token = await mlAccessToken();
   if (!token) return { disabled: true, items: [], needsAuth: true };
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 8000);
+  const timeout = setTimeout(() => controller.abort(), 9000);
   try {
     let response = await mlSearchRequest(token, query, limit, controller.signal);
     if (response.status === 401) {
@@ -128,16 +153,12 @@ async function mlSearch(query, limit = 8) {
     }
     const data = await response.json().catch(() => null);
     if (!response.ok) throw new Error(data?.message || `MercadoLibre respondió ${response.status}`);
-    const items = (Array.isArray(data?.results) ? data.results : [])
-      .filter(item => item?.condition !== 'used' && numberOrNull(item?.price))
-      .slice(0, limit)
-      .map(item => ({
-        id: String(item.id),
-        title: String(item.title || 'Publicación'),
-        price: Number(item.price),
-        image: mlImage(item),
-        permalink: item.permalink || null,
-      }));
+    const products = (Array.isArray(data?.results) ? data.results : [])
+      .filter(product => product?.id && product?.name)
+      .slice(0, Math.min(limit, 6));
+    const hydrated = (await Promise.all(products.map(product => mlHydrate(token, product, controller.signal)))).filter(Boolean);
+    // Con precio primero (manteniendo la relevancia dentro de cada grupo).
+    const items = hydrated.filter(item => item.price).concat(hydrated.filter(item => !item.price));
     return { disabled: false, items };
   } finally {
     clearTimeout(timeout);
@@ -491,13 +512,13 @@ async function handleDetail(ean, lat, lng) {
   // minorista en Precios Claros (pasa seguido con productos de kiosco).
   if (mlEnabled() && (!image || !retailReference.count)) {
     try {
-      let found = (await mlSearch(ean, 6)).items;
+      let found = (await mlSearch(ean, 3)).items;
       if (!found.length && product.name && product.name !== 'Producto') {
-        found = (await mlSearch(`${product.brand || ''} ${product.name}`.trim(), 6)).items;
+        found = (await mlSearch(`${product.brand || ''} ${product.name}`.trim(), 3)).items;
       }
       if (found.length) {
         mlRef = mlPriceReference(found);
-        if (!image) image = found[0].image;
+        if (!image) image = found.find(item => item.image)?.image || null;
       }
     } catch { /* ML es un extra: si falla seguimos sin él */ }
   }
@@ -556,7 +577,7 @@ export default async function handler(req, res) {
       const query = normalizeQuery(req.query.q);
       if (query.length < 2) return res.status(400).json({ error: 'Ingresá al menos 2 caracteres' });
       const result = await mlSearch(query, 3);
-      payload = { image: result.items[0]?.image || null, disabled: result.disabled === true };
+      payload = { image: result.items.find(item => item.image)?.image || null, disabled: result.disabled === true };
     } else {
       const query = normalizeQuery(req.query.q);
       if (query.length < 2) return res.status(400).json({ error: 'Ingresá al menos 2 caracteres' });
