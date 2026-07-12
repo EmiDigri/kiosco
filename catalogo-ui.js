@@ -31,6 +31,9 @@
     detail: null,
     searchRequest: 0,
     detailRequest: 0,
+    mlItems: [],
+    mlReference: null,
+    selectedMl: null,
   };
 
   function escapeHtml(value) {
@@ -149,6 +152,8 @@
   }
 
   function renderResults() {
+    const paneTitle = document.querySelector('.price-pane-title');
+    if (paneTitle) paneTitle.textContent = 'Variantes exactas';
     resultCount.textContent = String(state.items.length);
     if (!state.items.length) {
       resultsElement.innerHTML = '<div class="price-empty"><div class="price-empty-icon">0</div><span>No encontramos una variante vigente en esta zona.</span></div>';
@@ -194,6 +199,9 @@
     state.items = [];
     state.selectedEan = null;
     state.detail = null;
+    state.mlItems = [];
+    state.mlReference = null;
+    state.selectedMl = null;
     resultCount.textContent = '…';
     resultsElement.innerHTML = loadingHtml('Buscando variantes exactas…');
       detailElement.innerHTML = '<div class="price-detail-empty">Sin variante seleccionada.</div>';
@@ -202,17 +210,76 @@
       const data = await apiRequest({ action: 'search', q: query });
       if (requestId !== state.searchRequest) return;
       state.items = Array.isArray(data.items) ? data.items : [];
-      renderResults();
-      if (state.items.length === 1 && /^\d{8,18}$/.test(query.replace(/\D/g, ''))) {
-        loadDetail(state.items[0].ean);
+      if (!state.items.length) {
+        // Precios Claros no lo tiene (típico en librería): probamos MercadoLibre.
+        resultsElement.innerHTML = loadingHtml('Nada en Precios Claros. Buscando en MercadoLibre…');
+        const rescued = await searchMercadoLibre(query, requestId);
+        if (!rescued && requestId === state.searchRequest) renderResults();
+      } else {
+        renderResults();
+        if (state.items.length === 1 && /^\d{8,18}$/.test(query.replace(/\D/g, ''))) {
+          loadDetail(state.items[0].ean);
+        }
       }
     } catch (error) {
       if (requestId !== state.searchRequest) return;
-      resultCount.textContent = '0';
-      resultsElement.innerHTML = errorHtml(error.message);
+      const rescued = await searchMercadoLibre(query, requestId);
+      if (!rescued && requestId === state.searchRequest) {
+        resultCount.textContent = '0';
+        resultsElement.innerHTML = errorHtml(error.message);
+      }
     } finally {
       if (requestId === state.searchRequest) searchButton.disabled = false;
     }
+  }
+
+  // Busca publicaciones activas en MercadoLibre cuando la fuente oficial
+  // no tiene el producto. Devuelve true si llegó a mostrar resultados.
+  async function searchMercadoLibre(query, requestId) {
+    try {
+      const data = await apiRequest({ action: 'ml', q: query });
+      if (requestId !== state.searchRequest) return true;
+      if (data.disabled || !Array.isArray(data.items) || !data.items.length) return false;
+      state.mlItems = data.items;
+      state.mlReference = data.reference || null;
+      renderMlResults();
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function renderMlResults() {
+    const paneTitle = document.querySelector('.price-pane-title');
+    if (paneTitle) paneTitle.textContent = 'Resultados MercadoLibre';
+    resultCount.textContent = String(state.mlItems.length);
+    resultsElement.innerHTML = '<div class="price-ml-note">Publicaciones activas en MercadoLibre — precios orientativos de venta al público.</div>'
+      + state.mlItems.map(item => `
+      <button class="price-result${item.id === state.selectedMl ? ' active' : ''}" type="button" data-ml-id="${escapeHtml(item.id)}" aria-pressed="${item.id === state.selectedMl ? 'true' : 'false'}">
+        <div class="price-result-brand">MercadoLibre</div>
+        <div class="price-result-name">${escapeHtml(item.title)}</div>
+        <div class="price-result-meta"><span>Publicado a <strong>${money(item.price)}</strong></span></div>
+      </button>`).join('');
+  }
+
+  function showMlDetail(id) {
+    const item = state.mlItems.find(entry => entry.id === id);
+    if (!item) return;
+    state.selectedMl = id;
+    renderMlResults();
+    const reference = state.mlReference;
+    renderDetail({
+      mlSource: true,
+      permalink: item.permalink,
+      product: { ean: 'ML' + item.id, name: item.title, brand: 'MercadoLibre', presentation: 'Publicación activa' },
+      image: item.image,
+      retailReference: reference
+        ? { median: reference.median, min: reference.min, max: reference.max, count: reference.count, updatedToday: false }
+        : {},
+      wholesaleReference: {},
+      retailStores: [],
+      wholesaleStores: [],
+    });
   }
 
   function referenceRange(reference) {
@@ -246,9 +313,23 @@
   }
 
   function renderDetail(data) {
+    let retail = data.retailReference || {};
+    let retailLabel = 'Referencia minorista';
+    let retailNote = referenceRange(retail);
+    if (data.mlSource) {
+      retailLabel = 'Referencia MercadoLibre';
+      retailNote = retail.count
+        ? `${retail.count} publicaciones activas · rango ${money(retail.min)} a ${money(retail.max)}`
+        : 'Sin publicaciones para comparar';
+    } else if (!retail.count && data.mlReference?.count) {
+      // Precios Claros no tiene minoristas para este EAN: usamos MercadoLibre.
+      retail = { median: data.mlReference.median, min: data.mlReference.min, max: data.mlReference.max, count: data.mlReference.count, updatedToday: false };
+      data.retailReference = retail; // así "vs. mercado" compara contra esta referencia
+      retailLabel = 'Referencia MercadoLibre';
+      retailNote = `Sin minoristas oficiales · ${retail.count} publicaciones ML, rango ${money(retail.min)} a ${money(retail.max)}`;
+    }
     state.detail = data;
     const product = data.product || {};
-    const retail = data.retailReference || {};
     const wholesale = data.wholesaleReference || {};
     const saved = readSavedPrices()[product.ean] || {};
     const catRecord = catByEan(product.ean);
@@ -271,15 +352,17 @@
         <div>
           <div class="price-product-brand">${escapeHtml(product.brand || 'Sin marca')}</div>
           <div class="price-product-name">${escapeHtml(product.name || 'Producto')}</div>
-          <div class="price-product-meta"><span>${escapeHtml(product.presentation || 'Presentación sin informar')}</span><span>EAN ${escapeHtml(product.ean)}</span></div>
+          <div class="price-product-meta"><span>${escapeHtml(product.presentation || 'Presentación sin informar')}</span>${data.mlSource
+            ? (data.permalink ? `<a class="price-ml-link" href="${escapeHtml(data.permalink)}" target="_blank" rel="noopener">Ver publicación ↗</a>` : '')
+            : `<span>EAN ${escapeHtml(product.ean)}</span>`}</div>
         </div>
       </div>
 
       <div class="price-reference-grid">
         <section class="price-reference">
-          <div class="price-reference-label">Referencia minorista</div>
+          <div class="price-reference-label">${escapeHtml(retailLabel)}</div>
           <div class="price-reference-value">${money(retail.median)}</div>
-          <div class="price-reference-note">${escapeHtml(referenceRange(retail))}</div>
+          <div class="price-reference-note">${escapeHtml(retailNote)}</div>
         </section>
         <section class="price-reference">
           <div class="price-reference-label">Referencia mayorista por unidad · c/IVA</div>
@@ -301,6 +384,14 @@
             <label for="priceOwnCategory">Categoría para tu catálogo</label>
             <input class="price-input" id="priceOwnCategory" list="catCategoriasList" maxlength="40" placeholder="Ej. Golosinas" value="${escapeHtml(savedCat)}">
             <div class="price-field-hint">Al calcular, este producto se guarda en “Mi catálogo”.</div>
+          </div>
+          <div class="price-field">
+            <label for="priceMargenObj">Margen objetivo %</label>
+            <div class="cat-suggest-row">
+              <input class="price-input" id="priceMargenObj" type="number" min="1" max="94" step="1" inputmode="numeric" placeholder="30">
+              <button type="button" class="cat-suggest-btn" id="priceSugerirBtn">Sugerir precio</button>
+            </div>
+            <div class="price-field-hint">Usa tu costo real o la referencia mayorista.</div>
           </div>
         </div>
         <form class="price-calc-form" id="priceCalcForm" data-ean="${escapeHtml(product.ean)}">
@@ -359,6 +450,13 @@
     if (value >= goodAt) return 'good';
     if (value >= warnAt) return 'warn';
     return 'bad';
+  }
+
+  // Precio de venta sugerido para un margen objetivo, redondeado a $50
+  // (margen = (venta − costo) / venta, por eso se divide por 1 − m).
+  function suggestPrice(cost, marginPct) {
+    const raw = cost / (1 - marginPct / 100);
+    return Math.max(50, Math.ceil(raw / 50) * 50);
   }
 
   function calculateMetrics(shouldNotify) {
@@ -427,13 +525,14 @@
       uid: existing ? existing.uid : undefined,
       ean: product.ean ? String(product.ean) : null,
       nombre: product.name || 'Producto',
-      marca: product.brand || '',
-      presentacion: product.presentation || '',
+      marca: product.brand === 'MercadoLibre' ? '' : (product.brand || ''),
+      presentacion: state.detail.mlSource ? '' : (product.presentation || ''),
       categoria,
       costo: cost || 0,
       precio: sale,
       unidades: Number.isFinite(units) && units > 0 ? Math.round(units) : null,
-      origen: existing ? existing.origen : 'preciosclaros',
+      imagen: state.detail.image || (existing ? existing.imagen : null) || null,
+      origen: existing ? existing.origen : (state.detail.mlSource ? 'mercadolibre' : 'preciosclaros'),
     }, { rerender: false });
 
     document.getElementById('priceSavedStatus').classList.add('show');
@@ -475,12 +574,26 @@
   });
   resultsElement.addEventListener('click', event => {
     const button = event.target.closest('.price-result');
-    if (button?.dataset.ean) loadDetail(button.dataset.ean);
+    if (!button) return;
+    if (button.dataset.mlId) { showMlDetail(button.dataset.mlId); return; }
+    if (button.dataset.ean) loadDetail(button.dataset.ean);
   });
   detailElement.addEventListener('submit', event => {
     if (event.target.id !== 'priceCalcForm') return;
     event.preventDefault();
     calculateMetrics(true);
+  });
+  detailElement.addEventListener('click', event => {
+    if (event.target.id !== 'priceSugerirBtn') return;
+    const marginTarget = Number(document.getElementById('priceMargenObj')?.value) || 30;
+    if (marginTarget <= 0 || marginTarget >= 95) { notify('El margen tiene que estar entre 1 y 94%'); return; }
+    const ownCost = Number(document.getElementById('priceOwnCost')?.value);
+    const estimated = Number(state.detail?.wholesaleReference?.unitWithVatMedian);
+    const cost = ownCost > 0 ? ownCost : (estimated > 0 ? estimated : null);
+    if (!cost) { notify('Cargá tu costo real para sugerir el precio'); document.getElementById('priceOwnCost')?.focus(); return; }
+    const suggested = suggestPrice(cost, marginTarget);
+    document.getElementById('priceOwnSale').value = suggested;
+    notify(`Sugerido ${money(suggested)} para ganarle ${marginTarget}%`);
   });
   locationPreset.addEventListener('change', () => {
     const selected = LOCATIONS[locationPreset.value];
@@ -570,6 +683,7 @@
       categoria: record.categoria || 'Kiosco varios',
       costo: Number(record.costo) || 0, precio: Number(record.precio) || 0,
       unidades_bulto: record.unidades ? Number(record.unidades) : null,
+      imagen: record.imagen || null,
       origen: record.origen || 'manual', updated_at: record.savedAt || new Date().toISOString(),
     };
   }
@@ -641,11 +755,43 @@
           categoria: row.categoria || 'Kiosco varios',
           costo: Number(row.costo) || 0, precio: Number(row.precio) || 0,
           unidades: row.unidades_bulto ? Number(row.unidades_bulto) : null,
+          imagen: row.imagen || null,
           origen: row.origen || 'manual', savedAt: row.updated_at || new Date().toISOString(), synced: true,
         };
       });
       writeCatalog(all);
     } catch { /* sin conexión o tabla aún no creada: seguimos con lo local */ }
+  }
+
+  const CAT_ICONS = {
+    'golosinas': '🍬', 'chocolates': '🍫', 'bebidas': '🥤', 'cigarrillos': '🚬',
+    'almacén': '🛒', 'almacen': '🛒', 'fiambres y lácteos': '🧀', 'panificados': '🥐',
+    'limpieza': '🧼', 'perfumería': '🧴', 'perfumeria': '🧴', 'librería': '📚',
+    'libreria': '📚', 'regalería': '🎁', 'regaleria': '🎁', 'kiosco varios': '🏪',
+  };
+  function catIcon(record) {
+    return CAT_ICONS[String(record.categoria || '').trim().toLowerCase()] || '🏪';
+  }
+  function catThumbHtml(record) {
+    const icon = catIcon(record);
+    if (record.imagen && /^https:\/\//.test(record.imagen)) {
+      return `<div class="cat-thumb"><img src="${escapeHtml(record.imagen)}" alt="" loading="lazy" onerror="this.parentElement.textContent='${icon}'"></div>`;
+    }
+    return `<div class="cat-thumb">${icon}</div>`;
+  }
+
+  // Busca la foto en MercadoLibre para un producto cargado a mano
+  // (en segundo plano; si no hay clave ML o falla, queda el ícono de categoría).
+  function catFetchFoto(record) {
+    if (!record || record.imagen) return;
+    apiRequest({ action: 'foto', q: record.nombre }).then(data => {
+      if (!data?.image) return;
+      const all = readCatalog();
+      const current = all[record.uid];
+      if (!current || current.imagen) return;
+      current.imagen = data.image;
+      catUpsert(current, { rerender: !cat.viewCatalog || !cat.viewCatalog.hidden });
+    }).catch(() => { /* sin foto: el ícono de categoría alcanza */ });
   }
 
   function catGroups() {
@@ -671,13 +817,15 @@
       const rows = group.rows.map(record => {
         const margin = catMargin(record);
         const sub = [record.marca, record.presentacion].filter(Boolean).join(' · ');
-        const origen = record.origen === 'manual' ? '<span class="cat-origin">manual</span>' : '<span class="cat-origin">Precios Claros</span>';
+        const origenTexto = { manual: 'manual', preciosclaros: 'Precios Claros', mercadolibre: 'MercadoLibre' }[record.origen] || 'manual';
+        const origen = `<span class="cat-origin">${origenTexto}</span>`;
         return `<div class="cat-row" data-uid="${escapeHtml(record.uid)}">
+          ${catThumbHtml(record)}
           <div class="cat-row-main">
             <div class="cat-row-name">${escapeHtml(record.nombre)}</div>
             <div class="cat-row-brand">${sub ? escapeHtml(sub) + ' · ' : ''}${origen}</div>
           </div>
-          <div class="cat-cell"><div class="cat-cell-label">Costo</div><div class="cat-cell-value">${record.costo ? money(record.costo) : '—'}</div></div>
+          <div class="cat-cell cat-cell-costo"><div class="cat-cell-label">Costo</div><div class="cat-cell-value">${record.costo ? money(record.costo) : '—'}</div></div>
           <div class="cat-cell"><div class="cat-cell-label">Venta</div><div class="cat-cell-value">${record.precio ? money(record.precio) : '—'}</div></div>
           <div class="cat-cell"><div class="cat-cell-label">Margen</div><div class="cat-cell-value margin ${marginClass(margin)}">${marginText(margin)}</div></div>
           <div class="cat-row-actions">
@@ -741,16 +889,27 @@
       if (!precio) { cat.fPrecio.focus(); notify('Poné el precio de venta'); return; }
       const editUid = cat.editUid.value || undefined;
       const existing = editUid ? readCatalog()[editUid] : null;
-      catUpsert({
+      const saved = catUpsert({
         uid: editUid,
         ean: existing ? existing.ean : null,
         nombre,
         marca: existing ? existing.marca : '',
         presentacion: existing ? existing.presentacion : '',
         categoria, costo: costo || 0, precio, unidades,
+        imagen: existing ? existing.imagen : null,
         origen: existing ? existing.origen : 'manual',
       }, { toast: editUid ? 'Producto actualizado ✓' : 'Producto agregado ✓' });
       closeManualForm();
+      catFetchFoto(saved);
+    });
+    document.getElementById('catSugerirBtn')?.addEventListener('click', () => {
+      const cost = catNum(cat.fCosto.value);
+      if (!cost) { cat.fCosto.focus(); notify('Cargá el costo para sugerir el precio'); return; }
+      const marginTarget = Number(document.getElementById('catMargenObj').value) || 30;
+      if (marginTarget <= 0 || marginTarget >= 95) { notify('El margen tiene que estar entre 1 y 94%'); return; }
+      const suggested = suggestPrice(cost, marginTarget);
+      cat.fPrecio.value = suggested;
+      notify(`Sugerido ${money(suggested)} para ganarle ${marginTarget}%`);
     });
     cat.list.addEventListener('click', event => {
       const editBtn = event.target.closest('.cat-icon-btn.edit');

@@ -12,6 +12,83 @@ const BROWSER_HEADERS = {
   'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/138 Safari/537.36',
 };
 
+// ── MercadoLibre: fotos y precios de referencia (cubre librería y kiosco) ──
+// Requiere crear una app gratuita en developers.mercadolibre.com.ar y cargar
+// ML_CLIENT_ID / ML_CLIENT_SECRET en Vercel. Sin claves, la app sigue andando
+// solo con Precios Claros.
+const ML_CLIENT_ID = process.env.ML_CLIENT_ID || '';
+const ML_CLIENT_SECRET = process.env.ML_CLIENT_SECRET || '';
+let mlToken = null; // { value, expiresAt } — dura ~6 horas
+
+function mlEnabled() {
+  return Boolean(ML_CLIENT_ID && ML_CLIENT_SECRET);
+}
+
+async function mlAccessToken() {
+  if (!mlEnabled()) return null;
+  if (mlToken && Date.now() < mlToken.expiresAt - 60000) return mlToken.value;
+  const response = await fetch('https://api.mercadolibre.com/oauth/token', {
+    method: 'POST',
+    headers: { 'content-type': 'application/x-www-form-urlencoded', accept: 'application/json' },
+    body: new URLSearchParams({
+      grant_type: 'client_credentials',
+      client_id: ML_CLIENT_ID,
+      client_secret: ML_CLIENT_SECRET,
+    }),
+  });
+  const data = await response.json().catch(() => null);
+  if (!response.ok || !data?.access_token) throw new Error('MercadoLibre rechazó las credenciales');
+  mlToken = { value: data.access_token, expiresAt: Date.now() + (Number(data.expires_in) || 21600) * 1000 };
+  return mlToken.value;
+}
+
+function mlImage(item) {
+  const raw = item?.thumbnail || '';
+  if (!raw) return null;
+  // El thumbnail viene chico (…-I.jpg); la variante -O.jpg es la imagen original.
+  return raw.replace(/^http:/, 'https:').replace(/-[A-Z]\.jpg$/, '-O.jpg');
+}
+
+async function mlSearch(query, limit = 8) {
+  if (!mlEnabled()) return { disabled: true, items: [] };
+  const token = await mlAccessToken();
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+  try {
+    const params = new URLSearchParams({ q: query, limit: String(Math.min(50, limit * 3)) });
+    const response = await fetch(`https://api.mercadolibre.com/sites/MLA/search?${params}`, {
+      headers: { Authorization: `Bearer ${token}`, accept: 'application/json' },
+      signal: controller.signal,
+    });
+    const data = await response.json().catch(() => null);
+    if (!response.ok) throw new Error(data?.message || `MercadoLibre respondió ${response.status}`);
+    const items = (Array.isArray(data?.results) ? data.results : [])
+      .filter(item => item?.condition !== 'used' && numberOrNull(item?.price))
+      .slice(0, limit)
+      .map(item => ({
+        id: String(item.id),
+        title: String(item.title || 'Publicación'),
+        price: Number(item.price),
+        image: mlImage(item),
+        permalink: item.permalink || null,
+      }));
+    return { disabled: false, items };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function mlPriceReference(items) {
+  const prices = items.map(item => item.price).filter(Number.isFinite);
+  if (!prices.length) return null;
+  return {
+    median: median(prices),
+    min: Math.min(...prices),
+    max: Math.max(...prices),
+    count: prices.length,
+  };
+}
+
 async function preciosClarosApiKey() {
   if (process.env.PRECIOS_CLAROS_API_KEY) return process.env.PRECIOS_CLAROS_API_KEY;
   if (!publicApiKeyPromise) {
@@ -341,9 +418,28 @@ async function handleDetail(ean, lat, lng) {
   const packWithoutVat = reference(wholesale.rows, 'packWithoutVat');
   const unitsPerPack = reference(wholesale.rows, 'unitsPerPack');
 
+  const product = retail.product || wholesale.product || { ean, name: 'Producto', brand: '', presentation: '' };
+  let image = imageSettled.status === 'fulfilled' ? imageSettled.value : null;
+  let mlRef = null;
+  // MercadoLibre entra como respaldo: cuando falta la foto o no hay precio
+  // minorista en Precios Claros (pasa seguido con productos de kiosco).
+  if (mlEnabled() && (!image || !retailReference.count)) {
+    try {
+      let found = (await mlSearch(ean, 6)).items;
+      if (!found.length && product.name && product.name !== 'Producto') {
+        found = (await mlSearch(`${product.brand || ''} ${product.name}`.trim(), 6)).items;
+      }
+      if (found.length) {
+        mlRef = mlPriceReference(found);
+        if (!image) image = found[0].image;
+      }
+    } catch { /* ML es un extra: si falla seguimos sin él */ }
+  }
+
   return {
-    product: retail.product || wholesale.product || { ean, name: 'Producto', brand: '', presentation: '' },
-    image: imageSettled.status === 'fulfilled' ? imageSettled.value : null,
+    product,
+    image,
+    mlReference: mlRef,
     retailReference,
     wholesaleReference: {
       unitWithVatMedian: unitWithVat.median,
@@ -382,6 +478,19 @@ export default async function handler(req, res) {
       const ean = String(req.query.ean || '').replace(/\D/g, '').slice(0, 18);
       if (ean.length < 8) return res.status(400).json({ error: 'EAN inválido' });
       payload = await handleDetail(ean, lat, lng);
+    } else if (action === 'ml') {
+      // Búsqueda directa en MercadoLibre (para librería y todo lo que
+      // Precios Claros no cubre).
+      const query = normalizeQuery(req.query.q);
+      if (query.length < 2) return res.status(400).json({ error: 'Ingresá al menos 2 caracteres' });
+      const result = await mlSearch(query, 10);
+      payload = { ...result, reference: mlPriceReference(result.items) };
+    } else if (action === 'foto') {
+      // Solo la mejor foto para un producto cargado a mano en el catálogo.
+      const query = normalizeQuery(req.query.q);
+      if (query.length < 2) return res.status(400).json({ error: 'Ingresá al menos 2 caracteres' });
+      const result = await mlSearch(query, 3);
+      payload = { image: result.items[0]?.image || null, disabled: result.disabled === true };
     } else {
       const query = normalizeQuery(req.query.q);
       if (query.length < 2) return res.status(400).json({ error: 'Ingresá al menos 2 caracteres' });
