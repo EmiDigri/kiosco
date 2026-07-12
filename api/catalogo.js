@@ -13,33 +13,89 @@ const BROWSER_HEADERS = {
 };
 
 // ── MercadoLibre: fotos y precios de referencia (cubre librería y kiosco) ──
-// Requiere crear una app gratuita en developers.mercadolibre.com.ar y cargar
-// ML_CLIENT_ID / ML_CLIENT_SECRET en Vercel. Sin claves, la app sigue andando
-// solo con Precios Claros.
+// Requiere una app gratuita en developers.mercadolibre.com.ar con
+// ML_CLIENT_ID / ML_CLIENT_SECRET cargados en Vercel, y ADEMÁS conectar la
+// cuenta una vez entrando a /api/ml-auth: la búsqueda de ML devuelve
+// "forbidden" con tokens de aplicación sola (client_credentials), solo
+// funciona con un token de cuenta autorizada. Los tokens viven en la tabla
+// ml_tokens de Supabase y se renuevan solos (ML rota el refresh token en
+// cada renovación, por eso hay que persistirlo y no alcanza una env var).
 const ML_CLIENT_ID = process.env.ML_CLIENT_ID || '';
 const ML_CLIENT_SECRET = process.env.ML_CLIENT_SECRET || '';
-let mlToken = null; // { value, expiresAt } — dura ~6 horas
+const SUPABASE_URL = 'https://pilfeptwylgufhbmmday.supabase.co';
+const SUPABASE_SECRET = 'sb_secret_I-zc6YWn33cDY6jfIZwyAA_lJEDHXVu';
+const SB_HEADERS = { apikey: SUPABASE_SECRET, Authorization: `Bearer ${SUPABASE_SECRET}`, 'Content-Type': 'application/json' };
+let mlToken = null; // cache en memoria { value, expiresAt }
 
 function mlEnabled() {
   return Boolean(ML_CLIENT_ID && ML_CLIENT_SECRET);
 }
 
-async function mlAccessToken() {
-  if (!mlEnabled()) return null;
-  if (mlToken && Date.now() < mlToken.expiresAt - 60000) return mlToken.value;
-  const response = await fetch('https://api.mercadolibre.com/oauth/token', {
+async function mlTokensLeer() {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/ml_tokens?id=eq.1&select=access_token,refresh_token,expires_at`, {
+      headers: SB_HEADERS,
+      cache: 'no-store',
+    });
+    if (!res.ok) return null;
+    const rows = await res.json();
+    return rows[0] || null;
+  } catch {
+    return null;
+  }
+}
+
+async function mlTokensGuardar(data) {
+  const row = {
+    id: 1,
+    access_token: data.access_token || null,
+    refresh_token: data.refresh_token || null,
+    expires_at: new Date(Date.now() + ((Number(data.expires_in) || 21600) - 300) * 1000).toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+  await fetch(`${SUPABASE_URL}/rest/v1/ml_tokens?on_conflict=id`, {
     method: 'POST',
-    headers: { 'content-type': 'application/x-www-form-urlencoded', accept: 'application/json' },
-    body: new URLSearchParams({
-      grant_type: 'client_credentials',
-      client_id: ML_CLIENT_ID,
-      client_secret: ML_CLIENT_SECRET,
-    }),
+    headers: { ...SB_HEADERS, Prefer: 'resolution=merge-duplicates,return=minimal' },
+    body: JSON.stringify(row),
   });
-  const data = await response.json().catch(() => null);
-  if (!response.ok || !data?.access_token) throw new Error('MercadoLibre rechazó las credenciales');
-  mlToken = { value: data.access_token, expiresAt: Date.now() + (Number(data.expires_in) || 21600) * 1000 };
-  return mlToken.value;
+}
+
+async function mlAccessToken(forceRefresh = false) {
+  if (!mlEnabled()) return null;
+  if (!forceRefresh && mlToken && Date.now() < mlToken.expiresAt) return mlToken.value;
+  const row = await mlTokensLeer();
+  if (!row) return null; // nunca se conectó la cuenta: falta abrir /api/ml-auth
+  const dbExpiry = row.expires_at ? Date.parse(row.expires_at) : 0;
+  if (!forceRefresh && row.access_token && dbExpiry > Date.now()) {
+    mlToken = { value: row.access_token, expiresAt: dbExpiry };
+    return mlToken.value;
+  }
+  if (!row.refresh_token) return null;
+  try {
+    const response = await fetch('https://api.mercadolibre.com/oauth/token', {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded', accept: 'application/json' },
+      body: new URLSearchParams({
+        grant_type: 'refresh_token',
+        client_id: ML_CLIENT_ID,
+        client_secret: ML_CLIENT_SECRET,
+        refresh_token: row.refresh_token,
+      }),
+    });
+    const data = await response.json().catch(() => null);
+    if (!response.ok || !data?.access_token) throw new Error(data?.message || 'refresh rechazado');
+    await mlTokensGuardar(data); // ML rota el refresh token: persistimos el nuevo
+    mlToken = { value: data.access_token, expiresAt: Date.now() + ((Number(data.expires_in) || 21600) - 300) * 1000 };
+    return mlToken.value;
+  } catch {
+    // Otra instancia pudo renovar al mismo tiempo (y rotar el token): releemos.
+    const again = await mlTokensLeer();
+    if (again?.access_token && Date.parse(again.expires_at || 0) > Date.now()) {
+      mlToken = { value: again.access_token, expiresAt: Date.parse(again.expires_at) };
+      return mlToken.value;
+    }
+    return null;
+  }
 }
 
 function mlImage(item) {
@@ -49,17 +105,27 @@ function mlImage(item) {
   return raw.replace(/^http:/, 'https:').replace(/-[A-Z]\.jpg$/, '-O.jpg');
 }
 
+function mlSearchRequest(token, query, limit, signal) {
+  const params = new URLSearchParams({ q: query, limit: String(Math.min(50, limit * 3)) });
+  return fetch(`https://api.mercadolibre.com/sites/MLA/search?${params}`, {
+    headers: { Authorization: `Bearer ${token}`, accept: 'application/json' },
+    signal,
+  });
+}
+
 async function mlSearch(query, limit = 8) {
   if (!mlEnabled()) return { disabled: true, items: [] };
-  const token = await mlAccessToken();
+  let token = await mlAccessToken();
+  if (!token) return { disabled: true, items: [], needsAuth: true };
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 8000);
   try {
-    const params = new URLSearchParams({ q: query, limit: String(Math.min(50, limit * 3)) });
-    const response = await fetch(`https://api.mercadolibre.com/sites/MLA/search?${params}`, {
-      headers: { Authorization: `Bearer ${token}`, accept: 'application/json' },
-      signal: controller.signal,
-    });
+    let response = await mlSearchRequest(token, query, limit, controller.signal);
+    if (response.status === 401) {
+      // El access token pudo vencer entre lecturas: renovamos y reintentamos una vez.
+      token = await mlAccessToken(true);
+      if (token) response = await mlSearchRequest(token, query, limit, controller.signal);
+    }
     const data = await response.json().catch(() => null);
     if (!response.ok) throw new Error(data?.message || `MercadoLibre respondió ${response.status}`);
     const items = (Array.isArray(data?.results) ? data.results : [])
