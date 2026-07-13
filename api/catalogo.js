@@ -4,7 +4,14 @@ const WHOLESALE_API = process.env.PRECIOS_CLAROS_WHOLESALE_API || 'https://d3e6h
 const DEFAULT_LOCATION = { lat: -34.6037, lng: -58.3816 };
 const BRANCH_CACHE_TTL = 15 * 60 * 1000;
 const branchCache = new Map();
+const SUPPLIER_CACHE_TTL = 10 * 60 * 1000;
+const supplierCache = new Map();
 let publicApiKeyPromise;
+
+const CASA_PASO_URL = 'https://www.libreriamayorista.com.ar';
+const DULCE_SUR_URL = 'https://oepqhdjuujfdlpjjktbs.supabase.co';
+// Clave anon pública usada por la propia tienda. RLS limita el acceso a su catálogo visible.
+const DULCE_SUR_PUBLIC_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9lcHFoZGp1dWpmZGxwamprdGJzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MTM5MjIsImV4cCI6MjA4OTE4OTkyMn0.XxT5AUQRrYZmxVF66OXdM895JOVeEcjJGKE9OwwM8Xs';
 
 const BROWSER_HEADERS = {
   accept: 'application/json, text/plain, */*',
@@ -117,6 +124,17 @@ function mlAttribute(product, id) {
 function mlQueryTokens(query) {
   const ignored = new Set(['de', 'del', 'la', 'las', 'los', 'el', 'con', 'para', 'por', 'un', 'una']);
   return mlText(query).split(' ').filter(token => token.length > 1 && !ignored.has(token));
+}
+
+function textRelevance(title, query) {
+  const text = mlText(title);
+  const queryText = mlText(query);
+  const tokens = mlQueryTokens(query);
+  let score = text === queryText ? 70 : (text.startsWith(queryText) ? 42 : (text.includes(queryText) ? 28 : 0));
+  const matched = tokens.filter(token => text.includes(token)).length;
+  score += tokens.length ? (matched / tokens.length) * 35 : 0;
+  score -= (tokens.length - matched) * 16;
+  return score;
 }
 
 function mlRelevance(product, query) {
@@ -232,6 +250,245 @@ async function mlSearch(query, limit = 8) {
   } finally {
     clearTimeout(timeout);
   }
+}
+
+function supplierCacheGet(key) {
+  const cached = supplierCache.get(key);
+  return cached && Date.now() - cached.savedAt < SUPPLIER_CACHE_TTL ? cached.value : null;
+}
+
+function supplierCacheSet(key, value) {
+  supplierCache.set(key, { savedAt: Date.now(), value });
+  if (supplierCache.size > 80) supplierCache.delete(supplierCache.keys().next().value);
+  return value;
+}
+
+function htmlText(value) {
+  const entities = { amp: '&', quot: '"', apos: "'", lt: '<', gt: '>', nbsp: ' ', aacute: 'á', eacute: 'é', iacute: 'í', oacute: 'ó', uacute: 'ú', ntilde: 'ñ' };
+  return String(value || '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(Number(code)))
+    .replace(/&([a-z]+);/gi, (_, name) => entities[name.toLowerCase()] || `&${name};`)
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function htmlClass(block, className) {
+  const match = block.match(new RegExp(`class=["'][^"']*\\b${className}\\b[^"']*["'][^>]*>([\\s\\S]*?)<\\/div>`, 'i'));
+  return htmlText(match?.[1]);
+}
+
+function sitePrice(value) {
+  const raw = String(value || '').replace(/[^\d.,-]/g, '');
+  if (!raw) return null;
+  const normalized = raw.includes(',') && raw.includes('.')
+    ? raw.replace(/\./g, '').replace(',', '.')
+    : raw.replace(',', '.');
+  return numberOrNull(normalized);
+}
+
+async function supplierFetch(url, options = {}, timeoutMs = 6500, windowsEncoding = false) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    const buffer = await response.arrayBuffer();
+    const text = new TextDecoder(windowsEncoding ? 'windows-1252' : 'utf-8').decode(buffer);
+    if (!response.ok) throw new Error(`El proveedor respondió ${response.status}`);
+    return text;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function casaPasoQuery(query) {
+  return normalizeQuery(query)
+    .replace(/\bbiromes?\b/gi, 'boligrafo')
+    .replace(/\bfibrones?\b/gi, 'marcador')
+    .replace(/\bhojas?\s+a4\b/gi, 'resma a4');
+}
+
+async function casaPasoSearch(query, limit = 10) {
+  const translated = casaPasoQuery(query);
+  const cacheKey = `casa:${mlText(translated)}:${limit}`;
+  const cached = supplierCacheGet(cacheKey);
+  if (cached) return cached;
+  const html = await supplierFetch(`${CASA_PASO_URL}/traerproductos.php`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/x-www-form-urlencoded',
+      'user-agent': BROWSER_HEADERS['user-agent'],
+      referer: `${CASA_PASO_URL}/`,
+    },
+    body: new URLSearchParams({ opc: '2', busqueda: translated, pagina: '1' }),
+  }, 6500, true);
+  const items = html.split(/<div id="" class="div-producto">/i).slice(1).map(block => {
+    const code = block.match(/detalle_producto\('([^']+)'\)/i)?.[1] || '';
+    const imagePath = block.match(/<img[^>]+src=["']([^"']+)["']/i)?.[1] || '';
+    const priceRaw = block.match(/class=["']p-precio-oferta["'][^>]*>\s*\$?([\d.,]+)/i)?.[1];
+    const title = htmlClass(block, 'p-descrip');
+    const family = htmlClass(block, 'p-titulo');
+    if (!code || !title) return null;
+    const familyParts = family.split(/\s+-\s+/);
+    return {
+      id: `casa:${code}`,
+      source: 'casa-paso',
+      sourceLabel: 'Casa Paso',
+      code,
+      title,
+      brand: familyParts[1] || '',
+      presentation: familyParts[0] || 'Librería',
+      category: 'Librería',
+      unitPrice: sitePrice(priceRaw),
+      packPrice: null,
+      packUnits: null,
+      minimum: null,
+      stock: null,
+      available: true,
+      image: imagePath ? new URL(imagePath, `${CASA_PASO_URL}/`).href : null,
+      permalink: `${CASA_PASO_URL}/index.php?codigo=${encodeURIComponent(code)}`,
+      relevance: textRelevance(`${family} ${title}`, translated),
+    };
+  }).filter(Boolean).sort((a, b) => b.relevance - a.relevance).slice(0, limit);
+  return supplierCacheSet(cacheKey, items);
+}
+
+async function casaPasoDetail(code) {
+  const safeCode = String(code || '').replace(/[^a-z0-9-]/gi, '').slice(0, 30);
+  if (!safeCode) throw new Error('Código de Casa Paso inválido');
+  const cacheKey = `casa-detail:${safeCode}`;
+  const cached = supplierCacheGet(cacheKey);
+  if (cached) return cached;
+  const html = await supplierFetch(`${CASA_PASO_URL}/detalle_producto.php`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/x-www-form-urlencoded',
+      'user-agent': BROWSER_HEADERS['user-agent'],
+      referer: `${CASA_PASO_URL}/`,
+    },
+    body: new URLSearchParams({ codigo: safeCode }),
+  }, 6500, true);
+  const add = html.match(/agregar_producto\('([^']*)','((?:\\'|[^'])*)',([\d.]+),([\d.]+),'([^']*)',(\d+),(\d+)\)/i);
+  const title = htmlClass(html, 'p-texto-ft') || 'Producto de librería';
+  const heading = htmlClass(html, 'p-detalle-titulo');
+  const imagePath = html.match(/class=["'][^"']*p-img-detalle[^"']*["'][\s\S]*?<img[^>]+src=["']([^"']+)["']/i)?.[1] || '';
+  const unitPrice = sitePrice(add?.[3]) || sitePrice(html.match(/class=["']p-cantidades-ft["'][^>]*>\s*\$?([\d.,]+)/i)?.[1]);
+  const minimum = Number(add?.[6]) || 1;
+  const packUnits = Number(add?.[7]) || null;
+  const familyParts = heading.split(/\s+-\s+/);
+  return supplierCacheSet(cacheKey, {
+    id: `casa:${safeCode}`,
+    source: 'casa-paso',
+    sourceLabel: 'Casa Paso',
+    code: safeCode,
+    title: title.replace(/\\'/g, "'"),
+    brand: familyParts[1] || '',
+    presentation: [minimum > 1 ? `Mínimo x${minimum}` : '', packUnits ? `Bulto x${packUnits}` : ''].filter(Boolean).join(' · ') || 'Venta mayorista',
+    category: 'Librería',
+    unitPrice,
+    packPrice: unitPrice && packUnits ? unitPrice * packUnits : null,
+    packUnits,
+    minimum,
+    stock: null,
+    available: true,
+    image: imagePath ? new URL(imagePath, `${CASA_PASO_URL}/`).href : null,
+    permalink: `${CASA_PASO_URL}/index.php?codigo=${encodeURIComponent(safeCode)}`,
+  });
+}
+
+function dulceSurSlug(title, id) {
+  const slug = mlText(title).replace(/\s+/g, '-').replace(/^-|-$/g, '');
+  return `${slug}-${String(id).slice(0, 8)}`;
+}
+
+async function dulceSurJson(table, params) {
+  const response = await fetch(`${DULCE_SUR_URL}/rest/v1/${table}?${params}`, {
+    headers: {
+      apikey: DULCE_SUR_PUBLIC_KEY,
+      Authorization: `Bearer ${DULCE_SUR_PUBLIC_KEY}`,
+      accept: 'application/json',
+    },
+  });
+  const data = await response.json().catch(() => null);
+  if (!response.ok || !Array.isArray(data)) throw new Error(data?.message || `Dulce Sur respondió ${response.status}`);
+  return data;
+}
+
+async function dulceSurSearch(query, limit = 10) {
+  const queryText = normalizeQuery(query);
+  const cacheKey = `dulce:${mlText(queryText)}:${limit}`;
+  const cached = supplierCacheGet(cacheKey);
+  if (cached) return cached;
+  const tokens = mlQueryTokens(queryText).slice(0, 4);
+  if (!tokens.length) return [];
+  const params = new URLSearchParams({
+    select: 'id,codigo,nombre,precio,precio_oferta,imagen_url,stock,fecha_actualizacion,mostrar_precio_unidad,categorias(nombre),marcas(nombre)',
+    activo: 'eq.true',
+    visibilidad: 'eq.visible',
+    limit: String(Math.min(24, Math.max(limit * 2, 12))),
+  });
+  params.set('and', `(${tokens.map(token => `nombre.ilike.*${token}*`).join(',')})`);
+  const products = await dulceSurJson('productos', params);
+  if (!products.length) return supplierCacheSet(cacheKey, []);
+  const presentationParams = new URLSearchParams({
+    select: 'producto_id,nombre,cantidad,precio,precio_oferta,sku',
+    producto_id: `in.(${products.map(product => product.id).join(',')})`,
+    order: 'cantidad.asc',
+  });
+  const presentations = await dulceSurJson('presentaciones', presentationParams).catch(() => []);
+  const byProduct = new Map();
+  presentations.forEach(row => {
+    if (!byProduct.has(row.producto_id)) byProduct.set(row.producto_id, []);
+    byProduct.get(row.producto_id).push(row);
+  });
+  const items = products.map(product => {
+    const rows = byProduct.get(product.id) || [];
+    const priced = rows.map(row => ({
+      ...row,
+      quantity: Math.max(1, Number(row.cantidad) || 1),
+      effectivePrice: numberOrNull(row.precio_oferta) || numberOrNull(row.precio),
+    })).filter(row => row.effectivePrice);
+    const unit = priced.find(row => row.quantity === 1);
+    const packs = priced.filter(row => row.quantity > 1).sort((a, b) => (a.effectivePrice / a.quantity) - (b.effectivePrice / b.quantity));
+    const bestPack = packs[0] || null;
+    const publicUnit = unit?.effectivePrice || numberOrNull(product.precio_oferta) || numberOrNull(product.precio);
+    const bestUnit = bestPack ? Math.min(publicUnit || Infinity, bestPack.effectivePrice / bestPack.quantity) : publicUnit;
+    const brand = Array.isArray(product.marcas) ? product.marcas[0]?.nombre : product.marcas?.nombre;
+    const category = Array.isArray(product.categorias) ? product.categorias[0]?.nombre : product.categorias?.nombre;
+    return {
+      id: `dulce:${product.id}`,
+      source: 'dulce-sur',
+      sourceLabel: 'Dulce Sur',
+      code: product.codigo || unit?.sku || '',
+      title: product.nombre,
+      brand: brand || '',
+      presentation: bestPack?.nombre || unit?.nombre || 'Unidad',
+      category: category || 'Kiosco varios',
+      unitPrice: Number.isFinite(bestUnit) ? bestUnit : publicUnit,
+      shelfPrice: publicUnit,
+      packPrice: bestPack?.effectivePrice || null,
+      packUnits: bestPack?.quantity || null,
+      minimum: 1,
+      stock: Number(product.stock) || 0,
+      available: Number(product.stock) > 0,
+      image: product.imagen_url || null,
+      permalink: `https://www.dulcesur.com/productos/${dulceSurSlug(product.nombre, product.id)}`,
+      updatedAt: product.fecha_actualizacion || null,
+      relevance: textRelevance(`${brand || ''} ${product.nombre}`, queryText),
+    };
+  }).sort((a, b) => Number(b.available) - Number(a.available) || b.relevance - a.relevance).slice(0, limit);
+  return supplierCacheSet(cacheKey, items);
+}
+
+async function supplierSearch(query, limit = 10) {
+  const [casa, dulce] = await Promise.allSettled([casaPasoSearch(query, limit), dulceSurSearch(query, limit)]);
+  return {
+    items: [
+      ...(dulce.status === 'fulfilled' ? dulce.value : []),
+      ...(casa.status === 'fulfilled' ? casa.value : []),
+    ],
+    sources: { casaPaso: casa.status === 'fulfilled', dulceSur: dulce.status === 'fulfilled' },
+  };
 }
 
 async function preciosClarosApiKey() {
@@ -522,17 +779,20 @@ async function productImage(ean) {
 }
 
 async function handleSearch(query, lat, lng) {
-  const [retailSettled, wholesaleSettled] = await Promise.allSettled([
+  const [retailSettled, wholesaleSettled, suppliersSettled] = await Promise.allSettled([
     searchSource('retail', query, lat, lng),
     searchSource('wholesale', query, lat, lng),
+    supplierSearch(query, 10),
   ]);
-  if (retailSettled.status === 'rejected' && wholesaleSettled.status === 'rejected') {
+  if (retailSettled.status === 'rejected' && wholesaleSettled.status === 'rejected' && suppliersSettled.status === 'rejected') {
     throw retailSettled.reason;
   }
   const retail = retailSettled.status === 'fulfilled' ? retailSettled.value : null;
   const wholesale = wholesaleSettled.status === 'fulfilled' ? wholesaleSettled.value : null;
+  const suppliers = suppliersSettled.status === 'fulfilled' ? suppliersSettled.value : { items: [], sources: {} };
   return {
     items: mergeSearchResults(retail, wholesale),
+    supplierItems: suppliers.items,
     coverage: {
       retailBranches: retail?.branches?.length || 0,
       wholesaleBranches: wholesale?.branches?.length || 0,
@@ -540,6 +800,8 @@ async function handleSearch(query, lat, lng) {
     sources: {
       retail: retailSettled.status === 'fulfilled',
       wholesale: wholesaleSettled.status === 'fulfilled',
+      casaPaso: suppliers.sources.casaPaso === true,
+      dulceSur: suppliers.sources.dulceSur === true,
     },
   };
 }
@@ -624,6 +886,15 @@ export default async function handler(req, res) {
       const ean = String(req.query.ean || '').replace(/\D/g, '').slice(0, 18);
       if (ean.length < 8) return res.status(400).json({ error: 'EAN inválido' });
       payload = await handleDetail(ean, lat, lng);
+    } else if (action === 'supplier-detail') {
+      const source = String(req.query.source || '');
+      if (source !== 'casa-paso') return res.status(400).json({ error: 'Proveedor inválido' });
+      payload = { item: await casaPasoDetail(req.query.code) };
+    } else if (action === 'suggest') {
+      const query = normalizeQuery(req.query.q);
+      if (query.length < 2) return res.status(400).json({ error: 'Ingresá al menos 2 caracteres' });
+      const suppliers = await supplierSearch(query, 6);
+      payload = { items: suppliers.items.slice(0, 10), sources: suppliers.sources };
     } else if (action === 'ml') {
       // Búsqueda directa en MercadoLibre (para librería y todo lo que
       // Precios Claros no cubre).
@@ -643,12 +914,12 @@ export default async function handler(req, res) {
       payload = await handleSearch(query, lat, lng);
     }
 
-    res.setHeader('Cache-Control', 's-maxage=900, stale-while-revalidate=3600');
+    res.setHeader('Cache-Control', action === 'suggest' ? 's-maxage=300, stale-while-revalidate=900' : 's-maxage=900, stale-while-revalidate=3600');
     return res.status(200).json({
       ...payload,
       location: { lat, lng },
       checkedAt: new Date().toISOString(),
-      source: 'Precios Claros (SEPA)',
+      source: 'Precios Claros + proveedores mayoristas',
     });
   } catch (error) {
     const message = error?.name === 'AbortError'

@@ -5,6 +5,8 @@
   const searchForm = document.getElementById('priceSearchForm');
   const searchInput = document.getElementById('priceSearchInput');
   const searchButton = document.getElementById('priceSearchButton');
+  const searchWrap = document.getElementById('priceSearchWrap');
+  const suggestionsElement = document.getElementById('priceSuggestions');
   const resultsElement = document.getElementById('priceResults');
   const resultCount = document.getElementById('priceResultCount');
   const detailElement = document.getElementById('priceDetail');
@@ -33,7 +35,13 @@
     detailRequest: 0,
     mlItems: [],
     selectedMl: null,
+    supplierItems: [],
+    selectedSupplier: null,
+    suggestions: [],
+    suggestionRequest: 0,
+    suggestionActive: -1,
   };
+  let suggestionTimer = null;
 
   function escapeHtml(value) {
     return String(value ?? '').replace(/[&<>'"]/g, char => ({
@@ -156,6 +164,7 @@
       if (panel) panel.scrollTop = 0;
       setTimeout(() => searchInput.focus(), 40);
     } else if (typeof window.unlockBody === 'function') {
+      hideSuggestions();
       window.unlockBody();
     }
   }
@@ -177,21 +186,46 @@
     return parts.length ? parts.join('') : '<span>Sin precios en esta zona</span>';
   }
 
+  function supplierPriceSummary(item) {
+    const parts = [];
+    if (item.available === false) parts.push('<span style="color:#f87171">Sin stock</span>');
+    else if (item.stock !== null && item.stock !== undefined && Number.isFinite(Number(item.stock))) parts.push(`<span>${Number(item.stock)} disponibles</span>`);
+    if (item.unitPrice) parts.push(`<span>Mayor. <strong>${money(item.unitPrice)}/u</strong></span>`);
+    if (item.packPrice && item.packUnits > 1) parts.push(`<span>Bulto x${Math.round(item.packUnits)} <strong>${money(item.packPrice)}</strong></span>`);
+    return parts.length ? parts.join('') : '<span>Consultar disponibilidad</span>';
+  }
+
+  function sourceHeading(label, count) {
+    return `<div class="price-source-group"><span>${escapeHtml(label)}</span><span>${count}</span></div>`;
+  }
+
   function renderResults() {
     const paneTitle = document.querySelector('.price-pane-title');
-    if (paneTitle) paneTitle.textContent = 'Variantes exactas';
-    resultCount.textContent = String(state.items.length);
-    if (!state.items.length) {
+    const supplierGroups = [
+      ['Dulce Sur · kiosco', state.supplierItems.filter(item => item.source === 'dulce-sur')],
+      ['Casa Paso · librería', state.supplierItems.filter(item => item.source === 'casa-paso')],
+    ].filter(([, items]) => items.length);
+    const total = state.items.length + state.supplierItems.length;
+    if (paneTitle) paneTitle.textContent = supplierGroups.length ? 'Resultados combinados' : 'Variantes exactas';
+    resultCount.textContent = String(total);
+    if (!total) {
       resultsElement.innerHTML = '<div class="price-empty"><div class="price-empty-icon">0</div><span>No encontramos una variante vigente en esta zona.</span></div>';
       return;
     }
-    resultsElement.innerHTML = state.items.map(item => `
+    const officialHtml = state.items.length ? sourceHeading('Precios Claros', state.items.length) + state.items.map(item => `
       <button class="price-result${item.ean === state.selectedEan ? ' active' : ''}" type="button" data-ean="${escapeHtml(item.ean)}" aria-pressed="${item.ean === state.selectedEan ? 'true' : 'false'}">
         <div class="price-result-brand">${escapeHtml(item.brand || 'Sin marca')} · ${escapeHtml(item.presentation || 'Presentación sin informar')}</div>
         <div class="price-result-name">${escapeHtml(item.name)}</div>
         <div class="price-result-meta">${itemPriceSummary(item)}</div>
       </button>
-    `).join('');
+    `).join('') : '';
+    const suppliersHtml = supplierGroups.map(([label, items]) => sourceHeading(label, items.length) + items.map(item => `
+      <button class="price-result${item.id === state.selectedSupplier ? ' active' : ''}" type="button" data-supplier-id="${escapeHtml(item.id)}" aria-pressed="${item.id === state.selectedSupplier ? 'true' : 'false'}">
+        <div class="price-result-brand">${escapeHtml(item.brand || item.sourceLabel)}${item.presentation ? ` · ${escapeHtml(item.presentation)}` : ''}</div>
+        <div class="price-result-name">${escapeHtml(item.title)}</div>
+        <div class="price-result-meta">${supplierPriceSummary(item)}</div>
+      </button>`).join('')).join('');
+    resultsElement.innerHTML = officialHtml + suppliersHtml;
   }
 
   async function apiRequest(params) {
@@ -213,6 +247,94 @@
     return data;
   }
 
+  function hideSuggestions() {
+    if (!suggestionsElement) return;
+    suggestionsElement.hidden = true;
+    suggestionsElement.innerHTML = '';
+    state.suggestions = [];
+    state.suggestionActive = -1;
+    searchInput.setAttribute('aria-expanded', 'false');
+  }
+
+  function renderSuggestions() {
+    if (!suggestionsElement || !state.suggestions.length) { hideSuggestions(); return; }
+    suggestionsElement.innerHTML = state.suggestions.map((item, index) => `
+      <button class="price-suggestion${index === state.suggestionActive ? ' active' : ''}" type="button" role="option" aria-selected="${index === state.suggestionActive ? 'true' : 'false'}" data-suggestion-index="${index}">
+        <span><span class="price-suggestion-name">${escapeHtml(item.title)}</span><span class="price-suggestion-meta">${escapeHtml(item.sourceLabel || 'Producto')}${item.presentation ? ` · ${escapeHtml(item.presentation)}` : ''}</span></span>
+        <span class="price-suggestion-price">${item.unitPrice ? money(item.unitPrice) : ''}</span>
+      </button>`).join('');
+    suggestionsElement.hidden = false;
+    searchInput.setAttribute('aria-expanded', 'true');
+  }
+
+  function localCatalogSuggestions(query) {
+    const normalized = catalogText(query).trim();
+    if (!normalized) return [];
+    return catItems().filter(record => catalogText([record.nombre, record.marca, record.presentacion].filter(Boolean).join(' ')).includes(normalized)).slice(0, 4).map(record => ({
+      id: `catalog:${record.uid}`,
+      source: 'catalog',
+      sourceLabel: 'Mi catálogo',
+      title: record.nombre,
+      presentation: record.marca || record.presentacion || '',
+      unitPrice: Number(record.precio) || null,
+    }));
+  }
+
+  async function loadSuggestions() {
+    const query = searchInput.value.trim();
+    if (query.length < 2) { state.suggestionRequest += 1; hideSuggestions(); return; }
+    const requestId = ++state.suggestionRequest;
+    const local = localCatalogSuggestions(query);
+    try {
+      const data = await apiRequest({ action: 'suggest', q: query });
+      if (requestId !== state.suggestionRequest || searchInput.value.trim() !== query) return;
+      const remote = Array.isArray(data.items) ? data.items : [];
+      const merged = [];
+      const seen = new Set();
+      [...local, ...remote].forEach(item => {
+        const key = catalogText(item.title);
+        if (!key || seen.has(key) || merged.length >= 8) return;
+        seen.add(key);
+        merged.push(item);
+      });
+      state.suggestions = merged;
+      state.suggestionActive = -1;
+      renderSuggestions();
+    } catch {
+      if (requestId !== state.suggestionRequest) return;
+      state.suggestions = local;
+      state.suggestionActive = -1;
+      renderSuggestions();
+    }
+  }
+
+  function scheduleSuggestions() {
+    clearTimeout(suggestionTimer);
+    const query = searchInput.value.trim();
+    if (query.length < 2) { state.suggestionRequest += 1; hideSuggestions(); return; }
+    suggestionTimer = setTimeout(loadSuggestions, 360);
+  }
+
+  function chooseSuggestion(index) {
+    const item = state.suggestions[index];
+    if (!item) return;
+    searchInput.value = item.title;
+    hideSuggestions();
+    if (item.source === 'casa-paso' || item.source === 'dulce-sur') {
+      state.items = [];
+      state.selectedEan = null;
+      state.detail = null;
+      state.mlItems = [];
+      state.selectedMl = null;
+      state.supplierItems = [item];
+      state.selectedSupplier = item.id;
+      renderResults();
+      showSupplierDetail(item.id);
+      return;
+    }
+    searchProducts();
+  }
+
   async function searchProducts() {
     const query = searchInput.value.trim();
     if (query.length < 2) {
@@ -220,6 +342,7 @@
       notify('Escribí al menos 2 caracteres');
       return;
     }
+    hideSuggestions();
     const requestId = ++state.searchRequest;
     searchButton.disabled = true;
     state.items = [];
@@ -227,22 +350,24 @@
     state.detail = null;
     state.mlItems = [];
     state.selectedMl = null;
+    state.supplierItems = [];
+    state.selectedSupplier = null;
     resultCount.textContent = '…';
     resultsElement.innerHTML = loadingHtml('Buscando variantes exactas…');
-      detailElement.innerHTML = '<div class="price-detail-empty">Sin variante seleccionada.</div>';
+    detailElement.innerHTML = '<div class="price-detail-empty">Sin variante seleccionada.</div>';
 
     try {
       const data = await apiRequest({ action: 'search', q: query });
       if (requestId !== state.searchRequest) return;
       state.items = Array.isArray(data.items) ? data.items : [];
-      if (!state.items.length) {
-        // Precios Claros no lo tiene (típico en librería): probamos MercadoLibre.
-        resultsElement.innerHTML = loadingHtml('Nada en Precios Claros. Buscando en MercadoLibre…');
+      state.supplierItems = Array.isArray(data.supplierItems) ? data.supplierItems : [];
+      if (!state.items.length && !state.supplierItems.length) {
+        resultsElement.innerHTML = loadingHtml('Buscando una alternativa en Mercado Libre…');
         const rescued = await searchMercadoLibre(query, requestId);
         if (!rescued && requestId === state.searchRequest) renderResults();
       } else {
         renderResults();
-        if (state.items.length === 1 && /^\d{8,18}$/.test(query.replace(/\D/g, ''))) {
+        if (state.items.length === 1 && !state.supplierItems.length && /^\d{8,18}$/.test(query.replace(/\D/g, ''))) {
           loadDetail(state.items[0].ean);
         }
       }
@@ -309,6 +434,69 @@
     });
   }
 
+  function supplierDetailData(item) {
+    const units = Number(item.packUnits) > 1 ? Math.round(Number(item.packUnits)) : null;
+    const unitPrice = Number(item.unitPrice) || null;
+    const packPrice = Number(item.packPrice) || (unitPrice && units ? unitPrice * units : null);
+    const updatedToday = item.updatedAt ? String(item.updatedAt).slice(0, 10) === new Date().toISOString().slice(0, 10) : false;
+    return {
+      supplierSource: item.source,
+      sourceLabel: item.sourceLabel,
+      permalink: item.permalink,
+      supplierPackPrice: packPrice,
+      supplierPackUnits: units,
+      supplierMinimum: Number(item.minimum) || 1,
+      supplierAvailable: item.available !== false,
+      suggestedCategory: item.category || inferCategory(item.title, item.brand),
+      product: {
+        ean: item.code || item.id,
+        name: item.title,
+        brand: item.brand || item.sourceLabel || '',
+        presentation: item.presentation || (units ? `Bulto x${units}` : 'Unidad'),
+      },
+      image: item.image,
+      retailReference: {},
+      wholesaleReference: {
+        unitWithVatMedian: unitPrice,
+        unitWithVatMin: unitPrice,
+        unitWithVatMax: unitPrice,
+        packWithVatMedian: packPrice,
+        unitsPerPackMedian: units,
+        count: unitPrice ? 1 : 0,
+        updatedToday,
+      },
+      retailStores: [],
+      wholesaleStores: unitPrice ? [{
+        store: item.sourceLabel,
+        address: item.source === 'casa-paso' ? 'CABA' : 'Longchamps, Buenos Aires',
+        locality: 'Buenos Aires',
+        unitWithVat: unitPrice,
+        packWithVat: packPrice,
+        unitsPerPack: units,
+      }] : [],
+    };
+  }
+
+  async function showSupplierDetail(id) {
+    let item = state.supplierItems.find(entry => entry.id === id);
+    if (!item) return;
+    state.selectedSupplier = id;
+    renderResults();
+    if (item.source === 'casa-paso' && !item.packUnits) {
+      detailElement.innerHTML = loadingHtml('Consultando mínimo y bulto en Casa Paso…');
+      try {
+        const data = await apiRequest({ action: 'supplier-detail', source: item.source, code: item.code });
+        if (state.selectedSupplier !== id || !data.item) return;
+        item = { ...item, ...data.item };
+        state.supplierItems = state.supplierItems.map(entry => entry.id === id ? item : entry);
+        renderResults();
+      } catch (error) {
+        notify('Casa Paso no informó el detalle; usamos el precio visible');
+      }
+    }
+    renderDetail(supplierDetailData(item));
+  }
+
   function referenceRange(reference) {
     if (!reference?.count) return 'Sin comercios con precio vigente';
     if (reference.min === reference.max) return `${reference.count} comercio${reference.count === 1 ? '' : 's'} · ${reference.updatedToday ? 'actualizado hoy' : 'último precio informado'}`;
@@ -341,9 +529,20 @@
 
   function renderDetail(data) {
     let retail = data.retailReference || {};
+    const wholesale = data.wholesaleReference || {};
     let retailLabel = 'Referencia minorista';
     let retailNote = referenceRange(retail);
-    if (data.mlSource) {
+    let retailDisplayValue = retail.median;
+    let wholesaleLabel = 'Referencia mayorista por unidad · c/IVA';
+    if (data.supplierSource) {
+      const packText = data.supplierPackUnits > 1
+        ? `Bulto x${data.supplierPackUnits}${data.supplierMinimum > 1 ? ` · mínimo x${data.supplierMinimum}` : ''}`
+        : (data.supplierMinimum > 1 ? `Compra mínima x${data.supplierMinimum}` : 'Venta por unidad');
+      retailLabel = `Precio publicado en ${data.sourceLabel}`;
+      retailDisplayValue = data.supplierPackPrice || wholesale.unitWithVatMedian;
+      retailNote = `${packText} · ${data.supplierAvailable ? 'disponible' : 'sin stock'}`;
+      wholesaleLabel = 'Costo orientativo por unidad · c/IVA';
+    } else if (data.mlSource) {
       retailLabel = 'Precio ganador Mercado Libre';
       retailNote = retail.count
         ? (retail.min === retail.max ? 'Publicación ganadora vigente' : `Rango publicado ${money(retail.min)} a ${money(retail.max)}`)
@@ -351,13 +550,13 @@
     } else if (!retail.count && data.mlReference?.count) {
       // Precios Claros no tiene minoristas para este EAN: usamos MercadoLibre.
       retail = { median: data.mlReference.median, min: data.mlReference.min, max: data.mlReference.max, count: data.mlReference.count, updatedToday: false };
+      retailDisplayValue = retail.median;
       data.retailReference = retail; // así "vs. mercado" compara contra esta referencia
       retailLabel = 'Referencia MercadoLibre';
       retailNote = `Sin minoristas oficiales · ${retail.count} publicaciones ML, rango ${money(retail.min)} a ${money(retail.max)}`;
     }
     state.detail = data;
     const product = data.product || {};
-    const wholesale = data.wholesaleReference || {};
     const saved = readSavedPrices()[product.ean] || {};
     const catRecord = catByEan(product.ean);
     const savedCat = catRecord?.categoria || data.suggestedCategory || inferCategory(product.name, product.brand);
@@ -370,8 +569,11 @@
       ? `Vacío: usa ${money(wholesale.unitWithVatMedian)} mayorista c/IVA.`
       : 'Sin referencia mayorista: cargá tu costo real.';
     const packHint = suggestedUnits
-      ? `SEPA informa ${suggestedUnits} unidades.`
+      ? `${data.sourceLabel || 'La fuente'} informa ${suggestedUnits} unidades.`
       : 'Opcional para calcular el bulto.';
+    const productMeta = data.permalink
+      ? `<span>${data.supplierSource ? 'Código' : 'EAN'} ${escapeHtml(product.ean || 'sin informar')}</span><a class="price-ml-link" href="${escapeHtml(data.permalink)}" target="_blank" rel="noopener">Ver en ${escapeHtml(data.sourceLabel || 'Mercado Libre')} ↗</a>`
+      : `<span>EAN ${escapeHtml(product.ean)}</span>`;
 
     detailElement.innerHTML = `
       <div class="price-product-head">
@@ -379,20 +581,18 @@
         <div>
           <div class="price-product-brand">${escapeHtml(product.brand || 'Sin marca')}</div>
           <div class="price-product-name">${escapeHtml(product.name || 'Producto')}</div>
-          <div class="price-product-meta"><span>${escapeHtml(product.presentation || 'Presentación sin informar')}</span>${data.mlSource
-            ? (data.permalink ? `<a class="price-ml-link" href="${escapeHtml(data.permalink)}" target="_blank" rel="noopener">Ver publicación ↗</a>` : '')
-            : `<span>EAN ${escapeHtml(product.ean)}</span>`}</div>
+          <div class="price-product-meta"><span>${escapeHtml(product.presentation || 'Presentación sin informar')}</span>${productMeta}</div>
         </div>
       </div>
 
       <div class="price-reference-grid">
         <section class="price-reference">
           <div class="price-reference-label">${escapeHtml(retailLabel)}</div>
-          <div class="price-reference-value">${money(retail.median)}</div>
+          <div class="price-reference-value">${money(retailDisplayValue)}</div>
           <div class="price-reference-note">${escapeHtml(retailNote)}</div>
         </section>
         <section class="price-reference">
-          <div class="price-reference-label">Referencia mayorista por unidad · c/IVA</div>
+          <div class="price-reference-label">${escapeHtml(wholesaleLabel)}</div>
           <div class="price-reference-value wholesale">${money(wholesale.unitWithVatMedian)}</div>
           <div class="price-reference-note">${escapeHtml(wholesaleRange(wholesale))}</div>
         </section>
@@ -404,7 +604,7 @@
       <section class="price-own-section">
         <div class="price-own-head">
           <div><div class="price-own-title">Tu precio y tu margen</div><div class="price-own-sub">Precio de venta, costo y bulto</div></div>
-          <span class="price-saved" id="priceSavedStatus">Guardado para este EAN</span>
+          <span class="price-saved" id="priceSavedStatus">Guardado para este ${data.supplierSource ? 'producto' : 'EAN'}</span>
         </div>
         <div class="price-cat-row">
           <div class="price-field">
@@ -560,7 +760,7 @@
       precio: sale,
       unidades: Number.isFinite(units) && units > 0 ? Math.round(units) : null,
       imagen: state.detail.image || (existing ? existing.imagen : null) || null,
-      origen: existing ? existing.origen : (state.detail.mlSource ? 'mercadolibre' : 'preciosclaros'),
+      origen: existing ? existing.origen : (state.detail.supplierSource || (state.detail.mlSource ? 'mercadolibre' : 'preciosclaros')),
     }, { rerender: false });
 
     document.getElementById('priceSavedStatus').classList.add('show');
@@ -603,6 +803,38 @@
   document.addEventListener('keydown', event => {
     if (event.key === 'Escape' && overlay.classList.contains('open')) setOpen(false);
   });
+  searchInput.addEventListener('input', scheduleSuggestions);
+  searchInput.addEventListener('focus', () => {
+    if (state.suggestions.length) renderSuggestions();
+    else scheduleSuggestions();
+  });
+  searchInput.addEventListener('keydown', event => {
+    if (!state.suggestions.length) return;
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      state.suggestionActive = (state.suggestionActive + 1) % state.suggestions.length;
+      renderSuggestions();
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      state.suggestionActive = state.suggestionActive <= 0 ? state.suggestions.length - 1 : state.suggestionActive - 1;
+      renderSuggestions();
+    } else if (event.key === 'Enter' && state.suggestionActive >= 0) {
+      event.preventDefault();
+      chooseSuggestion(state.suggestionActive);
+    } else if (event.key === 'Escape' && !suggestionsElement.hidden) {
+      event.preventDefault();
+      event.stopPropagation();
+      hideSuggestions();
+    }
+  });
+  suggestionsElement?.addEventListener('click', event => {
+    const button = event.target.closest('[data-suggestion-index]');
+    if (!button) return;
+    chooseSuggestion(Number(button.dataset.suggestionIndex));
+  });
+  document.addEventListener('pointerdown', event => {
+    if (searchWrap && !searchWrap.contains(event.target)) hideSuggestions();
+  });
   searchForm.addEventListener('submit', event => {
     event.preventDefault();
     searchProducts();
@@ -610,6 +842,7 @@
   resultsElement.addEventListener('click', event => {
     const button = event.target.closest('.price-result');
     if (!button) return;
+    if (button.dataset.supplierId) { showSupplierDetail(button.dataset.supplierId); return; }
     if (button.dataset.mlId) { showMlDetail(button.dataset.mlId); return; }
     if (button.dataset.ean) loadDetail(button.dataset.ean);
   });
@@ -888,7 +1121,7 @@
       const rows = group.rows.map(record => {
         const margin = catMargin(record);
         const sub = [record.marca, record.presentacion].filter(Boolean).join(' · ');
-        const origenTexto = { manual: 'manual', preciosclaros: 'Precios Claros', mercadolibre: 'MercadoLibre' }[record.origen] || 'manual';
+        const origenTexto = { manual: 'manual', preciosclaros: 'Precios Claros', mercadolibre: 'Mercado Libre', 'casa-paso': 'Casa Paso', 'dulce-sur': 'Dulce Sur' }[record.origen] || 'manual';
         const origen = `<span class="cat-origin">${origenTexto}</span>`;
         return `<div class="cat-row" data-uid="${escapeHtml(record.uid)}">
           ${catThumbHtml(record)}
