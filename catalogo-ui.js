@@ -14,6 +14,8 @@
   const useLocationButton = document.getElementById('priceUseLocation');
   const radarList = document.getElementById('priceRadarList');
   const radarScope = document.getElementById('priceRadarScope');
+  const radarPages = document.getElementById('priceRadarPages');
+  const RADAR_PAGE_SIZE = 5;
   const panel = overlay?.querySelector('.price-panel');
   const priceHeader = overlay?.querySelector('.price-header');
   if (!overlay || !openButton || !searchForm) return;
@@ -45,6 +47,7 @@
     radar: { now: [], ranking: [] },
     radarMeta: { scopeNow: '', scopeRanking: '', dynamic: false, generatedAt: null },
     radarMode: 'ranking',
+    radarPage: 0,
     radarLoadedAt: 0,
   };
   let suggestionTimer = null;
@@ -276,13 +279,22 @@
       radarScope.textContent = state.radarMeta.scopeRanking || 'Argentina · más vendidos';
     }
     if (!items.length) {
+      if (radarPages) radarPages.hidden = true;
       radarList.innerHTML = '<div class="price-radar-error">El radar no devolvió señales vigentes.</div>';
       return;
     }
-    radarList.innerHTML = items.map((item, index) => {
+    const pageCount = Math.ceil(items.length / RADAR_PAGE_SIZE);
+    if (state.radarPage >= pageCount) state.radarPage = 0;
+    if (radarPages) {
+      radarPages.hidden = pageCount <= 1;
+      radarPages.innerHTML = Array.from({ length: pageCount }, (_, page) =>
+        `<button type="button" class="${page === state.radarPage ? 'active' : ''}" data-radar-page="${page}" aria-label="Página ${page + 1} del radar">${page + 1}</button>`).join('');
+    }
+    const pageItems = items.slice(state.radarPage * RADAR_PAGE_SIZE, (state.radarPage + 1) * RADAR_PAGE_SIZE);
+    radarList.innerHTML = pageItems.map((item, index) => {
       const image = /^https:\/\//.test(item.image || '')
         ? `<img src="${escapeHtml(item.image)}" alt="">`
-        : `<span>${state.radarMode === 'ranking' ? escapeHtml(item.rank || index + 1) : '↑'}</span>`;
+        : `<span>${escapeHtml(item.rank || state.radarPage * RADAR_PAGE_SIZE + index + 1)}</span>`;
       const metadata = [
         item.sourceLabel,
         Number(item.confidence) > 0 ? `confianza ${Math.round(Number(item.confidence))}%` : '',
@@ -296,7 +308,7 @@
         ? `${publicationLabel}: ${item.name}${item.note ? `. ${item.note}` : ''}`
         : `Buscar ${item.name}`;
       const openTag = publicationUrl
-        ? `<a class="price-radar-item" href="${escapeHtml(publicationUrl)}" data-radar-query="${escapeHtml(item.query || item.name)}" data-radar-url="${escapeHtml(publicationUrl)}" title="${escapeHtml(itemTitle)}">`
+        ? `<a class="price-radar-item" href="${escapeHtml(publicationUrl)}" target="_blank" rel="noopener" data-radar-query="${escapeHtml(item.query || item.name)}" data-radar-url="${escapeHtml(publicationUrl)}" title="${escapeHtml(itemTitle)}">`
         : `<button class="price-radar-item" type="button" data-radar-query="${escapeHtml(item.query || item.name)}" title="${escapeHtml(itemTitle)}">`;
       const closeTag = publicationUrl ? '</a>' : '</button>';
       return `${openTag}
@@ -324,6 +336,7 @@
         generatedAt: data.generatedAt || data.checkedAt || null,
       };
       state.radarLoadedAt = Date.now();
+      state.radarPage = 0;
       renderRadar();
     } catch {
       radarList.innerHTML = '<div class="price-radar-error">Radar temporalmente no disponible.</div>';
@@ -1102,6 +1115,12 @@
     searchInput.value = button.dataset.radarQuery;
     hideSuggestions();
     searchProducts();
+  });
+  radarPages?.addEventListener('click', event => {
+    const button = event.target.closest('[data-radar-page]');
+    if (!button) return;
+    state.radarPage = Number(button.dataset.radarPage) || 0;
+    renderRadar();
   });
   searchForm.addEventListener('submit', event => {
     event.preventDefault();

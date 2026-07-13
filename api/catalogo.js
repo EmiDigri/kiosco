@@ -729,7 +729,7 @@ async function open25Search(query, limit = 10) {
 // theme, clase estable js-products-featured-title aunque cambien el texto).
 // Alimenta la pestaña "Más vendidos" del radar: se refresca sola cuando la
 // cadena cambia la vidriera, con el mismo cache de 6 h del radar.
-async function open25Destacados(limit = 15) {
+async function open25Destacados(limit = 30) {
   const cacheKey = 'open25:destacados';
   const cached = supplierCacheGet(cacheKey);
   if (cached) return cached.slice(0, limit);
@@ -1204,7 +1204,7 @@ async function handleRadar() {
     radarRanking(),
     mlRadarSignals(),
     infokioscosNews(),
-    open25Destacados(15).catch(() => []),
+    open25Destacados(30).catch(() => []),
   ]);
   const candidates = mlSignals.candidates.filter(isKioskRadarCandidate);
   applyNewsSignals(candidates, news);
