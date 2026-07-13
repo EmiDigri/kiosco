@@ -655,11 +655,27 @@ async function rappiSearch(query, limit = 10) {
 }
 
 // ── Open 25: cadena de drugstores/kioscos con tienda online ──
-// La tienda corre en Tiendanube y no tiene API pública, pero la página de
-// búsqueda trae todo en el HTML: cada tarjeta incluye data-product-id, el
-// nombre, el link, la foto (data-srcset) y el precio en CENTAVOS en
-// data-product-price. Precio real de venta al público de una cadena de
-// kioscos — la referencia minorista más directa para este rubro.
+// La tienda corre en Tiendanube y no tiene API pública, pero el HTML trae
+// todo en cada tarjeta de producto: data-product-id, el nombre, el link, la
+// foto (data-srcset) y el precio en CENTAVOS en data-product-price. Precio
+// real de venta al público de una cadena de kioscos — la referencia
+// minorista más directa para este rubro.
+function open25Card(card) {
+  const title = htmlText(card.match(/data-store="product-item-name-\d+"[^>]*>([^<]*)</)?.[1]);
+  const cents = Number(card.match(/data-product-price="(\d+)"/)?.[1]);
+  if (!title || !Number.isFinite(cents) || cents <= 0) return null;
+  const srcset = card.match(/data-srcset="([^"]+)"/)?.[1] || '';
+  const image = srcset.match(/(\/\/[^\s,"]+)\s+480w/)?.[1] || srcset.match(/(\/\/[^\s,"]+)\s+\d+w/)?.[1] || null;
+  return {
+    productId: card.match(/data-product-id="(\d+)"/)?.[1] || mlText(title).replace(/ /g, '-'),
+    title,
+    price: cents / 100,
+    image: image ? `https:${image}` : null,
+    permalink: card.match(/href="(https:\/\/tienda\.open25\.com\.ar\/productos\/[^"]+)"/)?.[1] || null,
+    outOfStock: />\s*Sin stock\s*</i.test(card),
+  };
+}
+
 async function open25Search(query, limit = 10) {
   const queryText = normalizeQuery(query);
   const cacheKey = `open25:${mlText(queryText)}`;
@@ -670,37 +686,31 @@ async function open25Search(query, limit = 10) {
   }, 10000);
   const items = [];
   for (const card of html.split('class="js-item-product').slice(1)) {
-    const title = htmlText(card.match(/data-store="product-item-name-\d+"[^>]*>([^<]*)</)?.[1]);
-    const cents = Number(card.match(/data-product-price="(\d+)"/)?.[1]);
-    if (!title || !Number.isFinite(cents) || cents <= 0) continue;
-    const productId = card.match(/data-product-id="(\d+)"/)?.[1] || mlText(title).replace(/ /g, '-');
-    const srcset = card.match(/data-srcset="([^"]+)"/)?.[1] || '';
-    const image = srcset.match(/(\/\/[^\s,"]+)\s+480w/)?.[1] || srcset.match(/(\/\/[^\s,"]+)\s+\d+w/)?.[1] || null;
-    const price = cents / 100;
+    const parsed = open25Card(card);
+    if (!parsed) continue;
     items.push({
-      id: `open25:${productId}`,
+      id: `open25:${parsed.productId}`,
       source: 'open25',
       sourceLabel: 'Open 25',
       priceType: 'retail',
-      code: productId,
-      title,
-      brand: productBrand(title),
-      presentation: title.match(/\b\d+(?:[.,]\d+)?\s*(?:g|gr|grs|kg|ml|cc|l|lt|un)\b/i)?.[0] || 'Unidad',
+      code: parsed.productId,
+      title: parsed.title,
+      brand: productBrand(parsed.title),
+      presentation: parsed.title.match(/\b\d+(?:[.,]\d+)?\s*(?:g|gr|grs|kg|ml|cc|l|lt|un)\b/i)?.[0] || 'Unidad',
       category: 'Kiosco',
-      unitPrice: price,
-      retailMin: price,
-      retailMax: price,
+      unitPrice: parsed.price,
+      retailMin: parsed.price,
+      retailMax: parsed.price,
       storeCount: 1,
       packPrice: null,
       packUnits: null,
       minimum: 1,
-      stock: null,
-      available: true,
-      image: image ? `https:${image}` : null,
-      permalink: card.match(/href="(https:\/\/tienda\.open25\.com\.ar\/productos\/[^"]+)"/)?.[1]
-        || `https://tienda.open25.com.ar/search/?q=${encodeURIComponent(queryText)}`,
+      stock: parsed.outOfStock ? 0 : null,
+      available: !parsed.outOfStock,
+      image: parsed.image,
+      permalink: parsed.permalink || `https://tienda.open25.com.ar/search/?q=${encodeURIComponent(queryText)}`,
       updatedAt: new Date().toISOString(),
-      relevance: textRelevance(title, queryText),
+      relevance: textRelevance(parsed.title, queryText),
     });
   }
   const ranked = items.filter(item => item.relevance >= 20)
@@ -708,6 +718,54 @@ async function open25Search(query, limit = 10) {
     .slice(0, 20);
   supplierCacheSet(cacheKey, ranked);
   return ranked.slice(0, limit);
+}
+
+// Vidriera "Los más elegidos" de la home de Open 25 (bloque "featured" del
+// theme, clase estable js-products-featured-title aunque cambien el texto).
+// Alimenta la pestaña "Más vendidos" del radar: se refresca sola cuando la
+// cadena cambia la vidriera, con el mismo cache de 6 h del radar.
+async function open25Destacados(limit = 15) {
+  const cacheKey = 'open25:destacados';
+  const cached = supplierCacheGet(cacheKey);
+  if (cached) return cached.slice(0, limit);
+  const html = await supplierFetch('https://tienda.open25.com.ar/', {
+    headers: { ...BROWSER_HEADERS, accept: 'text/html,application/xhtml+xml' },
+  }, 10000);
+  const start = html.indexOf('js-products-featured-title');
+  if (start === -1) return [];
+  const section = html.slice(start);
+  const end = section.search(/js-products-(?:new|best-seller|sale)-title/);
+  const sectionHtml = end > 0 ? section.slice(0, end) : section;
+  const rawTitle = htmlText(section.match(/^[^>]*>([^<]*)</)?.[1]).replace(/[^\p{L}\p{N} ]/gu, '').trim();
+  const sectionTitle = rawTitle ? rawTitle.charAt(0).toUpperCase() + rawTitle.slice(1).toLowerCase() : 'Los más elegidos';
+  const today = new Date().toISOString().slice(0, 10);
+  const items = [];
+  for (const card of sectionHtml.split('class="js-item-product').slice(1)) {
+    const parsed = open25Card(card);
+    if (!parsed) continue;
+    const rank = items.length + 1;
+    const priceText = `$${parsed.price.toLocaleString('es-AR', { maximumFractionDigits: 0 })}`;
+    items.push({
+      id: `open25-destacado-${parsed.productId}`,
+      type: 'ranking',
+      rank,
+      name: parsed.title,
+      query: parsed.title,
+      signal: `#${rank} en la vidriera · ${priceText}${parsed.outOfStock ? ' · sin stock online' : ''}`,
+      note: `Vidriera “${sectionTitle}” de la tienda online de Open 25. Cambia cuando la cadena la actualiza.`,
+      scope: 'Open 25 · tienda online',
+      date: today,
+      sourceLabel: 'Open 25',
+      sourceUrl: parsed.permalink,
+      publicationUrl: parsed.permalink,
+      publicationLabel: 'Ver en la tienda de Open 25',
+      image: parsed.image,
+      confidence: 0,
+    });
+    if (items.length >= limit) break;
+  }
+  if (items.length) supplierCacheSet(cacheKey, items);
+  return items;
 }
 
 async function radarArticleImage(url) {
@@ -1137,7 +1195,12 @@ async function radarRanking() {
 
 async function handleRadar() {
   if (radarCache && Date.now() - radarCache.savedAt < RADAR_CACHE_TTL) return radarCache.value;
-  const [annualRanking, mlSignals, news] = await Promise.all([radarRanking(), mlRadarSignals(), infokioscosNews()]);
+  const [annualRanking, mlSignals, news, open25Featured] = await Promise.all([
+    radarRanking(),
+    mlRadarSignals(),
+    infokioscosNews(),
+    open25Destacados(15).catch(() => []),
+  ]);
   const candidates = mlSignals.candidates.filter(isKioskRadarCandidate);
   applyNewsSignals(candidates, news);
   const enriched = await enrichRadarWithRappi(candidates.filter(isKioskRadarCandidate));
@@ -1167,7 +1230,7 @@ async function handleRadar() {
     }));
   }
 
-  const ranking = mlSignals.bestSellers.length >= 3
+  const mlRanking = mlSignals.bestSellers.length >= 3
     ? mlSignals.bestSellers.slice(0, 5).map((item, index) => ({
       id: `ml-ranking-${item.id || index}`,
       type: 'ranking',
@@ -1202,10 +1265,16 @@ async function handleRadar() {
       confidence: 35,
     }));
 
+  // La vidriera de Open 25 es la señal más directa del rubro: si el scrape
+  // devolvió resultados manda ella; si no, quedan ML/Infokioscos de respaldo.
+  const ranking = open25Featured.length >= 3 ? open25Featured : mlRanking;
+
   const value = {
     scope: dynamicReady ? 'Ventas, búsquedas, Rappi y novedades' : 'Señales editoriales de respaldo',
     scopeNow: dynamicReady ? 'Argentina/CABA · actualizado cada 6 h' : 'Argentina · respaldo editorial',
-    scopeRanking: mlSignals.bestSellers.length >= 3 ? 'Argentina · ventas Mercado Libre' : 'Argentina · ranking anual 2026 (+900 kiosqueros)',
+    scopeRanking: open25Featured.length >= 3
+      ? 'Open 25 · vidriera de la tienda online · actualizado cada 6 h'
+      : (mlSignals.bestSellers.length >= 3 ? 'Argentina · ventas Mercado Libre' : 'Argentina · ranking anual 2026 (+900 kiosqueros)'),
     generatedAt: new Date().toISOString(),
     dynamic: dynamicReady,
     weights: RADAR_WEIGHTS,
@@ -1214,6 +1283,7 @@ async function handleRadar() {
       mercadoLibreSearches: sourceState.searches,
       rappi: enriched.some(item => item.rappiChecked),
       infokioscos: sourceState.news,
+      open25: open25Featured.length > 0,
       social: false,
     },
     ranking,
