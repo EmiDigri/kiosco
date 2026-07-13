@@ -654,6 +654,62 @@ async function rappiSearch(query, limit = 10) {
   return items.slice(0, limit);
 }
 
+// ── Open 25: cadena de drugstores/kioscos con tienda online ──
+// La tienda corre en Tiendanube y no tiene API pública, pero la página de
+// búsqueda trae todo en el HTML: cada tarjeta incluye data-product-id, el
+// nombre, el link, la foto (data-srcset) y el precio en CENTAVOS en
+// data-product-price. Precio real de venta al público de una cadena de
+// kioscos — la referencia minorista más directa para este rubro.
+async function open25Search(query, limit = 10) {
+  const queryText = normalizeQuery(query);
+  const cacheKey = `open25:${mlText(queryText)}`;
+  const cached = supplierCacheGet(cacheKey);
+  if (cached) return cached.slice(0, limit);
+  const html = await supplierFetch(`https://tienda.open25.com.ar/search/?q=${encodeURIComponent(queryText)}`, {
+    headers: { ...BROWSER_HEADERS, accept: 'text/html,application/xhtml+xml' },
+  }, 10000);
+  const items = [];
+  for (const card of html.split('class="js-item-product').slice(1)) {
+    const title = htmlText(card.match(/data-store="product-item-name-\d+"[^>]*>([^<]*)</)?.[1]);
+    const cents = Number(card.match(/data-product-price="(\d+)"/)?.[1]);
+    if (!title || !Number.isFinite(cents) || cents <= 0) continue;
+    const productId = card.match(/data-product-id="(\d+)"/)?.[1] || mlText(title).replace(/ /g, '-');
+    const srcset = card.match(/data-srcset="([^"]+)"/)?.[1] || '';
+    const image = srcset.match(/(\/\/[^\s,"]+)\s+480w/)?.[1] || srcset.match(/(\/\/[^\s,"]+)\s+\d+w/)?.[1] || null;
+    const price = cents / 100;
+    items.push({
+      id: `open25:${productId}`,
+      source: 'open25',
+      sourceLabel: 'Open 25',
+      priceType: 'retail',
+      code: productId,
+      title,
+      brand: productBrand(title),
+      presentation: title.match(/\b\d+(?:[.,]\d+)?\s*(?:g|gr|grs|kg|ml|cc|l|lt|un)\b/i)?.[0] || 'Unidad',
+      category: 'Kiosco',
+      unitPrice: price,
+      retailMin: price,
+      retailMax: price,
+      storeCount: 1,
+      packPrice: null,
+      packUnits: null,
+      minimum: 1,
+      stock: null,
+      available: true,
+      image: image ? `https:${image}` : null,
+      permalink: card.match(/href="(https:\/\/tienda\.open25\.com\.ar\/productos\/[^"]+)"/)?.[1]
+        || `https://tienda.open25.com.ar/search/?q=${encodeURIComponent(queryText)}`,
+      updatedAt: new Date().toISOString(),
+      relevance: textRelevance(title, queryText),
+    });
+  }
+  const ranked = items.filter(item => item.relevance >= 20)
+    .sort((a, b) => b.relevance - a.relevance || a.unitPrice - b.unitPrice)
+    .slice(0, 20);
+  supplierCacheSet(cacheKey, ranked);
+  return ranked.slice(0, limit);
+}
+
 async function radarArticleImage(url) {
   try {
     const html = await supplierFetch(url, { headers: { ...BROWSER_HEADERS, accept: 'text/html' } }, 5000);
@@ -1168,14 +1224,15 @@ async function handleRadar() {
 }
 
 async function supplierSearch(query, limit = 10) {
-  const [casa, dulce, rappi] = await Promise.allSettled([casaPasoSearch(query, limit), dulceSurSearch(query, limit), rappiSearch(query, limit)]);
+  const [casa, dulce, rappi, open25] = await Promise.allSettled([casaPasoSearch(query, limit), dulceSurSearch(query, limit), rappiSearch(query, limit), open25Search(query, limit)]);
   return {
     items: [
+      ...(open25.status === 'fulfilled' ? open25.value : []),
       ...(rappi.status === 'fulfilled' ? rappi.value : []),
       ...(dulce.status === 'fulfilled' ? dulce.value : []),
       ...(casa.status === 'fulfilled' ? casa.value : []),
     ],
-    sources: { casaPaso: casa.status === 'fulfilled', dulceSur: dulce.status === 'fulfilled', rappi: rappi.status === 'fulfilled' },
+    sources: { casaPaso: casa.status === 'fulfilled', dulceSur: dulce.status === 'fulfilled', rappi: rappi.status === 'fulfilled', open25: open25.status === 'fulfilled' },
   };
 }
 
@@ -1677,7 +1734,7 @@ export default async function handler(req, res) {
       ...payload,
       location: { lat, lng, zone },
       checkedAt: new Date().toISOString(),
-      source: 'Precios Claros + Rappi + proveedores mayoristas',
+      source: 'Precios Claros + Open 25 + Rappi + proveedores mayoristas',
     });
   } catch (error) {
     const message = error?.name === 'AbortError'

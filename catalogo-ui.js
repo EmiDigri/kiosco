@@ -216,6 +216,7 @@
   function renderResults() {
     const paneTitle = document.querySelector('.price-pane-title');
     const supplierGroups = [
+      ['Open 25 · cadena de kioscos', state.supplierItems.filter(item => item.source === 'open25')],
       ['Rappi · minorista online', state.supplierItems.filter(item => item.source === 'rappi')],
       ['Dulce Sur · kiosco', state.supplierItems.filter(item => item.source === 'dulce-sur')],
       ['Casa Paso · librería', state.supplierItems.filter(item => item.source === 'casa-paso')],
@@ -411,13 +412,13 @@
     const availableSuggestions = state.suggestions.slice();
     searchInput.value = item.title;
     hideSuggestions();
-    if (item.source === 'casa-paso' || item.source === 'dulce-sur' || item.source === 'rappi') {
+    if (item.source === 'casa-paso' || item.source === 'dulce-sur' || item.source === 'rappi' || item.source === 'open25') {
       state.items = [];
       state.selectedEan = null;
       state.detail = null;
       state.mlItems = [];
       state.selectedMl = null;
-      state.supplierItems = availableSuggestions.filter(entry => ['casa-paso', 'dulce-sur', 'rappi'].includes(entry.source));
+      state.supplierItems = availableSuggestions.filter(entry => ['casa-paso', 'dulce-sur', 'rappi', 'open25'].includes(entry.source));
       if (!state.supplierItems.some(entry => entry.id === item.id)) state.supplierItems.unshift(item);
       state.selectedSupplier = item.id;
       renderResults();
@@ -460,7 +461,9 @@
       } else {
         renderResults();
         if (options.autoOpen && state.supplierItems.length) {
-          const preferred = state.supplierItems.find(item => item.source === 'rappi') || state.supplierItems[0];
+          const preferred = state.supplierItems.find(item => item.source === 'open25')
+            || state.supplierItems.find(item => item.source === 'rappi')
+            || state.supplierItems[0];
           showSupplierDetail(preferred.id);
         } else if (state.items.length === 1 && !state.supplierItems.length && /^\d{8,18}$/.test(query.replace(/\D/g, ''))) {
           loadDetail(state.items[0].ean);
@@ -599,7 +602,7 @@
       return { item, selected, score, shared };
     }).filter(row => row.selected || row.shared > 0);
 
-    const sourceOrder = ['precios-claros', 'rappi', 'dulce-sur', 'casa-paso'];
+    const sourceOrder = ['precios-claros', 'open25', 'rappi', 'dulce-sur', 'casa-paso'];
     const offers = [];
     sourceOrder.forEach(source => {
       const rows = ranked.filter(row => comparisonSource(row.item) === source)
@@ -623,7 +626,9 @@
   }
 
   function supplierDetailData(item) {
-    const retailItem = item.priceType === 'retail' ? item : supplierCompanion(item, 'rappi');
+    const retailItem = item.priceType === 'retail'
+      ? item
+      : (supplierCompanion(item, 'open25') || supplierCompanion(item, 'rappi'));
     const wholesaleItem = item.priceType === 'retail'
       ? (supplierCompanion(item, 'dulce-sur') || supplierCompanion(item, 'casa-paso'))
       : item;
@@ -637,6 +642,7 @@
       .map(entry => ({ label: entry.sourceLabel, url: entry.permalink }));
     return {
       supplierSource: item.source,
+      retailSource: retailItem?.source || null,
       supplierPriceType: retailItem && wholesaleItem ? 'combined' : (retailItem ? 'retail' : 'wholesale'),
       sourceLabel: [retailItem?.sourceLabel, wholesaleItem?.sourceLabel].filter(Boolean).join(' + ') || item.sourceLabel,
       permalink: item.permalink,
@@ -786,7 +792,9 @@
       retailLabel = data.supplierPriceType === 'combined' ? 'Referencia minorista online' : `Precio publicado en ${data.sourceLabel}`;
       retailDisplayValue = retail.median;
       const range = retail.min && retail.max && retail.min !== retail.max ? ` · rango ${money(retail.min)} a ${money(retail.max)}` : '';
-      retailNote = `${retail.count || 1} oferta${retail.count === 1 ? '' : 's'} en Buenos Aires${range} · puede incluir promoción o recargo de delivery`;
+      retailNote = data.retailSource === 'open25'
+        ? `Precio de venta al público en la tienda online de Open 25${range}`
+        : `${retail.count || 1} oferta${retail.count === 1 ? '' : 's'} en Buenos Aires${range} · puede incluir promoción o recargo de delivery`;
       if (data.supplierPriceType === 'combined') wholesaleLabel = 'Costo mayorista por unidad · c/IVA';
     } else if (data.supplierSource) {
       const packText = data.supplierPackUnits > 1
@@ -1395,7 +1403,7 @@
       const rows = group.rows.map(record => {
         const margin = catMargin(record);
         const sub = [record.marca, record.presentacion].filter(Boolean).join(' · ');
-        const origenTexto = { manual: 'manual', preciosclaros: 'Precios Claros', mercadolibre: 'Mercado Libre', 'casa-paso': 'Casa Paso', 'dulce-sur': 'Dulce Sur', rappi: 'Rappi' }[record.origen] || 'manual';
+        const origenTexto = { manual: 'manual', preciosclaros: 'Precios Claros', mercadolibre: 'Mercado Libre', 'casa-paso': 'Casa Paso', 'dulce-sur': 'Dulce Sur', rappi: 'Rappi', open25: 'Open 25' }[record.origen] || 'manual';
         const origen = `<span class="cat-origin">${origenTexto}</span>`;
         return `<div class="cat-row" data-uid="${escapeHtml(record.uid)}">
           ${catThumbHtml(record)}
