@@ -116,7 +116,6 @@ html{overflow-x:hidden;overflow-y:scroll}
 .iw-temp-city{font-size:11px;font-weight:600;color:var(--text-soft);text-transform:uppercase;letter-spacing:.06em}
 .iw-temp-label{font-size:12px;color:var(--text-mid);font-weight:500}
 .iw-wind{display:flex;align-items:center;gap:3px;min-height:13px;color:var(--text-mid);font-size:10px;font-weight:700;line-height:1;white-space:nowrap}
-.iw-wind-arrow{width:11px;height:11px;display:inline-flex;align-items:center;justify-content:center;color:currentColor;font-size:11px;line-height:1;transform:rotate(var(--iw-wind-dir,0deg));transform-origin:center}
 .iw-wind.is-cold{color:#74c0fc}.iw-wind.is-strong{color:#f6b84a}
 .iw-forecast{min-width:0}
 .iw-forecast-desktop{display:none;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;flex:1 1 520px;max-width:640px}
@@ -5231,18 +5230,17 @@ function iwWindHtml(speed,direction,gust,temp,sens){
   if(speed==null||speed==='')return'';
   const wind=Number(speed);
   if(!Number.isFinite(wind))return'';
-  const dirs=['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSO','SO','OSO','O','ONO','NO','NNO'];
+  const dirs=['norte','noreste','este','sudeste','sur','sudoeste','oeste','noroeste'];
   const degrees=Number(direction),hasDirection=direction!=null&&direction!==''&&Number.isFinite(degrees);
   const normalized=hasDirection?((degrees%360)+360)%360:null;
-  const dir=hasDirection?dirs[Math.round(normalized/22.5)%16]:'';
+  const dir=hasDirection?dirs[Math.round(normalized/45)%8]:'';
   const gustKmh=Number(gust),showGust=gust!=null&&gust!==''&&Number.isFinite(gustKmh)&&gustKmh>=25&&gustKmh>=wind+5;
   const temperature=Number(temp),feels=Number(sens);
   const strong=wind>=40||(showGust&&gustKmh>=55);
   const cold=!strong&&wind>=10&&temp!=null&&sens!=null&&Number.isFinite(temperature)&&Number.isFinite(feels)&&feels<=temperature-2;
-  const label=strong?'viento fuerte':cold?'viento frío':wind<5?'calma':wind<20?'brisa':wind<35?'ventoso':'viento fuerte';
+  const label=strong?'Viento fuerte':cold?'Viento frío':wind<5?'Calma':wind<20?'Brisa':wind<35?'Ventoso':'Viento fuerte';
   const cls=strong?' is-strong':cold?' is-cold':'';
-  const title=[dir?`Viento desde ${dir}`:'Viento',`${Math.round(wind)} km/h`,showGust&&`ráfagas ${Math.round(gustKmh)} km/h`,cold&&`baja la sensación ${Math.round(temperature-feels)}°`].filter(Boolean).join(' · ');
-  return`<span class="iw-wind${cls}" title="${title}">${hasDirection?`<span class="iw-wind-arrow" style="--iw-wind-dir:${Math.round(normalized)}deg" aria-hidden="true">↑</span><span>${dir}</span><span>·</span>`:''}<span>${Math.round(wind)} km/h</span><span>·</span><span>${label}</span>${showGust?`<span>· ráf. ${Math.round(gustKmh)}</span>`:''}</span>`;
+  return`<span class="iw-wind${cls}"><span>${label}</span><span>·</span><span>${Math.round(wind)} km/h</span>${showGust?`<span>· ráf. ${Math.round(gustKmh)}</span>`:''}${hasDirection&&wind>=5?`<span>· viene del ${dir}</span>`:''}</span>`;
 }
 function iwPronosticoDias(daily){
   const time=daily?.time||[],codes=daily?.weather_code||[],maxs=daily?.temperature_2m_max||[],mins=daily?.temperature_2m_min||[];
