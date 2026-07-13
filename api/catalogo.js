@@ -806,6 +806,7 @@ function mlTrendSignal(row, index, category) {
     searchKind,
     searchScore: Math.max(10, searchScore),
     genericTrend: isGenericRadarQuery(name),
+    needsConcreteProduct: !radarHasPhrase(name, RADAR_KIOSK_BRANDS),
     sources: ['Mercado Libre'],
   };
 }
@@ -975,7 +976,8 @@ async function enrichRadarWithRappi(candidates) {
   });
   const seen = new Set();
   return selected.filter(candidate => {
-    if (candidate.genericTrend && !candidate.rappiStoreCount) return false;
+    if ((candidate.genericTrend || candidate.needsConcreteProduct)
+      && !candidate.rappiStoreCount && !candidate.newsTitle && !candidate.salesRank) return false;
     const key = candidate.rappiUrl || candidate.ean || mlText(candidate.name);
     if (!key || seen.has(key)) return false;
     seen.add(key);
