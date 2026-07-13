@@ -672,7 +672,12 @@ function open25Card(card) {
     price: cents / 100,
     image: image ? `https:${image}` : null,
     permalink: card.match(/href="(https:\/\/tienda\.open25\.com\.ar\/productos\/[^"]+)"/)?.[1] || null,
-    outOfStock: />\s*Sin stock\s*</i.test(card),
+    // El cartel "Sin stock" viene en TODAS las tarjetas; cuando hay stock
+    // llega oculto con style="display:none". Solo cuenta si está visible.
+    outOfStock: (() => {
+      const label = card.match(/data-store="product-item-label-stock"([^>]*)>/)?.[1];
+      return Boolean(label) && !/display\s*:\s*none/i.test(label);
+    })(),
   };
 }
 
