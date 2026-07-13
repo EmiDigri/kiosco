@@ -11,6 +11,10 @@
     "api/catalogo.js": {
       "memory": 256,
       "maxDuration": 20
+    },
+    "api/mp-history.js": {
+      "memory": 128,
+      "maxDuration": 20
     }
   },
   "headers": [

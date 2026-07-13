@@ -1,6 +1,6 @@
-const SUPABASE_URL = 'https://pilfeptwylgufhbmmday.supabase.co';
-const SUPABASE_KEY = 'sb_secret_I-zc6YWn33cDY6jfIZwyAA_lJEDHXVu';
-const MP_TOKEN = 'APP_USR-2677690000928530-060419-6c49e8560bd0de2e71129377f502b62a-443581160';
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://pilfeptwylgufhbmmday.supabase.co';
+const SUPABASE_KEY = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+const MP_TOKEN = process.env.MP_ACCESS_TOKEN || '';
 
 function turnoDeHora(hora) {
   const h = parseInt(hora.split(':')[0]);

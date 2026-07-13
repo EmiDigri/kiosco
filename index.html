@@ -2221,7 +2221,7 @@ body.light .pulse-now,body.light .pulse-now::before{background:#334155}
 /* Referencia de precios */
 #btnPrecios{color:#61d6c0!important;border-color:rgba(97,214,192,.25)!important;background:rgba(97,214,192,.08)!important}
 body.light #btnPrecios{color:#087f72!important;border-color:rgba(8,127,114,.24)!important;background:#e9fbf7!important}
-.btn-beta{font-size:8px;font-weight:850;letter-spacing:.04em;text-transform:uppercase;padding:2px 5px;border-radius:5px;background:rgba(97,214,192,.16);color:#61d6c0;line-height:1;margin-left:5px}
+.btn-beta{font-size:8px;font-weight:850;letter-spacing:0;text-transform:none;padding:2px 5px;border-radius:5px;background:rgba(97,214,192,.16);color:#61d6c0;line-height:1;margin-left:3px}
 body.light .btn-beta{background:rgba(8,127,114,.12);color:#087f72}
 /* Tabs precios / catálogo */
 .price-tabs{display:flex;gap:6px;padding:14px 0 0}
@@ -2240,6 +2240,17 @@ body.light .price-tab-count{background:rgba(8,127,114,.12);color:#087f72}
 .cat-add-btn{height:38px;border:1px solid transparent;border-radius:8px;background:#54ccb6;color:#071611;font:800 12px/1 'Inter',sans-serif;padding:0 15px;cursor:pointer;transition:background .15s,transform .12s}
 .cat-add-btn:hover{background:#6fe0cc}.cat-add-btn:active{transform:translateY(1px)}
 .cat-add-btn.close{background:var(--glass);border-color:var(--glass-border);color:var(--text-mid)}
+.cat-filters{display:grid;grid-template-columns:minmax(220px,1fr) 210px;gap:9px;padding:14px 0 0}
+.cat-search-box{position:relative;min-width:0}
+.cat-search-box svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-soft);pointer-events:none}
+.cat-search-box .price-input{padding-left:36px}
+.cat-category-filter{min-width:0}
+.cat-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;margin-top:14px;border-top:1px solid var(--glass-border);border-bottom:1px solid var(--glass-border)}
+.cat-summary-item{padding:11px 13px;min-width:0}
+.cat-summary-item + .cat-summary-item{border-left:1px solid var(--glass-border)}
+.cat-summary-label{font-size:8.5px;font-weight:820;text-transform:uppercase;color:var(--text-soft);letter-spacing:0}
+.cat-summary-value{margin-top:5px;font-size:15px;font-weight:820;color:var(--text);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cat-summary-value.good{color:#5fd68a}.cat-summary-value.warn{color:#f4a435}.cat-summary-value.bad{color:#f87171}
 .cat-manual-form{margin:16px 0 4px;padding:16px;border:1px solid var(--glass-border);border-radius:12px;background:var(--glass);display:grid;grid-template-columns:2fr 1.4fr 1fr 1.4fr 1fr 1fr;gap:11px;align-items:end}
 .cat-manual-form[hidden]{display:none}
 .cat-manual-form .price-field{min-width:0}
@@ -2295,6 +2306,9 @@ body.light .price-ml-link{color:#087f72}
 }
 @media(max-width:560px){
   .cat-manual-form{grid-template-columns:1fr}
+  .cat-filters{grid-template-columns:1fr}
+  .cat-summary{grid-template-columns:1fr 1fr}
+  .cat-summary-item:last-child{grid-column:1/-1;border-left:none;border-top:1px solid var(--glass-border)}
   .cat-row{grid-template-columns:auto minmax(0,1fr) auto auto}
   .cat-row .cat-cell-costo{display:none}
 }
@@ -2466,7 +2480,7 @@ body.light .price-error{color:#991b1b}
       <button class="btn-historial" id="btnPrecios" type="button" title="Referencia de precios y catálogo — versión beta">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><circle cx="7" cy="7" r="1"/></svg>
         Precios
-        <span class="btn-beta">beta</span>
+        <span class="btn-beta">(versión beta)</span>
       </button>
 <button class="btn-historial" id="btnCierreManual">🧾 Cierre manual</button>
       <button class="btn-historial" id="btnHistorial">
@@ -2928,6 +2942,17 @@ body.light .price-error{color:#991b1b}
         </div>
         <button class="cat-add-btn" id="catAddBtn" type="button">+ Agregar producto</button>
       </div>
+
+      <div class="cat-filters">
+        <div class="cat-search-box">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/></svg>
+          <input class="price-input" id="catSearch" type="search" placeholder="Buscar en mi catálogo" aria-label="Buscar en mi catálogo" autocomplete="off">
+        </div>
+        <select class="price-select cat-category-filter" id="catCategoryFilter" aria-label="Filtrar catálogo por categoría">
+          <option value="">Todas las categorías</option>
+        </select>
+      </div>
+      <div class="cat-summary" id="catSummary"></div>
 
       <form class="cat-manual-form" id="catManualForm" hidden autocomplete="off">
         <div class="cat-form-title" id="catFormTitle">Nuevo producto</div>
@@ -4002,9 +4027,15 @@ async function mostrarDetalleDia(dia){
 }
 
 // ─── API / FETCH ───
-const ACCESS_TOKEN='APP_USR-2677690000928530-060419-6c49e8560bd0de2e71129377f502b62a-443581160';
 const SUPABASE_URL='https://pilfeptwylgufhbmmday.supabase.co';
 const SUPABASE_KEY='sb_publishable_AE6T1LMQuY2T8mf0uD_ANA_Bh4nk_ej';
+
+async function fetchMPDia(isoDate){
+  const res=await fetch(`/api/mp-history?date=${encodeURIComponent(isoDate)}`,{cache:'no-store'});
+  const data=await res.json().catch(()=>null);
+  if(!res.ok)throw new Error(data?.error||('Error MP: '+res.status));
+  return Array.isArray(data?.results)?data.results:[];
+}
 
 async function fetchMovimientos(desdeH,desdeM,hastaH,hastaM){
   const hoy=new Date();
@@ -4023,29 +4054,12 @@ async function fetchMovimientos(desdeH,desdeM,hastaH,hastaM){
   }catch(e){console.log('Supabase no disponible, usando API MP');}
   const desde=new Date(hoy.getFullYear(),hoy.getMonth(),hoy.getDate(),desdeH,desdeM,0);
   const hasta=new Date(hoy.getFullYear(),hoy.getMonth(),hoy.getDate(),hastaH,hastaM,59);
-  const params=new URLSearchParams({begin_date:desde.toISOString(),end_date:hasta.toISOString(),status:'approved',sort:'date_approved',criteria:'asc',limit:30,offset:0});
-  const res=await fetch(`https://api.mercadopago.com/v1/payments/search?${params}`,{headers:{'Authorization':`Bearer ${ACCESS_TOKEN}`}});
-  if(!res.ok)throw new Error('Error MP: '+res.status);
-  const data=await res.json();
-  return(data.results||[]).filter(p=>{const aprobado=new Date(p.date_approved);return aprobado>=desde&&aprobado<=hasta;});
+  const results=await fetchMPDia(fecha);
+  return results.filter(p=>{const aprobado=new Date(p.date_approved);return aprobado>=desde&&aprobado<=hasta;});
 }
 
 async function fetchHistoricoMP(isoDate){
-  // ART = UTC-3. Convertir día completo a UTC para la query a MP
-  const [y,mo,d]=isoDate.split('-').map(Number);
-  const begin=new Date(Date.UTC(y,mo-1,d,3,0,0));   // 00:00 ART = 03:00 UTC
-  const end=new Date(Date.UTC(y,mo-1,d+1,2,59,59)); // 23:59:59 ART = 02:59:59 UTC del día siguiente
-  let all=[],offset=0;
-  while(true){
-    const params=new URLSearchParams({begin_date:begin.toISOString(),end_date:end.toISOString(),sort:'date_approved',criteria:'asc',limit:100,offset});
-    const res=await fetch(`https://api.mercadopago.com/v1/payments/search?${params}`,{headers:{'Authorization':`Bearer ${ACCESS_TOKEN}`}});
-    if(!res.ok)throw new Error('Error MP: '+res.status);
-    const data=await res.json();
-    const results=data.results||[];
-    all=all.concat(results);
-    if(results.length<100)break;
-    offset+=100;
-  }
+  const all=await fetchMPDia(isoDate);
   // Parsear y agrupar por turno según hora
   const parsed=parsearMovimientos(all.filter(p=>p.status==='approved'));
   const turnos=turnosDelDia(isoDate);

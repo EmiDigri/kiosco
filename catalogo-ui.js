@@ -32,7 +32,6 @@
     searchRequest: 0,
     detailRequest: 0,
     mlItems: [],
-    mlReference: null,
     selectedMl: null,
   };
 
@@ -62,6 +61,33 @@
   function numberInputValue(value) {
     const number = Number(value);
     return Number.isFinite(number) && number > 0 ? String(Math.round(number * 100) / 100) : '';
+  }
+
+  function catalogText(value) {
+    return String(value || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase();
+  }
+
+  function inferCategory(name, brand, preferred) {
+    if (preferred) return preferred;
+    const text = catalogText(`${name || ''} ${brand || ''}`);
+    const rules = [
+      ['Librería', ['resma', 'birome', 'boligrafo', 'lapicera', 'marcador', 'resaltador', 'cuaderno', 'carpeta', 'lapiz', 'goma', 'regla', 'papel', 'cartulina', 'adhesivo', 'abrochadora', 'clip', 'corrector', 'crayon', 'tempera']],
+      ['Chocolates', ['chocolate', 'bombon', 'bon o bon']],
+      ['Golosinas', ['alfajor', 'caramelo', 'chicle', 'gomita', 'turron', 'pastilla']],
+      ['Bebidas', ['gaseosa', 'agua ', 'jugo', 'cerveza', 'energizante', 'soda']],
+      ['Cigarrillos', ['cigarrillo', 'tabaco', 'encendedor']],
+      ['Panificados', ['galletita', 'bizcocho', 'pan ', 'budin', 'magdalena']],
+      ['Fiambres y lácteos', ['queso', 'fiambre', 'yogur', 'leche', 'manteca']],
+      ['Limpieza', ['lavandina', 'detergente', 'limpiador', 'jabon en polvo', 'esponja']],
+      ['Perfumería', ['shampoo', 'desodorante', 'dentifrico', 'perfume', 'afeitar']],
+      ['Almacén', ['arroz', 'fideo', 'harina', 'azucar', 'yerba', 'cafe', 'aceite']],
+      ['Regalería', ['juguete', 'peluche', 'regalo', 'cotillon']],
+    ];
+    const found = rules.find(([, keywords]) => keywords.some(keyword => text.includes(keyword)));
+    return found ? found[0] : 'Kiosco varios';
   }
 
   function notify(message) {
@@ -200,7 +226,6 @@
     state.selectedEan = null;
     state.detail = null;
     state.mlItems = [];
-    state.mlReference = null;
     state.selectedMl = null;
     resultCount.textContent = '…';
     resultsElement.innerHTML = loadingHtml('Buscando variantes exactas…');
@@ -241,7 +266,6 @@
       if (requestId !== state.searchRequest) return true;
       if (data.disabled || !Array.isArray(data.items) || !data.items.length) return false;
       state.mlItems = data.items;
-      state.mlReference = data.reference || null;
       renderMlResults();
       return true;
     } catch (error) {
@@ -253,12 +277,12 @@
     const paneTitle = document.querySelector('.price-pane-title');
     if (paneTitle) paneTitle.textContent = 'Resultados MercadoLibre';
     resultCount.textContent = String(state.mlItems.length);
-    resultsElement.innerHTML = '<div class="price-ml-note">Publicaciones activas en MercadoLibre — precios orientativos de venta al público.</div>'
+    resultsElement.innerHTML = '<div class="price-ml-note">Catálogo Mercado Libre. El precio aparece sólo cuando existe una publicación ganadora vigente.</div>'
       + state.mlItems.map(item => `
       <button class="price-result${item.id === state.selectedMl ? ' active' : ''}" type="button" data-ml-id="${escapeHtml(item.id)}" aria-pressed="${item.id === state.selectedMl ? 'true' : 'false'}">
-        <div class="price-result-brand">MercadoLibre</div>
+        <div class="price-result-brand">${escapeHtml(item.brand || 'MercadoLibre')}${item.presentation ? ` · ${escapeHtml(item.presentation)}` : ''}</div>
         <div class="price-result-name">${escapeHtml(item.title)}</div>
-        <div class="price-result-meta">${item.price ? `<span>Publicado a <strong>${money(item.price)}</strong></span>` : '<span>Con foto · sin precio publicado</span>'}</div>
+        <div class="price-result-meta">${item.price ? `<span>Precio ganador <strong>${money(item.price)}</strong></span>` : '<span>Sin precio automático · consultar en ML</span>'}</div>
       </button>`).join('');
   }
 
@@ -267,15 +291,18 @@
     if (!item) return;
     state.selectedMl = id;
     renderMlResults();
-    const reference = state.mlReference;
     renderDetail({
       mlSource: true,
       permalink: item.permalink,
-      product: { ean: 'ML' + item.id, name: item.title, brand: 'MercadoLibre', presentation: 'Publicación activa' },
+      suggestedCategory: item.suggestedCategory || inferCategory(item.title, item.brand),
+      product: {
+        ean: item.ean || `ML:${item.id}`,
+        name: item.title,
+        brand: item.brand || '',
+        presentation: item.presentation || 'Producto de catálogo',
+      },
       image: item.image,
-      retailReference: reference
-        ? { median: reference.median, min: reference.min, max: reference.max, count: reference.count, updatedToday: false }
-        : {},
+      retailReference: item.reference || {},
       wholesaleReference: {},
       retailStores: [],
       wholesaleStores: [],
@@ -317,10 +344,10 @@
     let retailLabel = 'Referencia minorista';
     let retailNote = referenceRange(retail);
     if (data.mlSource) {
-      retailLabel = 'Referencia MercadoLibre';
+      retailLabel = 'Precio ganador Mercado Libre';
       retailNote = retail.count
-        ? `${retail.count} publicaciones activas · rango ${money(retail.min)} a ${money(retail.max)}`
-        : 'Sin publicaciones para comparar';
+        ? (retail.min === retail.max ? 'Publicación ganadora vigente' : `Rango publicado ${money(retail.min)} a ${money(retail.max)}`)
+        : 'Mercado Libre no expone un precio automático para esta variante';
     } else if (!retail.count && data.mlReference?.count) {
       // Precios Claros no tiene minoristas para este EAN: usamos MercadoLibre.
       retail = { median: data.mlReference.median, min: data.mlReference.min, max: data.mlReference.max, count: data.mlReference.count, updatedToday: false };
@@ -333,7 +360,7 @@
     const wholesale = data.wholesaleReference || {};
     const saved = readSavedPrices()[product.ean] || {};
     const catRecord = catByEan(product.ean);
-    const savedCat = catRecord?.categoria || '';
+    const savedCat = catRecord?.categoria || data.suggestedCategory || inferCategory(product.name, product.brand);
     const suggestedUnits = wholesale.unitsPerPackMedian > 1 ? Math.round(wholesale.unitsPerPackMedian) : null;
     const unitsValue = saved.units || suggestedUnits || '';
     const image = /^https:\/\//.test(data.image || '')
@@ -519,16 +546,17 @@
 
     // Alimenta el catálogo del kiosco con este producto (precio, costo, margen).
     const product = state.detail.product || {};
-    const categoria = (document.getElementById('priceOwnCategory')?.value || '').trim() || 'Kiosco varios';
+    const categoria = (document.getElementById('priceOwnCategory')?.value || '').trim()
+      || inferCategory(product.name, product.brand, state.detail.suggestedCategory);
     const existing = catByEan(product.ean);
     catUpsert({
       uid: existing ? existing.uid : undefined,
       ean: product.ean ? String(product.ean) : null,
       nombre: product.name || 'Producto',
-      marca: product.brand === 'MercadoLibre' ? '' : (product.brand || ''),
-      presentacion: state.detail.mlSource ? '' : (product.presentation || ''),
+      marca: product.brand || '',
+      presentacion: product.presentation || '',
       categoria,
-      costo: cost || 0,
+      costo: hasRealCost ? realCost : (Number(existing?.costo) || 0),
       precio: sale,
       unidades: Number.isFinite(units) && units > 0 ? Math.round(units) : null,
       imagen: state.detail.image || (existing ? existing.imagen : null) || null,
@@ -536,7 +564,7 @@
     }, { rerender: false });
 
     document.getElementById('priceSavedStatus').classList.add('show');
-    if (shouldNotify) notify('Guardado en tu catálogo ✓');
+    if (shouldNotify) notify(hasRealCost || Number(existing?.costo) > 0 ? 'Guardado en tu catálogo ✓' : 'Guardado · falta cargar el costo real');
   }
 
   async function loadDetail(ean) {
@@ -562,9 +590,16 @@
 
   openButton.addEventListener('click', () => setOpen(true));
   closeButton.addEventListener('click', () => setOpen(false));
+  let overlayPressStartedInside = false;
+  overlay.addEventListener('pointerdown', event => {
+    overlayPressStartedInside = Boolean(panel?.contains(event.target));
+  }, true);
   overlay.addEventListener('click', event => {
-    if (event.target === overlay) setOpen(false);
+    const startedInside = overlayPressStartedInside;
+    overlayPressStartedInside = false;
+    if (event.target === overlay && !startedInside) setOpen(false);
   });
+  overlay.addEventListener('pointercancel', () => { overlayPressStartedInside = false; });
   document.addEventListener('keydown', event => {
     if (event.key === 'Escape' && overlay.classList.contains('open')) setOpen(false);
   });
@@ -651,6 +686,9 @@
     fUnidades: document.getElementById('catUnidades'),
     cancelBtn: document.getElementById('catCancelBtn'),
     list: document.getElementById('catList'),
+    search: document.getElementById('catSearch'),
+    categoryFilter: document.getElementById('catCategoryFilter'),
+    summary: document.getElementById('catSummary'),
   };
 
   function catUid() { return 'c_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8); }
@@ -794,23 +832,56 @@
     }).catch(() => { /* sin foto: el ícono de categoría alcanza */ });
   }
 
-  function catGroups() {
+  function catGroups(items) {
     const groups = {};
-    catItems().forEach(record => { const key = record.categoria || 'Kiosco varios'; (groups[key] = groups[key] || []).push(record); });
+    items.forEach(record => { const key = record.categoria || 'Kiosco varios'; (groups[key] = groups[key] || []).push(record); });
     return Object.keys(groups).sort((a, b) => a.localeCompare(b, 'es')).map(category => ({
       category,
       rows: groups[category].sort((a, b) => String(a.nombre).localeCompare(String(b.nombre), 'es')),
     }));
   }
 
+  function updateCategoryFilter(items) {
+    if (!cat.categoryFilter) return;
+    const selected = cat.categoryFilter.value;
+    const categories = [...new Set(items.map(record => record.categoria || 'Kiosco varios'))].sort((a, b) => a.localeCompare(b, 'es'));
+    cat.categoryFilter.innerHTML = '<option value="">Todas las categorías</option>'
+      + categories.map(category => `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`).join('');
+    if (categories.includes(selected)) cat.categoryFilter.value = selected;
+  }
+
+  function renderCatalogSummary(items) {
+    if (!cat.summary) return;
+    const margins = items.map(catMargin).filter(Number.isFinite);
+    const average = margins.length ? margins.reduce((sum, value) => sum + value, 0) / margins.length : null;
+    const withoutCost = items.filter(record => !(Number(record.costo) > 0)).length;
+    cat.summary.innerHTML = `
+      <div class="cat-summary-item"><div class="cat-summary-label">Productos</div><div class="cat-summary-value">${items.length}</div></div>
+      <div class="cat-summary-item"><div class="cat-summary-label">Margen promedio real</div><div class="cat-summary-value ${Number.isFinite(average) ? marginClass(average) : ''}">${marginText(average)}</div></div>
+      <div class="cat-summary-item"><div class="cat-summary-label">Sin costo real</div><div class="cat-summary-value ${withoutCost ? 'warn' : 'good'}">${withoutCost}</div></div>`;
+  }
+
   function renderCatalog() {
     if (!cat.list) return;
-    const items = catItems();
-    if (!items.length) {
+    const allItems = catItems();
+    updateCategoryFilter(allItems);
+    renderCatalogSummary(allItems);
+    if (!allItems.length) {
       cat.list.innerHTML = '<div class="cat-empty"><strong>Tu catálogo está vacío</strong><span>Guardá tu precio y costo desde “Buscar precios”, o tocá “Agregar producto” para cargar librería y todo lo que no esté en Precios Claros.</span></div>';
       return;
     }
-    cat.list.innerHTML = catGroups().map(group => {
+    const query = catalogText(cat.search?.value || '').trim();
+    const category = cat.categoryFilter?.value || '';
+    const items = allItems.filter(record => {
+      if (category && (record.categoria || 'Kiosco varios') !== category) return false;
+      if (!query) return true;
+      return catalogText([record.nombre, record.marca, record.presentacion, record.categoria, record.ean].filter(Boolean).join(' ')).includes(query);
+    });
+    if (!items.length) {
+      cat.list.innerHTML = '<div class="cat-empty"><strong>Sin coincidencias</strong><span>Probá con otro nombre, marca, EAN o categoría.</span></div>';
+      return;
+    }
+    cat.list.innerHTML = catGroups(items).map(group => {
       const margins = group.rows.map(catMargin).filter(Number.isFinite);
       const avg = margins.length ? margins.reduce((a, b) => a + b, 0) / margins.length : null;
       const meta = `${group.rows.length} ${group.rows.length === 1 ? 'producto' : 'productos'}${Number.isFinite(avg) ? ` · margen prom. ${marginText(avg)}` : ''}`;
@@ -875,20 +946,27 @@
   if (cat.tabSearch && cat.tabCatalog) {
     cat.tabSearch.addEventListener('click', () => showCatalogView(false));
     cat.tabCatalog.addEventListener('click', () => showCatalogView(true));
+    cat.search?.addEventListener('input', renderCatalog);
+    cat.categoryFilter?.addEventListener('change', renderCatalog);
     cat.addBtn.addEventListener('click', () => { if (cat.form.hidden) openManualForm(null); else closeManualForm(); });
     cat.cancelBtn.addEventListener('click', closeManualForm);
+    cat.fNombre.addEventListener('blur', () => {
+      if (!cat.fCategoria.value.trim() && cat.fNombre.value.trim()) {
+        cat.fCategoria.value = inferCategory(cat.fNombre.value, '');
+      }
+    });
     cat.form.addEventListener('submit', event => {
       event.preventDefault();
       const nombre = cat.fNombre.value.trim();
-      const categoria = cat.fCategoria.value.trim() || 'Kiosco varios';
+      const editUid = cat.editUid.value || undefined;
+      const existing = editUid ? readCatalog()[editUid] : null;
+      const categoria = cat.fCategoria.value.trim() || inferCategory(nombre, existing?.marca || '');
       const precio = catNum(cat.fPrecio.value);
       const costo = catNum(cat.fCosto.value);
       const unitsRaw = Number(cat.fUnidades.value);
       const unidades = Number.isFinite(unitsRaw) && unitsRaw > 0 ? Math.round(unitsRaw) : null;
       if (!nombre) { cat.fNombre.focus(); notify('Poné el nombre del producto'); return; }
       if (!precio) { cat.fPrecio.focus(); notify('Poné el precio de venta'); return; }
-      const editUid = cat.editUid.value || undefined;
-      const existing = editUid ? readCatalog()[editUid] : null;
       const saved = catUpsert({
         uid: editUid,
         ean: existing ? existing.ean : null,

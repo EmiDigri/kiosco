@@ -22,13 +22,13 @@ const BROWSER_HEADERS = {
 // cada renovación, por eso hay que persistirlo y no alcanza una env var).
 const ML_CLIENT_ID = process.env.ML_CLIENT_ID || '';
 const ML_CLIENT_SECRET = process.env.ML_CLIENT_SECRET || '';
-const SUPABASE_URL = 'https://pilfeptwylgufhbmmday.supabase.co';
-const SUPABASE_SECRET = 'sb_secret_I-zc6YWn33cDY6jfIZwyAA_lJEDHXVu';
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://pilfeptwylgufhbmmday.supabase.co';
+const SUPABASE_SECRET = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const SB_HEADERS = { apikey: SUPABASE_SECRET, Authorization: `Bearer ${SUPABASE_SECRET}`, 'Content-Type': 'application/json' };
 let mlToken = null; // cache en memoria { value, expiresAt }
 
 function mlEnabled() {
-  return Boolean(ML_CLIENT_ID && ML_CLIENT_SECRET);
+  return Boolean(ML_CLIENT_ID && ML_CLIENT_SECRET && SUPABASE_URL && SUPABASE_SECRET);
 }
 
 async function mlTokensLeer() {
@@ -98,40 +98,109 @@ async function mlAccessToken(forceRefresh = false) {
   }
 }
 
-// La búsqueda general (/sites/MLA/search) devuelve "forbidden" incluso con
-// token de cuenta: ML la cerró para apps nuevas. La vía que SÍ funciona es la
-// búsqueda de CATÁLOGO: /products/search da los productos (nombre + id), y
-// por cada uno /products/{id} trae las fotos y /products/{id}/items los
-// precios reales de las publicaciones activas.
+// La búsqueda general (/sites/MLA/search) devuelve "forbidden" para apps
+// nuevas. /products/search sigue disponible para identificar variantes.
+function mlText(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+function mlAttribute(product, id) {
+  const attribute = (product?.attributes || []).find(entry => entry?.id === id);
+  return String(attribute?.value_name || attribute?.values?.[0]?.name || '').trim();
+}
+
+function mlQueryTokens(query) {
+  const ignored = new Set(['de', 'del', 'la', 'las', 'los', 'el', 'con', 'para', 'por', 'un', 'una']);
+  return mlText(query).split(' ').filter(token => token.length > 1 && !ignored.has(token));
+}
+
+function mlRelevance(product, query) {
+  const title = mlText(product?.name);
+  const queryText = mlText(query);
+  const tokens = mlQueryTokens(query);
+  const gtin = mlText(mlAttribute(product, 'GTIN'));
+  let score = 0;
+  if (/^\d{8,18}$/.test(queryText) && gtin === queryText) score += 120;
+  if (title === queryText) score += 50;
+  else if (title.startsWith(queryText)) score += 28;
+  else if (title.includes(queryText)) score += 18;
+  const matched = tokens.filter(token => title.includes(token)).length;
+  score += tokens.length ? (matched / tokens.length) * 28 : 0;
+  score -= (tokens.length - matched) * 12;
+  const queryWords = new Set(queryText.split(' '));
+  const noisyWords = ['combo', 'kit', 'impresora', 'cartucho', 'toner', 'sublimacion', 'compatible', 'fotocopiadora'];
+  noisyWords.forEach(word => { if (title.includes(word) && !queryWords.has(word)) score -= 18; });
+  score -= Math.max(0, title.split(' ').length - queryText.split(' ').length - 5) * 0.6;
+  return score;
+}
+
 function mlSearchRequest(token, query, limit, signal) {
-  const params = new URLSearchParams({ status: 'active', site_id: 'MLA', q: query, limit: String(Math.min(10, Math.max(limit, 4))) });
+  const params = new URLSearchParams({ status: 'active', site_id: 'MLA', q: query, limit: String(Math.min(25, Math.max(limit * 2, 12))) });
   return fetch(`https://api.mercadolibre.com/products/search?${params}`, {
     headers: { Authorization: `Bearer ${token}`, accept: 'application/json' },
     signal,
   });
 }
 
-// Completa un producto de catálogo con su foto y el precio mediano de sus
-// publicaciones activas. Si algo falla, se descarta ese producto y listo.
+function mlPresentation(product) {
+  const parts = [];
+  const add = value => { if (value && !parts.includes(value)) parts.push(value); };
+  add(mlAttribute(product, 'PAPER_SIZE'));
+  const sheets = mlAttribute(product, 'SHEETS_NUMBER');
+  if (sheets) add(`${sheets} hojas`);
+  add(mlAttribute(product, 'GRAMMAGE'));
+  add(mlAttribute(product, 'SALE_FORMAT'));
+  const units = mlAttribute(product, 'UNITS_PER_PACK');
+  if (units && units !== '1') add(`x${units}`);
+  add(mlAttribute(product, 'POINT_TYPE'));
+  add(mlAttribute(product, 'INK_COLOR'));
+  return parts.slice(0, 4).join(' · ');
+}
+
+function mlSuggestedCategory(product) {
+  const domain = String(product?.domain_id || '').toUpperCase();
+  if (/(SCHOOL|OFFICE|STATIONERY|PAPER|PEN|PENCIL|MARKER|NOTEBOOK|FOLDER|ART_SUPPL)/.test(domain)) return 'Librería';
+  return '';
+}
+
+function mlReferenceFromDetail(detail) {
+  const winner = numberOrNull(detail?.buy_box_winner?.price);
+  const rangeMin = numberOrNull(detail?.buy_box_winner_price_range?.min?.price);
+  const rangeMax = numberOrNull(detail?.buy_box_winner_price_range?.max?.price);
+  if (!winner && !rangeMin && !rangeMax) return null;
+  const min = rangeMin || winner || rangeMax;
+  const max = rangeMax || winner || rangeMin;
+  return { median: winner || ((min + max) / 2), min, max, count: 1, updatedToday: false };
+}
+
+// Desde octubre de 2025 Mercado Libre retiró /products/{id}/items.
+// El contrato vigente publica precio sólo cuando existe buy_box_winner.
 async function mlHydrate(token, product, signal) {
   try {
     const headers = { Authorization: `Bearer ${token}`, accept: 'application/json' };
-    const [detailRes, itemsRes] = await Promise.all([
-      fetch(`https://api.mercadolibre.com/products/${product.id}`, { headers, signal }),
-      fetch(`https://api.mercadolibre.com/products/${product.id}/items?limit=5`, { headers, signal }),
-    ]);
+    const detailRes = await fetch(`https://api.mercadolibre.com/products/${product.id}`, { headers, signal });
     const detail = detailRes.ok ? await detailRes.json().catch(() => null) : null;
-    const listing = itemsRes.ok ? await itemsRes.json().catch(() => null) : null;
-    const prices = (Array.isArray(listing?.results) ? listing.results : [])
-      .map(row => Number(row?.price))
-      .filter(value => Number.isFinite(value) && value > 0);
-    const rawUrl = detail?.pictures?.[0]?.url || null;
+    if (!detail) return null;
+    const reference = mlReferenceFromDetail(detail);
+    const rawUrl = detail?.pictures?.[0]?.url || product?.pictures?.[0]?.url || null;
     return {
       id: String(product.id),
-      title: String(product.name || 'Producto'),
-      price: prices.length ? median(prices) : null,
+      title: String(detail.name || product.name || 'Producto'),
+      price: reference?.median || null,
+      reference,
       image: rawUrl ? String(rawUrl).replace(/^http:/, 'https:') : null,
-      permalink: `https://www.mercadolibre.com.ar/p/${product.id}`,
+      permalink: detail.permalink || `https://www.mercadolibre.com.ar/p/${product.id}`,
+      brand: mlAttribute(detail, 'BRAND') || mlAttribute(product, 'BRAND'),
+      ean: mlAttribute(detail, 'GTIN') || mlAttribute(product, 'GTIN') || null,
+      presentation: mlPresentation(detail) || mlPresentation(product),
+      suggestedCategory: mlSuggestedCategory(detail) || mlSuggestedCategory(product),
+      domainId: detail.domain_id || product.domain_id || '',
+      relevance: Number(product._relevance) || 0,
     };
   } catch {
     return null;
@@ -155,25 +224,14 @@ async function mlSearch(query, limit = 8) {
     if (!response.ok) throw new Error(data?.message || `MercadoLibre respondió ${response.status}`);
     const products = (Array.isArray(data?.results) ? data.results : [])
       .filter(product => product?.id && product?.name)
-      .slice(0, Math.min(limit, 6));
+      .map(product => ({ ...product, _relevance: mlRelevance(product, query) }))
+      .sort((a, b) => b._relevance - a._relevance)
+      .slice(0, Math.min(limit, 8));
     const hydrated = (await Promise.all(products.map(product => mlHydrate(token, product, controller.signal)))).filter(Boolean);
-    // Con precio primero (manteniendo la relevancia dentro de cada grupo).
-    const items = hydrated.filter(item => item.price).concat(hydrated.filter(item => !item.price));
-    return { disabled: false, items };
+    return { disabled: false, items: hydrated.sort((a, b) => b.relevance - a.relevance) };
   } finally {
     clearTimeout(timeout);
   }
-}
-
-function mlPriceReference(items) {
-  const prices = items.map(item => item.price).filter(Number.isFinite);
-  if (!prices.length) return null;
-  return {
-    median: median(prices),
-    min: Math.min(...prices),
-    max: Math.max(...prices),
-    count: prices.length,
-  };
 }
 
 async function preciosClarosApiKey() {
@@ -517,8 +575,9 @@ async function handleDetail(ean, lat, lng) {
         found = (await mlSearch(`${product.brand || ''} ${product.name}`.trim(), 3)).items;
       }
       if (found.length) {
-        mlRef = mlPriceReference(found);
-        if (!image) image = found.find(item => item.image)?.image || null;
+        const exact = found.find(item => item.ean && String(item.ean) === String(ean)) || found[0];
+        mlRef = exact.reference || null;
+        if (!image) image = exact.image || found.find(item => item.image)?.image || null;
       }
     } catch { /* ML es un extra: si falla seguimos sin él */ }
   }
@@ -571,7 +630,7 @@ export default async function handler(req, res) {
       const query = normalizeQuery(req.query.q);
       if (query.length < 2) return res.status(400).json({ error: 'Ingresá al menos 2 caracteres' });
       const result = await mlSearch(query, 10);
-      payload = { ...result, reference: mlPriceReference(result.items) };
+      payload = result;
     } else if (action === 'foto') {
       // Solo la mejor foto para un producto cargado a mano en el catálogo.
       const query = normalizeQuery(req.query.q);

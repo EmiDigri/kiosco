@@ -11,8 +11,8 @@
 // Requisito: en developers.mercadolibre.com.ar, la app debe tener como URI de
 // redirect exactamente https://<dominio>/api/ml-auth y el scope offline_access.
 
-const SUPABASE_URL = 'https://pilfeptwylgufhbmmday.supabase.co';
-const SUPABASE_SECRET = 'sb_secret_I-zc6YWn33cDY6jfIZwyAA_lJEDHXVu';
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://pilfeptwylgufhbmmday.supabase.co';
+const SUPABASE_SECRET = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const ML_CLIENT_ID = process.env.ML_CLIENT_ID || '';
 const ML_CLIENT_SECRET = process.env.ML_CLIENT_SECRET || '';
 
@@ -44,8 +44,8 @@ function pagina(res, status, emoji, titulo, detalle) {
 
 export default async function handler(req, res) {
   try {
-    if (!ML_CLIENT_ID || !ML_CLIENT_SECRET) {
-      return pagina(res, 500, '🔑', 'Faltan las claves', 'Antes de conectar, cargá ML_CLIENT_ID y ML_CLIENT_SECRET en las variables de entorno de Vercel y hacé Redeploy.');
+    if (!ML_CLIENT_ID || !ML_CLIENT_SECRET || !SUPABASE_SECRET) {
+      return pagina(res, 500, '🔑', 'Faltan las claves', 'Antes de conectar, cargá ML_CLIENT_ID, ML_CLIENT_SECRET y SUPABASE_SECRET_KEY en las variables de entorno de Vercel y hacé Redeploy.');
     }
 
     const redirectUri = `https://${req.headers.host}/api/ml-auth`;
