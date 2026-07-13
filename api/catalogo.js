@@ -14,6 +14,18 @@ const CASA_PASO_URL = 'https://www.libreriamayorista.com.ar';
 const DULCE_SUR_URL = 'https://oepqhdjuujfdlpjjktbs.supabase.co';
 const RAPPI_URL = 'https://www.rappi.com.ar';
 const INFOKIOSCOS_RANKING_URL = 'https://infokioscos.com.ar/ranking-alfajores';
+const INFOKIOSCOS_API_URL = 'https://infokioscos.com.ar/wp-json/wp/v2/posts';
+const ML_RADAR_HIGHLIGHT_CATEGORIES = [
+  { id: 'MLA114011', label: 'Golosinas' },
+  { id: 'MLA376491', label: 'Chocolates' },
+];
+const ML_RADAR_TREND_CATEGORIES = [
+  { id: 'MLA194317', label: 'Dulces y chocolates' },
+  { id: 'MLA194320', label: 'Snacks' },
+  { id: 'MLA389314', label: 'Galletitas' },
+  { id: 'MLA178700', label: 'Bebidas' },
+];
+const RADAR_WEIGHTS = { sales: 50, searches: 20, social: 15, rappi: 10, news: 5 };
 // Clave anon pública usada por la propia tienda. RLS limita el acceso a su catálogo visible.
 const DULCE_SUR_PUBLIC_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9lcHFoZGp1dWpmZGxwamprdGJzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MTM5MjIsImV4cCI6MjA4OTE4OTkyMn0.XxT5AUQRrYZmxVF66OXdM895JOVeEcjJGKE9OwwM8Xs';
 
@@ -26,7 +38,7 @@ const CABA_RETAIL_ANCHORS = [
   { lat: -34.5627, lng: -58.4583 }, // Belgrano
 ];
 
-const RADAR_NOW = [
+const RADAR_FALLBACK = [
   {
     id: 'giga-spreen', name: 'GIGA x Spreen', query: 'alfajor GIGA Spreen', signal: 'Más pedido en 365',
     note: 'Fenómeno de venta informado por la cadena 365 Kioscos.', scope: '365 Kioscos', date: '2026-07-02',
@@ -624,6 +636,369 @@ async function radarArticleImage(url) {
   }
 }
 
+function radarTokens(value) {
+  const ignored = new Set([
+    'alfajor', 'alfajores', 'chocolate', 'chocolates', 'golosina', 'golosinas', 'snack', 'snacks',
+    'caja', 'pack', 'unidad', 'unidades', 'gramos', 'grs', 'para', 'con', 'del', 'las', 'los', 'una',
+    'nuevo', 'nueva', 'oferta', 'venta', 'mayorista', 'argentina', 'kiosco', 'kioscos',
+  ]);
+  return Array.from(new Set(mlText(value).split(' ')
+    .filter(token => token.length > 2 && !ignored.has(token) && !/^\d+$/.test(token))));
+}
+
+function radarSimilarity(left, right) {
+  const a = new Set(radarTokens(left));
+  const b = new Set(radarTokens(right));
+  if (!a.size || !b.size) return 0;
+  const matches = [...a].filter(token => b.has(token)).length;
+  return matches / Math.max(a.size, b.size);
+}
+
+function mergeRadarCandidate(candidates, incoming) {
+  const match = candidates.find(candidate => (
+    (candidate.ean && incoming.ean && String(candidate.ean) === String(incoming.ean))
+    || radarSimilarity(`${candidate.brand || ''} ${candidate.name}`, `${incoming.brand || ''} ${incoming.name}`) >= 0.5
+  ));
+  if (!match) {
+    candidates.push({
+      salesScore: 0,
+      searchScore: 0,
+      newsScore: 0,
+      rappiScore: 0,
+      sources: [],
+      ...incoming,
+      sources: Array.from(new Set(incoming.sources || [])),
+    });
+    return;
+  }
+  match.salesScore = Math.max(match.salesScore || 0, incoming.salesScore || 0);
+  match.searchScore = Math.max(match.searchScore || 0, incoming.searchScore || 0);
+  match.newsScore = Math.max(match.newsScore || 0, incoming.newsScore || 0);
+  if (incoming.salesRank && (!match.salesRank || incoming.salesRank < match.salesRank)) {
+    match.salesRank = incoming.salesRank;
+    match.salesCategory = incoming.salesCategory;
+  }
+  if (incoming.searchPosition && (!match.searchPosition || incoming.searchPosition < match.searchPosition)) {
+    match.searchPosition = incoming.searchPosition;
+    match.searchKind = incoming.searchKind;
+  }
+  ['brand', 'ean', 'image', 'permalink', 'sourceUrl', 'category', 'newsUrl', 'newsDate', 'newsTitle'].forEach(key => {
+    if (!match[key] && incoming[key]) match[key] = incoming[key];
+  });
+  match.sources = Array.from(new Set([...(match.sources || []), ...(incoming.sources || [])]));
+}
+
+async function mlRadarJson(token, path, signal) {
+  const response = await fetch(`https://api.mercadolibre.com${path}`, {
+    headers: { Authorization: `Bearer ${token}`, accept: 'application/json' },
+    signal,
+  });
+  const data = await response.json().catch(() => null);
+  if (!response.ok) throw new Error(data?.message || `MercadoLibre respondió ${response.status}`);
+  return data;
+}
+
+async function mlRadarProduct(token, row, category, signal) {
+  if (!row?.id || !['PRODUCT', 'ITEM', 'USER_PRODUCT'].includes(row.type)) return null;
+  const endpoint = row.type === 'PRODUCT'
+    ? `/products/${row.id}`
+    : row.type === 'USER_PRODUCT'
+      ? `/user-products/${row.id}`
+      : `/items/${row.id}`;
+  try {
+    const detail = await mlRadarJson(token, endpoint, signal);
+    const name = String(detail?.name || detail?.title || '').trim();
+    if (!name) return null;
+    const rawImage = detail?.pictures?.[0]?.url || detail?.thumbnail || null;
+    const productUrl = detail.permalink || (row.type === 'USER_PRODUCT'
+      ? `https://listado.mercadolibre.com.ar/${mlText(name).replace(/\s+/g, '-')}`
+      : `https://www.mercadolibre.com.ar/p/${row.id}`);
+    const salesRank = Number.isFinite(Number(row.position)) ? Number(row.position) : 20;
+    return {
+      id: `ml:${row.id}`,
+      name,
+      query: `${mlAttribute(detail, 'BRAND')} ${name}`.trim(),
+      brand: mlAttribute(detail, 'BRAND'),
+      ean: mlAttribute(detail, 'GTIN') || null,
+      image: rawImage ? String(rawImage).replace(/^http:/, 'https:') : null,
+      permalink: productUrl,
+      sourceUrl: productUrl,
+      category: category.label,
+      salesRank,
+      salesCategory: category.label,
+      salesScore: Math.max(5, 105 - salesRank * 5),
+      sources: ['Mercado Libre'],
+    };
+  } catch {
+    return null;
+  }
+}
+
+function mlTrendSignal(row, index, category) {
+  const name = String(row?.keyword || '').trim();
+  if (!name) return null;
+  let searchKind;
+  let searchScore;
+  if (index < 10) {
+    searchKind = 'crecimiento';
+    searchScore = 100 - index * 5;
+  } else if (index < 30) {
+    searchKind = 'más buscado';
+    searchScore = 80 - (index - 10) * 2;
+  } else {
+    searchKind = 'popular';
+    searchScore = 70 - (index - 30) * 2;
+  }
+  return {
+    id: `ml-trend:${category.id}:${mlText(name).replace(/\s+/g, '-')}`,
+    name,
+    query: name,
+    category: category.label,
+    sourceUrl: String(row.url || ''),
+    permalink: String(row.url || ''),
+    searchPosition: index + 1,
+    searchKind,
+    searchScore: Math.max(10, searchScore),
+    sources: ['Mercado Libre'],
+  };
+}
+
+async function mlRadarSignals() {
+  if (!mlEnabled()) return { candidates: [], bestSellers: [], sources: { sales: false, searches: false } };
+  const token = await mlAccessToken();
+  if (!token) return { candidates: [], bestSellers: [], sources: { sales: false, searches: false } };
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 14000);
+  try {
+    const [highlightRows, trendRows] = await Promise.all([
+      Promise.allSettled(ML_RADAR_HIGHLIGHT_CATEGORIES.map(async category => ({
+        category,
+        data: await mlRadarJson(token, `/highlights/MLA/category/${category.id}`, controller.signal),
+      }))),
+      Promise.allSettled(ML_RADAR_TREND_CATEGORIES.map(async category => ({
+        category,
+        data: await mlRadarJson(token, `/trends/MLA/${category.id}`, controller.signal),
+      }))),
+    ]);
+
+    const candidates = [];
+    const productsToLoad = [];
+    highlightRows.filter(row => row.status === 'fulfilled').forEach(row => {
+      const content = Array.isArray(row.value.data?.content) ? row.value.data.content : [];
+      content.filter(item => item?.id && ['PRODUCT', 'ITEM', 'USER_PRODUCT'].includes(item.type)).slice(0, 5)
+        .forEach(item => productsToLoad.push({ item, category: row.value.category }));
+    });
+    const loaded = await Promise.all(productsToLoad.map(({ item, category }) => mlRadarProduct(token, item, category, controller.signal)));
+    loaded.filter(Boolean).forEach(item => mergeRadarCandidate(candidates, item));
+
+    trendRows.filter(row => row.status === 'fulfilled').forEach(row => {
+      const data = Array.isArray(row.value.data) ? row.value.data : [];
+      data.slice(0, 12).forEach((item, index) => {
+        const signal = mlTrendSignal(item, index, row.value.category);
+        if (signal) mergeRadarCandidate(candidates, signal);
+      });
+    });
+
+    return {
+      candidates,
+      bestSellers: candidates.filter(item => item.salesRank).sort((a, b) => b.salesScore - a.salesScore).slice(0, 10),
+      sources: {
+        sales: highlightRows.some(row => row.status === 'fulfilled'),
+        searches: trendRows.some(row => row.status === 'fulfilled'),
+      },
+    };
+  } catch {
+    return { candidates: [], bestSellers: [], sources: { sales: false, searches: false } };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function newsProductQuery(title) {
+  const text = htmlText(title);
+  const patterns = [
+    /(?:lanza(?:n)?\s+(?:el\s+|la\s+)?(?:nuevo|nueva)\s+)([^:,.]+)/i,
+    /(?:nuevo|nueva)\s+([^:,.]+)/i,
+    /(?:alfajor|chocolate|caramelo|snack)\s+([^:,.]+)/i,
+  ];
+  const found = patterns.map(pattern => text.match(pattern)?.[1]?.trim()).find(Boolean) || '';
+  if (!found || /\b(?:tendencia|productos?|kioscos?|argentina|mercado)\b/i.test(found)) return '';
+  return found.split(/\s+/).slice(0, 7).join(' ');
+}
+
+function newsFreshness(date) {
+  const ageDays = Math.max(0, (Date.now() - Date.parse(date || 0)) / 86400000);
+  if (ageDays <= 7) return 100;
+  if (ageDays <= 30) return 70;
+  if (ageDays <= 90) return 35;
+  return 15;
+}
+
+async function infokioscosNews() {
+  try {
+    const params = new URLSearchParams({ search: 'golosinas', per_page: '12', _embed: 'wp:featuredmedia' });
+    const raw = await supplierFetch(`${INFOKIOSCOS_API_URL}?${params}`, { headers: { ...BROWSER_HEADERS, accept: 'application/json' } }, 7000);
+    const rows = JSON.parse(raw);
+    const articles = (Array.isArray(rows) ? rows : []).map(row => {
+      const title = htmlText(row?.title?.rendered);
+      const query = newsProductQuery(title);
+      const image = row?._embedded?.['wp:featuredmedia']?.[0]?.source_url || null;
+      return {
+        id: `news:${row.id}`,
+        title,
+        excerpt: htmlText(row?.excerpt?.rendered),
+        query,
+        date: String(row?.date || '').slice(0, 10),
+        url: String(row?.link || ''),
+        image: /^https:\/\//.test(image || '') ? image : null,
+        score: newsFreshness(row?.date),
+      };
+    }).filter(item => item.title && item.url);
+    return { available: true, articles };
+  } catch {
+    return { available: false, articles: [] };
+  }
+}
+
+function applyNewsSignals(candidates, news) {
+  news.articles.filter(article => article.query).slice(0, 8).forEach(article => {
+    mergeRadarCandidate(candidates, {
+      id: article.id,
+      name: article.query,
+      query: article.query,
+      image: article.image,
+      sourceUrl: article.url,
+      newsUrl: article.url,
+      newsDate: article.date,
+      newsTitle: article.title,
+      newsScore: article.score,
+      category: 'Novedades',
+      sources: ['Infokioscos'],
+    });
+  });
+  candidates.forEach(candidate => {
+    const match = news.articles.map(article => ({ article, score: radarSimilarity(candidate.name, `${article.title} ${article.excerpt}`) }))
+      .sort((a, b) => b.score - a.score)[0];
+    if (!match || match.score < 0.3) return;
+    candidate.newsScore = Math.max(candidate.newsScore || 0, Math.round(match.article.score * Math.min(1, match.score + 0.35)));
+    candidate.newsUrl = match.article.url;
+    candidate.newsDate = match.article.date;
+    candidate.newsTitle = match.article.title;
+    if (!candidate.image && match.article.image) candidate.image = match.article.image;
+    candidate.sources = Array.from(new Set([...(candidate.sources || []), 'Infokioscos']));
+  });
+}
+
+function preliminaryRadarScore(candidate) {
+  return (candidate.salesScore || 0) * RADAR_WEIGHTS.sales
+    + (candidate.searchScore || 0) * RADAR_WEIGHTS.searches
+    + (candidate.newsScore || 0) * RADAR_WEIGHTS.news;
+}
+
+async function enrichRadarWithRappi(candidates) {
+  const selected = candidates.sort((a, b) => preliminaryRadarScore(b) - preliminaryRadarScore(a)).slice(0, 5);
+  const rows = await Promise.allSettled(selected.map(async candidate => {
+    const items = await rappiSearch(candidate.query || candidate.name, 5);
+    const ranked = items.map(item => ({ item, score: radarSimilarity(candidate.name, item.title) }))
+      .sort((a, b) => b.score - a.score || Number(b.item.storeCount) - Number(a.item.storeCount));
+    const best = ranked.find(row => row.score >= 0.25)?.item || null;
+    return { candidate, best };
+  }));
+  rows.forEach((row, index) => {
+    const candidate = selected[index];
+    candidate.rappiChecked = row.status === 'fulfilled';
+    if (row.status !== 'fulfilled' || !row.value.best) return;
+    const item = row.value.best;
+    const stores = Math.max(1, Number(item.storeCount) || 1);
+    candidate.rappiScore = stores >= 5 ? 100 : [0, 45, 65, 80, 90][stores];
+    candidate.rappiStoreCount = stores;
+    candidate.rappiPrice = Number(item.unitPrice) || null;
+    candidate.rappiMin = Number(item.retailMin) || candidate.rappiPrice;
+    candidate.rappiMax = Number(item.retailMax) || candidate.rappiPrice;
+    candidate.rappiUrl = item.permalink;
+    if (!candidate.image && item.image) candidate.image = item.image;
+    candidate.sources = Array.from(new Set([...(candidate.sources || []), 'Rappi']));
+  });
+  return selected;
+}
+
+function radarLabel(score) {
+  if (score >= 80) return 'Muy caliente';
+  if (score >= 60) return 'Está subiendo';
+  if (score >= 40) return 'Para mirar';
+  return 'Señal inicial';
+}
+
+function scoredRadarItem(candidate, sourceState, index) {
+  let availableWeight = 0;
+  let weighted = 0;
+  if (sourceState.sales) {
+    availableWeight += RADAR_WEIGHTS.sales;
+    weighted += (candidate.salesScore || 0) * RADAR_WEIGHTS.sales;
+  }
+  if (sourceState.searches) {
+    availableWeight += RADAR_WEIGHTS.searches;
+    weighted += (candidate.searchScore || 0) * RADAR_WEIGHTS.searches;
+  }
+  if (candidate.rappiChecked) {
+    availableWeight += RADAR_WEIGHTS.rappi;
+    weighted += (candidate.rappiScore || 0) * RADAR_WEIGHTS.rappi;
+  }
+  if (sourceState.news) {
+    availableWeight += RADAR_WEIGHTS.news;
+    weighted += (candidate.newsScore || 0) * RADAR_WEIGHTS.news;
+  }
+  const score = availableWeight ? Math.round(weighted / availableWeight) : 0;
+  const reasons = [];
+  if (candidate.salesRank) reasons.push(`#${candidate.salesRank} en ventas de ${candidate.salesCategory}`);
+  if (candidate.searchScore) reasons.push(candidate.searchKind === 'crecimiento' ? 'búsquedas creciendo' : 'entre las búsquedas destacadas');
+  if (candidate.rappiStoreCount) reasons.push(`${candidate.rappiStoreCount} oferta${candidate.rappiStoreCount === 1 ? '' : 's'} en Rappi`);
+  if (candidate.newsTitle) reasons.push('mencionado recientemente por Infokioscos');
+  let publicationUrl = '';
+  let publicationLabel = '';
+  if (candidate.newsUrl) {
+    publicationUrl = candidate.newsUrl;
+    publicationLabel = 'Leer nota en Infokioscos';
+  } else if (candidate.salesRank && candidate.permalink) {
+    publicationUrl = candidate.permalink;
+    publicationLabel = 'Ver publicación en Mercado Libre';
+  } else if (candidate.rappiUrl) {
+    publicationUrl = candidate.rappiUrl;
+    publicationLabel = 'Ver producto en Rappi';
+  } else if (candidate.permalink || candidate.sourceUrl) {
+    publicationUrl = candidate.permalink || candidate.sourceUrl;
+    publicationLabel = 'Ver resultados en Mercado Libre';
+  }
+  return {
+    id: candidate.id || `radar-${index}`,
+    type: 'now',
+    rank: index + 1,
+    name: candidate.name,
+    query: candidate.query || candidate.name,
+    signal: `${score} · ${radarLabel(score)}`,
+    note: reasons.join(' · ') || 'Señal reciente en observación',
+    scope: candidate.rappiStoreCount ? `Argentina · presencia en CABA` : `Argentina · ${candidate.category || 'kioscos'}`,
+    date: candidate.newsDate || new Date().toISOString().slice(0, 10),
+    sourceLabel: (candidate.sources || []).join(' + ') || 'Radar kiosco',
+    sourceUrl: publicationUrl,
+    publicationUrl,
+    publicationLabel,
+    image: candidate.image || null,
+    score,
+    confidence: availableWeight,
+    price: candidate.rappiPrice || null,
+    priceMin: candidate.rappiMin || null,
+    priceMax: candidate.rappiMax || null,
+    breakdown: {
+      sales: candidate.salesScore || 0,
+      searches: candidate.searchScore || 0,
+      social: null,
+      rappi: candidate.rappiChecked ? candidate.rappiScore || 0 : null,
+      news: sourceState.news ? candidate.newsScore || 0 : null,
+    },
+  };
+}
+
 async function radarRanking() {
   const fallback = ['Guaymallén', 'Fantoche', 'Rasta', 'Jorgito', 'Milka'];
   try {
@@ -643,26 +1018,87 @@ async function radarRanking() {
 
 async function handleRadar() {
   if (radarCache && Date.now() - radarCache.savedAt < RADAR_CACHE_TTL) return radarCache.value;
-  const rankingPromise = radarRanking();
-  const imagePromises = Array.from(new Set(RADAR_NOW.map(item => item.sourceUrl))).map(async url => [url, await radarArticleImage(url)]);
-  const [ranking, imageRows] = await Promise.all([rankingPromise, Promise.all(imagePromises)]);
-  const images = new Map(imageRows);
-  const value = {
-    scope: 'Señales de kioscos argentinos y precios de Buenos Aires',
-    ranking: ranking.map(item => ({
+  const [annualRanking, mlSignals, news] = await Promise.all([radarRanking(), mlRadarSignals(), infokioscosNews()]);
+  const candidates = mlSignals.candidates.slice();
+  applyNewsSignals(candidates, news);
+  const enriched = await enrichRadarWithRappi(candidates);
+  const sourceState = { ...mlSignals.sources, news: news.available };
+  const scored = enriched.map((candidate, index) => scoredRadarItem(candidate, sourceState, index))
+    .sort((a, b) => b.score - a.score || b.confidence - a.confidence)
+    .map((item, index) => ({ ...item, rank: index + 1 }));
+  const dynamicReady = scored.length >= 3 && (sourceState.sales || sourceState.searches);
+
+  let now;
+  if (dynamicReady) {
+    now = scored.slice(0, 5);
+  } else {
+    const imageRows = await Promise.all(Array.from(new Set(RADAR_FALLBACK.map(item => item.sourceUrl)))
+      .map(async url => [url, await radarArticleImage(url)]));
+    const images = new Map(imageRows);
+    now = RADAR_FALLBACK.map((item, index) => ({
+      ...item,
+      type: 'now',
+      rank: index + 1,
+      image: images.get(item.sourceUrl) || null,
+      score: null,
+      confidence: 20,
+      note: `${item.note} · respaldo editorial`,
+      publicationUrl: item.sourceUrl,
+      publicationLabel: 'Leer publicación en Infokioscos',
+    }));
+  }
+
+  const ranking = mlSignals.bestSellers.length >= 3
+    ? mlSignals.bestSellers.slice(0, 5).map((item, index) => ({
+      id: `ml-ranking-${item.id || index}`,
+      type: 'ranking',
+      rank: index + 1,
+      name: item.name,
+      query: item.query || item.name,
+      signal: `#${item.salesRank} en ${item.salesCategory}`,
+      note: 'Ranking oficial de productos más vendidos en Mercado Libre.',
+      scope: `Argentina · ${item.salesCategory}`,
+      date: new Date().toISOString().slice(0, 10),
+      sourceLabel: 'Mercado Libre',
+      sourceUrl: item.permalink,
+      publicationUrl: item.permalink,
+      publicationLabel: 'Ver publicación en Mercado Libre',
+      image: item.image || null,
+      confidence: 50,
+    }))
+    : annualRanking.map(item => ({
       id: `ranking-${item.rank}`,
       type: 'ranking',
       name: item.name,
       query: `alfajor ${item.name}`,
-      signal: `#${item.rank} en rotación`,
+      signal: `#${item.rank} en ranking anual`,
       note: 'Ranking anual elaborado con más de 900 kiosqueros.',
-      scope: 'Argentina',
-      date: '2026-05-01',
-      sourceLabel: 'Infokioscos',
+      scope: 'Argentina · ranking anual 2026',
+      date: null,
+      sourceLabel: 'Infokioscos · relevamiento 2026',
       sourceUrl: INFOKIOSCOS_RANKING_URL,
+      publicationUrl: INFOKIOSCOS_RANKING_URL,
+      publicationLabel: 'Ver ranking en Infokioscos',
       image: item.image,
-    })),
-    now: RADAR_NOW.map((item, index) => ({ ...item, type: 'now', rank: index + 1, image: images.get(item.sourceUrl) || null })),
+      confidence: 35,
+    }));
+
+  const value = {
+    scope: dynamicReady ? 'Ventas, búsquedas, Rappi y novedades' : 'Señales editoriales de respaldo',
+    scopeNow: dynamicReady ? 'Argentina/CABA · actualizado cada 6 h' : 'Argentina · respaldo editorial',
+    scopeRanking: mlSignals.bestSellers.length >= 3 ? 'Argentina · ventas Mercado Libre' : 'Argentina · ranking anual 2026 (+900 kiosqueros)',
+    generatedAt: new Date().toISOString(),
+    dynamic: dynamicReady,
+    weights: RADAR_WEIGHTS,
+    sources: {
+      mercadoLibreSales: sourceState.sales,
+      mercadoLibreSearches: sourceState.searches,
+      rappi: enriched.some(item => item.rappiChecked),
+      infokioscos: sourceState.news,
+      social: false,
+    },
+    ranking,
+    now,
   };
   radarCache = { savedAt: Date.now(), value };
   return value;

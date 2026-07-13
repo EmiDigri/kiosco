@@ -44,6 +44,7 @@
     suggestionRequest: 0,
     suggestionActive: -1,
     radar: { now: [], ranking: [] },
+    radarMeta: { scopeNow: '', scopeRanking: '', dynamic: false, generatedAt: null },
     radarMode: 'now',
     radarLoadedAt: 0,
   };
@@ -271,7 +272,11 @@
   function renderRadar() {
     if (!radarList) return;
     const items = Array.isArray(state.radar[state.radarMode]) ? state.radar[state.radarMode] : [];
-    if (radarScope) radarScope.textContent = state.radarMode === 'ranking' ? 'Argentina · +900 kiosqueros' : 'Argentina/365 · precios en CABA';
+    if (radarScope) {
+      radarScope.textContent = state.radarMode === 'ranking'
+        ? (state.radarMeta.scopeRanking || 'Argentina · más vendidos')
+        : (state.radarMeta.scopeNow || 'Argentina/CABA · señales recientes');
+    }
     radarTabs?.querySelectorAll('[data-radar-mode]').forEach(button => {
       const active = button.dataset.radarMode === state.radarMode;
       button.classList.toggle('active', active);
@@ -285,11 +290,27 @@
       const image = /^https:\/\//.test(item.image || '')
         ? `<img src="${escapeHtml(item.image)}" alt="">`
         : `<span>${state.radarMode === 'ranking' ? escapeHtml(item.rank || index + 1) : '↑'}</span>`;
-      return `<button class="price-radar-item" type="button" data-radar-query="${escapeHtml(item.query || item.name)}" title="Buscar ${escapeHtml(item.name)}">
+      const metadata = [
+        item.sourceLabel,
+        Number(item.confidence) > 0 ? `confianza ${Math.round(Number(item.confidence))}%` : '',
+        radarDate(item.date),
+      ].filter(Boolean).join(' · ');
+      const publicationUrl = /^https:\/\//.test(item.publicationUrl || item.sourceUrl || '')
+        ? (item.publicationUrl || item.sourceUrl)
+        : '';
+      const publicationLabel = item.publicationLabel || 'Abrir publicación';
+      const itemTitle = publicationUrl
+        ? `${publicationLabel}: ${item.name}${item.note ? `. ${item.note}` : ''}`
+        : `Buscar ${item.name}`;
+      const openTag = publicationUrl
+        ? `<a class="price-radar-item" href="${escapeHtml(publicationUrl)}" data-radar-query="${escapeHtml(item.query || item.name)}" data-radar-url="${escapeHtml(publicationUrl)}" title="${escapeHtml(itemTitle)}">`
+        : `<button class="price-radar-item" type="button" data-radar-query="${escapeHtml(item.query || item.name)}" title="${escapeHtml(itemTitle)}">`;
+      const closeTag = publicationUrl ? '</a>' : '</button>';
+      return `${openTag}
         <span class="price-radar-thumb">${image}</span>
-        <span><span class="price-radar-name">${escapeHtml(item.name)}</span><span class="price-radar-signal">${escapeHtml(item.signal)}</span><span class="price-radar-meta">${escapeHtml(item.scope)} · ${escapeHtml(item.sourceLabel)} · ${escapeHtml(radarDate(item.date))}</span></span>
-        <span class="price-radar-go" aria-hidden="true">›</span>
-      </button>`;
+        <span><span class="price-radar-name">${escapeHtml(item.name)}</span><span class="price-radar-signal">${escapeHtml(item.signal)}</span><span class="price-radar-meta">${escapeHtml(metadata)}</span></span>
+        <span class="price-radar-go" aria-hidden="true">↗</span>
+      ${closeTag}`;
     }).join('');
   }
 
@@ -302,6 +323,12 @@
       state.radar = {
         now: Array.isArray(data.now) ? data.now : [],
         ranking: Array.isArray(data.ranking) ? data.ranking : [],
+      };
+      state.radarMeta = {
+        scopeNow: data.scopeNow || data.scope || '',
+        scopeRanking: data.scopeRanking || '',
+        dynamic: data.dynamic === true,
+        generatedAt: data.generatedAt || data.checkedAt || null,
       };
       state.radarLoadedAt = Date.now();
       renderRadar();
@@ -504,8 +531,83 @@
 
   function supplierMatchTokens(item) {
     const ignored = new Set(['alfajor', 'chocolate', 'unidad', 'caja', 'pack']);
+    const singular = {
+      alfajores: 'alfajor', chocolates: 'chocolate', unidades: 'unidad', cajas: 'caja',
+      resmas: 'resma', hojas: 'hoja', marcadores: 'marcador', biromes: 'birome',
+      boligrafos: 'boligrafo', caramelos: 'caramelo', galletitas: 'galletita',
+    };
     return catalogText(`${item.brand || ''} ${item.title || ''}`).replace(/[^a-z0-9 ]/g, ' ').split(/\s+/)
+      .map(token => singular[token] || (token.length > 3 && token.endsWith('s') ? token.slice(0, -1) : token))
       .filter(token => token.length > 2 && !ignored.has(token) && !/^\d/.test(token));
+  }
+
+  function comparisonItemTokens(item) {
+    return supplierMatchTokens({
+      brand: item.brand || '',
+      title: `${item.title || item.name || ''} ${item.presentation || ''}`,
+    });
+  }
+
+  function comparisonSource(item) {
+    return item.source || 'precios-claros';
+  }
+
+  function comparisonId(item) {
+    return item.id || `pc:${item.ean || item.code || item.name}`;
+  }
+
+  function sourceOffer(item, selected, score) {
+    const source = comparisonSource(item);
+    const isOfficial = source === 'precios-claros';
+    const retailPrice = isOfficial ? Number(item.retail?.min) || null : (item.priceType === 'retail' ? Number(item.unitPrice) || null : null);
+    const wholesalePrice = isOfficial ? Number(item.wholesale?.unitWithVatMin) || null : (item.priceType === 'retail' ? null : Number(item.unitPrice) || null);
+    return {
+      id: comparisonId(item),
+      source,
+      sourceLabel: isOfficial ? 'Precios Claros' : item.sourceLabel,
+      title: item.title || item.name || 'Producto',
+      presentation: item.presentation || '',
+      retailPrice,
+      retailMin: isOfficial ? Number(item.retail?.min) || null : Number(item.retailMin) || retailPrice,
+      retailMax: isOfficial ? Number(item.retail?.max) || null : Number(item.retailMax) || retailPrice,
+      wholesalePrice,
+      packPrice: Number(item.packPrice) || (isOfficial ? Number(item.wholesale?.packWithVatMin) || null : null),
+      packUnits: Number(item.packUnits) || null,
+      permalink: item.permalink || '',
+      selected,
+      matchType: selected ? 'selected' : (score >= 0.55 ? 'same' : 'similar'),
+      score,
+    };
+  }
+
+  function sourceOffersFor(selectedItem) {
+    if (!selectedItem) return [];
+    const selectedTokens = new Set(comparisonItemTokens(selectedItem));
+    const selectedSource = comparisonSource(selectedItem);
+    const selectedId = comparisonId(selectedItem);
+    const candidates = [
+      ...state.items.map(item => ({ ...item, source: 'precios-claros' })),
+      ...state.supplierItems,
+    ];
+    if (!candidates.some(item => comparisonId(item) === selectedId)) candidates.unshift(selectedItem);
+
+    const ranked = candidates.map(item => {
+      const tokens = new Set(comparisonItemTokens(item));
+      const shared = [...selectedTokens].filter(token => tokens.has(token)).length;
+      const score = shared / Math.max(selectedTokens.size, tokens.size, 1);
+      const selected = comparisonId(item) === selectedId;
+      return { item, selected, score, shared };
+    }).filter(row => row.selected || row.shared > 0);
+
+    const sourceOrder = ['precios-claros', 'rappi', 'dulce-sur', 'casa-paso'];
+    const offers = [];
+    sourceOrder.forEach(source => {
+      const rows = ranked.filter(row => comparisonSource(row.item) === source)
+        .sort((a, b) => Number(b.selected) - Number(a.selected) || b.score - a.score || (Number(a.item.unitPrice) || Infinity) - (Number(b.item.unitPrice) || Infinity));
+      const visible = source === selectedSource ? rows.filter(row => row.selected).slice(0, 1) : rows.slice(0, 3);
+      visible.forEach(row => offers.push(sourceOffer(row.item, row.selected, row.score)));
+    });
+    return offers;
   }
 
   function supplierCompanion(item, source) {
@@ -576,6 +678,7 @@
         packWithVat: packPrice,
         unitsPerPack: units,
       }] : [],
+      sourceOffers: sourceOffersFor(item),
     };
   }
 
@@ -627,6 +730,49 @@
   function shopDetails(title, stores, wholesale) {
     if (!stores.length) return '';
     return `<details class="price-shop-details"><summary><span>${escapeHtml(title)} (${stores.length})</span></summary><div class="price-shop-list">${shopRows(stores, wholesale)}</div></details>`;
+  }
+
+  function sourceOfferValues(offer) {
+    const values = [];
+    if (offer.retailPrice) {
+      const range = offer.retailMin && offer.retailMax && offer.retailMin !== offer.retailMax
+        ? `<small>${money(offer.retailMin)} a ${money(offer.retailMax)}</small>`
+        : '';
+      values.push(`<span><small>Minorista</small><strong>${money(offer.retailPrice)}</strong>${range}</span>`);
+    }
+    if (offer.wholesalePrice) values.push(`<span><small>Mayorista / u.</small><strong>${money(offer.wholesalePrice)}</strong></span>`);
+    if (offer.packPrice && offer.packUnits > 1) values.push(`<span><small>Bulto x${Math.round(offer.packUnits)}</small><strong>${money(offer.packPrice)}</strong></span>`);
+    return values.length ? values.join('') : '<span><small>Precio</small><strong>Consultar</strong></span>';
+  }
+
+  function sourceOffersHtml(offers) {
+    if (!Array.isArray(offers) || offers.length < 2) return '';
+    const labels = { selected: 'Producto elegido', same: 'Mismo producto', similar: 'Alternativa similar' };
+    const groups = new Map();
+    offers.forEach(offer => {
+      if (!groups.has(offer.source)) groups.set(offer.source, { label: offer.sourceLabel, offers: [] });
+      groups.get(offer.source).offers.push(offer);
+    });
+    const columns = [...groups.values()].map(group => `
+      <div class="price-source-column">
+        <div class="price-source-column-title">${escapeHtml(group.label)}</div>
+        ${group.offers.map(offer => {
+          const content = `
+            <span class="price-source-match ${offer.matchType}">${escapeHtml(labels[offer.matchType])}</span>
+            <span class="price-source-product">${escapeHtml(offer.title)}</span>
+            ${offer.presentation ? `<span class="price-source-presentation">${escapeHtml(offer.presentation)}</span>` : ''}
+            <span class="price-source-values">${sourceOfferValues(offer)}</span>`;
+          return offer.permalink
+            ? `<a class="price-source-offer" href="${escapeHtml(offer.permalink)}" target="_blank" rel="noopener">${content}</a>`
+            : `<div class="price-source-offer">${content}</div>`;
+        }).join('')}
+      </div>`).join('');
+    return `
+      <section class="price-source-comparison">
+        <div class="price-source-comparison-head"><div><strong>Precios por fuente</strong><small>Reunidos automáticamente para el producto elegido</small></div></div>
+        <div class="price-source-columns">${columns}</div>
+        <div class="price-source-warning">Las alternativas similares pueden cambiar de marca, gramaje o presentación. No se usan solas para calcular tu margen.</div>
+      </section>`;
   }
 
   function renderDetail(data) {
@@ -708,6 +854,8 @@
           <div class="price-reference-note">${escapeHtml(wholesaleRange(wholesale))}</div>
         </section>
       </div>
+
+      ${sourceOffersHtml(data.sourceOffers)}
 
       ${shopDetails('Precios minoristas considerados', data.retailStores || [], false)}
       ${shopDetails('Precios mayoristas considerados', data.wholesaleStores || [], true)}
@@ -886,7 +1034,8 @@
     try {
       const data = await apiRequest({ action: 'detail', ean });
       if (requestId !== state.detailRequest) return;
-      renderDetail(data);
+      const selected = state.items.find(item => item.ean === ean);
+      renderDetail({ ...data, sourceOffers: sourceOffersFor(selected ? { ...selected, source: 'precios-claros' } : { ...data.product, source: 'precios-claros' }) });
     } catch (error) {
       if (requestId !== state.detailRequest) return;
       detailElement.innerHTML = errorHtml(error.message);
@@ -955,6 +1104,7 @@
   radarList?.addEventListener('click', event => {
     const button = event.target.closest('[data-radar-query]');
     if (!button) return;
+    if (button.dataset.radarUrl) return;
     searchInput.value = button.dataset.radarQuery;
     hideSuggestions();
     searchProducts();
