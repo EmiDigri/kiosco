@@ -26,6 +26,35 @@ const ML_RADAR_TREND_CATEGORIES = [
   { id: 'MLA178700', label: 'Bebidas' },
 ];
 const RADAR_WEIGHTS = { sales: 50, searches: 20, social: 15, rappi: 10, news: 5 };
+const RADAR_KIOSK_BRANDS = [
+  'giga', 'bon o bon', 'arcor', 'milka', 'cofler', 'block', 'rasta', 'guaymallen', 'fantoche',
+  'jorgito', 'jorgelin', 'oreo', 'pepitos', 'toddy', 'bagley', 'chocolinas', 'sonrisas', 'diversion',
+  'opera', 'criollitas', 'traviata', 'tentaciones', 'kesitas', 'saladix', 'mogul', 'rocklets', 'shot',
+  'mantecol', 'marroc', 'cabsha', 'cadbury', 'kinder', 'ferrero', 'nutella', 'beldent', 'topline',
+  'bazooka', 'flynn paff', 'palitos de la selva', 'butter toffees', 'sugus', 'media hora', 'tic tac',
+  'lays', 'doritos', 'cheetos', 'twistos', 'pehuamar', 'krachitos', 'coca cola', 'sprite', 'fanta',
+  'pepsi', 'manaos', 'speed', 'monster', 'red bull', 'rockstar', 'gatorade', 'powerade', 'cepita',
+  'baggio', 'levite', 'villavicencio', 'eco de los andes', 'aquarius', 'picotea',
+];
+const RADAR_KIOSK_PRODUCTS = [
+  'alfajor', 'alfajores', 'chocolate', 'chocolates', 'bombon', 'bombones', 'caramelo', 'caramelos',
+  'chicle', 'chicles', 'gomita', 'gomitas', 'galleta', 'galletas', 'galletita', 'galletitas', 'oblea',
+  'obleas', 'turron', 'turrones', 'chupetin', 'chupetines', 'pastilla', 'pastillas', 'snack', 'snacks',
+  'papas fritas', 'nachos', 'palitos', 'pochoclo', 'mani', 'bizcochito', 'bizcochitos', 'barrita',
+  'barritas', 'gaseosa', 'gaseosas', 'jugo', 'jugos', 'agua saborizada', 'aguas saborizadas',
+  'energizante', 'energizantes', 'isotonica', 'isotonicas', 'soda',
+];
+const RADAR_EXCLUDED_PRODUCTS = [
+  'soju', 'sake', 'whisky', 'vodka', 'gin', 'licor', 'champagne', 'espumante', 'vino', 'nuez', 'nueces',
+  'castana', 'castanas', 'almendra', 'almendras', 'semilla', 'semillas', 'proteina', 'suplemento',
+  'cafe en grano', 'capsula', 'capsulas', 'te en hebras', 'alimento para', 'comida para', 'mayonesa',
+  'aceite', 'arroz', 'fideo', 'fideos', 'harina',
+];
+const RADAR_GENERIC_QUERIES = new Set([
+  'alfajor', 'alfajores', 'chocolate', 'chocolates', 'bombon', 'bombones', 'caramelo', 'caramelos',
+  'galleta', 'galletas', 'galletita', 'galletitas', 'golosina', 'golosinas', 'snack', 'snacks',
+  'bebida', 'bebidas', 'gaseosa', 'gaseosas', 'agua', 'aguas', 'jugo', 'jugos', 'energizante', 'energizantes',
+]);
 // Clave anon pública usada por la propia tienda. RLS limita el acceso a su catálogo visible.
 const DULCE_SUR_PUBLIC_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9lcHFoZGp1dWpmZGxwamprdGJzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MTM5MjIsImV4cCI6MjA4OTE4OTkyMn0.XxT5AUQRrYZmxVF66OXdM895JOVeEcjJGKE9OwwM8Xs';
 
@@ -646,6 +675,23 @@ function radarTokens(value) {
     .filter(token => token.length > 2 && !ignored.has(token) && !/^\d+$/.test(token))));
 }
 
+function radarHasPhrase(value, phrases) {
+  const normalized = ` ${mlText(value)} `;
+  return phrases.some(phrase => normalized.includes(` ${mlText(phrase)} `));
+}
+
+function isKioskRadarCandidate(candidate) {
+  if (candidate?.salesRank || candidate?.newsScore) return true;
+  const name = String(candidate?.name || '');
+  const trustedBrand = radarHasPhrase(name, RADAR_KIOSK_BRANDS);
+  if (radarHasPhrase(name, RADAR_EXCLUDED_PRODUCTS) && !trustedBrand) return false;
+  return trustedBrand || radarHasPhrase(name, RADAR_KIOSK_PRODUCTS);
+}
+
+function isGenericRadarQuery(value) {
+  return RADAR_GENERIC_QUERIES.has(mlText(value));
+}
+
 function radarSimilarity(left, right) {
   const a = new Set(radarTokens(left));
   const b = new Set(radarTokens(right));
@@ -759,6 +805,7 @@ function mlTrendSignal(row, index, category) {
     searchPosition: index + 1,
     searchKind,
     searchScore: Math.max(10, searchScore),
+    genericTrend: isGenericRadarQuery(name),
     sources: ['Mercado Libre'],
   };
 }
@@ -916,10 +963,24 @@ async function enrichRadarWithRappi(candidates) {
     candidate.rappiMin = Number(item.retailMin) || candidate.rappiPrice;
     candidate.rappiMax = Number(item.retailMax) || candidate.rappiPrice;
     candidate.rappiUrl = item.permalink;
+    candidate.rappiTitle = String(item.title || '').trim();
     if (!candidate.image && item.image) candidate.image = item.image;
+    if (!candidate.salesRank && !candidate.newsTitle && candidate.rappiTitle) {
+      candidate.trendQuery = candidate.name;
+      candidate.name = candidate.rappiTitle;
+      candidate.query = candidate.rappiTitle;
+      if (!candidate.brand && item.brand) candidate.brand = item.brand;
+    }
     candidate.sources = Array.from(new Set([...(candidate.sources || []), 'Rappi']));
   });
-  return selected;
+  const seen = new Set();
+  return selected.filter(candidate => {
+    if (candidate.genericTrend && !candidate.rappiStoreCount) return false;
+    const key = candidate.rappiUrl || candidate.ean || mlText(candidate.name);
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 function radarLabel(score) {
@@ -1019,9 +1080,9 @@ async function radarRanking() {
 async function handleRadar() {
   if (radarCache && Date.now() - radarCache.savedAt < RADAR_CACHE_TTL) return radarCache.value;
   const [annualRanking, mlSignals, news] = await Promise.all([radarRanking(), mlRadarSignals(), infokioscosNews()]);
-  const candidates = mlSignals.candidates.slice();
+  const candidates = mlSignals.candidates.filter(isKioskRadarCandidate);
   applyNewsSignals(candidates, news);
-  const enriched = await enrichRadarWithRappi(candidates);
+  const enriched = await enrichRadarWithRappi(candidates.filter(isKioskRadarCandidate));
   const sourceState = { ...mlSignals.sources, news: news.available };
   const scored = enriched.map((candidate, index) => scoredRadarItem(candidate, sourceState, index))
     .sort((a, b) => b.score - a.score || b.confidence - a.confidence)
