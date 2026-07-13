@@ -2342,7 +2342,8 @@ body.light .price-suggestion-price{color:#087f72}
 .price-location-field{width:185px}
 .price-location-btn{background:var(--glass);border-color:var(--glass-border);color:var(--text-mid);padding:0 12px}
 .price-location-btn:hover{background:var(--glass-hover);color:var(--text)}
-.price-layout{display:grid;grid-template-columns:320px minmax(0,1fr);min-height:540px}
+.price-workspace{display:grid;grid-template-columns:minmax(0,1fr) 248px;min-height:540px}
+.price-layout{display:grid;grid-template-columns:300px minmax(0,1fr);min-height:540px}
 .price-results-pane{padding:17px 17px 0 0;border-right:1px solid var(--glass-border)}
 .price-results-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
 .price-pane-title{font-size:11px;font-weight:850;text-transform:uppercase;color:var(--text-soft);letter-spacing:0}
@@ -2361,6 +2362,27 @@ body.light .price-result-brand{color:#087f72}
 .price-result-name{font-size:12px;font-weight:720;line-height:1.28;letter-spacing:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .price-result-meta{display:flex;align-items:center;flex-wrap:wrap;gap:5px 10px;margin-top:7px;color:var(--text-soft);font-size:9.5px;font-weight:650;font-variant-numeric:tabular-nums}
 .price-result-meta strong{color:var(--text-mid);font-weight:800}
+.price-radar{min-width:0;border-left:1px solid var(--glass-border);padding:17px 0 0 17px}
+.price-radar-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px}
+.price-radar-title{display:block;color:var(--text);font-size:12px;font-weight:850;text-transform:uppercase}
+.price-radar-head small{display:block;margin-top:3px;color:var(--text-soft);font-size:8.5px;font-weight:650;line-height:1.25}
+.price-radar-live{color:#5fd68a;font-size:13px;line-height:1;filter:drop-shadow(0 0 5px rgba(95,214,138,.45))}
+.price-radar-tabs{display:grid;grid-template-columns:1fr 1.35fr;gap:3px;padding:3px;border:1px solid var(--glass-border);border-radius:7px;background:var(--glass);margin-bottom:8px}
+.price-radar-tabs button{height:29px;border:0;border-radius:5px;background:transparent;color:var(--text-soft);font:750 9.5px/1 'Inter',sans-serif;cursor:pointer}
+.price-radar-tabs button.active{background:var(--glass-hover);color:var(--text);box-shadow:inset 0 0 0 1px var(--glass-border)}
+.price-radar-list{display:flex;flex-direction:column}
+.price-radar-list{scrollbar-width:none}
+.price-radar-list::-webkit-scrollbar{display:none}
+.price-radar-item{width:100%;display:grid;grid-template-columns:42px minmax(0,1fr) 20px;gap:9px;align-items:center;border:0;border-bottom:1px solid var(--glass-border);background:transparent;color:var(--text);padding:9px 0;text-align:left;cursor:pointer}
+.price-radar-item:hover{background:var(--glass-hover)}
+.price-radar-thumb{width:42px;height:42px;border:1px solid var(--glass-border);border-radius:6px;background:#fff;overflow:hidden;display:flex;align-items:center;justify-content:center;color:#087f72;font-size:13px;font-weight:850}
+.price-radar-thumb img{width:100%;height:100%;object-fit:cover}
+.price-radar-name{display:block;font-size:10.5px;font-weight:780;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.price-radar-signal{display:block;margin-top:3px;color:#f4a435;font-size:8.5px;font-weight:780;line-height:1.25}
+.price-radar-meta{display:block;margin-top:3px;color:var(--text-soft);font-size:7.8px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.price-radar-go{color:var(--text-soft);font-size:16px;text-align:center}
+.price-radar-loading{min-height:190px;display:flex;align-items:center;justify-content:center;text-align:center;color:var(--text-soft);font-size:10px}
+.price-radar-error{padding:20px 4px;color:var(--text-soft);font-size:10px;line-height:1.4;text-align:center}
 .price-detail-pane{padding:20px 0 0 24px;min-width:0}
 .price-detail-empty{height:100%;min-height:420px;display:flex;align-items:center;justify-content:center;text-align:center;color:var(--text-soft);font-size:12px;line-height:1.5;padding:28px}
 .price-product-head{display:grid;grid-template-columns:112px minmax(0,1fr);gap:18px;align-items:center;padding-bottom:18px;border-bottom:1px solid var(--glass-border)}
@@ -2414,6 +2436,15 @@ body.light .price-reference-value.wholesale{color:#087f72}
 body.light .price-error{color:#991b1b}
 .price-spinner{width:22px;height:22px;border:2px solid var(--glass-border);border-top-color:#61d6c0;border-radius:50%;animation:price-spin .7s linear infinite;margin-bottom:10px}
 @keyframes price-spin{to{transform:rotate(360deg)}}
+@media(max-width:1100px){
+  .price-workspace{display:flex;flex-direction:column}
+  .price-radar{order:-1;border-left:none;border-bottom:1px solid var(--glass-border);padding:14px 0}
+  .price-radar-head{margin-bottom:8px}.price-radar-head small{display:inline;margin:0 0 0 7px}
+  .price-radar-tabs{width:230px}
+  .price-radar-list{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(190px,1fr);overflow-x:auto;overscroll-behavior-inline:contain}
+  .price-radar-item{padding:8px 10px 8px 0;border-bottom:0;border-right:1px solid var(--glass-border)}
+  .price-radar-loading{min-height:70px}
+}
 @media(max-width:900px){
   .price-panel{padding:16px 12px 60px!important}
   .price-toolbar{grid-template-columns:1fr;align-items:stretch}
@@ -2429,6 +2460,9 @@ body.light .price-error{color:#991b1b}
   .price-title{font-size:23px}.price-subtitle{font-size:10px}
   .price-search-form{display:grid;grid-template-columns:minmax(0,1fr) auto}
   .price-suggestions{max-height:min(52vh,360px)}
+  .price-radar{margin:0 -2px;padding:12px 2px}.price-radar-tabs{width:100%}
+  .price-radar-list{grid-auto-columns:minmax(178px,72vw)}
+  .price-radar-item{grid-template-columns:38px minmax(0,1fr) 18px;gap:8px}.price-radar-thumb{width:38px;height:38px}
   .price-location{display:grid;grid-template-columns:minmax(0,1fr) auto}.price-location-field{width:auto}
   .price-layout{display:block;min-height:0}
   .price-results-pane{padding:15px 0;border-right:none;border-bottom:1px solid var(--glass-border)}
@@ -2892,7 +2926,7 @@ body.light .price-error{color:#991b1b}
     <div class="price-header">
       <div>
         <div class="price-title">Referencia de precios</div>
-        <div class="price-subtitle"><span class="price-source-dot"></span><span>Precios Claros · Casa Paso · Dulce Sur · Mercado Libre · versión beta</span></div>
+        <div class="price-subtitle"><span class="price-source-dot"></span><span>Precios Claros · Rappi Buenos Aires · mayoristas · versión beta</span></div>
       </div>
       <button class="btn-cerrar-hist" id="btnCerrarPrecios" type="button" title="Cerrar" aria-label="Cerrar referencia de precios">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -2937,16 +2971,31 @@ body.light .price-error{color:#991b1b}
       </div>
     </div>
 
-    <div class="price-layout">
-      <aside class="price-results-pane" aria-label="Variantes encontradas">
-        <div class="price-results-head"><span class="price-pane-title">Variantes exactas</span><span class="price-count" id="priceResultCount">0</span></div>
-        <div class="price-results" id="priceResults" data-testid="price-results">
-          <div class="price-empty"><div class="price-empty-icon">$</div><span>Buscá el producto para comparar sus presentaciones.</span></div>
+    <div class="price-workspace">
+      <div class="price-layout">
+        <aside class="price-results-pane" aria-label="Variantes encontradas">
+          <div class="price-results-head"><span class="price-pane-title">Variantes exactas</span><span class="price-count" id="priceResultCount">0</span></div>
+          <div class="price-results" id="priceResults" data-testid="price-results">
+            <div class="price-empty"><div class="price-empty-icon">$</div><span>Buscá el producto para comparar sus presentaciones.</span></div>
+          </div>
+        </aside>
+        <main class="price-detail-pane" id="priceDetail" data-testid="price-detail">
+          <div class="price-detail-empty">Elegí una variante para ver la referencia minorista, el valor mayorista y tus márgenes.</div>
+        </main>
+      </div>
+      <aside class="price-radar" aria-label="Radar de productos de kiosco" data-testid="price-radar">
+        <div class="price-radar-head">
+          <div><span class="price-radar-title">Radar kiosco</span><small id="priceRadarScope">Argentina · 2026</small></div>
+          <span class="price-radar-live" title="Fuentes verificadas">●</span>
+        </div>
+        <div class="price-radar-tabs" role="tablist" aria-label="Vista del radar">
+          <button class="active" type="button" role="tab" aria-selected="true" data-radar-mode="now">Ahora</button>
+          <button type="button" role="tab" aria-selected="false" data-radar-mode="ranking">Más vendidos</button>
+        </div>
+        <div class="price-radar-list" id="priceRadarList">
+          <div class="price-radar-loading">Actualizando radar…</div>
         </div>
       </aside>
-      <main class="price-detail-pane" id="priceDetail" data-testid="price-detail">
-        <div class="price-detail-empty">Elegí una variante para ver la referencia minorista, el valor mayorista y tus márgenes.</div>
-      </main>
     </div>
     </div><!-- /#priceViewSearch -->
 

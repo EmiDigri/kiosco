@@ -12,6 +12,9 @@
   const detailElement = document.getElementById('priceDetail');
   const locationPreset = document.getElementById('priceLocationPreset');
   const useLocationButton = document.getElementById('priceUseLocation');
+  const radarList = document.getElementById('priceRadarList');
+  const radarScope = document.getElementById('priceRadarScope');
+  const radarTabs = document.querySelector('.price-radar-tabs');
   const panel = overlay?.querySelector('.price-panel');
   const priceHeader = overlay?.querySelector('.price-header');
   if (!overlay || !openButton || !searchForm) return;
@@ -40,6 +43,9 @@
     suggestions: [],
     suggestionRequest: 0,
     suggestionActive: -1,
+    radar: { now: [], ranking: [] },
+    radarMode: 'now',
+    radarLoadedAt: 0,
   };
   let suggestionTimer = null;
 
@@ -162,6 +168,7 @@
     if (open) {
       if (typeof window.lockBody === 'function') window.lockBody();
       if (panel) panel.scrollTop = 0;
+      loadRadar();
       setTimeout(() => searchInput.focus(), 40);
     } else if (typeof window.unlockBody === 'function') {
       hideSuggestions();
@@ -188,6 +195,12 @@
 
   function supplierPriceSummary(item) {
     const parts = [];
+    if (item.priceType === 'retail') {
+      if (item.unitPrice) parts.push(`<span>Minor. online <strong>${money(item.unitPrice)}</strong></span>`);
+      if (item.retailMin && item.retailMax && item.retailMin !== item.retailMax) parts.push(`<span>${money(item.retailMin)}–${money(item.retailMax)}</span>`);
+      if (item.storeCount) parts.push(`<span>${Number(item.storeCount)} oferta${Number(item.storeCount) === 1 ? '' : 's'}</span>`);
+      return parts.length ? parts.join('') : '<span>Consultar precio online</span>';
+    }
     if (item.available === false) parts.push('<span style="color:#f87171">Sin stock</span>');
     else if (item.stock !== null && item.stock !== undefined && Number.isFinite(Number(item.stock))) parts.push(`<span>${Number(item.stock)} disponibles</span>`);
     if (item.unitPrice) parts.push(`<span>Mayor. <strong>${money(item.unitPrice)}/u</strong></span>`);
@@ -202,6 +215,7 @@
   function renderResults() {
     const paneTitle = document.querySelector('.price-pane-title');
     const supplierGroups = [
+      ['Rappi · minorista online', state.supplierItems.filter(item => item.source === 'rappi')],
       ['Dulce Sur · kiosco', state.supplierItems.filter(item => item.source === 'dulce-sur')],
       ['Casa Paso · librería', state.supplierItems.filter(item => item.source === 'casa-paso')],
     ].filter(([, items]) => items.length);
@@ -236,6 +250,7 @@
     Object.entries(params).forEach(([key, value]) => url.searchParams.set(key, value));
     url.searchParams.set('lat', state.location.lat);
     url.searchParams.set('lng', state.location.lng);
+    url.searchParams.set('zone', state.location.key || 'current');
     const response = await fetch(url.toString(), { headers: { accept: 'application/json' } });
     let data = null;
     try {
@@ -245,6 +260,54 @@
     }
     if (!response.ok) throw new Error(data?.error || 'No se pudieron consultar los precios.');
     return data;
+  }
+
+  function radarDate(value) {
+    const date = new Date(`${String(value || '').slice(0, 10)}T12:00:00`);
+    if (Number.isNaN(date.getTime())) return '';
+    return date.toLocaleDateString('es-AR', { day: '2-digit', month: 'short' }).replace('.', '');
+  }
+
+  function renderRadar() {
+    if (!radarList) return;
+    const items = Array.isArray(state.radar[state.radarMode]) ? state.radar[state.radarMode] : [];
+    if (radarScope) radarScope.textContent = state.radarMode === 'ranking' ? 'Argentina · +900 kiosqueros' : 'Argentina/365 · precios en CABA';
+    radarTabs?.querySelectorAll('[data-radar-mode]').forEach(button => {
+      const active = button.dataset.radarMode === state.radarMode;
+      button.classList.toggle('active', active);
+      button.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+    if (!items.length) {
+      radarList.innerHTML = '<div class="price-radar-error">El radar no devolvió señales vigentes.</div>';
+      return;
+    }
+    radarList.innerHTML = items.map((item, index) => {
+      const image = /^https:\/\//.test(item.image || '')
+        ? `<img src="${escapeHtml(item.image)}" alt="">`
+        : `<span>${state.radarMode === 'ranking' ? escapeHtml(item.rank || index + 1) : '↑'}</span>`;
+      return `<button class="price-radar-item" type="button" data-radar-query="${escapeHtml(item.query || item.name)}" title="Buscar ${escapeHtml(item.name)}">
+        <span class="price-radar-thumb">${image}</span>
+        <span><span class="price-radar-name">${escapeHtml(item.name)}</span><span class="price-radar-signal">${escapeHtml(item.signal)}</span><span class="price-radar-meta">${escapeHtml(item.scope)} · ${escapeHtml(item.sourceLabel)} · ${escapeHtml(radarDate(item.date))}</span></span>
+        <span class="price-radar-go" aria-hidden="true">›</span>
+      </button>`;
+    }).join('');
+  }
+
+  async function loadRadar(force = false) {
+    if (!radarList) return;
+    if (!force && state.radarLoadedAt && Date.now() - state.radarLoadedAt < 30 * 60 * 1000) { renderRadar(); return; }
+    radarList.innerHTML = '<div class="price-radar-loading">Actualizando radar…</div>';
+    try {
+      const data = await apiRequest({ action: 'radar' });
+      state.radar = {
+        now: Array.isArray(data.now) ? data.now : [],
+        ranking: Array.isArray(data.ranking) ? data.ranking : [],
+      };
+      state.radarLoadedAt = Date.now();
+      renderRadar();
+    } catch {
+      radarList.innerHTML = '<div class="price-radar-error">Radar temporalmente no disponible.</div>';
+    }
   }
 
   function hideSuggestions() {
@@ -318,15 +381,17 @@
   function chooseSuggestion(index) {
     const item = state.suggestions[index];
     if (!item) return;
+    const availableSuggestions = state.suggestions.slice();
     searchInput.value = item.title;
     hideSuggestions();
-    if (item.source === 'casa-paso' || item.source === 'dulce-sur') {
+    if (item.source === 'casa-paso' || item.source === 'dulce-sur' || item.source === 'rappi') {
       state.items = [];
       state.selectedEan = null;
       state.detail = null;
       state.mlItems = [];
       state.selectedMl = null;
-      state.supplierItems = [item];
+      state.supplierItems = availableSuggestions.filter(entry => ['casa-paso', 'dulce-sur', 'rappi'].includes(entry.source));
+      if (!state.supplierItems.some(entry => entry.id === item.id)) state.supplierItems.unshift(item);
       state.selectedSupplier = item.id;
       renderResults();
       showSupplierDetail(item.id);
@@ -335,7 +400,7 @@
     searchProducts();
   }
 
-  async function searchProducts() {
+  async function searchProducts(options = {}) {
     const query = searchInput.value.trim();
     if (query.length < 2) {
       searchInput.focus();
@@ -367,7 +432,10 @@
         if (!rescued && requestId === state.searchRequest) renderResults();
       } else {
         renderResults();
-        if (state.items.length === 1 && !state.supplierItems.length && /^\d{8,18}$/.test(query.replace(/\D/g, ''))) {
+        if (options.autoOpen && state.supplierItems.length) {
+          const preferred = state.supplierItems.find(item => item.source === 'rappi') || state.supplierItems[0];
+          showSupplierDetail(preferred.id);
+        } else if (state.items.length === 1 && !state.supplierItems.length && /^\d{8,18}$/.test(query.replace(/\D/g, ''))) {
           loadDetail(state.items[0].ean);
         }
       }
@@ -434,41 +502,75 @@
     });
   }
 
+  function supplierMatchTokens(item) {
+    const ignored = new Set(['alfajor', 'chocolate', 'unidad', 'caja', 'pack']);
+    return catalogText(`${item.brand || ''} ${item.title || ''}`).replace(/[^a-z0-9 ]/g, ' ').split(/\s+/)
+      .filter(token => token.length > 2 && !ignored.has(token) && !/^\d/.test(token));
+  }
+
+  function supplierCompanion(item, source) {
+    const target = new Set(supplierMatchTokens(item));
+    if (!target.size) return null;
+    return state.supplierItems.map(candidate => {
+      if (candidate.source !== source || candidate.id === item.id) return { candidate, score: 0 };
+      const tokens = new Set(supplierMatchTokens(candidate));
+      const matches = [...target].filter(token => tokens.has(token)).length;
+      const score = matches / Math.max(target.size, tokens.size, 1);
+      return { candidate, score };
+    }).sort((a, b) => b.score - a.score).find(row => row.score >= 0.55)?.candidate || null;
+  }
+
   function supplierDetailData(item) {
-    const units = Number(item.packUnits) > 1 ? Math.round(Number(item.packUnits)) : null;
-    const unitPrice = Number(item.unitPrice) || null;
-    const packPrice = Number(item.packPrice) || (unitPrice && units ? unitPrice * units : null);
-    const updatedToday = item.updatedAt ? String(item.updatedAt).slice(0, 10) === new Date().toISOString().slice(0, 10) : false;
+    const retailItem = item.priceType === 'retail' ? item : supplierCompanion(item, 'rappi');
+    const wholesaleItem = item.priceType === 'retail'
+      ? (supplierCompanion(item, 'dulce-sur') || supplierCompanion(item, 'casa-paso'))
+      : item;
+    const units = Number(wholesaleItem?.packUnits) > 1 ? Math.round(Number(wholesaleItem.packUnits)) : null;
+    const unitPrice = Number(wholesaleItem?.unitPrice) || null;
+    const packPrice = Number(wholesaleItem?.packPrice) || (unitPrice && units ? unitPrice * units : null);
+    const retailPrice = Number(retailItem?.unitPrice) || null;
+    const updatedToday = retailItem?.updatedAt ? String(retailItem.updatedAt).slice(0, 10) === new Date().toISOString().slice(0, 10) : false;
+    const productItem = wholesaleItem || item;
+    const links = [retailItem, wholesaleItem].filter(Boolean).filter((entry, index, rows) => rows.findIndex(row => row.source === entry.source) === index)
+      .map(entry => ({ label: entry.sourceLabel, url: entry.permalink }));
     return {
       supplierSource: item.source,
-      sourceLabel: item.sourceLabel,
+      supplierPriceType: retailItem && wholesaleItem ? 'combined' : (retailItem ? 'retail' : 'wholesale'),
+      sourceLabel: [retailItem?.sourceLabel, wholesaleItem?.sourceLabel].filter(Boolean).join(' + ') || item.sourceLabel,
       permalink: item.permalink,
+      sourceLinks: links,
       supplierPackPrice: packPrice,
       supplierPackUnits: units,
-      supplierMinimum: Number(item.minimum) || 1,
-      supplierAvailable: item.available !== false,
-      suggestedCategory: item.category || inferCategory(item.title, item.brand),
+      supplierMinimum: Number(wholesaleItem?.minimum) || 1,
+      supplierAvailable: wholesaleItem ? wholesaleItem.available !== false : true,
+      suggestedCategory: productItem.category || inferCategory(productItem.title, productItem.brand),
       product: {
-        ean: item.code || item.id,
-        name: item.title,
-        brand: item.brand || item.sourceLabel || '',
-        presentation: item.presentation || (units ? `Bulto x${units}` : 'Unidad'),
+        ean: productItem.code || productItem.id,
+        name: productItem.title,
+        brand: productItem.brand || productItem.sourceLabel || '',
+        presentation: productItem.presentation || (units ? `Bulto x${units}` : 'Unidad'),
       },
-      image: item.image,
-      retailReference: {},
-      wholesaleReference: {
+      image: productItem.image || retailItem?.image,
+      retailReference: retailItem ? {
+        median: retailPrice,
+        min: Number(retailItem.retailMin) || retailPrice,
+        max: Number(retailItem.retailMax) || retailPrice,
+        count: Number(retailItem.storeCount) || 1,
+        updatedToday,
+      } : {},
+      wholesaleReference: wholesaleItem ? {
         unitWithVatMedian: unitPrice,
         unitWithVatMin: unitPrice,
         unitWithVatMax: unitPrice,
         packWithVatMedian: packPrice,
         unitsPerPackMedian: units,
         count: unitPrice ? 1 : 0,
-        updatedToday,
-      },
+        updatedToday: wholesaleItem.updatedAt ? String(wholesaleItem.updatedAt).slice(0, 10) === new Date().toISOString().slice(0, 10) : false,
+      } : {},
       retailStores: [],
-      wholesaleStores: unitPrice ? [{
-        store: item.sourceLabel,
-        address: item.source === 'casa-paso' ? 'CABA' : 'Longchamps, Buenos Aires',
+      wholesaleStores: wholesaleItem && unitPrice ? [{
+        store: wholesaleItem.sourceLabel,
+        address: wholesaleItem.source === 'casa-paso' ? 'CABA' : 'Longchamps, Buenos Aires',
         locality: 'Buenos Aires',
         unitWithVat: unitPrice,
         packWithVat: packPrice,
@@ -534,7 +636,13 @@
     let retailNote = referenceRange(retail);
     let retailDisplayValue = retail.median;
     let wholesaleLabel = 'Referencia mayorista por unidad · c/IVA';
-    if (data.supplierSource) {
+    if (data.supplierSource && (data.supplierPriceType === 'retail' || data.supplierPriceType === 'combined')) {
+      retailLabel = data.supplierPriceType === 'combined' ? 'Referencia minorista online' : `Precio publicado en ${data.sourceLabel}`;
+      retailDisplayValue = retail.median;
+      const range = retail.min && retail.max && retail.min !== retail.max ? ` · rango ${money(retail.min)} a ${money(retail.max)}` : '';
+      retailNote = `${retail.count || 1} oferta${retail.count === 1 ? '' : 's'} en Buenos Aires${range} · puede incluir promoción o recargo de delivery`;
+      if (data.supplierPriceType === 'combined') wholesaleLabel = 'Costo mayorista por unidad · c/IVA';
+    } else if (data.supplierSource) {
       const packText = data.supplierPackUnits > 1
         ? `Bulto x${data.supplierPackUnits}${data.supplierMinimum > 1 ? ` · mínimo x${data.supplierMinimum}` : ''}`
         : (data.supplierMinimum > 1 ? `Compra mínima x${data.supplierMinimum}` : 'Venta por unidad');
@@ -571,8 +679,11 @@
     const packHint = suggestedUnits
       ? `${data.sourceLabel || 'La fuente'} informa ${suggestedUnits} unidades.`
       : 'Opcional para calcular el bulto.';
+    const sourceLinks = Array.isArray(data.sourceLinks) && data.sourceLinks.length
+      ? data.sourceLinks.map(link => `<a class="price-ml-link" href="${escapeHtml(link.url)}" target="_blank" rel="noopener">${escapeHtml(link.label)} ↗</a>`).join('')
+      : (data.permalink ? `<a class="price-ml-link" href="${escapeHtml(data.permalink)}" target="_blank" rel="noopener">Ver en ${escapeHtml(data.sourceLabel || 'Mercado Libre')} ↗</a>` : '');
     const productMeta = data.permalink
-      ? `<span>${data.supplierSource ? 'Código' : 'EAN'} ${escapeHtml(product.ean || 'sin informar')}</span><a class="price-ml-link" href="${escapeHtml(data.permalink)}" target="_blank" rel="noopener">Ver en ${escapeHtml(data.sourceLabel || 'Mercado Libre')} ↗</a>`
+      ? `<span>${data.supplierSource ? 'Código' : 'EAN'} ${escapeHtml(product.ean || 'sin informar')}</span>${sourceLinks}`
       : `<span>EAN ${escapeHtml(product.ean)}</span>`;
 
     detailElement.innerHTML = `
@@ -834,6 +945,19 @@
   });
   document.addEventListener('pointerdown', event => {
     if (searchWrap && !searchWrap.contains(event.target)) hideSuggestions();
+  });
+  radarTabs?.addEventListener('click', event => {
+    const button = event.target.closest('[data-radar-mode]');
+    if (!button) return;
+    state.radarMode = button.dataset.radarMode === 'ranking' ? 'ranking' : 'now';
+    renderRadar();
+  });
+  radarList?.addEventListener('click', event => {
+    const button = event.target.closest('[data-radar-query]');
+    if (!button) return;
+    searchInput.value = button.dataset.radarQuery;
+    hideSuggestions();
+    searchProducts();
   });
   searchForm.addEventListener('submit', event => {
     event.preventDefault();
@@ -1121,7 +1245,7 @@
       const rows = group.rows.map(record => {
         const margin = catMargin(record);
         const sub = [record.marca, record.presentacion].filter(Boolean).join(' · ');
-        const origenTexto = { manual: 'manual', preciosclaros: 'Precios Claros', mercadolibre: 'Mercado Libre', 'casa-paso': 'Casa Paso', 'dulce-sur': 'Dulce Sur' }[record.origen] || 'manual';
+        const origenTexto = { manual: 'manual', preciosclaros: 'Precios Claros', mercadolibre: 'Mercado Libre', 'casa-paso': 'Casa Paso', 'dulce-sur': 'Dulce Sur', rappi: 'Rappi' }[record.origen] || 'manual';
         const origen = `<span class="cat-origin">${origenTexto}</span>`;
         return `<div class="cat-row" data-uid="${escapeHtml(record.uid)}">
           ${catThumbHtml(record)}

@@ -6,12 +6,48 @@ const BRANCH_CACHE_TTL = 15 * 60 * 1000;
 const branchCache = new Map();
 const SUPPLIER_CACHE_TTL = 10 * 60 * 1000;
 const supplierCache = new Map();
+const RADAR_CACHE_TTL = 6 * 60 * 60 * 1000;
+let radarCache = null;
 let publicApiKeyPromise;
 
 const CASA_PASO_URL = 'https://www.libreriamayorista.com.ar';
 const DULCE_SUR_URL = 'https://oepqhdjuujfdlpjjktbs.supabase.co';
+const RAPPI_URL = 'https://www.rappi.com.ar';
+const INFOKIOSCOS_RANKING_URL = 'https://infokioscos.com.ar/ranking-alfajores';
 // Clave anon pública usada por la propia tienda. RLS limita el acceso a su catálogo visible.
 const DULCE_SUR_PUBLIC_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9lcHFoZGp1dWpmZGxwamprdGJzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MTM5MjIsImV4cCI6MjA4OTE4OTkyMn0.XxT5AUQRrYZmxVF66OXdM895JOVeEcjJGKE9OwwM8Xs';
+
+const CABA_RETAIL_ANCHORS = [
+  { lat: -34.6037, lng: -58.3816 }, // Centro
+  { lat: -34.5875, lng: -58.3974 }, // Recoleta
+  { lat: -34.5711, lng: -58.4233 }, // Palermo
+  { lat: -34.6187, lng: -58.4425 }, // Caballito
+  { lat: -34.6282, lng: -58.4631 }, // Flores
+  { lat: -34.5627, lng: -58.4583 }, // Belgrano
+];
+
+const RADAR_NOW = [
+  {
+    id: 'giga-spreen', name: 'GIGA x Spreen', query: 'alfajor GIGA Spreen', signal: 'Más pedido en 365',
+    note: 'Fenómeno de venta informado por la cadena 365 Kioscos.', scope: '365 Kioscos', date: '2026-07-02',
+    sourceLabel: 'Infokioscos', sourceUrl: 'https://infokioscos.com.ar/122816/furor-por-el-alfajor-giga-a-dos-meses-de-su-lanzamiento-rompe-records-en-ventas.html',
+  },
+  {
+    id: 'bon-o-bon', name: 'Bon o Bon', query: 'bon o bon clasico', signal: '57% de las menciones',
+    note: 'Lideró el relevamiento de la Semana de la Dulzura.', scope: 'Argentina', date: '2026-07-02',
+    sourceLabel: 'Infokioscos', sourceUrl: 'https://infokioscos.com.ar/118545/semana-de-la-dulzura-las-5-golosinas-mas-vendidas-en-kioscos-de-argentina.html',
+  },
+  {
+    id: 'cofler-block', name: 'Cofler Block', query: 'chocolate Cofler Block', signal: '15% de las menciones',
+    note: 'Segundo producto destacado en la Semana de la Dulzura.', scope: 'Argentina', date: '2026-07-02',
+    sourceLabel: 'Infokioscos', sourceUrl: 'https://infokioscos.com.ar/118545/semana-de-la-dulzura-las-5-golosinas-mas-vendidas-en-kioscos-de-argentina.html',
+  },
+  {
+    id: 'picotea', name: 'Picoteá Arcor', query: 'Picotea Arcor', signal: 'Lanzamiento reciente',
+    note: 'Bon o Bon, Block y Rocklets en formato de consumo al paso.', scope: 'Argentina', date: '2026-06-18',
+    sourceLabel: 'Infokioscos', sourceUrl: 'https://infokioscos.com.ar/122631/arcor-lanza-picotea-la-nueva-linea-de-snacks-con-sus-chocolates-mas-populares.html',
+  },
+];
 
 const BROWSER_HEADERS = {
   accept: 'application/json, text/plain, */*',
@@ -480,14 +516,167 @@ async function dulceSurSearch(query, limit = 10) {
   return supplierCacheSet(cacheKey, items);
 }
 
+function rappiQuery(query) {
+  return normalizeQuery(query)
+    .replace(/\bbonobon\b/gi, 'bon o bon')
+    .replace(/\bblack\b/gi, 'negro');
+}
+
+function ldProducts(value, output) {
+  if (!value || typeof value !== 'object') return;
+  if (value['@type'] === 'Product') output.push(value);
+  if (Array.isArray(value)) value.forEach(entry => ldProducts(entry, output));
+  else Object.values(value).forEach(entry => ldProducts(entry, output));
+}
+
+function offerPrices(offers) {
+  const rows = Array.isArray(offers) ? offers : [offers];
+  const prices = [];
+  rows.filter(Boolean).forEach(offer => {
+    const direct = numberOrNull(offer.price);
+    const low = numberOrNull(offer.lowPrice);
+    const high = numberOrNull(offer.highPrice);
+    if (direct) prices.push(direct);
+    if (low) prices.push(low);
+    if (high && high !== low) prices.push(high);
+  });
+  return prices;
+}
+
+function productBrand(title) {
+  const text = mlText(title);
+  const known = ['rasta', 'milka', 'guaymallen', 'fantoche', 'jorgito', 'aguila', 'terrabusi', 'tatin', 'jorgelin', 'cofler', 'bon o bon', 'mogul', 'oreo', 'arcor'];
+  const found = known.find(brand => text.includes(brand));
+  if (!found) return '';
+  return found.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+}
+
+async function rappiSearch(query, limit = 10) {
+  const translated = rappiQuery(query);
+  const cacheKey = `rappi:${mlText(translated)}`;
+  const cached = supplierCacheGet(cacheKey);
+  if (cached) return cached.slice(0, limit);
+  const html = await supplierFetch(`${RAPPI_URL}/search?query=${encodeURIComponent(translated)}`, {
+    headers: { ...BROWSER_HEADERS, accept: 'text/html,application/xhtml+xml' },
+  }, 10000);
+  const grouped = new Map();
+  const scripts = html.matchAll(/<script([^>]*)type=["']application\/ld\+json["']([^>]*)>([\s\S]*?)<\/script>/gi);
+  for (const match of scripts) {
+    let data;
+    try { data = JSON.parse(match[3]); } catch { continue; }
+    const products = [];
+    ldProducts(data, products);
+    const scriptAttrs = `${match[1]} ${match[2]}`;
+    const storeId = scriptAttrs.match(/cpg-carousel-schema-([\d-]+)/i)?.[1] || '';
+    products.forEach(product => {
+      const title = htmlText(product.name);
+      const permalink = String(product.url || '');
+      const productId = permalink.match(/-(\d+)(?:\?.*)?$/)?.[1] || mlText(title);
+      const prices = offerPrices(product.offers);
+      if (!title || !prices.length || !permalink.startsWith('https://www.rappi.com.ar/')) return;
+      const current = grouped.get(productId) || { title, permalink, image: String(product.image || ''), prices: [], stores: new Set() };
+      current.prices.push(...prices);
+      if (storeId) current.stores.add(storeId);
+      grouped.set(productId, current);
+    });
+  }
+  const items = Array.from(grouped.entries()).map(([productId, product]) => {
+    const relevance = textRelevance(product.title, translated);
+    const prices = product.prices.filter(Number.isFinite);
+    const presentation = product.title.match(/\b\d+(?:[.,]\d+)?\s*(?:g|gr|kg|ml|cc|l)\b/i)?.[0] || 'Unidad';
+    return {
+      id: `rappi:${productId}`,
+      source: 'rappi',
+      sourceLabel: 'Rappi Buenos Aires',
+      priceType: 'retail',
+      code: productId,
+      title: product.title,
+      brand: productBrand(product.title),
+      presentation,
+      category: 'Kiosco',
+      unitPrice: median(prices),
+      retailMin: Math.min(...prices),
+      retailMax: Math.max(...prices),
+      storeCount: Math.max(1, product.stores.size),
+      packPrice: null,
+      packUnits: null,
+      minimum: 1,
+      stock: null,
+      available: true,
+      image: /^https:\/\//.test(product.image) ? product.image : null,
+      permalink: product.permalink,
+      updatedAt: new Date().toISOString(),
+      relevance,
+    };
+  }).filter(item => item.relevance >= 20).sort((a, b) => b.relevance - a.relevance || a.unitPrice - b.unitPrice).slice(0, 20);
+  supplierCacheSet(cacheKey, items);
+  return items.slice(0, limit);
+}
+
+async function radarArticleImage(url) {
+  try {
+    const html = await supplierFetch(url, { headers: { ...BROWSER_HEADERS, accept: 'text/html' } }, 5000);
+    const image = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i)?.[1]
+      || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i)?.[1];
+    return /^https:\/\//.test(image || '') ? image : null;
+  } catch {
+    return null;
+  }
+}
+
+async function radarRanking() {
+  const fallback = ['Guaymallén', 'Fantoche', 'Rasta', 'Jorgito', 'Milka'];
+  try {
+    const html = await supplierFetch(INFOKIOSCOS_RANKING_URL, { headers: { ...BROWSER_HEADERS, accept: 'text/html' } }, 6000);
+    const chunks = html.split(/ranking-item position-/i).slice(1, 11);
+    const parsed = chunks.map(chunk => {
+      const rank = Number(chunk.match(/^(\d+)/)?.[1]);
+      const name = htmlText(chunk.match(/alt=["']([^"']+)["']/i)?.[1]);
+      const image = chunk.match(/data-src=["']([^"']+)["']/i)?.[1] || null;
+      if (!rank || !name) return null;
+      return { rank, name, image: /^https:\/\//.test(image || '') ? image : null };
+    }).filter(Boolean).slice(0, 5);
+    if (parsed.length >= 5) return parsed;
+  } catch { /* el fallback conserva el radar disponible */ }
+  return fallback.map((name, index) => ({ rank: index + 1, name, image: null }));
+}
+
+async function handleRadar() {
+  if (radarCache && Date.now() - radarCache.savedAt < RADAR_CACHE_TTL) return radarCache.value;
+  const rankingPromise = radarRanking();
+  const imagePromises = Array.from(new Set(RADAR_NOW.map(item => item.sourceUrl))).map(async url => [url, await radarArticleImage(url)]);
+  const [ranking, imageRows] = await Promise.all([rankingPromise, Promise.all(imagePromises)]);
+  const images = new Map(imageRows);
+  const value = {
+    scope: 'Señales de kioscos argentinos y precios de Buenos Aires',
+    ranking: ranking.map(item => ({
+      id: `ranking-${item.rank}`,
+      type: 'ranking',
+      name: item.name,
+      query: `alfajor ${item.name}`,
+      signal: `#${item.rank} en rotación`,
+      note: 'Ranking anual elaborado con más de 900 kiosqueros.',
+      scope: 'Argentina',
+      date: '2026-05-01',
+      sourceLabel: 'Infokioscos',
+      sourceUrl: INFOKIOSCOS_RANKING_URL,
+      image: item.image,
+    })),
+    now: RADAR_NOW.map((item, index) => ({ ...item, type: 'now', rank: index + 1, image: images.get(item.sourceUrl) || null })),
+  };
+  radarCache = { savedAt: Date.now(), value };
+  return value;
+}
+
 async function supplierSearch(query, limit = 10) {
-  const [casa, dulce] = await Promise.allSettled([casaPasoSearch(query, limit), dulceSurSearch(query, limit)]);
+  const [casa, dulce, rappi] = await Promise.allSettled([casaPasoSearch(query, limit), dulceSurSearch(query, limit), rappiSearch(query, limit)]);
   return {
     items: [
+      ...(rappi.status === 'fulfilled' ? rappi.value : []),
       ...(dulce.status === 'fulfilled' ? dulce.value : []),
       ...(casa.status === 'fulfilled' ? casa.value : []),
     ],
-    sources: { casaPaso: casa.status === 'fulfilled', dulceSur: dulce.status === 'fulfilled' },
+    sources: { casaPaso: casa.status === 'fulfilled', dulceSur: dulce.status === 'fulfilled', rappi: rappi.status === 'fulfilled' },
   };
 }
 
@@ -587,6 +776,53 @@ async function getBranches(kind, lat, lng) {
   return items;
 }
 
+async function getCoverageBranches(kind, lat, lng, zone) {
+  if (kind !== 'retail' || zone !== 'caba') return getBranches(kind, lat, lng);
+  const settled = await Promise.allSettled(CABA_RETAIL_ANCHORS.map(anchor => getBranches('retail', anchor.lat, anchor.lng)));
+  const byId = new Map();
+  settled.forEach(result => {
+    if (result.status !== 'fulfilled') return;
+    result.value.forEach(branch => byId.set(`${branch.comercioId || ''}-${branch.banderaId || ''}-${branch.id}`, branch));
+  });
+  return Array.from(byId.values());
+}
+
+function officialQueryCandidates(query) {
+  const original = normalizeQuery(query).replace(/\s+/g, ' ').trim();
+  const generic = new Set(['alfajor', 'alfajores', 'chocolate', 'chocolates', 'galletita', 'galletitas', 'caramelo', 'caramelos', 'bebida', 'bebidas', 'gaseosa', 'gaseosas', 'unidad', 'unidades']);
+  const colors = new Set(['negro', 'negra', 'blanco', 'blanca', 'leche', 'clasico', 'clasica']);
+  const tokens = original.split(' ').filter(Boolean);
+  const withoutGeneric = tokens.filter(token => !generic.has(mlText(token))).join(' ');
+  const distinctive = tokens.filter(token => !generic.has(mlText(token)) && !colors.has(mlText(token)) && !/^\d/.test(token)).join(' ');
+  return Array.from(new Set([original, withoutGeneric, distinctive].filter(value => value.length >= 2))).slice(0, 3);
+}
+
+function mergeSourceProducts(products, wholesale) {
+  const byEan = new Map();
+  products.forEach(product => {
+    if (!product?.id) return;
+    const key = String(product.id);
+    const current = byEan.get(key);
+    if (!current) { byEan.set(key, { ...product }); return; }
+    const minFields = wholesale
+      ? ['precio_unitario_bulto_min_con_iva', 'precio_unitario_bulto_min_sin_iva', 'precio_bulto_min_con_iva', 'precio_bulto_min_sin_iva']
+      : ['precioMin'];
+    const maxFields = wholesale
+      ? ['precio_unitario_bulto_max_con_iva', 'precio_unitario_bulto_max_sin_iva', 'precio_bulto_max_con_iva', 'precio_bulto_max_sin_iva']
+      : ['precioMax'];
+    minFields.forEach(field => {
+      const values = [numberOrNull(current[field]), numberOrNull(product[field])].filter(Number.isFinite);
+      if (values.length) current[field] = Math.min(...values);
+    });
+    maxFields.forEach(field => {
+      const values = [numberOrNull(current[field]), numberOrNull(product[field])].filter(Number.isFinite);
+      if (values.length) current[field] = Math.max(...values);
+    });
+    current.cantSucursalesDisponible = (Number(current.cantSucursalesDisponible) || 0) + (Number(product.cantSucursalesDisponible) || 0);
+  });
+  return Array.from(byEan.values());
+}
+
 function normalizeProduct(product) {
   if (!product || !product.id) return null;
   return {
@@ -597,23 +833,32 @@ function normalizeProduct(product) {
   };
 }
 
-async function searchSource(kind, query, lat, lng) {
+async function searchSource(kind, query, lat, lng, zone) {
   const wholesale = kind === 'wholesale';
   const base = wholesale ? WHOLESALE_API : RETAIL_API;
-  const branches = await getBranches(kind, lat, lng);
+  const branches = await getCoverageBranches(kind, lat, lng, zone);
   if (!branches.length) return { branches, products: [] };
-
-  const params = new URLSearchParams({
-    string: query,
-    array_sucursales: branches.map(branch => branch.id).join(','),
-    offset: '0',
-    limit: '50',
-  });
-  if (wholesale) params.set('entorno', 'mayoristas');
-  const data = await officialJson(base, `/productos?${params}`, wholesale);
+  const chunks = [];
+  for (let index = 0; index < branches.length; index += 65) chunks.push(branches.slice(index, index + 65));
+  let products = [];
+  for (const candidate of officialQueryCandidates(query)) {
+    const settled = await Promise.allSettled(chunks.map(async branchChunk => {
+      const params = new URLSearchParams({
+        string: candidate,
+        array_sucursales: branchChunk.map(branch => branch.id).join(','),
+        offset: '0',
+        limit: '50',
+      });
+      if (wholesale) params.set('entorno', 'mayoristas');
+      return officialJson(base, `/productos?${params}`, wholesale);
+    }));
+    const rows = settled.flatMap(result => result.status === 'fulfilled' && Array.isArray(result.value.productos) ? result.value.productos : []);
+    products.push(...rows);
+    if (rows.length) break;
+  }
   return {
     branches,
-    products: Array.isArray(data.productos) ? data.productos : [],
+    products: mergeSourceProducts(products, wholesale),
   };
 }
 
@@ -684,21 +929,27 @@ function detailBranchId(branch) {
   return `${branch.comercioId}-${branch.banderaId}-${branch.id}`;
 }
 
-async function detailSource(kind, ean, lat, lng) {
+async function detailSource(kind, ean, lat, lng, zone) {
   const wholesale = kind === 'wholesale';
   const base = wholesale ? WHOLESALE_API : RETAIL_API;
-  const branches = await getBranches(kind, lat, lng);
+  const branches = await getCoverageBranches(kind, lat, lng, zone);
   if (!branches.length) return { product: null, rows: [] };
-
-  const params = new URLSearchParams({
-    limit: wholesale ? '30' : '50',
-    id_producto: ean,
-    array_sucursales: branches.map(branch => branch.id).join(','),
-  });
-  if (wholesale) params.set('entorno', 'mayoristas');
-  const data = await officialJson(base, `/producto?${params}`, wholesale);
+  const chunks = [];
+  for (let index = 0; index < branches.length; index += 45) chunks.push(branches.slice(index, index + 45));
+  const settled = await Promise.allSettled(chunks.map(async branchChunk => {
+    const params = new URLSearchParams({
+      limit: wholesale ? '30' : '50',
+      id_producto: ean,
+      array_sucursales: branchChunk.map(branch => branch.id).join(','),
+    });
+    if (wholesale) params.set('entorno', 'mayoristas');
+    return officialJson(base, `/producto?${params}`, wholesale);
+  }));
+  const responses = settled.filter(result => result.status === 'fulfilled').map(result => result.value);
+  if (!responses.length) throw settled.find(result => result.status === 'rejected')?.reason || new Error('Sin respuesta de Precios Claros');
+  const data = responses.find(row => row.producto) || responses[0];
   const distances = distanceMap(branches);
-  const sourceRows = Array.isArray(data.sucursales) ? data.sucursales : [];
+  const sourceRows = responses.flatMap(row => Array.isArray(row.sucursales) ? row.sucursales : []);
 
   if (!wholesale) {
     const rows = sourceRows
@@ -778,10 +1029,10 @@ async function productImage(ean) {
   }
 }
 
-async function handleSearch(query, lat, lng) {
+async function handleSearch(query, lat, lng, zone) {
   const [retailSettled, wholesaleSettled, suppliersSettled] = await Promise.allSettled([
-    searchSource('retail', query, lat, lng),
-    searchSource('wholesale', query, lat, lng),
+    searchSource('retail', query, lat, lng, zone),
+    searchSource('wholesale', query, lat, lng, zone),
     supplierSearch(query, 10),
   ]);
   if (retailSettled.status === 'rejected' && wholesaleSettled.status === 'rejected' && suppliersSettled.status === 'rejected') {
@@ -802,14 +1053,15 @@ async function handleSearch(query, lat, lng) {
       wholesale: wholesaleSettled.status === 'fulfilled',
       casaPaso: suppliers.sources.casaPaso === true,
       dulceSur: suppliers.sources.dulceSur === true,
+      rappi: suppliers.sources.rappi === true,
     },
   };
 }
 
-async function handleDetail(ean, lat, lng) {
+async function handleDetail(ean, lat, lng, zone) {
   const [retailSettled, wholesaleSettled, imageSettled] = await Promise.allSettled([
-    detailSource('retail', ean, lat, lng),
-    detailSource('wholesale', ean, lat, lng),
+    detailSource('retail', ean, lat, lng, zone),
+    detailSource('wholesale', ean, lat, lng, zone),
     productImage(ean),
   ]);
   if (retailSettled.status === 'rejected' && wholesaleSettled.status === 'rejected') {
@@ -879,13 +1131,17 @@ export default async function handler(req, res) {
   const action = String(req.query.action || 'search');
   const lat = coordinate(req.query.lat, DEFAULT_LOCATION.lat, -55, -20);
   const lng = coordinate(req.query.lng, DEFAULT_LOCATION.lng, -75, -53);
+  const requestedZone = String(req.query.zone || 'caba');
+  const zone = ['caba', 'vicente-lopez', 'san-martin', 'avellaneda', 'la-plata', 'current'].includes(requestedZone) ? requestedZone : 'caba';
 
   try {
     let payload;
     if (action === 'detail') {
       const ean = String(req.query.ean || '').replace(/\D/g, '').slice(0, 18);
       if (ean.length < 8) return res.status(400).json({ error: 'EAN inválido' });
-      payload = await handleDetail(ean, lat, lng);
+      payload = await handleDetail(ean, lat, lng, zone);
+    } else if (action === 'radar') {
+      payload = await handleRadar();
     } else if (action === 'supplier-detail') {
       const source = String(req.query.source || '');
       if (source !== 'casa-paso') return res.status(400).json({ error: 'Proveedor inválido' });
@@ -911,15 +1167,18 @@ export default async function handler(req, res) {
     } else {
       const query = normalizeQuery(req.query.q);
       if (query.length < 2) return res.status(400).json({ error: 'Ingresá al menos 2 caracteres' });
-      payload = await handleSearch(query, lat, lng);
+      payload = await handleSearch(query, lat, lng, zone);
     }
 
-    res.setHeader('Cache-Control', action === 'suggest' ? 's-maxage=300, stale-while-revalidate=900' : 's-maxage=900, stale-while-revalidate=3600');
+    const cacheControl = action === 'suggest'
+      ? 's-maxage=300, stale-while-revalidate=900'
+      : (action === 'radar' ? 's-maxage=21600, stale-while-revalidate=86400' : 's-maxage=900, stale-while-revalidate=3600');
+    res.setHeader('Cache-Control', cacheControl);
     return res.status(200).json({
       ...payload,
-      location: { lat, lng },
+      location: { lat, lng, zone },
       checkedAt: new Date().toISOString(),
-      source: 'Precios Claros + proveedores mayoristas',
+      source: 'Precios Claros + Rappi + proveedores mayoristas',
     });
   } catch (error) {
     const message = error?.name === 'AbortError'
