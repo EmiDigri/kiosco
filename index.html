@@ -5293,15 +5293,15 @@ async function fetchInfoWidget(){
   const el=document.getElementById('infoWidgetContent');
   if(!el)return;
   // Cada fuente con su propio try/catch para que una falla no rompa el widget
-  let temp=null,sens=null,wxCode=null,wxWind=null,wxIsDay=1,wxForecast=[];
+  let temp=null,sens=null,wxCode=null,wxWind=null,wxIsDay=1,wxForecast=[],wxObservedAt=null,wxSource='';
   // api.open-meteo.com es inalcanzable desde varios ISP argentinos (bug conocido:
   // github.com/open-meteo/open-meteo/issues/1669), asi que pasamos por nuestro
   // proxy en Vercel primero y solo si falla probamos el fetch directo.
   try{
     const m=await fetch('/api/weather').then(r=>{if(!r.ok)throw new Error(r.status);return r.json();});
-    temp=m?.current?.temperature_2m;sens=m?.current?.apparent_temperature;wxCode=m?.current?.weather_code;wxWind=m?.current?.wind_speed_10m;wxIsDay=m?.current?.is_day??1;wxForecast=iwPronosticoDias(m?.daily);
+    temp=m?.current?.temperature_2m;sens=m?.current?.apparent_temperature;wxCode=m?.current?.weather_code;wxWind=m?.current?.wind_speed_10m;wxIsDay=m?.current?.is_day??1;wxForecast=iwPronosticoDias(m?.daily);wxObservedAt=m?.current?.observed_at||null;wxSource=m?.current?.source||'';
   }catch(e){
-    try{const m=await fetch('https://api.open-meteo.com/v1/forecast?latitude=-34.6037&longitude=-58.3816&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,is_day&daily=weather_code,temperature_2m_max,temperature_2m_min&forecast_days=5&timezone=America/Argentina/Buenos_Aires').then(r=>r.json());temp=m?.current?.temperature_2m;sens=m?.current?.apparent_temperature;wxCode=m?.current?.weather_code;wxWind=m?.current?.wind_speed_10m;wxIsDay=m?.current?.is_day??1;wxForecast=iwPronosticoDias(m?.daily);}catch(e2){}
+    try{const m=await fetch('https://api.open-meteo.com/v1/forecast?latitude=-34.6037&longitude=-58.3816&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,is_day&daily=weather_code,temperature_2m_max,temperature_2m_min&forecast_days=5&timezone=America/Argentina/Buenos_Aires').then(r=>r.json());temp=m?.current?.temperature_2m;sens=m?.current?.apparent_temperature;wxCode=m?.current?.weather_code;wxWind=m?.current?.wind_speed_10m;wxIsDay=m?.current?.is_day??1;wxForecast=iwPronosticoDias(m?.daily);wxObservedAt=m?.current?.time||null;wxSource='Open-Meteo';}catch(e2){}
   }
 
   let ofVal=null,mepVal=null,blVal=null,ofPct=null,mepPct=null,blPct=null,dolarFecha=null,dolarCheckedAt=new Date();
@@ -5331,6 +5331,8 @@ async function fetchInfoWidget(){
   const dolarUpdated=[ofVal,mepVal,blVal].some(v=>v!=null)?iwFmtDolarUpdated(dolarFecha,dolarCheckedAt):'Dólar sin datos por ahora';
   const we=getWeatherIcon(temp,wxCode,wxWind,wxIsDay);
   const weDesc=we?weatherSlugTexto(we.slug):'';
+  const wxTime=wxObservedAt?new Date(wxObservedAt).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'America/Argentina/Buenos_Aires'}):'';
+  const wxMeta=[wxSource,wxTime&&`observado ${wxTime}`].filter(Boolean).join(' · ');
   const tempDisp=temp!=null?`${temp}°${we?`<span class="iw-weather-emoji ${we.cls}" role="button" tabindex="0" aria-label="Activar clima en pantalla" title="${weDesc} · click para activar"><img src="${mcUrl(we.slug)}" alt="${weDesc}" loading="lazy"></span>`:''}`:' —';
   const forecastDesk=iwPronosticoHtml(wxForecast,4);
   const forecastMob=iwPronosticoHtml(wxForecast,3);
@@ -5338,7 +5340,7 @@ async function fetchInfoWidget(){
     <div class="iw-temp-row">
       <div class="iw-temp-main">
         <div class="iw-temp-val">${tempDisp}</div>
-        <div class="iw-temp-meta"><span class="iw-temp-city">Buenos Aires</span><span class="iw-temp-label">ST ${sens!=null?sens+'°C':'—'}</span></div>
+        <div class="iw-temp-meta"><span class="iw-temp-city"${wxMeta?` title="${wxMeta}"`:''}>Buenos Aires</span><span class="iw-temp-label">ST ${sens!=null?sens+'°C':'—'}</span></div>
       </div>
       ${forecastDesk?`<div class="iw-forecast iw-forecast-desktop">${forecastDesk}</div>`:''}
     </div>

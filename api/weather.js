@@ -7,6 +7,8 @@
 
 const LAT = -34.6037, LON = -58.3816;
 const TZ = 'America/Argentina/Buenos_Aires';
+const METAR_URL = 'https://aviationweather.gov/api/data/metar?ids=SABE&format=json&taf=false&hours=3';
+const MAX_OBSERVATION_AGE_MS = 3 * 60 * 60 * 1000;
 
 function symbolToWmoCode(symbol) {
   const s = (symbol || '').replace(/_day|_night|_polartwilight/g, '');
@@ -37,11 +39,54 @@ function hourAR(iso) {
 function feelsLike(details) {
   if (!details || details.air_temperature == null) return null;
   const t = details.air_temperature, windKmh = (details.wind_speed || 0) * 3.6;
-  if (t <= 10 && windKmh > 4.8) {
+  if (t <= 12 && windKmh > 4.8) {
     const v = Math.pow(windKmh, 0.16);
     return Math.round(13.12 + 0.6215 * t - 11.37 * v + 0.3965 * t * v);
   }
   return Math.round(t);
+}
+
+function metarWeatherCode(row, fallback) {
+  const raw = String(row?.rawOb || '').toUpperCase();
+  if (/\bTS/.test(raw)) return 95;
+  if (/\b(?:SN|SG|PL)/.test(raw)) return 71;
+  if (/\b(?:RA|DZ)/.test(raw)) return 61;
+  if (/\b(?:FG|BR)/.test(raw)) return 45;
+  const covers = [row?.cover, ...(row?.clouds || []).map(cloud => cloud?.cover)].filter(Boolean);
+  if (covers.some(cover => /OVC|BKN/.test(cover))) return 3;
+  if (covers.some(cover => /SCT|FEW/.test(cover))) return 2;
+  if (/CAVOK|\b(?:CLR|SKC|NSC)\b/.test(raw)) return 1;
+  return fallback;
+}
+
+async function aeroparqueObservation() {
+  try {
+    const response = await fetch(METAR_URL, {
+      headers: {
+        accept: 'application/json',
+        'User-Agent': 'kiosco-app (github.com/EmiDigri/kiosco)',
+      },
+    });
+    if (!response.ok) return null;
+    const payload = await response.json();
+    const rows = Array.isArray(payload) ? payload : (Array.isArray(payload?.value) ? payload.value : []);
+    const row = rows.filter(item => item?.icaoId === 'SABE')
+      .sort((a, b) => Date.parse(b.reportTime || 0) - Date.parse(a.reportTime || 0))[0];
+    const observedAt = String(row?.reportTime || '');
+    const observedMs = Date.parse(observedAt);
+    const temperature = Number(row?.temp);
+    const windKmh = Number(row?.wspd) * 1.852;
+    const age = Date.now() - observedMs;
+    if (!Number.isFinite(temperature) || !Number.isFinite(observedMs) || age < -30 * 60 * 1000 || age > MAX_OBSERVATION_AGE_MS) return null;
+    return {
+      temperature,
+      windKmh: Number.isFinite(windKmh) ? windKmh : 0,
+      observedAt,
+      row,
+    };
+  } catch {
+    return null;
+  }
 }
 
 export default async function handler(req, res) {
@@ -49,9 +94,12 @@ export default async function handler(req, res) {
   res.setHeader('Cache-Control', 's-maxage=600, stale-while-revalidate=120');
 
   try {
-    const r = await fetch(`https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=${LAT}&lon=${LON}`, {
-      headers: { 'User-Agent': 'kiosco-app (github.com/EmiDigri/kiosco)' },
-    });
+    const [r, observation] = await Promise.all([
+      fetch(`https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=${LAT}&lon=${LON}`, {
+        headers: { 'User-Agent': 'kiosco-app (github.com/EmiDigri/kiosco)' },
+      }),
+      aeroparqueObservation(),
+    ]);
     if (!r.ok) throw new Error(String(r.status));
     const j = await r.json();
     const series = j?.properties?.timeseries || [];
@@ -60,12 +108,17 @@ export default async function handler(req, res) {
     const now = series[0];
     const nowDetails = now?.data?.instant?.details || {};
     const nowSymbol = now?.data?.next_1_hours?.summary?.symbol_code || now?.data?.next_6_hours?.summary?.symbol_code || 'clearsky_day';
+    const temperature = observation?.temperature ?? nowDetails.air_temperature;
+    const windKmh = observation?.windKmh ?? ((nowDetails.wind_speed || 0) * 3.6);
+    const weatherCode = observation ? metarWeatherCode(observation.row, symbolToWmoCode(nowSymbol)) : symbolToWmoCode(nowSymbol);
     const current = {
-      temperature_2m: Math.round(nowDetails.air_temperature),
-      apparent_temperature: feelsLike(nowDetails),
-      weather_code: symbolToWmoCode(nowSymbol),
-      wind_speed_10m: nowDetails.wind_speed != null ? Math.round(nowDetails.wind_speed * 3.6) : 0,
-      is_day: isDayFromSymbol(nowSymbol, hourAR(now.time)),
+      temperature_2m: Math.round(temperature),
+      apparent_temperature: feelsLike({ air_temperature: temperature, wind_speed: windKmh / 3.6 }),
+      weather_code: weatherCode,
+      wind_speed_10m: Math.round(windKmh),
+      is_day: isDayFromSymbol(nowSymbol, hourAR(observation?.observedAt || now.time)),
+      observed_at: observation?.observedAt || now.time,
+      source: observation ? 'METAR Aeroparque' : 'met.no',
     };
 
     // Agrupa por dia (hora local AR) para min/max y elige el simbolo mas cercano al mediodia
