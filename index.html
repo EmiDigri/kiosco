@@ -2168,6 +2168,22 @@ img,svg,canvas{max-width:100%}
 .pulse-status{font-size:10px;font-weight:650;color:var(--text-soft);white-space:nowrap}
 .pulse-replay{width:30px;height:30px;border:1px solid var(--glass-border);border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:var(--glass);color:var(--text-mid);font-size:11px;cursor:pointer;flex:0 0 auto}
 .pulse-replay:hover,.pulse-replay:focus-visible{border-color:var(--accent);color:var(--text);background:var(--glass-hover);outline:none}
+.pulse-yesterday{display:grid;grid-template-columns:minmax(145px,.7fr) minmax(130px,.62fr) minmax(300px,1.35fr) minmax(180px,1fr);gap:18px;align-items:center;margin:-2px 0 17px;padding:10px 0;border-top:1px solid var(--glass-border);border-bottom:1px solid var(--glass-border);background:rgba(255,255,255,.012)}
+.pulse-yesterday-heading{min-width:0}
+.pulse-yesterday-label{display:block;color:var(--text);font-size:10.5px;font-weight:850;text-transform:uppercase}
+.pulse-yesterday-state{display:block;margin-top:3px;color:#5FD68A;font-size:8.5px;font-weight:750}
+.pulse-yesterday-total{min-width:0}
+.pulse-yesterday-total span,.pulse-yesterday-stat span{display:block;color:var(--text-soft);font-size:8px;font-weight:750;text-transform:uppercase}
+.pulse-yesterday-total strong{display:block;margin-top:3px;color:var(--text);font-size:20px;font-weight:850;line-height:1;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pulse-yesterday-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;min-width:0}
+.pulse-yesterday-stat{min-width:0}
+.pulse-yesterday-stat strong{display:block;margin-top:3px;color:var(--text-mid);font-size:10px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pulse-yesterday-chart{height:38px;display:grid;align-items:end;gap:2px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.08)}
+.pulse-yesterday-bar{min-width:2px;height:var(--pulse-yesterday-h,2%);min-height:2px;border-radius:2px 2px 0 0;background:rgba(79,204,190,.42);border-top:1px solid rgba(114,231,217,.45)}
+.pulse-yesterday-bar.is-peak{background:#FFD43B;border-color:#ffe784;box-shadow:0 0 8px rgba(255,212,59,.3)}
+.pulse-yesterday.is-empty{grid-template-columns:minmax(145px,.7fr) minmax(130px,.62fr) 1fr}
+.pulse-yesterday.is-empty .pulse-yesterday-state{color:var(--text-soft)}
+.pulse-yesterday-empty{color:var(--text-soft);font-size:10px;font-weight:650}
 .pulse-metrics{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;margin-bottom:18px}
 .pulse-metric{min-width:0;padding:0 18px;border-left:1px solid var(--glass-border)}
 .pulse-metric:first-child{padding-left:0;border-left:none}
@@ -2204,9 +2220,20 @@ body.light .pulse-event{background:#254CE8;box-shadow:none}
 body.light .pulse-event.is-latest{background:#16835f;box-shadow:0 0 0 4px rgba(22,131,95,.12)}
 body.light .pulse-grid-line{background:rgba(20,20,40,.07)}
 body.light .pulse-now,body.light .pulse-now::before{background:#334155}
+body.light .pulse-yesterday{background:rgba(37,76,232,.025)}
+body.light .pulse-yesterday-chart{border-bottom-color:rgba(20,20,40,.1)}
+@media(max-width:1050px){
+  .pulse-yesterday{grid-template-columns:minmax(145px,.75fr) minmax(130px,.65fr) minmax(280px,1.4fr)}
+  .pulse-yesterday-chart{grid-column:1/-1;height:30px}
+}
 @media(max-width:720px){
   .kiosk-pulse{margin:2px -2px 14px;padding:15px 10px 13px}
   .pulse-head{margin-bottom:14px}.pulse-status{display:none}
+  .pulse-yesterday,.pulse-yesterday.is-empty{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px 12px;margin-bottom:15px;padding:10px 0}
+  .pulse-yesterday-total{text-align:right}
+  .pulse-yesterday-stats{grid-column:1/-1;gap:8px}
+  .pulse-yesterday-chart{grid-column:1/-1;height:28px}
+  .pulse-yesterday-empty{grid-column:1/-1}
   .pulse-metrics{grid-template-columns:1fr 1fr;row-gap:14px;margin-bottom:15px}
   .pulse-metric{padding:0 10px}.pulse-metric:nth-child(2){padding-right:0}
   .pulse-metric:nth-child(3){grid-column:1/-1;border-left:none;border-top:1px solid var(--glass-border);padding:12px 0 0}
@@ -4228,6 +4255,41 @@ async function pulseFetchRows(){
   return merged;
 }
 function pulseWeekdayPlural(day){return['domingos','lunes','martes','miércoles','jueves','viernes','sábados'][day];}
+function pulseShortDay(date){
+  return date.toLocaleDateString('es-AR',{weekday:'short',day:'numeric',month:'short'}).replace(/[.,]/g,'');
+}
+function pulseYesterdayHtml(byDate,now,usualStartMinutes,usualEndMinutes){
+  const date=new Date(now.getFullYear(),now.getMonth(),now.getDate()-1),iso=pulseIso(date);
+  const rows=(byDate.get(iso)||[]).slice().sort((a,b)=>String(a.hora).localeCompare(String(b.hora)));
+  const total=rows.reduce((sum,row)=>sum+(Number(row.monto)||0),0),label=`Ayer · ${pulseShortDay(date)}`;
+  if(!rows.length)return`<div class="pulse-yesterday is-empty" aria-label="${label}: sin movimientos de Mercado Pago">
+    <div class="pulse-yesterday-heading"><span class="pulse-yesterday-label">${label}</span><span class="pulse-yesterday-state">Día completo</span></div>
+    <div class="pulse-yesterday-total"><span>Total MP</span><strong>${pulseMoney(0)}</strong></div>
+    <div class="pulse-yesterday-empty">Ayer no hubo movimientos de Mercado Pago.</div>
+  </div>`;
+  const hourTotals=Array.from({length:24},()=>0);
+  rows.forEach(row=>{const hour=Math.max(0,Math.min(23,Math.floor(pulseMinutes(row.hora)/60)));hourTotals[hour]+=Number(row.monto)||0;});
+  const movementMinutes=rows.map(row=>pulseMinutes(row.hora));
+  let rangeStartHour=Math.floor(usualStartMinutes/60),rangeEndHour=Math.ceil(usualEndMinutes/60);
+  const firstMovement=Math.min(...movementMinutes),lastMovement=Math.max(...movementMinutes);
+  if(firstMovement<usualStartMinutes)rangeStartHour=Math.floor(firstMovement/60);
+  if(lastMovement>usualEndMinutes)rangeEndHour=Math.min(24,Math.floor(lastMovement/60)+1);
+  const rangeHours=Math.max(1,rangeEndHour-rangeStartHour),visibleTotals=hourTotals.slice(rangeStartHour,rangeEndHour);
+  const maxHourTotal=Math.max(1,...visibleTotals),peakHour=hourTotals.indexOf(Math.max(...hourTotals));
+  const bars=visibleTotals.map((value,index)=>{const hour=rangeStartHour+index,isPeak=value>0&&hour===peakHour;return`<span class="pulse-yesterday-bar${isPeak?' is-peak':''}" style="--pulse-yesterday-h:${value?Math.max(7,value/maxHourTotal*100):2}%" title="${String(hour).padStart(2,'0')}:00 · ${pulseMoney(value)}"></span>`;}).join('');
+  const average=total/rows.length,firstTime=String(rows[0].hora).slice(0,5),lastTime=String(rows[rows.length-1].hora).slice(0,5);
+  const peakText=`${String(peakHour).padStart(2,'0')}:00 · ${pulseMoney(hourTotals[peakHour])}`;
+  return`<div class="pulse-yesterday" aria-label="${label}: ${pulseMoney(total)}, ${rows.length} movimientos, pico ${peakText}">
+    <div class="pulse-yesterday-heading"><span class="pulse-yesterday-label">${label}</span><span class="pulse-yesterday-state">Cierre completo · ${firstTime}–${lastTime}</span></div>
+    <div class="pulse-yesterday-total"><span>Total MP</span><strong>${pulseMoney(total)}</strong></div>
+    <div class="pulse-yesterday-stats">
+      <div class="pulse-yesterday-stat"><span>Movimientos</span><strong>${rows.length}</strong></div>
+      <div class="pulse-yesterday-stat"><span>Ticket prom.</span><strong>${pulseMoney(average)}</strong></div>
+      <div class="pulse-yesterday-stat"><span>Pico</span><strong>${peakText}</strong></div>
+    </div>
+    <div class="pulse-yesterday-chart" role="img" aria-label="Pulso horario completo de ayer" style="grid-template-columns:repeat(${rangeHours},minmax(2px,1fr))">${bars}</div>
+  </div>`;
+}
 function pulseReplay(elements){
   if(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)return;
   const dots=elements||Array.from(document.querySelectorAll('#pulseContent .pulse-event'));
@@ -4245,6 +4307,9 @@ function pulseRender(rows){
   const now=new Date(),today=pulseIso(now),cutoff=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
   const byDate=new Map();
   rows.forEach(r=>{if(!byDate.has(r.fecha))byDate.set(r.fecha,[]);byDate.get(r.fecha).push(r);});
+  const usualStartMinutes=Math.min(...TURNOS.map(t=>t.desdeH*60+t.desdeM));
+  const usualEndMinutes=Math.max(...TURNOS.map(visFin));
+  const yesterdayHtml=pulseYesterdayHtml(byDate,now,usualStartMinutes,usualEndMinutes);
   const todayRows=(byDate.get(today)||[]).filter(r=>String(r.hora).slice(0,5)<=cutoff).sort((a,b)=>String(a.hora).localeCompare(String(b.hora)));
   const todayTotal=todayRows.reduce((a,r)=>a+(Number(r.monto)||0),0),todayDow=now.getDay();
   const comparableDates=Array.from(byDate.keys()).filter(d=>d<today&&pulseDate(d).getDay()===todayDow).sort((a,b)=>b.localeCompare(a)).slice(0,8);
@@ -4294,8 +4359,6 @@ function pulseRender(rows){
   const hourTotals=Array.from({length:24},()=>0);
   todayRows.forEach(r=>{const h=Math.max(0,Math.min(23,Math.floor(pulseMinutes(r.hora)/60)));hourTotals[h]+=Number(r.monto)||0;});
   const maxHour=Math.max(1,...hourTotals),peakHour=hourTotals.indexOf(Math.max(...hourTotals));
-  const usualStartMinutes=Math.min(...TURNOS.map(t=>t.desdeH*60+t.desdeM));
-  const usualEndMinutes=Math.max(...TURNOS.map(visFin));
   const movementMinutes=todayRows.map(r=>pulseMinutes(r.hora));
   const outsideRows=todayRows.filter(r=>{const mins=pulseMinutes(r.hora);return mins<usualStartMinutes||mins>usualEndMinutes;});
   let rangeStartHour=Math.floor(usualStartMinutes/60),rangeEndHour=Math.ceil(usualEndMinutes/60);
@@ -4327,6 +4390,7 @@ function pulseRender(rows){
   const peakText=todayTotal>historicBest&&historicBest>0?'Mejor día comparable superado':hourTotals[peakHour]>0?`Pico: ${String(peakHour).padStart(2,'0')}:00 · ${pulseMoney(hourTotals[peakHour])}`:'Todavía sin cobros hoy';
   const outsideText=outsideRows.length?` · ${outsideRows.length} movimiento${outsideRows.length===1?'':'s'} fuera de horario`:'';
   content.innerHTML=`
+    ${yesterdayHtml}
     <div class="pulse-metrics">
       <div class="pulse-metric"><div class="pulse-metric-label">Mercado Pago hoy</div><div class="pulse-metric-value">${pulseMoney(todayTotal)}</div><div class="pulse-metric-note">${todayRows.length} movimiento${todayRows.length===1?'':'s'} hasta ${cutoff}</div></div>
       <div class="pulse-metric"><div class="pulse-metric-label">Ritmo del día</div><div class="pulse-pace-row"><div class="pulse-pace-item" title="${cmEsc?cmEsc(paceTip):paceTip}"><div class="pulse-metric-value pace-mini">${paceValue}</div><div class="pulse-metric-note ${paceClass}">${paceNote}</div></div><div class="pulse-pace-item" title="${cmEsc?cmEsc(pace30Tip):pace30Tip}"><div class="pulse-metric-value pace-mini">${pace30Value}</div><div class="pulse-metric-note ${pace30Class}">${pace30Note}</div></div></div></div>
