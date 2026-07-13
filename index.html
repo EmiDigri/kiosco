@@ -2394,9 +2394,6 @@ body.light .price-result-brand{color:#087f72}
 .price-radar-title{display:block;color:var(--text);font-size:12px;font-weight:850;text-transform:uppercase}
 .price-radar-head small{display:block;margin-top:3px;color:var(--text-soft);font-size:8.5px;font-weight:650;line-height:1.25}
 .price-radar-live{color:#5fd68a;font-size:13px;line-height:1;filter:drop-shadow(0 0 5px rgba(95,214,138,.45))}
-.price-radar-tabs{display:grid;grid-template-columns:1fr 1.35fr;gap:3px;padding:3px;border:1px solid var(--glass-border);border-radius:7px;background:var(--glass);margin-bottom:8px}
-.price-radar-tabs button{height:29px;border:0;border-radius:5px;background:transparent;color:var(--text-soft);font:750 9.5px/1 'Inter',sans-serif;cursor:pointer}
-.price-radar-tabs button.active{background:var(--glass-hover);color:var(--text);box-shadow:inset 0 0 0 1px var(--glass-border)}
 .price-radar-list{display:flex;flex-direction:column;max-height:432px;overflow-y:auto}
 .price-radar-list{scrollbar-width:none}
 .price-radar-list::-webkit-scrollbar{display:none}
@@ -2490,7 +2487,6 @@ body.light .price-error{color:#991b1b}
   .price-workspace{display:flex;flex-direction:column}
   .price-radar{order:-1;border-left:none;border-bottom:1px solid var(--glass-border);padding:14px 0}
   .price-radar-head{margin-bottom:8px}.price-radar-head small{display:inline;margin:0 0 0 7px}
-  .price-radar-tabs{width:230px}
   .price-radar-list{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(190px,1fr);overflow-x:auto;overscroll-behavior-inline:contain}
   .price-radar-item{padding:8px 10px 8px 0;border-bottom:0;border-right:1px solid var(--glass-border)}
   .price-radar-loading{min-height:70px}
@@ -2511,7 +2507,7 @@ body.light .price-error{color:#991b1b}
   .price-title{font-size:23px}.price-subtitle{font-size:10px}
   .price-search-form{display:grid;grid-template-columns:minmax(0,1fr) auto}
   .price-suggestions{max-height:min(52vh,360px)}
-  .price-radar{margin:0 -2px;padding:12px 2px}.price-radar-tabs{width:100%}
+  .price-radar{margin:0 -2px;padding:12px 2px}
   .price-radar-list{grid-auto-columns:minmax(178px,72vw)}
   .price-radar-item{grid-template-columns:38px minmax(0,1fr) 18px;gap:8px}.price-radar-thumb{width:38px;height:38px}
   .price-location{display:grid;grid-template-columns:minmax(0,1fr) auto}.price-location-field{width:auto}
@@ -3039,10 +3035,6 @@ body.light .price-error{color:#991b1b}
         <div class="price-radar-head">
           <div><span class="price-radar-title">Radar kiosco</span><small id="priceRadarScope">Argentina · 2026</small></div>
           <span class="price-radar-live" title="Fuentes verificadas">●</span>
-        </div>
-        <div class="price-radar-tabs" role="tablist" aria-label="Vista del radar">
-          <button class="active" type="button" role="tab" aria-selected="true" data-radar-mode="now">Ahora</button>
-          <button type="button" role="tab" aria-selected="false" data-radar-mode="ranking">Más vendidos</button>
         </div>
         <div class="price-radar-list" id="priceRadarList">
           <div class="price-radar-loading">Actualizando radar…</div>

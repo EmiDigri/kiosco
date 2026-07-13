@@ -14,7 +14,6 @@
   const useLocationButton = document.getElementById('priceUseLocation');
   const radarList = document.getElementById('priceRadarList');
   const radarScope = document.getElementById('priceRadarScope');
-  const radarTabs = document.querySelector('.price-radar-tabs');
   const panel = overlay?.querySelector('.price-panel');
   const priceHeader = overlay?.querySelector('.price-header');
   if (!overlay || !openButton || !searchForm) return;
@@ -45,7 +44,7 @@
     suggestionActive: -1,
     radar: { now: [], ranking: [] },
     radarMeta: { scopeNow: '', scopeRanking: '', dynamic: false, generatedAt: null },
-    radarMode: 'now',
+    radarMode: 'ranking',
     radarLoadedAt: 0,
   };
   let suggestionTimer = null;
@@ -274,15 +273,8 @@
     if (!radarList) return;
     const items = Array.isArray(state.radar[state.radarMode]) ? state.radar[state.radarMode] : [];
     if (radarScope) {
-      radarScope.textContent = state.radarMode === 'ranking'
-        ? (state.radarMeta.scopeRanking || 'Argentina · más vendidos')
-        : (state.radarMeta.scopeNow || 'Argentina/CABA · señales recientes');
+      radarScope.textContent = state.radarMeta.scopeRanking || 'Argentina · más vendidos';
     }
-    radarTabs?.querySelectorAll('[data-radar-mode]').forEach(button => {
-      const active = button.dataset.radarMode === state.radarMode;
-      button.classList.toggle('active', active);
-      button.setAttribute('aria-selected', active ? 'true' : 'false');
-    });
     if (!items.length) {
       radarList.innerHTML = '<div class="price-radar-error">El radar no devolvió señales vigentes.</div>';
       return;
@@ -1102,12 +1094,6 @@
   });
   document.addEventListener('pointerdown', event => {
     if (searchWrap && !searchWrap.contains(event.target)) hideSuggestions();
-  });
-  radarTabs?.addEventListener('click', event => {
-    const button = event.target.closest('[data-radar-mode]');
-    if (!button) return;
-    state.radarMode = button.dataset.radarMode === 'ranking' ? 'ranking' : 'now';
-    renderRadar();
   });
   radarList?.addEventListener('click', event => {
     const button = event.target.closest('[data-radar-query]');
