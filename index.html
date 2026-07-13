@@ -132,6 +132,7 @@ html{overflow-x:hidden;overflow-y:scroll}
 .iw-dolar-var{font-size:10px;font-weight:700;line-height:1}
 .iw-dolar-var.up{color:#5FD68A}
 .iw-dolar-var.down{color:#f87171}
+.iw-dolar-var.flat{color:var(--text-soft)}
 .iw-dolar-updated{margin:-3px 1px 10px;text-align:right;font-size:10.5px;font-weight:700;line-height:1.25;color:var(--text-mid);font-variant-numeric:tabular-nums}
 .iw-mep-bill{position:relative;width:15px;height:15px;border:none;background:transparent;padding:0;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;opacity:.82;transition:opacity .16s,transform .16s,filter .16s}
 .iw-mep-bill:hover,.iw-mep-bill:focus{opacity:1;transform:scale(1.18);filter:drop-shadow(0 0 6px rgba(0,243,151,.45));outline:none}
@@ -5246,29 +5247,33 @@ function iwPronosticoHtml(items,count){
 }
 function iwDolarDesdeSerie(data){
   if(!Array.isArray(data)||!data.length)return null;
-  const last=data[data.length-1],current=last?.venta;
-  let prev=null;
-  for(let i=data.length-2;i>=0;i--){
-    if(data[i]?.venta!==current){prev=data[i].venta;break;}
-  }
+  const rows=data.filter(row=>row?.fecha&&Number.isFinite(Number(row?.venta))).sort((a,b)=>String(a.fecha).localeCompare(String(b.fecha)));
+  if(!rows.length)return null;
+  const last=rows[rows.length-1],current=Number(last.venta);
+  const previous=rows.slice(0,-1).filter(row=>row.fecha<last.fecha).pop();
+  const prev=previous?Number(previous.venta):null;
   return{fecha:last.fecha,venta:current,compra:last.compra,pct:prev!=null?((current-prev)/prev*100):null};
 }
 function iwFechaDolarMasNueva(items){
   return items.filter(Boolean).sort((a,b)=>String(a).localeCompare(String(b))).pop()||null;
 }
-function iwFmtDolarUpdated(fecha,checkedAt){
-  const hora=(checkedAt||new Date()).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',hour12:false});
-  let fechaTxt='sin fecha';
-  if(fecha){
-    const hasTime=/T|\d{2}:\d{2}/.test(String(fecha));
-    const d=new Date(hasTime?fecha:`${fecha}T12:00:00`);
-    if(!Number.isNaN(d.getTime())){
-      const meses=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
-      fechaTxt=`${d.getDate()} ${meses[d.getMonth()]}`;
-      if(hasTime)fechaTxt+=` ${d.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',hour12:false})}`;
-    }
+function iwFmtDolarMoment(value,withTime=true){
+  const d=value instanceof Date?value:new Date(value);
+  if(Number.isNaN(d.getTime()))return null;
+  const parts=new Intl.DateTimeFormat('en-US',{timeZone:'America/Argentina/Buenos_Aires',day:'2-digit',month:'2-digit',year:'numeric'}).formatToParts(d);
+  const get=type=>parts.find(part=>part.type===type)?.value;
+  const meses=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  const fecha=`${Number(get('day'))} ${meses[Number(get('month'))-1]}`;
+  if(!withTime)return fecha;
+  const hora=d.toLocaleTimeString('es-AR',{timeZone:'America/Argentina/Buenos_Aires',hour:'2-digit',minute:'2-digit',hour12:false});
+  return `${fecha} · ${hora}`;
+}
+function iwFmtDolarUpdated(checkedAt,estado='actual',fechaDato=null){
+  if(estado==='respaldo'){
+    const fecha=fechaDato&&/^\d{4}-\d{2}-\d{2}$/.test(String(fechaDato))?new Date(`${fechaDato}T12:00:00-03:00`):fechaDato;
+    return `Cotizaciones demoradas${fecha?` · datos del ${iwFmtDolarMoment(fecha,false)}`:''}`;
   }
-  return `Última actualización: ${fechaTxt} · ${hora}`;
+  return `Última actualización: ${iwFmtDolarMoment(checkedAt||new Date())}`;
 }
 async function iwFetchDolarDirecto(){
   const tipos=['oficial','blue','bolsa'];
@@ -5293,7 +5298,7 @@ async function fetchInfoWidget(){
     try{const m=await fetch('https://api.open-meteo.com/v1/forecast?latitude=-34.6037&longitude=-58.3816&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,is_day&daily=weather_code,temperature_2m_max,temperature_2m_min&forecast_days=5&timezone=America/Argentina/Buenos_Aires').then(r=>r.json());temp=m?.current?.temperature_2m;sens=m?.current?.apparent_temperature;wxCode=m?.current?.weather_code;wxWind=m?.current?.wind_speed_10m;wxIsDay=m?.current?.is_day??1;wxForecast=iwPronosticoDias(m?.daily);wxObservedAt=m?.current?.time||null;wxSource='Open-Meteo';}catch(e2){}
   }
 
-  let ofVal=null,mepVal=null,blVal=null,ofPct=null,mepPct=null,blPct=null,dolarFecha=null,dolarCheckedAt=new Date();
+  let ofVal=null,mepVal=null,blVal=null,ofPct=null,mepPct=null,blPct=null,dolarFecha=null,dolarCheckedAt=new Date(),dolarEstado='actual';
   try{
     const d=await fetch('/api/dolar').then(r=>{if(!r.ok)throw new Error(r.status);return r.json();});
     ofVal=d.oficial?.venta;ofPct=d.oficial?.pct;
@@ -5301,23 +5306,29 @@ async function fetchInfoWidget(){
     blVal=d.blue?.venta;blPct=d.blue?.pct;
     dolarFecha=iwFechaDolarMasNueva([d.oficial?.fecha,d.bolsa?.fecha,d.blue?.fecha]);
     if(d.actualizadoEn)dolarCheckedAt=new Date(d.actualizadoEn);
+    dolarEstado=d.estado||'actual';
   }catch(e){
     try{
-      const d=await iwFetchDolarDirecto();
-      ofVal=d.oficial?.venta;ofPct=d.oficial?.pct;
-      mepVal=d.bolsa?.venta;mepPct=d.bolsa?.pct;
-      blVal=d.blue?.venta;blPct=d.blue?.pct;
-      dolarFecha=iwFechaDolarMasNueva([d.oficial?.fecha,d.bolsa?.fecha,d.blue?.fecha]);
+      const d=await fetch('https://dolarapi.com/v1/dolares').then(r=>{if(!r.ok)throw new Error(r.status);return r.json();});
+      const of=d.find(x=>x.casa==='oficial'),mep=d.find(x=>x.casa==='bolsa'),bl=d.find(x=>x.casa==='blue');
+      ofVal=of?.venta;mepVal=mep?.venta;blVal=bl?.venta;
+      dolarFecha=iwFechaDolarMasNueva([of?.fechaActualizacion,mep?.fechaActualizacion,bl?.fechaActualizacion]);
     }catch(e1){
-      // fallback final: valores actuales sin variación
-      try{const d=await fetch('https://dolarapi.com/v1/dolares').then(r=>r.json());const of=d.find(x=>x.casa==='oficial'),mep=d.find(x=>x.casa==='bolsa'),bl=d.find(x=>x.casa==='blue');ofVal=of?.venta;mepVal=mep?.venta;blVal=bl?.venta;dolarFecha=iwFechaDolarMasNueva([of?.fechaActualizacion,mep?.fechaActualizacion,bl?.fechaActualizacion]);}catch(e2){}
+      try{
+        const d=await iwFetchDolarDirecto();
+        ofVal=d.oficial?.venta;ofPct=d.oficial?.pct;
+        mepVal=d.bolsa?.venta;mepPct=d.bolsa?.pct;
+        blVal=d.blue?.venta;blPct=d.blue?.pct;
+        dolarFecha=iwFechaDolarMasNueva([d.oficial?.fecha,d.bolsa?.fecha,d.blue?.fecha]);
+        dolarEstado='respaldo';
+      }catch(e2){}
     }
   }
 
   const {feriado,fsl}=await fetchFeriadosInfo().catch(()=>({feriado:null,fsl:null}));
   const fmt=v=>v!=null?'$'+Math.round(Number(v)).toLocaleString('es-AR'):'—';
-  const varTag=p=>p==null?'':` <span class="iw-dolar-var ${p>=0?'up':'down'}">${p>=0?'▲':'▼'}${Math.abs(p).toFixed(1)}%</span>`;
-  const dolarUpdated=[ofVal,mepVal,blVal].some(v=>v!=null)?iwFmtDolarUpdated(dolarFecha,dolarCheckedAt):'Dólar sin datos por ahora';
+  const varTag=p=>p==null?'':Math.abs(p)<.05?` <span class="iw-dolar-var flat">0.0%</span>`:` <span class="iw-dolar-var ${p>0?'up':'down'}">${p>0?'▲':'▼'}${Math.abs(p).toFixed(1)}%</span>`;
+  const dolarUpdated=[ofVal,mepVal,blVal].some(v=>v!=null)?iwFmtDolarUpdated(dolarCheckedAt,dolarEstado,dolarFecha):'Dólar sin datos por ahora';
   const we=getWeatherIcon(temp,wxCode,wxWind,wxIsDay);
   const weDesc=we?weatherSlugTexto(we.slug):'';
   const wxTime=wxObservedAt?new Date(wxObservedAt).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'America/Argentina/Buenos_Aires'}):'';
