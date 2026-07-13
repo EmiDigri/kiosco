@@ -76,11 +76,15 @@ async function aeroparqueObservation() {
     const observedMs = Date.parse(observedAt);
     const temperature = Number(row?.temp);
     const windKmh = Number(row?.wspd) * 1.852;
+    const windDirection = row?.wdir === '' || row?.wdir == null ? NaN : Number(row.wdir);
+    const windGustKmh = Number(row?.wgst) * 1.852;
     const age = Date.now() - observedMs;
     if (!Number.isFinite(temperature) || !Number.isFinite(observedMs) || age < -30 * 60 * 1000 || age > MAX_OBSERVATION_AGE_MS) return null;
     return {
       temperature,
       windKmh: Number.isFinite(windKmh) ? windKmh : 0,
+      windDirection: Number.isFinite(windDirection) ? windDirection : null,
+      windGustKmh: Number.isFinite(windGustKmh) && windGustKmh > 0 ? windGustKmh : null,
       observedAt,
       row,
     };
@@ -110,12 +114,17 @@ export default async function handler(req, res) {
     const nowSymbol = now?.data?.next_1_hours?.summary?.symbol_code || now?.data?.next_6_hours?.summary?.symbol_code || 'clearsky_day';
     const temperature = observation?.temperature ?? nowDetails.air_temperature;
     const windKmh = observation?.windKmh ?? ((nowDetails.wind_speed || 0) * 3.6);
+    const windDirection = observation ? observation.windDirection : Number(nowDetails.wind_from_direction);
+    const metNoGustKmh = Number(nowDetails.wind_speed_of_gust) * 3.6;
+    const windGustKmh = observation?.windGustKmh ?? (!observation && Number.isFinite(metNoGustKmh) && metNoGustKmh > 0 ? metNoGustKmh : null);
     const weatherCode = observation ? metarWeatherCode(observation.row, symbolToWmoCode(nowSymbol)) : symbolToWmoCode(nowSymbol);
     const current = {
       temperature_2m: Math.round(temperature),
       apparent_temperature: feelsLike({ air_temperature: temperature, wind_speed: windKmh / 3.6 }),
       weather_code: weatherCode,
       wind_speed_10m: Math.round(windKmh),
+      wind_direction_10m: Number.isFinite(windDirection) ? Math.round(windDirection) : null,
+      wind_gusts_10m: Number.isFinite(windGustKmh) ? Math.round(windGustKmh) : null,
       is_day: isDayFromSymbol(nowSymbol, hourAR(observation?.observedAt || now.time)),
       observed_at: observation?.observedAt || now.time,
       source: observation ? 'METAR Aeroparque' : 'met.no',

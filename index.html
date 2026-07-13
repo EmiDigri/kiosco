@@ -115,6 +115,9 @@ html{overflow-x:hidden;overflow-y:scroll}
 .iw-temp-meta{display:flex;flex-direction:column;gap:1px}
 .iw-temp-city{font-size:11px;font-weight:600;color:var(--text-soft);text-transform:uppercase;letter-spacing:.06em}
 .iw-temp-label{font-size:12px;color:var(--text-mid);font-weight:500}
+.iw-wind{display:flex;align-items:center;gap:3px;min-height:13px;color:var(--text-mid);font-size:10px;font-weight:700;line-height:1;white-space:nowrap}
+.iw-wind-arrow{width:11px;height:11px;display:inline-flex;align-items:center;justify-content:center;color:currentColor;font-size:11px;line-height:1;transform:rotate(var(--iw-wind-dir,0deg));transform-origin:center}
+.iw-wind.is-cold{color:#74c0fc}.iw-wind.is-strong{color:#f6b84a}
 .iw-forecast{min-width:0}
 .iw-forecast-desktop{display:none;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;flex:1 1 520px;max-width:640px}
 .iw-forecast-mobile{display:none;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:-3px 0 12px}
@@ -5224,6 +5227,23 @@ function weatherSlugTexto(slug){
     'clear-night':'Despejado','sun-hot':'Sol fuerte','clear-day':'Soleado'
   })[slug]||'Clima estable';
 }
+function iwWindHtml(speed,direction,gust,temp,sens){
+  if(speed==null||speed==='')return'';
+  const wind=Number(speed);
+  if(!Number.isFinite(wind))return'';
+  const dirs=['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSO','SO','OSO','O','ONO','NO','NNO'];
+  const degrees=Number(direction),hasDirection=direction!=null&&direction!==''&&Number.isFinite(degrees);
+  const normalized=hasDirection?((degrees%360)+360)%360:null;
+  const dir=hasDirection?dirs[Math.round(normalized/22.5)%16]:'';
+  const gustKmh=Number(gust),showGust=gust!=null&&gust!==''&&Number.isFinite(gustKmh)&&gustKmh>=25&&gustKmh>=wind+5;
+  const temperature=Number(temp),feels=Number(sens);
+  const strong=wind>=40||(showGust&&gustKmh>=55);
+  const cold=!strong&&wind>=10&&temp!=null&&sens!=null&&Number.isFinite(temperature)&&Number.isFinite(feels)&&feels<=temperature-2;
+  const label=strong?'viento fuerte':cold?'viento frío':wind<5?'calma':wind<20?'brisa':wind<35?'ventoso':'viento fuerte';
+  const cls=strong?' is-strong':cold?' is-cold':'';
+  const title=[dir?`Viento desde ${dir}`:'Viento',`${Math.round(wind)} km/h`,showGust&&`ráfagas ${Math.round(gustKmh)} km/h`,cold&&`baja la sensación ${Math.round(temperature-feels)}°`].filter(Boolean).join(' · ');
+  return`<span class="iw-wind${cls}" title="${title}">${hasDirection?`<span class="iw-wind-arrow" style="--iw-wind-dir:${Math.round(normalized)}deg" aria-hidden="true">↑</span><span>${dir}</span><span>·</span>`:''}<span>${Math.round(wind)} km/h</span><span>·</span><span>${label}</span>${showGust?`<span>· ráf. ${Math.round(gustKmh)}</span>`:''}</span>`;
+}
 function iwPronosticoDias(daily){
   const time=daily?.time||[],codes=daily?.weather_code||[],maxs=daily?.temperature_2m_max||[],mins=daily?.temperature_2m_min||[];
   const labels=['DOM','LUN','MAR','MIÉ','JUE','VIE','SÁB'];
@@ -5287,15 +5307,15 @@ async function fetchInfoWidget(){
   const el=document.getElementById('infoWidgetContent');
   if(!el)return;
   // Cada fuente con su propio try/catch para que una falla no rompa el widget
-  let temp=null,sens=null,wxCode=null,wxWind=null,wxIsDay=1,wxForecast=[],wxObservedAt=null,wxSource='';
+  let temp=null,sens=null,wxCode=null,wxWind=null,wxWindDir=null,wxWindGust=null,wxIsDay=1,wxForecast=[],wxObservedAt=null,wxSource='';
   // api.open-meteo.com es inalcanzable desde varios ISP argentinos (bug conocido:
   // github.com/open-meteo/open-meteo/issues/1669), asi que pasamos por nuestro
   // proxy en Vercel primero y solo si falla probamos el fetch directo.
   try{
     const m=await fetch('/api/weather').then(r=>{if(!r.ok)throw new Error(r.status);return r.json();});
-    temp=m?.current?.temperature_2m;sens=m?.current?.apparent_temperature;wxCode=m?.current?.weather_code;wxWind=m?.current?.wind_speed_10m;wxIsDay=m?.current?.is_day??1;wxForecast=iwPronosticoDias(m?.daily);wxObservedAt=m?.current?.observed_at||null;wxSource=m?.current?.source||'';
+    temp=m?.current?.temperature_2m;sens=m?.current?.apparent_temperature;wxCode=m?.current?.weather_code;wxWind=m?.current?.wind_speed_10m;wxWindDir=m?.current?.wind_direction_10m;wxWindGust=m?.current?.wind_gusts_10m;wxIsDay=m?.current?.is_day??1;wxForecast=iwPronosticoDias(m?.daily);wxObservedAt=m?.current?.observed_at||null;wxSource=m?.current?.source||'';
   }catch(e){
-    try{const m=await fetch('https://api.open-meteo.com/v1/forecast?latitude=-34.6037&longitude=-58.3816&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,is_day&daily=weather_code,temperature_2m_max,temperature_2m_min&forecast_days=5&timezone=America/Argentina/Buenos_Aires').then(r=>r.json());temp=m?.current?.temperature_2m;sens=m?.current?.apparent_temperature;wxCode=m?.current?.weather_code;wxWind=m?.current?.wind_speed_10m;wxIsDay=m?.current?.is_day??1;wxForecast=iwPronosticoDias(m?.daily);wxObservedAt=m?.current?.time||null;wxSource='Open-Meteo';}catch(e2){}
+    try{const m=await fetch('https://api.open-meteo.com/v1/forecast?latitude=-34.6037&longitude=-58.3816&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m,is_day&daily=weather_code,temperature_2m_max,temperature_2m_min&forecast_days=5&timezone=America/Argentina/Buenos_Aires').then(r=>r.json());temp=m?.current?.temperature_2m;sens=m?.current?.apparent_temperature;wxCode=m?.current?.weather_code;wxWind=m?.current?.wind_speed_10m;wxWindDir=m?.current?.wind_direction_10m;wxWindGust=m?.current?.wind_gusts_10m;wxIsDay=m?.current?.is_day??1;wxForecast=iwPronosticoDias(m?.daily);wxObservedAt=m?.current?.time||null;wxSource='Open-Meteo';}catch(e2){}
   }
 
   let ofVal=null,mepVal=null,blVal=null,ofPct=null,mepPct=null,blPct=null,dolarFecha=null,dolarCheckedAt=new Date(),dolarEstado='actual';
@@ -5333,6 +5353,7 @@ async function fetchInfoWidget(){
   const weDesc=we?weatherSlugTexto(we.slug):'';
   const wxTime=wxObservedAt?new Date(wxObservedAt).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'America/Argentina/Buenos_Aires'}):'';
   const wxMeta=[wxSource,wxTime&&`observado ${wxTime}`].filter(Boolean).join(' · ');
+  const windHtml=iwWindHtml(wxWind,wxWindDir,wxWindGust,temp,sens);
   const tempDisp=temp!=null?`${temp}°${we?`<span class="iw-weather-emoji ${we.cls}" role="button" tabindex="0" aria-label="Activar clima en pantalla" title="${weDesc} · click para activar"><img src="${mcUrl(we.slug)}" alt="${weDesc}" loading="lazy"></span>`:''}`:' —';
   const forecastDesk=iwPronosticoHtml(wxForecast,4);
   const forecastMob=iwPronosticoHtml(wxForecast,3);
@@ -5340,7 +5361,7 @@ async function fetchInfoWidget(){
     <div class="iw-temp-row">
       <div class="iw-temp-main">
         <div class="iw-temp-val">${tempDisp}</div>
-        <div class="iw-temp-meta"><span class="iw-temp-city"${wxMeta?` title="${wxMeta}"`:''}>Buenos Aires</span><span class="iw-temp-label">ST ${sens!=null?sens+'°C':'—'}</span></div>
+        <div class="iw-temp-meta"><span class="iw-temp-city"${wxMeta?` title="${wxMeta}"`:''}>Buenos Aires</span><span class="iw-temp-label">ST ${sens!=null?sens+'°C':'—'}</span>${windHtml}</div>
       </div>
       ${forecastDesk?`<div class="iw-forecast iw-forecast-desktop">${forecastDesk}</div>`:''}
     </div>
