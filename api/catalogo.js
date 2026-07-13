@@ -1278,7 +1278,7 @@ async function handleRadar() {
     scope: dynamicReady ? 'Ventas, búsquedas, Rappi y novedades' : 'Señales editoriales de respaldo',
     scopeNow: dynamicReady ? 'Argentina/CABA · actualizado cada 6 h' : 'Argentina · respaldo editorial',
     scopeRanking: open25Featured.length >= 3
-      ? 'Open 25 · vidriera de la tienda online · actualizado cada 6 h'
+      ? 'Los más elegidos en kioscos · actualizado cada 6 h'
       : (mlSignals.bestSellers.length >= 3 ? 'Argentina · ventas Mercado Libre' : 'Argentina · ranking anual 2026 (+900 kiosqueros)'),
     generatedAt: new Date().toISOString(),
     dynamic: dynamicReady,
