@@ -116,8 +116,8 @@ html{overflow-x:hidden;overflow-y:scroll}
 .iw-temp-city{font-size:11px;font-weight:600;color:var(--text-soft);text-transform:uppercase;letter-spacing:.06em}
 .iw-temp-label{font-size:12px;color:var(--text-mid);font-weight:500}
 .iw-wind{display:flex;align-items:center;gap:3px;min-height:16px;color:var(--text-mid);font-size:10px;font-weight:700;line-height:1;white-space:nowrap}
-.iw-wind-lottie{display:block;width:18px;height:18px;flex:0 0 18px;margin-right:1px;border:0;background:transparent;filter:drop-shadow(0 0 4px rgba(116,192,252,.28));pointer-events:none}
-.iw-wind.is-strong .iw-wind-lottie{filter:sepia(1) saturate(4) hue-rotate(345deg) drop-shadow(0 0 4px rgba(246,184,74,.3))}
+.iw-wind-icon{display:block;width:20px;height:20px;flex:0 0 20px;margin-right:1px;object-fit:contain;filter:drop-shadow(0 0 4px rgba(116,192,252,.22));pointer-events:none}
+.iw-wind.is-strong .iw-wind-icon{filter:drop-shadow(0 0 5px rgba(246,184,74,.34))}
 .iw-wind.is-cold{color:#74c0fc}.iw-wind.is-strong{color:#f6b84a}
 .iw-moon-slot{flex:0 0 auto}
 .iw-moon-slot:empty{display:none}
@@ -5558,20 +5558,36 @@ function weatherSlugTexto(slug){
     'clear-night':'Despejado','sun-hot':'Sol fuerte','clear-day':'Soleado'
   })[slug]||'Clima estable';
 }
+const IW_BEAUFORT=[
+  {max:0.9,force:0,label:'Calma'},
+  {max:5,force:1,label:'Aire leve'},
+  {max:11,force:2,label:'Brisa leve'},
+  {max:19,force:3,label:'Brisa'},
+  {max:28,force:4,label:'Brisa moderada'},
+  {max:38,force:5,label:'Ventoso'},
+  {max:49,force:6,label:'Viento fuerte'},
+  {max:61,force:7,label:'Viento muy fuerte'},
+  {max:74,force:8,label:'Temporal'},
+  {max:88,force:9,label:'Temporal fuerte'},
+  {max:102,force:10,label:'Tormenta'},
+  {max:117,force:11,label:'Tormenta violenta'},
+  {max:Infinity,force:12,label:'Huracanado'}
+];
+function iwBeaufort(wind){
+  const speed=Math.max(0,Number(wind)||0);
+  return IW_BEAUFORT.find(level=>speed<=level.max)||IW_BEAUFORT[IW_BEAUFORT.length-1];
+}
 function iwWindHtml(speed,direction,gust,temp,sens){
   if(speed==null||speed==='')return'';
   const wind=Number(speed);
   if(!Number.isFinite(wind))return'';
-  const gustKmh=Number(gust),showGust=gust!=null&&gust!==''&&Number.isFinite(gustKmh)&&gustKmh>=25&&gustKmh>=wind+5;
+  const level=iwBeaufort(wind);
   const temperature=Number(temp),feels=Number(sens);
-  const strong=wind>=40||(showGust&&gustKmh>=55);
+  const strong=level.force>=6;
   const cold=!strong&&wind>=10&&temp!=null&&sens!=null&&Number.isFinite(temperature)&&Number.isFinite(feels)&&feels<=temperature-2;
-  const label=strong?'Viento fuerte':cold?'Viento frío':wind<5?'Calma':wind<20?'Brisa':wind<35?'Ventoso':'Viento fuerte';
-  const cls=strong?' is-strong':cold?' is-cold':'';
-  const effectiveWind=showGust?Math.max(wind,gustKmh):wind;
-  const animationSpeed=Math.min(2.25,Math.max(.55,effectiveWind/22)).toFixed(2);
-  const autoplay=!window.matchMedia||!window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  return`<span class="iw-wind${cls}"><iframe class="iw-wind-lottie" src="./wind-icon.html?speed=${animationSpeed}&motion=${autoplay?1:0}" tabindex="-1" aria-hidden="true"></iframe><span>${label}</span><span>·</span><span>${Math.round(wind)} km/h</span></span>`;
+  const label=cold?'Viento frío':level.label;
+  const cls=(strong?' is-strong':'')+(cold?' is-cold':'');
+  return`<span class="iw-wind${cls}" data-beaufort="${level.force}"><img class="iw-wind-icon" src="${mcUrl(`wind-beaufort-${level.force}`)}" alt="" aria-hidden="true"><span>${label}</span><span>·</span><span>${Math.round(wind)} km/h</span></span>`;
 }
 function iwPronosticoDias(daily){
   const time=daily?.time||[],codes=daily?.weather_code||[],maxs=daily?.temperature_2m_max||[],mins=daily?.temperature_2m_min||[];
