@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+html,body{width:100%;height:100%;margin:0;overflow:hidden;background:transparent}
+canvas{display:block;width:100%;height:100%}
+</style>
+</head>
+<body>
+<canvas id="wind" width="64" height="64" aria-hidden="true"></canvas>
+<script type="module">
+import { DotLottie } from 'https://esm.sh/@lottiefiles/dotlottie-web@0.77.1';
+const params=new URLSearchParams(location.search);
+new DotLottie({
+  canvas:document.getElementById('wind'),
+  src:'./assets/wind-flow.json',
+  autoplay:params.get('motion')!=='0',
+  loop:true,
+  speed:Number(params.get('speed'))||1
+});
+</script>
+</body>
+</html>
