@@ -1196,6 +1196,9 @@
     total: document.getElementById('catTotal'),
     sync: document.getElementById('catSyncStatus'),
     addBtn: document.getElementById('catAddBtn'),
+    scanBtn: document.getElementById('catScanBtn'),
+    facturaInput: document.getElementById('catFacturaInput'),
+    facturaReview: document.getElementById('catFacturaReview'),
     form: document.getElementById('catManualForm'),
     formTitle: document.getElementById('catFormTitle'),
     editUid: document.getElementById('catEditUid'),
@@ -1352,6 +1355,166 @@
     }).catch(() => { /* sin foto: el ícono de categoría alcanza */ });
   }
 
+  // ── Carga de facturas con foto + IA ──
+  // Flujo: foto del comprobante → se comprime en el navegador → /api/factura
+  // (Claude visión) devuelve los renglones → tabla de revisión editable →
+  // confirmar actualiza costos de productos existentes y crea los nuevos.
+  let catFacturaData = null;
+
+  function catFotoBase64(file) {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const maxSide = 1600;
+          const scale = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight));
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
+          canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+          canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+          URL.revokeObjectURL(url);
+          resolve(canvas.toDataURL('image/jpeg', 0.85).split(',')[1]);
+        } catch (error) {
+          URL.revokeObjectURL(url);
+          reject(new Error('No pude procesar la foto'));
+        }
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('No pude leer la foto')); };
+      img.src = url;
+    });
+  }
+
+  function catTokensNombre(text) {
+    return String(text || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+      .replace(/[^a-z0-9]+/g, ' ').trim().split(' ').filter(token => token.length > 1);
+  }
+
+  // Busca si el renglón ya existe en el catálogo (por EAN o por parecido de nombre).
+  function catMatchExistente(item) {
+    if (item.ean) {
+      const porEan = catByEan(item.ean);
+      if (porEan) return porEan;
+    }
+    const target = new Set(catTokensNombre(item.descripcion));
+    if (!target.size) return null;
+    let best = null, bestScore = 0;
+    Object.values(readCatalog()).forEach(record => {
+      const tokens = new Set(catTokensNombre(record.nombre));
+      if (!tokens.size) return;
+      const shared = [...target].filter(token => tokens.has(token)).length;
+      const score = shared / Math.max(target.size, tokens.size);
+      if (score > bestScore) { bestScore = score; best = record; }
+    });
+    return bestScore >= 0.55 ? best : null;
+  }
+
+  async function catLeerFactura(file) {
+    const review = cat.facturaReview;
+    if (!review) return;
+    if (location.protocol === 'file:' && !window.KIOSCO_CATALOG_API) {
+      notify('La lectura de facturas necesita la versión publicada de la app');
+      return;
+    }
+    review.hidden = false;
+    review.innerHTML = '<div class="cat-factura-loading">📷 Leyendo el comprobante con IA… suele tardar unos segundos.</div>';
+    review.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' });
+    try {
+      const base64 = await catFotoBase64(file);
+      const response = await fetch('/api/factura', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ image: base64, mime: 'image/jpeg' }),
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok || !data) throw new Error(data?.error || 'No se pudo leer el comprobante');
+      if (!Array.isArray(data.items) || !data.items.length) throw new Error('No encontré renglones de mercadería en la foto');
+      catRenderFacturaReview(data);
+    } catch (error) {
+      review.innerHTML = `<div class="cat-factura-error"><span>${escapeHtml(error.message)}</span><button type="button" class="cat-cancel-btn" data-fact-cerrar>Cerrar</button></div>`;
+    }
+  }
+
+  function catRenderFacturaReview(data) {
+    catFacturaData = data;
+    const filas = data.items.map((item, i) => {
+      const match = catMatchExistente(item);
+      item._matchUid = match ? match.uid : null;
+      // Si el renglón es un bulto, el costo por unidad de venta es unitario/unidades
+      const costoUnidad = item.unidadesPorBulto > 1 ? Math.round(item.unitario / item.unidadesPorBulto * 100) / 100 : item.unitario;
+      const badge = match
+        ? `<span class="cat-fact-badge upd" title="Ya está en tu catálogo como “${escapeHtml(match.nombre)}”: se le actualiza el costo">actualiza costo</span>`
+        : '<span class="cat-fact-badge new">nuevo</span>';
+      const bulto = item.unidadesPorBulto > 1
+        ? ` · bulto x${item.unidadesPorBulto} a ${money(item.unitario)} → ${money(costoUnidad)} por unidad`
+        : '';
+      return `<div class="cat-fact-row" data-i="${i}">
+        <label class="cat-fact-check"><input type="checkbox" checked data-role="incluir" aria-label="Incluir este renglón"></label>
+        <div class="cat-fact-main">
+          <input class="price-input cat-fact-nombre" data-role="nombre" value="${escapeHtml(item.descripcion)}" maxlength="90">
+          <div class="cat-fact-meta">${badge}<span>${item.cantidad} × ${money(item.unitario)}${item.importe ? ` = ${money(item.importe)}` : ''}${bulto}</span></div>
+        </div>
+        <div class="cat-fact-field"><label>Costo por unidad</label><input class="price-input" data-role="costo" type="number" min="0" step="0.01" value="${costoUnidad}"></div>
+        <div class="cat-fact-field"><label>Categoría</label><input class="price-input" data-role="categoria" list="catCategoriasList" value="${escapeHtml(match ? match.categoria : inferCategory(item.descripcion, ''))}" placeholder="Kiosco varios"></div>
+      </div>`;
+    }).join('');
+    const cabecera = [data.proveedor, data.tipo, data.fecha].filter(Boolean).join(' · ');
+    cat.facturaReview.innerHTML = `
+      <div class="cat-fact-head">
+        <div class="cat-fact-title">Revisá lo que leí del comprobante</div>
+        <div class="cat-fact-sub">${escapeHtml(cabecera || 'Comprobante')} · ${data.items.length} renglón${data.items.length === 1 ? '' : 'es'}${data.nota ? ` · ⚠️ ${escapeHtml(data.nota)}` : ''}</div>
+      </div>
+      ${filas}
+      <div class="cat-fact-foot">
+        <div class="cat-fact-margen"><label>Margen para los nuevos %</label><input class="price-input" id="catFactMargen" type="number" min="1" max="94" step="1" value="30"></div>
+        <button type="button" class="cat-cancel-btn" data-fact-cerrar>Cancelar</button>
+        <button type="button" class="price-calc-btn" id="catFactConfirmar">Cargar al catálogo</button>
+      </div>`;
+  }
+
+  function catCerrarFactura() {
+    if (cat.facturaReview) { cat.facturaReview.hidden = true; cat.facturaReview.innerHTML = ''; }
+    catFacturaData = null;
+  }
+
+  function catConfirmarFactura() {
+    if (!catFacturaData || !cat.facturaReview) return;
+    const margen = Number(document.getElementById('catFactMargen')?.value) || 30;
+    let creados = 0, actualizados = 0;
+    cat.facturaReview.querySelectorAll('.cat-fact-row').forEach(row => {
+      if (!row.querySelector('[data-role="incluir"]').checked) return;
+      const item = catFacturaData.items[Number(row.dataset.i)];
+      if (!item) return;
+      const nombre = row.querySelector('[data-role="nombre"]').value.trim();
+      const costo = catNum(row.querySelector('[data-role="costo"]').value);
+      const categoria = row.querySelector('[data-role="categoria"]').value.trim() || 'Kiosco varios';
+      if (!nombre || !costo) return;
+      const existing = item._matchUid ? readCatalog()[item._matchUid] : null;
+      if (existing) {
+        catUpsert({ ...existing, costo, categoria, unidades: item.unidadesPorBulto || existing.unidades || null }, { rerender: false });
+        actualizados++;
+      } else {
+        const saved = catUpsert({
+          ean: item.ean || null,
+          nombre,
+          marca: '',
+          presentacion: '',
+          categoria,
+          costo,
+          precio: suggestPrice(costo, margen),
+          unidades: item.unidadesPorBulto || null,
+          imagen: null,
+          origen: 'factura',
+        }, { rerender: false });
+        catFetchFoto(saved);
+        creados++;
+      }
+    });
+    catCerrarFactura();
+    renderCatalog();
+    notify(`Factura cargada ✓ ${creados} nuevo${creados === 1 ? '' : 's'}, ${actualizados} costo${actualizados === 1 ? '' : 's'} actualizado${actualizados === 1 ? '' : 's'}`);
+  }
+
   function catGroups(items) {
     const groups = {};
     items.forEach(record => { const key = record.categoria || 'Kiosco varios'; (groups[key] = groups[key] || []).push(record); });
@@ -1408,7 +1571,7 @@
       const rows = group.rows.map(record => {
         const margin = catMargin(record);
         const sub = [record.marca, record.presentacion].filter(Boolean).join(' · ');
-        const origenTexto = { manual: 'manual', preciosclaros: 'Precios Claros', mercadolibre: 'Mercado Libre', 'casa-paso': 'Casa Paso', 'dulce-sur': 'Dulce Sur', rappi: 'Rappi', open25: 'Open 25' }[record.origen] || 'manual';
+        const origenTexto = { manual: 'manual', preciosclaros: 'Precios Claros', mercadolibre: 'Mercado Libre', 'casa-paso': 'Casa Paso', 'dulce-sur': 'Dulce Sur', rappi: 'Rappi', open25: 'Open 25', factura: 'Factura 📷' }[record.origen] || 'manual';
         const origen = `<span class="cat-origin">${origenTexto}</span>`;
         return `<div class="cat-row" data-uid="${escapeHtml(record.uid)}">
           ${catThumbHtml(record)}
@@ -1469,6 +1632,16 @@
     cat.search?.addEventListener('input', renderCatalog);
     cat.categoryFilter?.addEventListener('change', renderCatalog);
     cat.addBtn.addEventListener('click', () => { if (cat.form.hidden) openManualForm(null); else closeManualForm(); });
+    cat.scanBtn?.addEventListener('click', () => cat.facturaInput?.click());
+    cat.facturaInput?.addEventListener('change', () => {
+      const file = cat.facturaInput.files?.[0];
+      cat.facturaInput.value = '';
+      if (file) catLeerFactura(file);
+    });
+    cat.facturaReview?.addEventListener('click', event => {
+      if (event.target.closest('[data-fact-cerrar]')) { catCerrarFactura(); return; }
+      if (event.target.closest('#catFactConfirmar')) catConfirmarFactura();
+    });
     cat.cancelBtn.addEventListener('click', closeManualForm);
     cat.fNombre.addEventListener('blur', () => {
       if (!cat.fCategoria.value.trim() && cat.fNombre.value.trim()) {

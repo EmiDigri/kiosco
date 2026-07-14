@@ -2313,6 +2313,40 @@ body.light .price-tab-count{background:rgba(8,127,114,.12);color:#087f72}
 .cat-sync-status{font-size:10.5px;font-weight:750;color:var(--text-soft)}
 .cat-sync-status.pend{color:#f4a435}.cat-sync-status.ok{color:#5fd68a}
 .cat-add-btn{height:38px;border:1px solid transparent;border-radius:8px;background:#54ccb6;color:#071611;font:800 12px/1 'Inter',sans-serif;padding:0 15px;cursor:pointer;transition:background .15s,transform .12s}
+.cat-toolbar-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.cat-scan-btn{height:38px;border:1px solid rgba(97,214,192,.4);border-radius:8px;background:rgba(97,214,192,.1);color:#61d6c0;font:800 12px/1 'Inter',sans-serif;padding:0 14px;cursor:pointer;transition:background .15s}
+.cat-scan-btn:hover{background:rgba(97,214,192,.2)}
+body.light .cat-scan-btn{color:#087f72;border-color:rgba(8,127,114,.35);background:rgba(8,127,114,.07)}
+/* Revisión de factura leída con IA */
+.cat-factura{margin:14px 0 4px;padding:16px 14px;border:1px solid rgba(97,214,192,.3);border-radius:14px;background:var(--glass)}
+.cat-factura-loading{font-size:12.5px;color:var(--text-mid);padding:8px 2px}
+.cat-factura-error{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:12.5px;color:#f87171;padding:4px 2px}
+body.light .cat-factura-error{color:#c53030}
+.cat-fact-title{font-size:13px;font-weight:800;color:var(--text)}
+.cat-fact-sub{font-size:10.5px;color:var(--text-soft);margin-top:3px;line-height:1.45}
+.cat-fact-head{margin-bottom:12px}
+.cat-fact-row{display:grid;grid-template-columns:auto minmax(0,2.2fr) minmax(110px,1fr) minmax(120px,1fr);gap:10px;align-items:start;padding:10px 0;border-top:1px solid var(--glass-border)}
+.cat-fact-check{display:flex;align-items:center;padding-top:10px}
+.cat-fact-check input{width:16px;height:16px;accent-color:#54ccb6;cursor:pointer}
+.cat-fact-main{min-width:0}
+.cat-fact-nombre{width:100%}
+.cat-fact-meta{font-size:9.5px;color:var(--text-soft);margin-top:5px;line-height:1.4;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.cat-fact-badge{font-size:8.5px;font-weight:800;padding:2px 7px;border-radius:20px;letter-spacing:.03em;text-transform:uppercase}
+.cat-fact-badge.new{color:#61d6c0;background:rgba(97,214,192,.12)}
+.cat-fact-badge.upd{color:#f0b860;background:rgba(240,184,96,.13)}
+body.light .cat-fact-badge.new{color:#087f72;background:rgba(8,127,114,.08)}
+body.light .cat-fact-badge.upd{color:#b45309;background:rgba(180,83,9,.09)}
+.cat-fact-field label{display:block;font-size:8.5px;font-weight:750;letter-spacing:.05em;text-transform:uppercase;color:var(--text-soft);margin-bottom:4px}
+.cat-fact-foot{display:flex;align-items:end;gap:10px;padding-top:14px;border-top:1px solid var(--glass-border);margin-top:4px;flex-wrap:wrap}
+.cat-fact-margen{margin-right:auto}
+.cat-fact-margen label{display:block;font-size:8.5px;font-weight:750;letter-spacing:.05em;text-transform:uppercase;color:var(--text-soft);margin-bottom:4px}
+.cat-fact-margen .price-input{width:90px}
+@media(max-width:720px){
+  .cat-fact-row{grid-template-columns:auto minmax(0,1fr)}
+  .cat-fact-field{grid-column:2}
+  .cat-fact-foot{align-items:stretch;flex-direction:column}
+  .cat-fact-margen{margin-right:0}
+}
 .cat-add-btn:hover{background:#6fe0cc}.cat-add-btn:active{transform:translateY(1px)}
 .cat-add-btn.close{background:var(--glass);border-color:var(--glass-border);color:var(--text-mid)}
 .cat-filters{display:grid;grid-template-columns:minmax(220px,1fr) 210px;gap:9px;padding:14px 0 0}
@@ -3108,8 +3142,13 @@ body.light .price-error{color:#991b1b}
           <span class="cat-total" id="catTotal">0 productos</span>
           <span class="cat-sync-status" id="catSyncStatus"></span>
         </div>
-        <button class="cat-add-btn" id="catAddBtn" type="button">+ Agregar producto</button>
+        <div class="cat-toolbar-actions">
+          <button class="cat-scan-btn" id="catScanBtn" type="button">📷 Cargar factura</button>
+          <button class="cat-add-btn" id="catAddBtn" type="button">+ Agregar producto</button>
+        </div>
       </div>
+      <input type="file" id="catFacturaInput" accept="image/*" capture="environment" hidden>
+      <div class="cat-factura" id="catFacturaReview" hidden></div>
 
       <div class="cat-filters">
         <div class="cat-search-box">
