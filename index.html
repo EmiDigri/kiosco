@@ -119,6 +119,21 @@ html{overflow-x:hidden;overflow-y:scroll}
 .iw-wind-lottie{display:block;width:18px;height:18px;flex:0 0 18px;margin-right:1px;border:0;background:transparent;filter:drop-shadow(0 0 4px rgba(116,192,252,.28));pointer-events:none}
 .iw-wind.is-strong .iw-wind-lottie{filter:sepia(1) saturate(4) hue-rotate(345deg) drop-shadow(0 0 4px rgba(246,184,74,.3))}
 .iw-wind.is-cold{color:#74c0fc}.iw-wind.is-strong{color:#f6b84a}
+.iw-moon-slot{flex:0 0 auto}
+.iw-moon-slot:empty{display:none}
+.iw-moon{display:flex;align-items:center;gap:7px;flex:0 0 auto;min-width:0;padding-left:10px;border-left:1px solid var(--glass-border)}
+.iw-moon-disc{position:relative;width:40px;height:40px;flex:0 0 40px;border-radius:50%;overflow:hidden;background:#02040a;box-shadow:0 0 10px rgba(205,224,255,.2),0 0 22px rgba(116,192,252,.09)}
+.iw-moon-disc::after{content:'';position:absolute;inset:0;border-radius:50%;border:1px solid rgba(226,238,255,.2);box-shadow:inset -4px -5px 9px rgba(0,0,0,.24);pointer-events:none}
+.iw-moon-img{display:block;width:100%;height:100%;object-fit:cover;transform:rotate(var(--iw-moon-rotation,0deg)) scale(1.18);transform-origin:50% 50%;animation:iw-moon-breathe 5.8s ease-in-out infinite;filter:brightness(1.08) contrast(1.06)}
+.iw-moon-img.is-fallback{transform:scale(.86);filter:drop-shadow(0 0 5px rgba(205,224,255,.28))}
+.iw-moon-phase{position:relative;display:inline-flex;align-items:center;gap:4px;max-width:145px;border:0;background:transparent;color:var(--text);padding:3px 0;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:10px;font-weight:800;line-height:1.15;letter-spacing:0;text-align:left;white-space:nowrap;cursor:help}
+.iw-moon-phase:hover,.iw-moon-phase:focus-visible{color:#a9ceff;outline:none}
+.iw-moon-help{display:inline-flex;align-items:center;justify-content:center;width:13px;height:13px;flex:0 0 13px;border:1px solid rgba(169,206,255,.46);border-radius:50%;color:#a9ceff;font-size:8px;font-weight:850;line-height:1}
+.iw-tooltip{position:fixed;z-index:10020;width:max-content;max-width:min(240px,calc(100vw - 24px));padding:7px 9px;border:1px solid rgba(255,255,255,.16);border-radius:7px;background:rgba(10,14,26,.97);color:#f4f7fb;box-shadow:0 8px 24px rgba(0,0,0,.34);font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:10.5px;font-weight:700;line-height:1.35;letter-spacing:0;text-align:left;pointer-events:none;opacity:0;transform:translateY(4px);transition:opacity .12s ease,transform .12s ease}
+.iw-tooltip.show{opacity:1;transform:translateY(0)}
+body.light .iw-moon-disc{box-shadow:0 0 10px rgba(38,73,120,.18),0 0 20px rgba(37,76,232,.08)}
+body.light .iw-tooltip{background:#fff;color:#172033;border-color:#c7d2e0;box-shadow:0 8px 22px rgba(20,35,60,.18)}
+@keyframes iw-moon-breathe{0%,100%{filter:brightness(1.03) contrast(1.06);opacity:.94}50%{filter:brightness(1.13) contrast(1.08);opacity:1}}
 .iw-forecast{min-width:0}
 .iw-forecast-desktop{display:none;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;flex:1 1 520px;max-width:640px}
 .iw-forecast-mobile{display:none;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:-3px 0 12px}
@@ -128,7 +143,9 @@ html{overflow-x:hidden;overflow-y:scroll}
 .iw-forecast-emoji img{width:24px;height:24px;display:block}
 .iw-forecast-temp{font-size:10px;font-weight:750;color:var(--text);font-variant-numeric:tabular-nums;line-height:1;letter-spacing:0}
 @media(min-width:1200px){.iw-forecast-desktop{display:grid}.iw-forecast-day{gap:6px;padding:7px 8px;border-radius:11px;min-height:34px}.iw-forecast-dow{font-size:10.5px}.iw-forecast-emoji img{width:28px;height:28px}.iw-forecast-temp{font-size:12.5px}}
-@media(max-width:900px){.iw-temp-row{margin-bottom:9px}.iw-forecast-mobile{display:grid}}
+@media(min-width:901px) and (max-width:1399px){.iw-temp-row{flex-wrap:wrap}.iw-forecast-desktop{flex:1 1 100%;max-width:none}}
+@media(max-width:900px){.iw-temp-row{margin-bottom:9px;flex-wrap:wrap}.iw-moon-slot{display:flex;flex:0 0 100%;margin-left:0;justify-content:flex-start}.iw-moon{margin-top:2px;padding-left:0;border-left:0}.iw-forecast-mobile{display:grid}}
+@media(max-width:430px){.iw-temp-row{gap:8px}.iw-temp-main{gap:6px}.iw-temp-val{font-size:25px}.iw-moon{gap:6px}.iw-moon-disc{width:38px;height:38px;flex-basis:38px}.iw-moon-phase{max-width:135px;font-size:10px}.iw-moon-help{width:13px;height:13px;flex-basis:13px;font-size:8px}}
 .iw-dolares{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px}
 .iw-dolar{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:7px 5px;text-align:center}
 .iw-dolar-label{display:inline-flex;align-items:center;justify-content:center;gap:4px;font-size:9px;font-weight:700;letter-spacing:.09em;color:var(--text-soft);text-transform:uppercase;margin-bottom:4px}
@@ -150,6 +167,7 @@ html{overflow-x:hidden;overflow-y:scroll}
 .iw-weather-emoji::before{content:'';position:absolute;inset:-8px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.28),rgba(116,192,252,.12) 42%,transparent 70%);opacity:0;transform:scale(.72);transition:opacity .18s,transform .18s;pointer-events:none;z-index:-1}
 .iw-weather-emoji:hover,.iw-weather-emoji:focus,.iw-weather-emoji.weather-lit{filter:drop-shadow(0 0 8px rgba(255,255,255,.65)) drop-shadow(0 0 18px rgba(116,192,252,.42));text-shadow:0 0 12px rgba(255,255,255,.55);outline:none}
 .iw-weather-emoji:hover::before,.iw-weather-emoji:focus::before,.iw-weather-emoji.weather-lit::before{opacity:1;transform:scale(1)}
+@media(max-width:430px){.iw-weather-emoji img{width:34px;height:34px}}
 #infoWidgetCard,#infoWidgetMobile{position:relative;overflow:hidden}
 .egg-layer{position:fixed;inset:0;z-index:10000;pointer-events:none;overflow:hidden}
 .egg-rain-item{position:fixed;z-index:10001;pointer-events:none;font-weight:850;font-size:15px;line-height:1;animation:egg-fall var(--egg-dur,1.7s) linear forwards;filter:drop-shadow(0 2px 5px rgba(0,0,0,.28))}
@@ -252,7 +270,7 @@ html{overflow-x:hidden;overflow-y:scroll}
 body.egg-arcade .hero-card,body.egg-champion .hero-card{box-shadow:0 0 0 1px rgba(116,172,223,.35),0 0 42px rgba(116,172,223,.22)!important}
 body.egg-arcade .logo-name{color:#fff;text-shadow:0 0 10px #74c0fc,0 0 22px rgba(116,192,252,.55)}
 body.egg-champion .logo-flag{filter:drop-shadow(0 0 8px rgba(116,172,223,.9)) drop-shadow(0 0 16px rgba(255,255,255,.5))}
-@media(prefers-reduced-motion:reduce){.egg-rain-item,.egg-dollar-rain,.egg-pop,.egg-weather-drop,.egg-weather-spark,.egg-weather-cloud,.egg-weather-stage,.egg-weather-stage::before,.egg-weather-piece,.egg-weather-orb,.egg-weather-cloudlet,.egg-weather-bolt,.egg-weather-fogband,.egg-stamp,.egg-flash,.egg-ring,.egg-coin.fall,.egg-gold-vignette,.egg-lucky-glow,.egg-weather-splash,.egg-weather-rays,.egg-weather-shooting,.egg-weather-cloud-big,.egg-weather-shadow-sweep,.egg-weather-mist-wall,.egg-retro-scan,.app.egg-shake{animation-duration:.01ms!important}}
+@media(prefers-reduced-motion:reduce){.iw-moon-img,.egg-rain-item,.egg-dollar-rain,.egg-pop,.egg-weather-drop,.egg-weather-spark,.egg-weather-cloud,.egg-weather-stage,.egg-weather-stage::before,.egg-weather-piece,.egg-weather-orb,.egg-weather-cloudlet,.egg-weather-bolt,.egg-weather-fogband,.egg-stamp,.egg-flash,.egg-ring,.egg-coin.fall,.egg-gold-vignette,.egg-lucky-glow,.egg-weather-splash,.egg-weather-rays,.egg-weather-shooting,.egg-weather-cloud-big,.egg-weather-shadow-sweep,.egg-weather-mist-wall,.egg-retro-scan,.app.egg-shake{animation-duration:.01ms!important}}
 .hero-card{position:relative;z-index:1;transition:transform .08s ease;will-change:transform;margin-bottom:0!important;background:var(--glass);border:1px solid var(--glass-border);border-radius:28px;padding:28px 26px 24px;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);overflow:hidden}
 .hero-card::before{content:'';position:absolute;inset:0;border-radius:28px;background:linear-gradient(135deg,rgba(61,90,254,.08) 0%,transparent 60%);pointer-events:none}
 .hero-shimmer{position:absolute;top:0;left:-100%;width:60%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.04),transparent);animation:shimmerSlide 3s ease-in-out infinite}
@@ -1873,8 +1891,49 @@ body{
 .hist-met-kpi-label{font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-soft);margin-bottom:6px}
 .hist-met-kpi-val{font-size:17px;font-weight:800;color:var(--text);font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-variant-numeric:tabular-nums}
 .hist-met-kpi-val.neg{color:#f87171}
-.hist-met-chart-card{background:rgba(255,255,255,.04);border:1px solid var(--glass-border);border-radius:16px;padding:16px 14px}
-.hist-met-chart-title{font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--text-soft);margin-bottom:12px}
+.hist-met-chart-card{position:relative;background:rgba(255,255,255,.04);border:1px solid var(--glass-border);border-radius:16px;padding:16px 14px}
+.hist-met-chart-title{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--text-soft);margin-bottom:12px}
+.hist-trend-pill{font-size:9px;font-weight:800;letter-spacing:.02em;text-transform:none;padding:3px 9px;border-radius:20px;white-space:nowrap}
+.hist-trend-pill.up{color:#5fd68a;background:rgba(95,214,138,.12)}
+.hist-trend-pill.down{color:#f87171;background:rgba(248,113,113,.12)}
+body.light .hist-trend-pill.up{color:#0f8a4d;background:rgba(15,138,77,.1)}
+body.light .hist-trend-pill.down{color:#c53030;background:rgba(197,48,48,.09)}
+/* Gráfico de evolución diaria: colores por clase para que funcione en ambos temas */
+.hist-chart-svg .hgrid{stroke:rgba(255,255,255,.07);stroke-width:1}
+.hist-chart-svg .htick{fill:rgba(255,255,255,.32);font-weight:650}
+.hist-chart-svg .hbar{fill:rgba(124,144,255,.55);transition:filter .12s}
+.hist-chart-svg .hbar.pk{fill:rgba(124,144,255,.95)}
+.hist-chart-svg .hbar.z{fill:rgba(255,255,255,.08)}
+.hist-chart-svg .hbar.hov{filter:brightness(1.4)}
+.hist-chart-svg .hval{fill:rgba(255,255,255,.82)}
+.hist-chart-svg .haxis{fill:rgba(255,255,255,.3)}
+.hist-chart-svg .haxis.we{fill:rgba(240,184,96,.55)}
+.hist-chart-svg .haxis.today{fill:#61d6c0}
+.hist-chart-svg .havg{stroke:rgba(240,184,96,.5);stroke-width:1.2}
+.hist-chart-svg .havg-lbl{fill:rgba(240,184,96,.75);font-weight:700}
+.hist-chart-svg .hband{cursor:pointer}
+body.light .hist-chart-svg .hgrid{stroke:rgba(15,23,42,.08)}
+body.light .hist-chart-svg .htick{fill:rgba(15,23,42,.38)}
+body.light .hist-chart-svg .hbar{fill:rgba(99,102,241,.55)}
+body.light .hist-chart-svg .hbar.pk{fill:rgba(99,102,241,.95)}
+body.light .hist-chart-svg .hbar.z{fill:rgba(15,23,42,.08)}
+body.light .hist-chart-svg .hbar.hov{filter:brightness(.82)}
+body.light .hist-chart-svg .hval{fill:rgba(15,23,42,.8)}
+body.light .hist-chart-svg .haxis{fill:rgba(15,23,42,.4)}
+body.light .hist-chart-svg .haxis.we{fill:rgba(180,83,9,.6)}
+body.light .hist-chart-svg .haxis.today{fill:#087f72}
+body.light .hist-chart-svg .havg{stroke:rgba(180,83,9,.45)}
+body.light .hist-chart-svg .havg-lbl{fill:rgba(180,83,9,.7)}
+.hist-chart-tip{position:absolute;left:0;top:0;z-index:5;pointer-events:none;background:#1c2230;border:1px solid rgba(255,255,255,.12);border-radius:9px;padding:7px 11px;box-shadow:0 6px 18px rgba(0,0,0,.35);opacity:0;transition:opacity .1s;min-width:118px}
+.hist-chart-tip.show{opacity:1}
+.hist-chart-tip .tip-fecha{font-size:9px;font-weight:700;color:var(--text-soft);text-transform:capitalize;letter-spacing:.03em}
+.hist-chart-tip .tip-valor{font-size:14.5px;font-weight:800;color:var(--text);margin-top:2px}
+.hist-chart-tip .tip-prom{font-size:9px;font-weight:650;margin-top:2px;color:var(--text-soft)}
+.hist-chart-tip .tip-prom.up{color:#5fd68a}
+.hist-chart-tip .tip-prom.down{color:#f87171}
+body.light .hist-chart-tip{background:#fff;border-color:rgba(15,23,42,.12);box-shadow:0 8px 20px rgba(15,23,42,.14)}
+body.light .hist-chart-tip .tip-prom.up{color:#0f8a4d}
+body.light .hist-chart-tip .tip-prom.down{color:#c53030}
 .hist-semana-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.06)}
 .hist-semana-row:last-child{border-bottom:none}
 .hist-semana-rango{font-size:12px;font-weight:600;color:var(--text-mid)}
@@ -3486,44 +3545,127 @@ let histRowsGastosMes=[];
 
 function histMoney(n){return '$'+(Number(n)||0).toLocaleString('es-AR');}
 function histMoneyCompact(n){const v=Number(n)||0;if(v===0)return'';if(v>=1e6)return'$'+(v/1e6).toLocaleString('es-AR',{maximumFractionDigits:1})+'M';if(v>=1e3)return'$'+(v/1e3).toLocaleString('es-AR',{maximumFractionDigits:1})+'k';return'$'+v.toLocaleString('es-AR');}
+function histTickCorto(v){
+  if(v>=1e6)return (v/1e6).toLocaleString('es-AR',{maximumFractionDigits:1})+'M';
+  if(v>=1e3)return Math.round(v/1e3)+'k';
+  return String(Math.round(v));
+}
+// Píldora de tendencia: promedio diario de los últimos 7 días vs los 7 anteriores.
+function histTendenciaPill(vals,last,y,m){
+  const hoy=new Date();
+  const esMesActual=y===hoy.getFullYear()&&m===hoy.getMonth()+1;
+  const corte=esMesActual?Math.min(hoy.getDate(),last):last;
+  const ventana=(a,b)=>{const xs=[];for(let d=a;d<=b;d++){if(d>=1&&d<=last&&vals[d-1]>0)xs.push(vals[d-1]);}return xs;};
+  const act=ventana(corte-6,corte),ant=ventana(corte-13,corte-7);
+  if(act.length<2||ant.length<2)return '';
+  const pa=act.reduce((s,v)=>s+v,0)/act.length;
+  const pb=ant.reduce((s,v)=>s+v,0)/ant.length;
+  if(!pb)return '';
+  const pct=(pa-pb)/pb*100;
+  const up=pct>=0;
+  return `<span class="hist-trend-pill ${up?'up':'down'}" title="Promedio diario de los últimos 7 días comparado con los 7 anteriores">${up?'↗ +':'↘ −'}${Math.abs(pct).toFixed(0)}% últimos 7 días</span>`;
+}
 function histSvgBarsDias(vals,last,y,m){
-  const W=600,H=130,pL=4,pR=4,pT=24,pB=20;
+  const W=600,H=148,pL=6,pR=32,pT=16,pB=18;
   const cW=W-pL-pR,cH=H-pT-pB,base=pT+cH;
-  const max=Math.max(...vals,1);
+  const realMax=Math.max(...vals);
+  const max=Math.max(realMax,1);
   const step=cW/last;
-  const bw=Math.max(2,step*0.72);
-  let bars='',lbls='',axis='';
-  vals.forEach((v,i)=>{
-    const x=pL+i*step+(step-bw)/2;
-    const isMax=(v===max&&v>0);
-    const fh=v>0?Math.max(3,(v/max)*cH):2;
-    const fy=base-fh;
-    const fill=v>0?(isMax?'rgba(248,113,113,.85)':'rgba(124,144,255,.6)'):'rgba(255,255,255,.07)';
-    bars+=`<rect class="hbar" x="${x.toFixed(1)}" y="${base}" width="${bw.toFixed(1)}" height="0" rx="2" fill="${fill}" data-fy="${fy.toFixed(1)}" data-fh="${fh.toFixed(1)}"/>`;
-    if(v>0){const lbl=v>=1e6?(v/1e6).toFixed(1)+'M':v>=1e3?Math.round(v/1e3)+'k':'';if(lbl)lbls+=`<text class="hval" x="${(x+bw/2).toFixed(1)}" y="${(fy-4).toFixed(1)}" text-anchor="middle" font-size="7.5" fill="${isMax?'rgba(248,113,113,.9)':'rgba(255,255,255,.45)'}" opacity="0">${lbl}</text>`;}
-    const d=i+1;
-    const dow=new Date(y,m-1,d).getDay();
-    axis+=`<text x="${(x+bw/2).toFixed(1)}" y="${(base+13).toFixed(1)}" text-anchor="middle" font-size="7" fill="${dow===0||dow===6?'rgba(240,184,96,.55)':'rgba(255,255,255,.28)'}">${d}</text>`;
-  });
-  // Media móvil de 3 días sobre días activos → curva bezier
-  const actives=vals.map((v,i)=>v>0?{d:i+1,v}:null).filter(Boolean);
-  let trend='';
-  if(actives.length>=2){
-    const sma=actives.map((p,i)=>{const w=actives.slice(Math.max(0,i-1),i+2);return{d:p.d,v:w.reduce((a,x)=>a+x.v,0)/w.length};});
-    const up=sma[sma.length-1].v>=sma[0].v;
-    const col=up?'rgba(95,214,138,.85)':'rgba(248,113,113,.85)';
-    const svgX=d=>pL+(d-1)*step+bw/2;
-    const svgY=v=>Math.max(pT+2,Math.min(base-2,base-(v/max)*cH));
-    const pts=sma.map(p=>({x:svgX(p.d),y:svgY(p.v)}));
-    let path=`M${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
-    for(let i=1;i<pts.length;i++){
-      const dx=(pts[i].x-pts[i-1].x)*0.45;
-      path+=` C${(pts[i-1].x+dx).toFixed(1)} ${pts[i-1].y.toFixed(1)} ${(pts[i].x-dx).toFixed(1)} ${pts[i].y.toFixed(1)} ${pts[i].x.toFixed(1)} ${pts[i].y.toFixed(1)}`;
+  const bw=Math.min(24,Math.max(2,step*0.62));
+  const hoy=new Date();
+  const esMesActual=y===hoy.getFullYear()&&m===hoy.getMonth()+1;
+  const hoyD=esMesActual?hoy.getDate():last;
+  const activos=vals.map((v,i)=>v>0?{d:i+1,v}:null).filter(Boolean);
+  const prom=activos.length?activos.reduce((a,p)=>a+p.v,0)/activos.length:0;
+  // Líneas de guía en valores "limpios" (1M, 2M...) con etiqueta a la derecha
+  let grid='';
+  if(realMax>0){
+    const rawStep=realMax/2.6;
+    const pow=Math.pow(10,Math.floor(Math.log10(rawStep)));
+    const tickStep=[1,2,2.5,5,10].map(f=>f*pow).find(s=>s>=rawStep);
+    for(let t=tickStep;t<=realMax*0.99;t+=tickStep){
+      const gy=base-(t/max)*cH;
+      grid+=`<line class="hgrid" x1="${pL}" y1="${gy.toFixed(1)}" x2="${pL+cW}" y2="${gy.toFixed(1)}"/>`;
+      grid+=`<text class="htick" x="${W-3}" y="${(gy+2.5).toFixed(1)}" text-anchor="end" font-size="7">${histTickCorto(t)}</text>`;
     }
-    trend=`<path class="htrend" d="${path}" fill="none" stroke="${col}" stroke-width="2" stroke-linecap="round" stroke-dasharray="3 2" opacity="0"/>`;
-    trend+=`<text class="htrend" x="${W-pR}" y="${pT-7}" text-anchor="end" font-size="9" font-weight="700" fill="${col}" opacity="0">${up?'↗ subiendo':'↘ bajando'}</text>`;
   }
-  return `<svg class="hist-chart-svg" viewBox="0 0 ${W} ${H}" width="100%" style="display:block;overflow:visible">${bars}${trend}${lbls}${axis}</svg>`;
+  const maxIdx=realMax>0?vals.indexOf(realMax):-1;
+  let bars='',lbls='',axis='',bands='';
+  vals.forEach((v,i)=>{
+    const d=i+1;
+    const x=pL+i*step+(step-bw)/2;
+    const dow=new Date(y,m-1,d).getDay();
+    const esFinde=dow===0||dow===6;
+    const esHoy=esMesActual&&d===hoy.getDate();
+    if(v>0){
+      const fh=Math.max(3,(v/max)*cH);
+      const fy=base-fh;
+      const esPico=i===maxIdx;
+      bars+=`<rect class="hbar${esPico?' pk':''}" data-d="${d}" x="${x.toFixed(1)}" y="${base}" width="${bw.toFixed(1)}" height="0" rx="2.5" data-fy="${fy.toFixed(1)}" data-fh="${fh.toFixed(1)}"/>`;
+      // Etiqueta directa SOLO en el pico: el resto se lee por guía y tooltip
+      if(esPico){
+        const cx=Math.min(Math.max(x+bw/2,26),W-pR-16);
+        lbls+=`<text class="hval" x="${cx.toFixed(1)}" y="${(fy-5).toFixed(1)}" text-anchor="middle" font-size="8.5" font-weight="750" opacity="0">${histMoneyCompact(v)}</text>`;
+      }
+      bands+=`<rect class="hband" data-d="${d}" data-v="${v}" x="${(pL+i*step).toFixed(1)}" y="${pT}" width="${step.toFixed(1)}" height="${(cH+pB).toFixed(1)}" fill="transparent"/>`;
+    }else if(d<=hoyD){
+      // Día pasado sin ventas: muñón mínimo; los días futuros no dibujan nada
+      bars+=`<rect class="hbar z" x="${x.toFixed(1)}" y="${base}" width="${bw.toFixed(1)}" height="0" rx="1" data-fy="${(base-2).toFixed(1)}" data-fh="2"/>`;
+    }
+    axis+=`<text class="haxis${esFinde?' we':''}${esHoy?' today':''}" x="${(x+bw/2).toFixed(1)}" y="${(base+12).toFixed(1)}" text-anchor="middle" font-size="7"${esHoy?' font-weight="800"':''}>${d}</text>`;
+  });
+  // Línea de promedio del mes (días con ventas)
+  let avg='';
+  if(activos.length>=2&&prom>0){
+    const ay=base-(prom/max)*cH;
+    avg=`<line class="htrend havg" x1="${pL}" y1="${ay.toFixed(1)}" x2="${pL+cW}" y2="${ay.toFixed(1)}" opacity="0"/>`;
+    avg+=`<text class="htrend havg-lbl" x="${pL+2}" y="${(ay-4).toFixed(1)}" text-anchor="start" font-size="7" opacity="0">prom ${histMoneyCompact(prom)}</text>`;
+  }
+  return `<svg class="hist-chart-svg" viewBox="0 0 ${W} ${H}" width="100%" style="display:block;overflow:visible" data-prom="${prom.toFixed(2)}">${grid}${bars}${avg}${lbls}${axis}${bands}</svg>`;
+}
+// Tooltip del gráfico diario: fecha, total y comparación contra el promedio.
+function histTooltipGraficoDias(card,y,m){
+  const svg=card.querySelector('.hist-chart-svg');
+  if(!svg)return;
+  let tip=card.querySelector('.hist-chart-tip');
+  if(!tip){
+    tip=document.createElement('div');
+    tip.className='hist-chart-tip';
+    tip.innerHTML='<div class="tip-fecha"></div><div class="tip-valor"></div><div class="tip-prom"></div>';
+    card.appendChild(tip);
+  }
+  const prom=Number(svg.dataset.prom)||0;
+  let cur=null;
+  const ocultar=()=>{tip.classList.remove('show');if(cur){cur.classList.remove('hov');cur=null;}};
+  svg.addEventListener('pointerover',ev=>{
+    const band=ev.target.closest('.hband');
+    if(!band){ocultar();return;}
+    const d=Number(band.dataset.d),v=Number(band.dataset.v);
+    const bar=svg.querySelector(`.hbar[data-d="${d}"]`);
+    if(cur&&cur!==bar)cur.classList.remove('hov');
+    if(bar){bar.classList.add('hov');cur=bar;}
+    tip.querySelector('.tip-fecha').textContent=new Date(y,m-1,d).toLocaleDateString('es-AR',{weekday:'long',day:'numeric'});
+    tip.querySelector('.tip-valor').textContent=histMoney(v);
+    const promEl=tip.querySelector('.tip-prom');
+    if(prom>0){
+      const pct=(v-prom)/prom*100;
+      promEl.textContent=`${pct>=0?'+':'−'}${Math.abs(pct).toFixed(0)}% vs promedio del mes`;
+      promEl.className='tip-prom '+(pct>=0?'up':'down');
+    }else{
+      promEl.textContent='';
+      promEl.className='tip-prom';
+    }
+    tip.classList.add('show');
+    const cardR=card.getBoundingClientRect();
+    const ref=(bar||band).getBoundingClientRect();
+    const tw=tip.offsetWidth,th=tip.offsetHeight;
+    let tx=ref.left-cardR.left+ref.width/2-tw/2;
+    tx=Math.max(6,Math.min(tx,cardR.width-tw-6));
+    let ty=ref.top-cardR.top-th-8;
+    if(ty<4)ty=4;
+    tip.style.transform=`translate(${tx.toFixed(0)}px,${ty.toFixed(0)}px)`;
+  });
+  svg.addEventListener('pointerleave',ocultar);
 }
 let _histChartObs=null;
 function histAnimarGraficoDias(card){
@@ -3641,11 +3783,11 @@ function histRenderMetricas(y,m,last){
       <div class="hist-met-kpi"><div class="hist-met-kpi-label">Días activos</div><div class="hist-met-kpi-val">${diasActivos}</div></div>
       <div class="hist-met-kpi" id="histVsMesAnt"><div class="hist-met-kpi-label">vs mes anterior</div><div class="hist-met-kpi-val" style="font-size:13px;opacity:.35">···</div></div>
     </div>
-    <div class="hist-met-chart-card" id="histChartCard"><div class="hist-met-chart-title">Evolución diaria del mes</div>${histSvgBarsDias(dailyVals,last,y,m)}</div>
+    <div class="hist-met-chart-card" id="histChartCard"><div class="hist-met-chart-title"><span>Evolución diaria del mes</span>${histTendenciaPill(dailyVals,last,y,m)}</div>${histSvgBarsDias(dailyVals,last,y,m)}</div>
     <div class="hist-met-chart-card" style="margin-top:12px"><div class="hist-met-chart-title">Proyección de facturación</div>${proyeccionHtml}</div>
     <div class="hist-met-chart-card" style="margin-top:12px"><div class="hist-met-chart-title">Totales por semana</div>${semanasHtml}</div>`;
   const chartCard=el.querySelector('#histChartCard');
-  if(chartCard)histAnimarGraficoDias(chartCard);
+  if(chartCard){histAnimarGraficoDias(chartCard);histTooltipGraficoDias(chartCard,y,m);}
   const prevM=m===1?12:m-1,prevY=m===1?y-1:y;
   histFetchMPMes(prevY,prevM).then(prevTotal=>{
     const chip=document.getElementById('histVsMesAnt');
@@ -5191,6 +5333,153 @@ async function fetchFeriadosInfo(){
 }
 const MC_BASE='https://cdn.jsdelivr.net/npm/@meteocons/svg/fill/';
 function mcUrl(slug){return MC_BASE+slug+'.svg';}
+const IW_CABA_LAT=-34.6037;
+const IW_CABA_LON=-58.3816;
+const IW_CABA_TZ='America/Argentina/Buenos_Aires';
+const IW_MOON_PHASES=[
+  {name:'Luna nueva',help:'La cara iluminada apunta casi por completo en sentido opuesto a la Tierra.',slug:'moon-new'},
+  {name:'Creciente',help:'Cada noche vemos un poco más de la parte iluminada de la Luna.',slug:'moon-waxing-crescent'},
+  {name:'Cuarto creciente',help:'La Luna recorrió cerca de un cuarto de su ciclo y vemos media cara iluminada.',slug:'moon-first-quarter'},
+  {name:'Gibosa creciente',help:'Más de la mitad está iluminada y la luz sigue aumentando camino a la Luna llena.',slug:'moon-waxing-gibbous'},
+  {name:'Luna llena',help:'La cara de la Luna que vemos está iluminada casi por completo.',slug:'moon-full'},
+  {name:'Gibosa menguante',help:'Más de la mitad sigue iluminada, pero la luz visible disminuye después de la Luna llena.',slug:'moon-waning-gibbous'},
+  {name:'Cuarto menguante',help:'La Luna recorrió cerca de tres cuartos de su ciclo y vemos media cara iluminada.',slug:'moon-last-quarter'},
+  {name:'Menguante',help:'Queda una franja iluminada que disminuye camino a la Luna nueva.',slug:'moon-waning-crescent'}
+];
+let iwSunCalc=null;
+const iwSunCalcPromise=import('https://cdn.jsdelivr.net/npm/suncalc@2.0.1/+esm')
+  .then(mod=>{iwSunCalc=mod?.getMoonIllumination?mod:(mod?.default||null);return iwSunCalc;})
+  .catch(()=>null);
+iwSunCalcPromise.then(()=>iwMoonRefreshSlots());
+function iwCabaHour(date=new Date()){
+  return Number(new Intl.DateTimeFormat('en-GB',{timeZone:IW_CABA_TZ,hour:'2-digit',hourCycle:'h23'}).format(date));
+}
+function iwEsHorarioLunar(date=new Date()){
+  const hour=iwCabaHour(date);
+  return hour>=19||hour<6;
+}
+function iwMoonApprox(date){
+  const synodicMs=29.530588853*864e5;
+  const newMoonEpoch=Date.UTC(2000,0,6,18,14);
+  let phase=((date.getTime()-newMoonEpoch)/synodicMs)%1;
+  if(phase<0)phase+=1;
+  return{phase,fraction:(1-Math.cos(phase*Math.PI*2))/2,rotation:0};
+}
+function iwMoonNasaUrl(date){
+  const year=date.getUTCFullYear();
+  if(year!==2026)return null;
+  const frame=Math.max(1,Math.min(8760,Math.floor((date.getTime()-Date.UTC(2026,0,1))/36e5)+1));
+  return{
+    frame,
+    url:`https://svs.gsfc.nasa.gov/vis/a000000/a005500/a005587/frames/730x730_1x1_30p/moon.${String(frame).padStart(4,'0')}.jpg`
+  };
+}
+async function iwMoonData(date=new Date()){
+  let data=iwMoonApprox(date),precise=false;
+  let lib=iwSunCalc;
+  if(!lib)lib=await Promise.race([iwSunCalcPromise,new Promise(resolve=>setTimeout(()=>resolve(null),1200))]);
+  if(lib?.getMoonIllumination&&lib?.getMoonPosition){
+    try{
+      const illumination=lib.getMoonIllumination(date);
+      const position=lib.getMoonPosition(date,IW_CABA_LAT,IW_CABA_LON);
+      const phase=Number(illumination?.phase),fraction=Number(illumination?.fraction),parallactic=Number(position?.parallacticAngle);
+      if(Number.isFinite(phase)&&Number.isFinite(fraction)){
+        data={phase,fraction,rotation:Number.isFinite(parallactic)?parallactic:0};
+        precise=true;
+      }
+    }catch(e){}
+  }
+  const index=Math.round(data.phase*8)%8;
+  const phaseInfo=IW_MOON_PHASES[index];
+  const illumination=Math.max(0,Math.min(100,Math.round(data.fraction*100)));
+  const nasa=iwMoonNasaUrl(date);
+  const src=nasa?.url||mcUrl(phaseInfo.slug);
+  const fallback=mcUrl(phaseInfo.slug);
+  const rotation=Math.max(-180,Math.min(180,Number(data.rotation)||0));
+  return{
+    name:phaseInfo.name,
+    help:phaseInfo.help,
+    illumination,
+    src,
+    fallback,
+    rotation,
+    nasa:Boolean(nasa),
+    key:`${nasa?.frame||date.getUTCDate()}-${index}-${illumination}-${Math.round(rotation)}-${precise?'p':'a'}`
+  };
+}
+function iwMoonHtml(moon){
+  if(!moon)return'';
+  const fallback=moon.nasa?` onerror="this.onerror=null;this.src='${moon.fallback}';this.classList.add('is-fallback')"`:'';
+  const label=`${moon.name} · ${moon.illumination}%`;
+  return`<div class="iw-moon" data-moon-key="${moon.key}">
+    <div class="iw-moon-disc"><img class="iw-moon-img${moon.nasa?'':' is-fallback'}" src="${moon.src}" alt="Luna: ${moon.name}, ${moon.illumination}% iluminada" loading="eager" decoding="async" style="--iw-moon-rotation:${moon.rotation.toFixed(1)}deg"${fallback}></div>
+    <button class="iw-moon-phase" type="button" aria-describedby="iwMoonTooltip" aria-label="${label}. ${moon.help}" data-iw-tooltip="${moon.help}"><span>${label}</span><span class="iw-moon-help" aria-hidden="true">?</span></button>
+  </div>`;
+}
+async function iwMoonRefreshSlots(){
+  const slots=document.querySelectorAll('.iw-moon-slot');
+  if(!slots.length)return;
+  const moon=iwEsHorarioLunar()?await iwMoonData(new Date()):null;
+  slots.forEach(slot=>{
+    const current=slot.firstElementChild?.dataset?.moonKey||'';
+    const next=moon?.key||'';
+    if(current===next)return;
+    slot.innerHTML=moon?iwMoonHtml(moon):'';
+  });
+}
+(function iwMoonTooltipSetup(){
+  let tip=null,active=null,hideTimer=null;
+  const getTip=()=>{
+    if(tip)return tip;
+    tip=document.createElement('div');
+    tip.id='iwMoonTooltip';
+    tip.className='iw-tooltip';
+    tip.setAttribute('role','tooltip');
+    document.body.appendChild(tip);
+    return tip;
+  };
+  const hide=target=>{
+    if(target&&active!==target)return;
+    clearTimeout(hideTimer);
+    if(tip)tip.classList.remove('show');
+    active=null;
+  };
+  const show=target=>{
+    if(!target)return;
+    clearTimeout(hideTimer);
+    active=target;
+    const el=getTip();
+    el.textContent=target.dataset.iwTooltip||'';
+    el.style.visibility='hidden';
+    el.classList.add('show');
+    const rect=target.getBoundingClientRect(),width=el.offsetWidth,height=el.offsetHeight;
+    const left=Math.max(10,Math.min(innerWidth-width-10,rect.left+(rect.width-width)/2));
+    let top=rect.top-height-8;
+    if(top<8)top=Math.min(innerHeight-height-8,rect.bottom+8);
+    el.style.left=`${left}px`;
+    el.style.top=`${top}px`;
+    el.style.visibility='visible';
+  };
+  document.addEventListener('pointerover',e=>{
+    if(e.pointerType&&e.pointerType!=='mouse'&&e.pointerType!=='pen')return;
+    show(e.target.closest?.('[data-iw-tooltip]'));
+  });
+  document.addEventListener('pointerout',e=>{
+    const target=e.target.closest?.('[data-iw-tooltip]');
+    if(target&&!target.contains(e.relatedTarget)&&document.activeElement!==target)hide(target);
+  });
+  document.addEventListener('focusin',e=>show(e.target.closest?.('[data-iw-tooltip]')));
+  document.addEventListener('focusout',e=>hide(e.target.closest?.('[data-iw-tooltip]')));
+  document.addEventListener('click',e=>{
+    const target=e.target.closest?.('[data-iw-tooltip]');
+    if(!target){hide();return;}
+    show(target);
+    hideTimer=setTimeout(()=>hide(target),4500);
+  });
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')hide();});
+  window.addEventListener('resize',()=>hide());
+  window.addEventListener('scroll',()=>hide(),true);
+})();
 function getWeatherIcon(temp,code,wind,isDay){
   const t=Number(temp),c=Number(code),w=Number(wind)||0;
   const dn=isDay?'day':'night';
@@ -5305,6 +5594,7 @@ async function iwFetchDolarDirecto(){
 async function fetchInfoWidget(){
   const el=document.getElementById('infoWidgetContent');
   if(!el)return;
+  const moonPromise=iwEsHorarioLunar()?iwMoonData(new Date()):Promise.resolve(null);
   // Cada fuente con su propio try/catch para que una falla no rompa el widget
   let temp=null,sens=null,wxCode=null,wxWind=null,wxWindDir=null,wxWindGust=null,wxIsDay=1,wxForecast=[],wxObservedAt=null,wxSource='';
   // api.open-meteo.com es inalcanzable desde varios ISP argentinos (bug conocido:
@@ -5356,12 +5646,14 @@ async function fetchInfoWidget(){
   const tempDisp=temp!=null?`${temp}°${we?`<span class="iw-weather-emoji ${we.cls}" role="button" tabindex="0" aria-label="Activar clima en pantalla" title="${weDesc} · click para activar"><img src="${mcUrl(we.slug)}" alt="${weDesc}" loading="lazy"></span>`:''}`:' —';
   const forecastDesk=iwPronosticoHtml(wxForecast,4);
   const forecastMob=iwPronosticoHtml(wxForecast,3);
+  const moon=await moonPromise;
   const html=`
     <div class="iw-temp-row">
       <div class="iw-temp-main">
         <div class="iw-temp-val">${tempDisp}</div>
         <div class="iw-temp-meta"><span class="iw-temp-city"${wxMeta?` title="${wxMeta}"`:''}>Buenos Aires</span><span class="iw-temp-label">ST ${sens!=null?sens+'°C':'—'}</span>${windHtml}</div>
       </div>
+      <div class="iw-moon-slot">${iwMoonHtml(moon)}</div>
       ${forecastDesk?`<div class="iw-forecast iw-forecast-desktop">${forecastDesk}</div>`:''}
     </div>
     ${forecastMob?`<div class="iw-forecast iw-forecast-mobile">${forecastMob}</div>`:''}
@@ -5382,6 +5674,7 @@ async function fetchInfoWidget(){
 }
 fetchInfoWidget();
 setInterval(fetchInfoWidget,15*60*1000);
+setInterval(iwMoonRefreshSlots,60*1000);
 
 // ─── BOTÓN REFRESCAR ───
 (function(){
