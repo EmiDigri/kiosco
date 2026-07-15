@@ -3243,7 +3243,7 @@ body.light .price-error{color:#991b1b}
 <script>
 const TURNOS_DOMINGO = [
   {nombre:'Turno 1',desdeH:9,desdeM:0,hastaH:16,hastaM:0,label:'9:00 am → 4:00 pm',color:'#3D5AFE'},
-  {nombre:'Turno 2',desdeH:16,desdeM:1,hastaH:23,hastaM:0,label:'4:01 pm → 10:00 pm',color:'#6B7FFF'},
+  {nombre:'Turno 2',desdeH:16,desdeM:1,hastaH:23,hastaM:0,cierreH:22,cierreM:0,label:'4:01 pm → 10:00 pm',color:'#6B7FFF'},
 ];
 const TURNOS_SEMANA = [
   {nombre:'Vale',desdeH:7,desdeM:0,hastaH:12,hastaM:0,capturaDesdeH:0,capturaDesdeM:0,label:'7:00 am → 12:00 pm',color:'#3D5AFE'},
@@ -5843,7 +5843,7 @@ window.addEventListener('resize',()=>{
 
 /* ─── CELEBRACIÓN FIN DE TURNO ─── */
 
-function launchConfetti(){
+function launchConfetti(durationMs=5300){
   const el=document.createElement('canvas');
   el.style.cssText='position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:9999';
   document.body.appendChild(el);
@@ -5866,11 +5866,12 @@ function launchConfetti(){
     type:Math.random()>.35?'rect':'circle',
     r:3+Math.random()*3,
   }));
+  const activeMs=Math.max(1000,Number(durationMs)||5300);
   const t0=Date.now();let raf;
   (function draw(){
-    const elapsed=(Date.now()-t0)/1000;
+    const elapsed=Date.now()-t0;
     ctx.clearRect(0,0,W,H);
-    const alpha=elapsed>4.5?Math.max(0,1-(elapsed-4.5)/.8):1;
+    const alpha=elapsed>activeMs?Math.max(0,1-(elapsed-activeMs)/800):1;
     if(alpha<=0){cancelAnimationFrame(raf);el.remove();return;}
     pieces.forEach(p=>{
       p.y+=p.vy;p.x+=p.vx+(Math.sin(Date.now()/600+p.r)*.3);p.rot+=p.rotV;
@@ -6323,19 +6324,21 @@ function initEasterEggs(){
 (function initCelebracion(){
   const localKey=()=>{const d=new Date();return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;};
   function check(){
-    const now=new Date(),mins=now.getHours()*60+now.getMinutes();
-    TURNOS.forEach(t=>{
+    const now=new Date();
+    const nowMs=((now.getHours()*60+now.getMinutes())*60+now.getSeconds())*1000+now.getMilliseconds();
+    turnosDelDia(localKey()).forEach(t=>{
       const cH=t.cierreH!==undefined?t.cierreH:t.hastaH;
       const cM=t.cierreM!==undefined?t.cierreM:t.hastaM;
-      const end=cH*60+cM;
+      const endMs=(cH*60+cM)*60*1000;
+      const elapsed=nowMs-endMs;
       const sid='cel_'+t.nombre+'_'+localKey();
-      if(mins>=end&&mins<=end+12&&!sessionStorage.getItem(sid)){
+      if(elapsed>=0&&elapsed<30000&&!sessionStorage.getItem(sid)){
         sessionStorage.setItem(sid,'1');
-        launchConfetti();
+        launchConfetti(30000-elapsed);
       }
     });
   }
-  setInterval(check,15000);
+  setInterval(check,1000);
   check();
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)check();});
 })();
