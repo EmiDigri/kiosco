@@ -2682,7 +2682,7 @@ body.light .price-error{color:#991b1b}
   </div>
 
   <div class="aviso-banner" id="avisoBanner">
-    <span>💡 Para ver tu turno completo, cargalo <strong>10 minutos después</strong> de que termine. Los datos se actualizan solos cada 5 minutos.</span>
+    <span>💡 Para ver tu turno completo, cargalo <strong>2 minutos después</strong> de que termine. Los datos se actualizan solos cada 5 minutos.</span>
     <button class="aviso-cerrar" onclick="document.getElementById('avisoBanner').style.display='none'">✕</button>
   </div>
 
@@ -4644,7 +4644,7 @@ function autoTurnoBuscar(state){return state&&TURNOS.find(t=>t.nombre===state.tu
 function autoTurnoHora(ts){return new Date(ts).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',hour12:false});}
 function autoTurnoMovKey(m){return`${m.hora}|${Number(m.monto)||0}|${m.tipo||''}|${m.nombre||''}`;}
 function autoTurnoMinutosAhora(){const now=new Date();return now.getHours()*60+now.getMinutes();}
-function autoTurnoLimite(t){return visFin(t)+10;}
+function autoTurnoLimite(t){return visFin(t)+2;}
 function autoTurnoDemasiadoTarde(state,t){return state.fecha!==fechaHoy();}
 function autoTurnoAplicarUI(message){
   const state=autoTurnoLeer(),t=autoTurnoBuscar(state);if(!state||!t||autoTurnoDemasiadoTarde(state,t))return false;
@@ -4814,7 +4814,7 @@ renderOtrosTurnos();
   function actualizar(){
     const now=new Date(),mins=now.getHours()*60+now.getMinutes(),reciente=recienteConRelevo(now);
     if(!reciente){banner.hidden=true;delete btn.dataset.turno;delete banner.dataset.loadedTurno;return;}
-    const espera=Math.max(0,visFin(reciente)+10-mins);
+    const espera=Math.max(0,visFin(reciente)+2-mins);
     const cargado=banner.dataset.loadedTurno===reciente.nombre;
     banner.hidden=false;
     title.textContent=`Tu turno terminó, ${reciente.nombre} 👋`;
