@@ -348,6 +348,12 @@ body.egg-champion .logo-flag{filter:drop-shadow(0 0 8px rgba(116,172,223,.9)) dr
 .btn-cargar:hover .btn-icon{transform:rotate(180deg) scale(1.1)}
 .btn-cargar-wrap{position:relative;display:inline-block}
 .btn-particle{position:absolute;width:7px;height:7px;border-radius:50%;pointer-events:none;animation:btn-particle-fly .7s cubic-bezier(.2,.8,.3,1) forwards}
+.pacman-eat-runner{position:absolute;width:30px;height:30px;z-index:30;pointer-events:none;transform:translate(-50%,-50%)}
+.pacman-eat-shape{display:block;width:100%;height:100%;border-radius:50%;background:#ffff2d;filter:drop-shadow(0 0 5px rgba(255,255,45,.42));animation:pacman-app-chomp .22s infinite steps(2) alternate}
+@keyframes pacman-app-chomp{
+  0%{clip-path:polygon(50% 50%,100% 0,100% 0,0 0,0 100%,100% 100%,100% 100%)}
+  100%{clip-path:polygon(50% 50%,100% 65%,100% 0,0 0,0 100%,100% 100%,100% 35%)}
+}
 @keyframes btn-particle-fly{
   0%{transform:translate(0,0) scale(1);opacity:1}
   100%{transform:translate(var(--px),var(--py)) scale(0);opacity:0}
@@ -5114,7 +5120,7 @@ function _btnExito(btn){
 // liviano de los efectos originales para que cada variante nazca desde el boton.
 function _particleLoadStart(btn,name){
   clearInterval(btn._particleLoadTimer);
-  const hot=/Confetti|Party|Fire|Fountain|Fireworks/.test(name);
+  const hot=/Confetti|Party|Fire|Fountain|Fireworks|Pac-Man/.test(name);
   const col=hot?'250,204,21':'107,127,255';let t=0;
   btn._particleLoadTimer=setInterval(()=>{
     t+=.16;
@@ -5127,7 +5133,31 @@ function _particleLoadEnd(btn){
   clearInterval(btn._particleLoadTimer);
   btn.style.transform='';btn.style.boxShadow='';btn.style.filter='';
 }
+function _pacmanEatButton(btn){
+  if(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches){_btnExito(btn);return;}
+  if(typeof btn._pacmanCleanup==='function')btn._pacmanCleanup();
+  const wrap=btn.closest('.btn-cargar-wrap')||btn.parentElement;if(!wrap){_btnExito(btn);return;}
+  const br=btn.getBoundingClientRect(),wr=wrap.getBoundingClientRect();
+  const runner=document.createElement('span');runner.className='pacman-eat-runner';runner.innerHTML='<span class="pacman-eat-shape"></span>';
+  runner.style.left=(br.left-wr.left-15)+'px';runner.style.top=(br.top-wr.top+br.height/2)+'px';wrap.appendChild(runner);
+  btn.disabled=true;
+  const eat=btn.animate([{clipPath:'inset(0 0 0 0)'},{clipPath:'inset(0 0 0 100%)'}],{duration:2400,easing:'linear',fill:'forwards'});
+  const run=runner.animate([{left:(br.left-wr.left-15)+'px',opacity:1},{left:(br.right-wr.left+15)+'px',opacity:1}],{duration:2400,easing:'linear',fill:'forwards'});
+  let finished=false;
+  const cleanup=()=>{if(finished)return;finished=true;eat.cancel();run.cancel();runner.remove();btn.style.opacity='';btn.style.clipPath='';btn._pacmanCleanup=null;};
+  btn._pacmanCleanup=cleanup;
+  run.onfinish=()=>{
+    if(finished)return;
+    btn.style.opacity='0';eat.cancel();runner.remove();finished=true;btn._pacmanCleanup=null;
+    setTimeout(()=>{
+      btn.style.opacity='';btn.style.clipPath='';
+      btn.animate([{opacity:0,transform:'scale(.9)'},{opacity:1,transform:'scale(1)'}],{duration:360,easing:'cubic-bezier(.2,.8,.2,1)'});
+      _btnExito(btn);
+    },160);
+  };
+}
 function _particlePresetEffect(btn,name){
+  if(name==='Pac-Man'){_pacmanEatButton(btn);return;}
   _btnExito(btn);
   if(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)return;
   const {cx,cy}=_rc(btn),c=_cvs(),ctx=c.getContext('2d');
@@ -5437,7 +5467,7 @@ const PARTICLE_PRESET_EFFECTS=[
   'Ambient','Big Circles','Bubbles','Confetti','Confetti Cannon','Confetti Explosions',
   'Confetti Falling','Confetti Parade','Party','Fire','Firefly','Fireworks','Fountain',
   'Hyperspace','Links','Matrix Rain','Meteors','Ribbons','Sea Anemone','Snow','Squares',
-  'Stars Burst','Triangles'
+  'Stars Burst','Triangles','Pac-Man'
 ].map(name=>({
   n:`tsParticles · ${name}`,
   l:{s(btn){_particleLoadStart(btn,name);},e(btn){_particleLoadEnd(btn);}},
