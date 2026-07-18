@@ -4856,7 +4856,7 @@ renderOtrosTurnos();
     const mins=now.getHours()*60+now.getMinutes();
     const activo=TURNOS.find(t=>mins>=t.desdeH*60+t.desdeM&&mins<=visFin(t));
     if(!activo)return null;
-    return TURNOS.find(t=>t.nombre!==activo.nombre&&mins>visFin(t)&&mins<=visFin(t)+30)||null;
+    return TURNOS.find(t=>t.nombre!==activo.nombre&&mins>visFin(t)&&mins<=visFin(t)+10)||null;
   }
   function actualizar(){
     const now=new Date(),mins=now.getHours()*60+now.getMinutes(),reciente=recienteConRelevo(now);
