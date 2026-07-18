@@ -179,20 +179,27 @@ body.light .iw-tooltip{background:#fff;color:#172033;border-color:#c7d2e0;box-sh
 .iw-calendar-toggle{display:inline-flex;align-items:center;justify-self:end;white-space:nowrap;border:1px solid var(--glass-border);border-radius:7px;background:rgba(255,255,255,.045);color:var(--text-mid);padding:6px 9px;font:700 10.5px/1 'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;letter-spacing:0;cursor:pointer;transition:color .16s,border-color .16s,background .16s}
 .iw-calendar-toggle:hover,.iw-calendar-toggle:focus-visible{color:var(--text);border-color:rgba(124,144,255,.42);background:rgba(124,144,255,.1);outline:none}
 .iw-calendar-panel{max-height:0;opacity:0;visibility:hidden;overflow:hidden;transform:translateY(-5px);transition:max-height .28s ease,opacity .2s ease,transform .25s ease,visibility 0s linear .28s}
-.iw-feriado.is-calendar-open .iw-calendar-panel{max-height:430px;opacity:1;visibility:visible;transform:translateY(0);margin-top:12px;transition:max-height .32s ease,opacity .22s ease .04s,transform .28s ease,visibility 0s}
+.iw-feriado.is-calendar-open .iw-calendar-panel{max-height:580px;opacity:1;visibility:visible;transform:translateY(0);margin-top:12px;transition:max-height .32s ease,opacity .22s ease .04s,transform .28s ease,visibility 0s}
 .iw-calendar-inner{min-width:0;border-top:1px solid var(--glass-border);padding-top:11px}
 .iw-calendar-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:9px}
+.iw-calendar-nav{display:grid;grid-template-columns:26px minmax(82px,auto) 26px;align-items:center;gap:5px}
+.iw-calendar-nav-title{text-align:center;min-width:0}
+.iw-calendar-nav-btn{display:grid;place-items:center;width:26px;height:26px;border:1px solid var(--glass-border);border-radius:6px;background:rgba(255,255,255,.04);color:var(--text-mid);font:800 18px/1 'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;cursor:pointer;transition:color .15s,border-color .15s,background .15s}
+.iw-calendar-nav-btn:hover,.iw-calendar-nav-btn:focus-visible{color:var(--text);border-color:rgba(124,144,255,.42);background:rgba(124,144,255,.1);outline:none}
+.iw-calendar-nav-btn:disabled{cursor:default;opacity:.28}
 .iw-calendar-month{font-size:13px;font-weight:800;letter-spacing:.06em;color:var(--text);text-transform:uppercase;line-height:1.1}
 .iw-calendar-year{font-size:9px;font-weight:700;color:var(--text-soft);margin-top:2px}
 .iw-calendar-status{display:inline-flex;align-items:center;gap:5px;font-size:8px;font-weight:800;letter-spacing:.07em;color:var(--text-soft);text-transform:uppercase;white-space:nowrap}
 .iw-calendar-status::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--amber);box-shadow:0 0 0 3px var(--amber-dim)}
+.iw-calendar-status.is-empty::before{background:var(--text-soft);box-shadow:none;opacity:.5}
 .iw-calendar-weekdays,.iw-calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));text-align:center}
 .iw-calendar-weekdays{margin-bottom:3px;color:var(--text-soft);font-size:8.5px;font-weight:800}
 .iw-calendar-grid{gap:2px;font-size:9px;font-weight:700;font-variant-numeric:tabular-nums}
 .iw-calendar-day{position:relative;display:grid;place-items:center;aspect-ratio:1;min-width:0;border-radius:5px;color:var(--text-mid)}
 .iw-calendar-day.is-outside{color:var(--text-soft);opacity:.42}
 .iw-calendar-day.is-long-weekend{background:rgba(79,204,190,.13);color:var(--text)}
-.iw-calendar-day.is-holiday{background:var(--accent);color:#fff;box-shadow:0 5px 14px rgba(61,90,254,.24)}
+.iw-calendar-day.is-holiday{background:var(--accent);color:#fff;box-shadow:0 5px 14px rgba(61,90,254,.24);cursor:help;outline:none}
+.iw-calendar-day.is-holiday:focus-visible{box-shadow:0 0 0 2px var(--text),0 5px 14px rgba(61,90,254,.24)}
 .iw-calendar-day small{position:absolute;bottom:1px;font-size:5.5px;font-weight:800;line-height:1;letter-spacing:0}
 .iw-calendar-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px;padding-top:9px;border-top:1px solid var(--glass-border)}
 .iw-calendar-summary-item{display:flex;align-items:center;gap:7px;min-width:0}
@@ -201,7 +208,9 @@ body.light .iw-tooltip{background:#fff;color:#172033;border-color:#c7d2e0;box-sh
 .iw-calendar-summary-copy{display:flex;flex-direction:column;gap:2px;min-width:0;line-height:1.15}
 .iw-calendar-summary-copy strong{font-size:11px;color:var(--text);font-weight:800;white-space:nowrap}
 .iw-calendar-summary-copy span{font-size:10px;color:var(--text-mid);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.iw-calendar-empty{grid-column:1/-1;color:var(--text-soft);font-size:10px;padding:3px 0}
 body.light .iw-calendar-toggle{background:#f7f9fc}
+body.light .iw-calendar-nav-btn{background:#f7f9fc}
 body.light .iw-calendar-day.is-long-weekend{background:rgba(14,116,107,.12)}
 @container (min-width:620px){
   .iw-feriado.is-calendar-open .iw-feriado-layout{grid-template-columns:minmax(0,1fr) minmax(270px,320px);gap:20px}
@@ -5437,6 +5446,33 @@ tickFecha();setInterval(tickFecha,1000);
 })();
 
 // ─── INFO WIDGET (temp, dólares, feriado) ───
+let iwCalendarData={holidays:[],longWeekends:[],minYear:new Date().getFullYear(),maxYear:new Date().getFullYear()};
+function iwDateKey(d){return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+function iwDateFromKey(key){const[y,m,d]=String(key).split('-').map(Number);return new Date(y,m-1,d);}
+function iwEscapeHtml(value){return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
+function iwBuildLongWeekends(holidays){
+  if(!holidays.length)return[];
+  const holidayKeys=new Set(holidays.map(item=>item.fecha));
+  const years=holidays.map(item=>Number(item.fecha.slice(0,4))).filter(Number.isFinite);
+  const start=new Date(Math.min(...years)-1,11,24);
+  const limit=new Date(Math.max(...years)+1,0,7);
+  const ranges=[];
+  let run=[];
+  const flush=()=>{
+    if(run.length>=3&&run.some(date=>holidayKeys.has(iwDateKey(date)))){
+      const first=run[0],last=run[run.length-1];
+      ranges.push({start:new Date(first),end:new Date(last),startKey:iwDateKey(first),endKey:iwDateKey(last),days:run.length});
+    }
+    run=[];
+  };
+  for(let cursor=new Date(start);cursor<=limit;cursor.setDate(cursor.getDate()+1)){
+    const key=iwDateKey(cursor),dow=cursor.getDay();
+    if(dow===0||dow===6||holidayKeys.has(key))run.push(new Date(cursor));
+    else flush();
+  }
+  flush();
+  return ranges;
+}
 async function fetchFeriadosInfo(){
   const hoyStr=fechaHoy();
   const hoy=new Date();
@@ -5444,45 +5480,37 @@ async function fetchFeriadosInfo(){
   const fmtFecha=d=>d.toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'});
   const fmtCorta=d=>d.toLocaleDateString('es-AR',{weekday:'short',day:'numeric',month:'long'});
   const diasFalta=d=>Math.round((d-todayMid)/864e5);
-  let todosFeriados=[];
-  for(const y of [hoy.getFullYear(),hoy.getFullYear()+1]){
+  const years=[hoy.getFullYear()-1,hoy.getFullYear(),hoy.getFullYear()+1];
+  const yearResults=await Promise.all(years.map(async year=>{
     try{
-      const data=await fetch(`https://api.argentinadatos.com/v1/feriados/${y}`).then(r=>{if(!r.ok)throw new Error(r.status);return r.json();});
-      todosFeriados=todosFeriados.concat(data);
-    }catch(e){}
-  }
+      const data=await fetch(`https://api.argentinadatos.com/v1/feriados/${year}`).then(r=>{if(!r.ok)throw new Error(r.status);return r.json();});
+      return{year,data};
+    }catch(e){return null;}
+  }));
+  const loaded=yearResults.filter(Boolean);
+  let todosFeriados=loaded.flatMap(result=>result.data),loadedYears=loaded.map(result=>result.year);
+  todosFeriados=[...new Map(todosFeriados.map(item=>[item.fecha,item])).values()].sort((a,b)=>a.fecha.localeCompare(b.fecha));
+  const longWeekends=iwBuildLongWeekends(todosFeriados);
   const futuros=todosFeriados.filter(f=>f.fecha>hoyStr);
-  // Próximo feriado
   let feriado=null,feriadoData=null;
   if(futuros.length){
-    const f=futuros[0];
-    const [yr,mo,da]=f.fecha.split('-').map(Number);
-    const d=new Date(yr,mo-1,da);
+    const f=futuros[0],d=iwDateFromKey(f.fecha);
     feriado=`${f.nombre} — ${fmtFecha(d)} (en ${diasFalta(d)} día${diasFalta(d)!==1?'s':''})`;
     feriadoData={fecha:f.fecha,nombre:f.nombre,tipo:f.tipo||''};
   }
-  // Próximo fin de semana largo
   let fsl=null,fslData=null;
-  for(const f of futuros){
-    const [yr,mo,da]=f.fecha.split('-').map(Number);
-    const fecha=new Date(yr,mo-1,da);
-    const dow=fecha.getDay(); // 0=Dom,1=Lun,...,5=Vie,6=Sab
-    let start=null,end=null;
-    if(dow===1){start=new Date(yr,mo-1,da-2);end=fecha;}          // Lunes → Sáb+Dom+Lun
-    else if(dow===5){start=fecha;end=new Date(yr,mo-1,da+2);}     // Viernes → Vie+Sáb+Dom
-    else if(f.tipo==='puente'&&dow===4){start=fecha;end=new Date(yr,mo-1,da+3);}  // Jue puente → Jue+Vie+Sáb+Dom
-    else if(f.tipo==='puente'&&dow===2){start=new Date(yr,mo-1,da-3);end=fecha;}  // Mar puente → Sáb+Dom+Lun+Mar
-    if(start&&end){
-      const diff=diasFalta(start);
-      fsl=`del ${fmtCorta(start)} al ${fmtCorta(end)} (en ${diff} día${diff!==1?'s':''})`;
-      fslData={start,end};
-      break;
-    }
+  const nextLong=longWeekends.find(range=>range.startKey>hoyStr);
+  if(nextLong){
+    const diff=diasFalta(nextLong.start);
+    fsl=`del ${fmtCorta(nextLong.start)} al ${fmtCorta(nextLong.end)} (en ${diff} día${diff!==1?'s':''})`;
+    fslData={start:nextLong.start,end:nextLong.end};
   }
-  return {feriado,fsl,feriadoData,fslData};
+  const fallbackYear=hoy.getFullYear();
+  return{
+    feriado,fsl,feriadoData,fslData,
+    calendarData:{holidays:todosFeriados,longWeekends,minYear:loadedYears.length?Math.min(...loadedYears):fallbackYear,maxYear:loadedYears.length?Math.max(...loadedYears):fallbackYear}
+  };
 }
-function iwDateKey(d){return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
-function iwEscapeHtml(value){return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
 function iwFeriadoNombreCorto(nombre){
   return String(nombre||'Feriado')
     .replace(/^Paso a la Inmortalidad del Gral\. José de /i,'')
@@ -5490,40 +5518,60 @@ function iwFeriadoNombreCorto(nombre){
     .replace(/^Día de la /i,'')
     .replace(/^Día del /i,'');
 }
-function iwCalendarioFeriadoHtml(feriadoData,fslData){
-  if(!feriadoData?.fecha)return'';
-  const [year,month,holidayDay]=feriadoData.fecha.split('-').map(Number);
+function iwCalendarRangeLabel(range){
+  const sameMonth=range.start.getFullYear()===range.end.getFullYear()&&range.start.getMonth()===range.end.getMonth();
+  if(sameMonth)return`${range.start.getDate()}—${range.end.getDate()}`;
+  const fmt=date=>`${date.getDate()} ${date.toLocaleDateString('es-AR',{month:'short'}).replace('.','')}`;
+  return`${fmt(range.start)} — ${fmt(range.end)}`;
+}
+function iwCalendarioMesHtml(year,month,data=iwCalendarData){
   const monthDate=new Date(year,month-1,1);
   const monthName=monthDate.toLocaleDateString('es-AR',{month:'long'});
   const firstOffset=(monthDate.getDay()+6)%7;
   const previousMonthDays=new Date(year,month-1,0).getDate();
-  const holidayKey=feriadoData.fecha;
-  const longStart=fslData?.start?iwDateKey(fslData.start):'';
-  const longEnd=fslData?.end?iwDateKey(fslData.end):'';
+  const daysInMonth=new Date(year,month,0).getDate();
+  const monthStart=`${year}-${String(month).padStart(2,'0')}-01`;
+  const monthEnd=`${year}-${String(month).padStart(2,'0')}-${String(daysInMonth).padStart(2,'0')}`;
+  const holidays=data.holidays.filter(item=>item.fecha>=monthStart&&item.fecha<=monthEnd);
+  const holidayMap=new Map(holidays.map(item=>[item.fecha,item]));
+  const longWeekends=data.longWeekends.filter(range=>range.endKey>=monthStart&&range.startKey<=monthEnd);
   const cells=[];
   for(let index=0;index<42;index++){
     const dayNumber=index-firstOffset+1;
     const date=new Date(year,month-1,dayNumber);
     const key=iwDateKey(date);
     const outside=date.getMonth()!==month-1;
-    const isLong=!!(longStart&&key>=longStart&&key<=longEnd);
-    const isHoliday=key===holidayKey;
-    const display=dayNumber<1?previousMonthDays+dayNumber:dayNumber>new Date(year,month,0).getDate()?dayNumber-new Date(year,month,0).getDate():dayNumber;
-    const classes=['iw-calendar-day',outside?'is-outside':'',isLong?'is-long-weekend':'',isHoliday?'is-holiday':''].filter(Boolean).join(' ');
-    const small=isHoliday?'<small>FERIADO</small>':isLong&&key===longStart?'<small>INICIO</small>':'';
-    cells.push(`<span class="${classes}"${isHoliday?` aria-label="${iwEscapeHtml(feriadoData.nombre)}, ${display} de ${monthName}"`:''}>${display}${small}</span>`);
+    const holiday=outside?null:holidayMap.get(key);
+    const longWeekend=outside?null:longWeekends.find(range=>key>=range.startKey&&key<=range.endKey);
+    const display=dayNumber<1?previousMonthDays+dayNumber:dayNumber>daysInMonth?dayNumber-daysInMonth:dayNumber;
+    const classes=['iw-calendar-day',outside?'is-outside':'',longWeekend?'is-long-weekend':'',holiday?'is-holiday':''].filter(Boolean).join(' ');
+    const small=holiday?'<small>FERIADO</small>':longWeekend&&key===longWeekend.startKey?'<small>INICIO</small>':'';
+    const tooltip=holiday?` tabindex="0" aria-label="${iwEscapeHtml(holiday.nombre)}, ${display} de ${monthName}" data-iw-tooltip="${iwEscapeHtml(holiday.nombre)}"`:'';
+    cells.push(`<span class="${classes}"${tooltip}>${display}${small}</span>`);
   }
-  const longLabel=fslData?`${fslData.start.getDate()}—${fslData.end.getDate()}`:'';
-  const shortName=iwFeriadoNombreCorto(feriadoData.nombre);
-  return `<div class="iw-calendar-panel" aria-hidden="true"><div class="iw-calendar-inner">
-    <div class="iw-calendar-head"><div><div class="iw-calendar-month">${iwEscapeHtml(monthName)} </div><div class="iw-calendar-year">${year}</div></div><div class="iw-calendar-status">Feriado nacional</div></div>
-    <div class="iw-calendar-weekdays" aria-hidden="true"><span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
-    <div class="iw-calendar-grid" role="img" aria-label="Calendario de ${iwEscapeHtml(monthName)} de ${year}; feriado el ${holidayDay}${longLabel?` y fin de semana largo del ${longLabel.replace('—',' al ')}`:''}">${cells.join('')}</div>
-    <div class="iw-calendar-summary">
-      ${longLabel?`<div class="iw-calendar-summary-item"><span class="iw-calendar-summary-line"></span><span class="iw-calendar-summary-copy"><strong>${longLabel}</strong><span>Finde largo</span></span></div>`:''}
-      <div class="iw-calendar-summary-item is-holiday"><span class="iw-calendar-summary-line"></span><span class="iw-calendar-summary-copy"><strong>${holidayDay}</strong><span title="${iwEscapeHtml(feriadoData.nombre)}">${iwEscapeHtml(shortName)}</span></span></div>
+  const summary=[
+    ...longWeekends.map(range=>`<div class="iw-calendar-summary-item"><span class="iw-calendar-summary-line"></span><span class="iw-calendar-summary-copy"><strong>${iwCalendarRangeLabel(range)}</strong><span>Finde largo</span></span></div>`),
+    ...holidays.map(item=>`<div class="iw-calendar-summary-item is-holiday"><span class="iw-calendar-summary-line"></span><span class="iw-calendar-summary-copy"><strong>${Number(item.fecha.slice(-2))}</strong><span title="${iwEscapeHtml(item.nombre)}">${iwEscapeHtml(iwFeriadoNombreCorto(item.nombre))}</span></span></div>`)
+  ];
+  const eventText=holidays.length?`${holidays.length} feriado${holidays.length===1?'':'s'}`:'Sin feriados';
+  const atMin=year===data.minYear&&month===1,atMax=year===data.maxYear&&month===12;
+  return`
+    <div class="iw-calendar-head">
+      <div class="iw-calendar-nav">
+        <button class="iw-calendar-nav-btn" type="button" data-calendar-step="-1" aria-label="Mes anterior" title="Mes anterior"${atMin?' disabled':''}>‹</button>
+        <div class="iw-calendar-nav-title"><div class="iw-calendar-month">${iwEscapeHtml(monthName)}</div><div class="iw-calendar-year">${year}</div></div>
+        <button class="iw-calendar-nav-btn" type="button" data-calendar-step="1" aria-label="Mes siguiente" title="Mes siguiente"${atMax?' disabled':''}>›</button>
+      </div>
+      <div class="iw-calendar-status${holidays.length?'':' is-empty'}">${eventText}</div>
     </div>
-  </div></div>`;
+    <div class="iw-calendar-weekdays" aria-hidden="true"><span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
+    <div class="iw-calendar-grid" role="grid" aria-label="Calendario de ${iwEscapeHtml(monthName)} de ${year}; ${eventText}">${cells.join('')}</div>
+    <div class="iw-calendar-summary">${summary.length?summary.join(''):'<div class="iw-calendar-empty">Sin feriados ni fines de semana largos este mes.</div>'}</div>`;
+}
+function iwCalendarioFeriadoHtml(feriadoData,data=iwCalendarData){
+  if(!feriadoData?.fecha)return'';
+  const [year,month]=feriadoData.fecha.split('-').map(Number);
+  return`<div class="iw-calendar-panel" aria-hidden="true" data-year="${year}" data-month="${month}"><div class="iw-calendar-inner">${iwCalendarioMesHtml(year,month,data)}</div></div>`;
 }
 const MC_BASE='https://cdn.jsdelivr.net/npm/@meteocons/svg/fill/';
 function mcUrl(slug){return MC_BASE+slug+'.svg';}
@@ -5844,7 +5892,8 @@ async function fetchInfoWidget(){
     }
   }
 
-  const {feriado,fsl,feriadoData,fslData}=await fetchFeriadosInfo().catch(()=>({feriado:null,fsl:null,feriadoData:null,fslData:null}));
+  const {feriado,fsl,feriadoData,fslData,calendarData}=await fetchFeriadosInfo().catch(()=>({feriado:null,fsl:null,feriadoData:null,fslData:null,calendarData:iwCalendarData}));
+  if(calendarData)iwCalendarData=calendarData;
   const fmt=v=>v!=null?'$'+Math.round(Number(v)).toLocaleString('es-AR'):'—';
   const varTag=p=>p==null?'':Math.abs(p)<.05?` <span class="iw-dolar-var flat">0.0%</span>`:` <span class="iw-dolar-var ${p>0?'up':'down'}">${p>0?'▲':'▼'}${Math.abs(p).toFixed(1)}%</span>`;
   const dolarUpdated=[ofVal,mepVal,blVal].some(v=>v!=null)?iwFmtDolarUpdated(dolarCheckedAt,dolarEstado,dolarFecha):'Dólar sin datos por ahora';
@@ -5876,7 +5925,7 @@ async function fetchInfoWidget(){
     ${feriado||fsl?`<div class="iw-feriado"><div class="iw-feriado-layout"><div class="iw-feriado-copy"><div class="iw-feriados-grid">
       ${feriado?`<div><div class="iw-feriado-lbl">Próximo feriado</div><div class="iw-feriado-date-row"><span>${feriado}</span>${feriadoData?`<button class="iw-calendar-toggle" type="button" aria-expanded="false"><span class="iw-calendar-toggle-label">Ver en calendario</span></button>`:''}</div></div>`:''}
       ${fsl?`<div><div class="iw-feriado-lbl">Próximo finde largo</div>${fsl}</div>`:''}
-    </div></div>${iwCalendarioFeriadoHtml(feriadoData,fslData)}</div></div>`:''}
+    </div></div>${iwCalendarioFeriadoHtml(feriadoData,iwCalendarData)}</div></div>`:''}
   `;
   const elM=document.getElementById('infoWidgetContentMobile');
   el.innerHTML=html;
@@ -5886,6 +5935,19 @@ fetchInfoWidget();
 setInterval(fetchInfoWidget,15*60*1000);
 setInterval(iwMoonRefreshSlots,60*1000);
 document.addEventListener('click',event=>{
+  const navButton=event.target.closest('.iw-calendar-nav-btn');
+  if(navButton){
+    if(navButton.disabled)return;
+    const panel=navButton.closest('.iw-calendar-panel');
+    const inner=panel?.querySelector('.iw-calendar-inner');
+    if(!panel||!inner)return;
+    const current=new Date(Number(panel.dataset.year),Number(panel.dataset.month)-1,1);
+    current.setMonth(current.getMonth()+Number(navButton.dataset.calendarStep||0));
+    const year=current.getFullYear(),month=current.getMonth()+1;
+    panel.dataset.year=String(year);panel.dataset.month=String(month);
+    inner.innerHTML=iwCalendarioMesHtml(year,month,iwCalendarData);
+    return;
+  }
   const button=event.target.closest('.iw-calendar-toggle');
   if(!button)return;
   const section=button.closest('.iw-feriado');
