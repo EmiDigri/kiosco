@@ -15,6 +15,8 @@ const DULCE_SUR_URL = 'https://oepqhdjuujfdlpjjktbs.supabase.co';
 const RAPPI_URL = 'https://www.rappi.com.ar';
 const INFOKIOSCOS_RANKING_URL = 'https://infokioscos.com.ar/ranking-alfajores';
 const INFOKIOSCOS_API_URL = 'https://infokioscos.com.ar/wp-json/wp/v2/posts';
+const ALFAJOR_COM_URL = 'https://alfajor.com.ar';
+const ALFAJOR_COM_API_URL = 'https://rankingalfajores-api.onrender.com/api';
 const ML_RADAR_HIGHLIGHT_CATEGORIES = [
   { id: 'MLA114011', label: 'Golosinas' },
   { id: 'MLA376491', label: 'Chocolates' },
@@ -1198,13 +1200,60 @@ async function radarRanking() {
   return fallback.map((name, index) => ({ rank: index + 1, name, image: null }));
 }
 
+async function alfajorComRanking() {
+  try {
+    const raw = await supplierFetch(
+      `${ALFAJOR_COM_API_URL}/alfajores?page=1&pageSize=10&sort=global-rank`,
+      {
+        headers: {
+          ...BROWSER_HEADERS,
+          accept: 'application/json',
+          origin: ALFAJOR_COM_URL,
+          referer: `${ALFAJOR_COM_URL}/ranking`,
+        },
+      },
+      20000,
+    );
+    const items = JSON.parse(raw);
+    if (!Array.isArray(items)) return [];
+    return items.map((item, index) => {
+      const rank = Number(item.ranking) || index + 1;
+      const score = Number(item.avgScore);
+      const reviews = Number(item.reviewCount) || 0;
+      const name = String(item.name || '').trim();
+      if (!name || !Number.isFinite(score)) return null;
+      const detailUrl = `${ALFAJOR_COM_URL}/alfajores/${encodeURIComponent(String(item.id))}`;
+      return {
+        id: `alfajor-ranking-${item.id}`,
+        type: 'ranking',
+        rank,
+        name,
+        query: name,
+        signal: `#${rank} · ${score.toFixed(2).replace('.', ',')}/10`,
+        note: `Ranking global de la comunidad · ${reviews} ${reviews === 1 ? 'reseña' : 'reseñas'}`,
+        scope: 'Argentina · comunidad de Alfajor.com.ar',
+        date: null,
+        sourceLabel: `Alfajor.com.ar · ${reviews} ${reviews === 1 ? 'reseña' : 'reseñas'}`,
+        sourceUrl: detailUrl,
+        publicationUrl: detailUrl,
+        publicationLabel: 'Ver ficha en Alfajor.com.ar',
+        image: /^https:\/\//.test(item.imageUrl || '') ? item.imageUrl : null,
+        confidence: null,
+      };
+    }).filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
 async function handleRadar() {
   if (radarCache && Date.now() - radarCache.savedAt < RADAR_CACHE_TTL) return radarCache.value;
-  const [annualRanking, mlSignals, news, open25Featured] = await Promise.all([
+  const [annualRanking, mlSignals, news, open25Featured, alfajorRanking] = await Promise.all([
     radarRanking(),
     mlRadarSignals(),
     infokioscosNews(),
     open25Destacados(30).catch(() => []),
+    alfajorComRanking(),
   ]);
   const candidates = mlSignals.candidates.filter(isKioskRadarCandidate);
   applyNewsSignals(candidates, news);
@@ -1256,6 +1305,7 @@ async function handleRadar() {
     : annualRanking.map(item => ({
       id: `ranking-${item.rank}`,
       type: 'ranking',
+      rank: item.rank,
       name: item.name,
       query: `alfajor ${item.name}`,
       signal: `#${item.rank} en ranking anual`,
@@ -1280,6 +1330,7 @@ async function handleRadar() {
     scopeRanking: open25Featured.length >= 3
       ? 'Los más elegidos en kioscos · actualizado cada 6 h'
       : (mlSignals.bestSellers.length >= 3 ? 'Argentina · ventas Mercado Libre' : 'Argentina · ranking anual 2026 (+900 kiosqueros)'),
+    scopeAlfajorRanking: 'Alfajor.com.ar · ranking global',
     generatedAt: new Date().toISOString(),
     dynamic: dynamicReady,
     weights: RADAR_WEIGHTS,
@@ -1289,9 +1340,11 @@ async function handleRadar() {
       rappi: enriched.some(item => item.rappiChecked),
       infokioscos: sourceState.news,
       open25: open25Featured.length > 0,
+      alfajorCom: alfajorRanking.length > 0,
       social: false,
     },
     ranking,
+    alfajorRanking,
     now,
   };
   radarCache = { savedAt: Date.now(), value };

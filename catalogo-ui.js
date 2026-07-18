@@ -14,6 +14,7 @@
   const useLocationButton = document.getElementById('priceUseLocation');
   const radarList = document.getElementById('priceRadarList');
   const radarScope = document.getElementById('priceRadarScope');
+  const radarModes = document.getElementById('priceRadarModes');
   const radarPages = document.getElementById('priceRadarPages');
   const RADAR_PAGE_SIZE = 5;
   const panel = overlay?.querySelector('.price-panel');
@@ -44,8 +45,8 @@
     suggestions: [],
     suggestionRequest: 0,
     suggestionActive: -1,
-    radar: { now: [], ranking: [] },
-    radarMeta: { scopeNow: '', scopeRanking: '', dynamic: false, generatedAt: null },
+    radar: { now: [], ranking: [], alfajores: [] },
+    radarMeta: { scopeNow: '', scopeRanking: '', scopeAlfajores: '', dynamic: false, generatedAt: null },
     radarMode: 'ranking',
     radarPage: 0,
     radarLoadedAt: 0,
@@ -276,11 +277,22 @@
     if (!radarList) return;
     const items = Array.isArray(state.radar[state.radarMode]) ? state.radar[state.radarMode] : [];
     if (radarScope) {
-      radarScope.textContent = state.radarMeta.scopeRanking || 'Argentina · más vendidos';
+      radarScope.textContent = state.radarMode === 'alfajores'
+        ? (state.radarMeta.scopeAlfajores || 'Alfajor.com.ar · ranking global')
+        : (state.radarMeta.scopeRanking || 'Argentina · más vendidos');
+    }
+    if (radarModes) {
+      radarModes.querySelectorAll('[data-radar-mode]').forEach(button => {
+        const active = button.dataset.radarMode === state.radarMode;
+        button.classList.toggle('active', active);
+        button.setAttribute('aria-selected', String(active));
+      });
     }
     if (!items.length) {
       if (radarPages) radarPages.hidden = true;
-      radarList.innerHTML = '<div class="price-radar-error">El radar no devolvió señales vigentes.</div>';
+      radarList.innerHTML = state.radarMode === 'alfajores'
+        ? '<div class="price-radar-error">El ranking de alfajores no está disponible en este momento.</div>'
+        : '<div class="price-radar-error">El radar no devolvió señales vigentes.</div>';
       return;
     }
     const pageCount = Math.ceil(items.length / RADAR_PAGE_SIZE);
@@ -328,10 +340,12 @@
       state.radar = {
         now: Array.isArray(data.now) ? data.now : [],
         ranking: Array.isArray(data.ranking) ? data.ranking : [],
+        alfajores: Array.isArray(data.alfajorRanking) ? data.alfajorRanking : [],
       };
       state.radarMeta = {
         scopeNow: data.scopeNow || data.scope || '',
         scopeRanking: data.scopeRanking || '',
+        scopeAlfajores: data.scopeAlfajorRanking || '',
         dynamic: data.dynamic === true,
         generatedAt: data.generatedAt || data.checkedAt || null,
       };
@@ -1120,6 +1134,13 @@
     const button = event.target.closest('[data-radar-page]');
     if (!button) return;
     state.radarPage = Number(button.dataset.radarPage) || 0;
+    renderRadar();
+  });
+  radarModes?.addEventListener('click', event => {
+    const button = event.target.closest('[data-radar-mode]');
+    if (!button || !['ranking', 'alfajores'].includes(button.dataset.radarMode)) return;
+    state.radarMode = button.dataset.radarMode;
+    state.radarPage = 0;
     renderRadar();
   });
   searchForm.addEventListener('submit', event => {
