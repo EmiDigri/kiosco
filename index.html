@@ -5094,12 +5094,23 @@ function openExternalLink(url){if(url)window.open(url,'_blank','noopener,norefer
 // ─── SISTEMA DE EFECTOS DEL BOTÓN ───
 function _gcd(a,b){while(b){const t=b;b=a%b;a=t;}return Math.abs(a);}
 function _efectoStep(total){let step=Math.min(7,total-1);while(step>1&&_gcd(step,total)!==1)step--;return step||1;}
+const EFECTO_DIA_KEY='kiosco_efecto_del_dia_v1';
 function efectoDelDia(){
   const total=(typeof EFECTOS!=='undefined'&&Array.isArray(EFECTOS)&&EFECTOS.length)||15;
   if(total<=1)return 0;
   const d=new Date();
+  const fecha=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  try{
+    const guardado=JSON.parse(localStorage.getItem(EFECTO_DIA_KEY)||'null');
+    if(guardado?.fecha===fecha&&guardado.nombre){
+      const indiceGuardado=EFECTOS.findIndex(efecto=>efecto.n===guardado.nombre);
+      if(indiceGuardado>=0)return indiceGuardado;
+    }
+  }catch(e){}
   const dia=Math.floor(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())/86400000);
-  return (dia*_efectoStep(total))%total;
+  const indice=(dia*_efectoStep(total))%total;
+  try{localStorage.setItem(EFECTO_DIA_KEY,JSON.stringify({fecha,nombre:EFECTOS[indice]?.n||'',indice}));}catch(e){}
+  return indice;
 }
 function _cvs(){const c=document.createElement('canvas');c.width=innerWidth;c.height=innerHeight;c.style.cssText='position:fixed;inset:0;z-index:99999;pointer-events:none';document.body.appendChild(c);return c;}
 function _rc(b){const r=b.getBoundingClientRect();return{cx:r.left+r.width/2,cy:r.top+r.height/2,w:r.width,h:r.height,r};}
