@@ -229,7 +229,7 @@ body.light .iw-calendar-day.is-long-weekend{background:rgba(14,116,107,.12)}
 @media(max-width:430px){.iw-weather-emoji img{width:34px;height:34px}}
 
 /* Escena de clima 3D a pantalla completa (Three.js) */
-.iw-wscene{position:fixed;inset:0;z-index:20000;opacity:0;visibility:hidden;transition:opacity .5s ease;cursor:pointer;overflow:hidden}
+.iw-wscene{position:fixed;inset:0;z-index:20000;opacity:0;visibility:hidden;transition:opacity .5s ease!important;cursor:pointer;overflow:hidden}
 .iw-wscene.show{opacity:1;visibility:visible}
 .iw-wscene canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
 .iw-wscene-head{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;padding:22px 22px 0;z-index:2;pointer-events:none}
@@ -239,9 +239,9 @@ body.light .iw-calendar-day.is-long-weekend{background:rgba(14,116,107,.12)}
 .iw-wscene-close:hover{background:rgba(0,0,0,.48)}
 .iw-wscene-loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.75);font:750 12.5px/1 'Inter',sans-serif;letter-spacing:.04em;z-index:1}
 .iw-wscene-flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:1}
-.iw-wscene-flash.on{animation:iw-wscene-flash .5s ease-out}
+.iw-wscene-flash.on{animation:iw-wscene-flash .5s ease-out!important}
 @keyframes iw-wscene-flash{0%{opacity:0}12%{opacity:.75}30%{opacity:.12}45%{opacity:.5}100%{opacity:0}}
-@media(prefers-reduced-motion:reduce){.iw-wscene{transition:none}.iw-wscene-flash.on{animation:none}}
+@media(prefers-reduced-motion:reduce){.iw-wscene{transition:none!important}.iw-wscene-flash.on{animation:none!important}}
 #infoWidgetCard,#infoWidgetMobile{position:relative;overflow:hidden}
 .egg-layer{position:fixed;inset:0;z-index:10000;pointer-events:none;overflow:hidden}
 .egg-rain-item{position:fixed;z-index:10001;pointer-events:none;font-weight:850;font-size:15px;line-height:1;animation:egg-fall var(--egg-dur,1.7s) linear forwards;filter:drop-shadow(0 2px 5px rgba(0,0,0,.28))}
@@ -2666,12 +2666,12 @@ body.light .price-error{color:#991b1b}
 <body>
 <!-- Fondo liviano: sin blobs, grano ni emojis flotantes -->
 <div id="eggBallFireBox" style="position:fixed;z-index:4000;pointer-events:none;display:none"></div>
-<div id="iwWeatherScene" class="iw-wscene" hidden>
+<div id="iwWeatherScene" class="iw-wscene egg-wscene" hidden>
   <div class="iw-wscene-head">
     <div class="iw-wscene-label" id="iwWsceneLabel"></div>
     <button type="button" class="iw-wscene-close" id="iwWsceneClose" aria-label="Cerrar">✕</button>
   </div>
-  <div class="iw-wscene-flash" id="iwWsceneFlash"></div>
+  <div class="iw-wscene-flash egg-wscene-flash" id="iwWsceneFlash"></div>
   <div class="iw-wscene-loading" id="iwWsceneLoading">Cargando el clima…</div>
 </div>
 
@@ -6691,7 +6691,7 @@ async function iwOpenWeatherScene(cls,desc,isDay){
     camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();
   }
   addEventListener('resize',onResize);
-  const autoCloseTimer=setTimeout(()=>{if(gen===iwWsceneGen)iwCloseWeatherScene();},18000);
+  const autoCloseTimer=setTimeout(()=>{if(gen===iwWsceneGen)iwCloseWeatherScene();},5000);
 
   iwWsceneState={teardown(){
     cancelAnimationFrame(raf);
