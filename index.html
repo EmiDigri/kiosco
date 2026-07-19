@@ -229,8 +229,8 @@ body.light .iw-calendar-day.is-long-weekend{background:rgba(14,116,107,.12)}
 @media(max-width:430px){.iw-weather-emoji img{width:34px;height:34px}}
 
 /* Escena de clima 3D a pantalla completa (Three.js) */
-.iw-wscene{position:fixed;inset:0;z-index:20000;opacity:0;visibility:hidden;transition:opacity .5s ease!important;cursor:pointer;overflow:hidden}
-.iw-wscene.show{opacity:1;visibility:visible}
+.iw-wscene{position:fixed;inset:0;z-index:20000;opacity:0;transition:opacity 3.5s ease!important;cursor:pointer;overflow:hidden}
+.iw-wscene.show{opacity:1;transition:opacity .45s ease!important}
 .iw-wscene canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
 .iw-wscene-head{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;padding:22px 22px 0;z-index:2;pointer-events:none}
 .iw-wscene-label{color:#fff;font:800 15px/1.2 'Inter',sans-serif;text-shadow:0 2px 14px rgba(0,0,0,.45)}
@@ -243,8 +243,8 @@ body.light .iw-calendar-day.is-long-weekend{background:rgba(14,116,107,.12)}
 @keyframes iw-wscene-flash{0%{opacity:0}12%{opacity:.75}30%{opacity:.12}45%{opacity:.5}100%{opacity:0}}
 @media(prefers-reduced-motion:reduce){.iw-wscene{transition:none!important}.iw-wscene-flash.on{animation:none!important}}
 /* Lluvia de billetes 3D (Three.js) — easter egg del dólar */
-.iw-dollar-scene{position:fixed;inset:0;z-index:9500;opacity:0;visibility:hidden;transition:opacity .5s ease!important;pointer-events:none;overflow:hidden}
-.iw-dollar-scene.show{opacity:1;visibility:visible}
+.iw-dollar-scene{position:fixed;inset:0;z-index:9500;opacity:0;transition:opacity 3.5s ease!important;pointer-events:none;overflow:hidden}
+.iw-dollar-scene.show{opacity:1;transition:opacity .45s ease!important}
 .iw-dollar-scene canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
 @media(prefers-reduced-motion:reduce){.iw-dollar-scene{transition:none!important}}
 #infoWidgetCard,#infoWidgetMobile{position:relative;overflow:hidden}
@@ -6717,13 +6717,18 @@ async function iwOpenWeatherScene(cls,desc,isDay){
   }};
 }
 function iwCloseWeatherScene(){
-  iwWsceneGen++;
   const box=document.getElementById('iwWeatherScene');
-  if(iwWsceneState){iwWsceneState.teardown();iwWsceneState=null;}
   document.body.style.overflow='';
-  if(!box||box.hidden)return;
+  if(!box||box.hidden){if(iwWsceneState){iwWsceneState.teardown();iwWsceneState=null;}return;}
+  // Arranca el fade-out (3.5s) pero deja la escena animando: se desvanece
+  // suave. El teardown y el hidden recien al terminar el fade.
+  const myGen=++iwWsceneGen;
   box.classList.remove('show');
-  setTimeout(()=>{box.hidden=true;},500);
+  setTimeout(()=>{
+    if(myGen!==iwWsceneGen)return; // otro open/close tomo el control
+    if(iwWsceneState){iwWsceneState.teardown();iwWsceneState=null;}
+    box.hidden=true;
+  },3500);
 }
 
 // ── Lluvia de billetes 3D (Three.js) — easter egg del dólar ──
@@ -6825,12 +6830,17 @@ async function eggDollar3D(){
   }};
 }
 function iwCloseDollarScene(){
-  iwDollarGen++;
   const box=document.getElementById('iwDollarScene');
-  if(iwDollarState){iwDollarState.teardown();iwDollarState=null;}
-  if(!box||box.hidden)return;
+  if(!box||box.hidden){if(iwDollarState){iwDollarState.teardown();iwDollarState=null;}return;}
+  // Fade-out largo (3.5s) con los billetes todavia cayendo: transicion
+  // suave a la pantalla normal. Teardown al terminar el fade.
+  const myGen=++iwDollarGen;
   box.classList.remove('show');
-  setTimeout(()=>{box.hidden=true;},500);
+  setTimeout(()=>{
+    if(myGen!==iwDollarGen)return;
+    if(iwDollarState){iwDollarState.teardown();iwDollarState=null;}
+    box.hidden=true;
+  },3500);
 }
 function eggPerfectClose(){
   const key='egg_perfect_close_'+eggTodayKey();
