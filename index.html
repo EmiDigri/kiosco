@@ -5865,7 +5865,7 @@ function iwMoonHtml(moon){
   if(!moon)return'';
   const fallback=moon.nasa?` onerror="this.onerror=null;this.src='${moon.fallback}';this.classList.add('is-fallback')"`:'';
   const label=`${moon.name} · ${moon.illumination}%`;
-  return`<div class="iw-moon" data-moon-key="${moon.key}">
+  return`<div class="iw-moon" data-moon-key="${moon.key}" data-moon-phase="${moon.phase}" data-moon-illum="${moon.illumination}" data-moon-rot="${moon.rotation}" data-moon-name="${moon.name}">
     <div class="iw-moon-disc" role="button" tabindex="0" aria-label="Ver la Luna en 3D" title="Ver la Luna en 3D"><img class="iw-moon-img${moon.nasa?'':' is-fallback'}" src="${moon.src}" alt="Luna: ${moon.name}, ${moon.illumination}% iluminada" loading="eager" decoding="async" style="--iw-moon-rotation:${moon.rotation.toFixed(1)}deg"${fallback}></div>
     <button class="iw-moon-phase" type="button" aria-describedby="iwMoonTooltip" aria-label="${label}. ${moon.help}" data-iw-tooltip="${moon.help}"><span>${label}</span><span class="iw-moon-help" aria-hidden="true">?</span></button>
   </div>`;
@@ -6119,6 +6119,7 @@ async function fetchInfoWidget(){
   const forecastDesk=iwPronosticoHtml(wxForecast,4);
   const forecastMob=iwPronosticoHtml(wxForecast,3);
   const moon=await moonPromise;
+  if(moon)iwCurrentMoon=moon;
   const html=`
     <div class="iw-temp-row">
       <div class="iw-temp-main">
@@ -6902,7 +6903,23 @@ function iwMoonSurfaceTexture(THREE){
   const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;tex.needsUpdate=true;
   iwMoonTexCache=tex;return tex;
 }
+// Los datos de la Luna viajan en el propio elemento: el widget principal y el
+// refresco periodico la dibujan por caminos distintos, asi el click funciona
+// venga de donde venga.
+function iwMoonDesdeEl(el){
+  const wrap=el?.closest?.('.iw-moon');
+  const d=wrap?.dataset;
+  if(!d||d.moonPhase===undefined)return iwCurrentMoon;
+  return{
+    phase:Number(d.moonPhase)||0,
+    illumination:Number(d.moonIllum)||0,
+    rotation:Number(d.moonRot)||0,
+    name:d.moonName||'Luna',
+    help:wrap.querySelector('.iw-moon-phase')?.dataset?.iwTooltip||iwCurrentMoon?.help||''
+  };
+}
 async function iwOpenMoonScene(moon){
+  if(!moon){try{moon=await iwMoonData(new Date());}catch(e){}} // ultimo recurso
   if(!moon)return;
   if(matchMedia('(prefers-reduced-motion: reduce)').matches){if(typeof showToast==='function')showToast(`${moon.name} · ${moon.illumination}% iluminada`);return;}
   const box=document.getElementById('iwMoonScene');
@@ -7057,13 +7074,14 @@ function initEasterEggs(){
   document.addEventListener('click',e=>{
     const icon=e.target.closest('.iw-weather-emoji');
     if(icon){iwOpenWeatherScene(icon.className.split(' ').find(c=>c.startsWith('iw-emoji-')),icon.dataset.iwDesc,icon.dataset.iwDay==='1');return;}
-    if(e.target.closest('.iw-moon-disc')){iwOpenMoonScene(iwCurrentMoon);return;}
+    const discClick=e.target.closest('.iw-moon-disc');
+    if(discClick){iwOpenMoonScene(iwMoonDesdeEl(discClick));return;}
   });
   document.addEventListener('keydown',e=>{
     const icon=e.target.closest?.('.iw-weather-emoji');
     if(icon&&(e.key==='Enter'||e.key===' ')){e.preventDefault();iwOpenWeatherScene(icon.className.split(' ').find(c=>c.startsWith('iw-emoji-')),icon.dataset.iwDesc,icon.dataset.iwDay==='1');return;}
     const disc=e.target.closest?.('.iw-moon-disc');
-    if(disc&&(e.key==='Enter'||e.key===' ')){e.preventDefault();iwOpenMoonScene(iwCurrentMoon);return;}
+    if(disc&&(e.key==='Enter'||e.key===' ')){e.preventDefault();iwOpenMoonScene(iwMoonDesdeEl(disc));return;}
     if(e.key==='Escape'){iwCloseWeatherScene();iwCloseMoonScene();}
   });
   document.getElementById('iwWsceneClose')?.addEventListener('click',e=>{e.stopPropagation();iwCloseWeatherScene();});
