@@ -84,11 +84,8 @@ html.overlay-scroll-lock{overflow-y:hidden!important}
 @keyframes logo-lollipop-spark{0%,60%,100%{opacity:0;transform:scale(.3) rotate(0)}69%{opacity:1;transform:scale(1.35) rotate(45deg)}79%{opacity:.35;transform:scale(.65) rotate(90deg)}88%{opacity:0;transform:scale(.25) rotate(135deg)}}
 @keyframes logo-bottle-fizz{0%,58%,100%{transform:scale(1.7) translateY(0) rotate(-2deg)}67%{transform:scale(1.84,1.58) translateY(1px) rotate(3deg)}75%{transform:scale(1.62,1.82) translateY(-2px) rotate(-4deg)}84%{transform:scale(1.72) translateY(0) rotate(2deg)}92%{transform:scale(1.7) translateY(0) rotate(-2deg)}}
 @keyframes logo-bottle-bubble{0%,58%,100%{opacity:0;transform:translateY(0) scale(.45)}67%{opacity:.9;transform:translateY(-3px) scale(1)}84%{opacity:.35;transform:translateY(-12px) scale(.75)}92%{opacity:0;transform:translateY(-16px) scale(.4)}}
+@keyframes logo-kinder-wobble{0%,60%,100%{transform:scale(1.12) translateY(0) rotate(-3deg)}69%{transform:scale(1.18,.99) translateY(-2px) rotate(4deg)}77%{transform:scale(1.07,1.14) translateY(0) rotate(-4deg)}86%{transform:scale(1.14,1.04) translateY(-1px) rotate(2deg)}93%{transform:scale(1.12) translateY(0) rotate(-3deg)}}
 @keyframes logo-bonobon-twist{0%,60%,100%{transform:scale(1.08) rotate(-2deg)}69%{transform:scale(1.15,.96) rotate(4deg)}77%{transform:scale(1.02,1.1) rotate(-5deg)}86%{transform:scale(1.1,1.02) rotate(2deg)}93%{transform:scale(1.08) rotate(-2deg)}}
-.logo-lottie-slot{position:relative;display:block;overflow:visible;flex:0 0 auto;pointer-events:none}
-.logo-lottie-slot::before{content:var(--logo-fallback);position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:inherit;line-height:1}
-.logo-lottie-slot.lottie-ready::before{display:none}
-.logo-lottie-slot svg{display:block;width:100%!important;height:100%!important;overflow:visible!important}
 .logo-lollipop{position:relative;display:block;width:48px;height:52px;margin:-10px 2px -9px -5px;flex:0 0 48px;overflow:visible;pointer-events:none;filter:drop-shadow(0 3px 5px rgba(0,0,0,.3))}
 .logo-lollipop-img{display:block;width:100%;height:100%;object-fit:contain;transform-origin:50% 56%;animation:logo-lollipop-groove 4.8s cubic-bezier(.22,1,.36,1) infinite!important}
 .logo-lollipop-spark{position:absolute;left:9px;top:2px;width:5px;height:5px;border-radius:50%;background:#fff;box-shadow:0 0 8px rgba(255,255,255,.95);animation:logo-lollipop-spark 4.8s ease-in-out infinite!important}
@@ -101,7 +98,8 @@ html.overlay-scroll-lock{overflow-y:hidden!important}
 .logo-bottle-img{display:block;width:100%;height:100%;object-fit:contain;transform-origin:50% 78%}
 .logo-bottle-bubble{position:absolute;width:4px;height:4px;border:1.5px solid #65D6C4;border-radius:50%;opacity:0;box-shadow:0 0 5px rgba(101,214,196,.7)}
 .logo-bottle-bubble-one{right:-2px;top:4px}.logo-bottle-bubble-two{right:3px;top:-1px;width:3px;height:3px}
-.logo-treat-marshmallow{--logo-fallback:'▢'}
+.logo-treat-kinder{position:relative;top:5px;width:23px;height:29px;overflow:visible;pointer-events:none;filter:drop-shadow(0 2px 4px rgba(0,0,0,.32))}
+.logo-kinder-img{display:block;width:100%;height:100%;object-fit:contain;transform-origin:50% 72%;animation:logo-kinder-wobble 4.9s cubic-bezier(.22,1,.36,1) infinite!important}
 .logo-treat-bonobon{position:relative;top:6px;width:30px;height:22px;overflow:visible;pointer-events:none;filter:drop-shadow(0 2px 4px rgba(0,0,0,.32))}
 .logo-bonobon-img{display:block;width:100%;height:100%;object-fit:contain;transform-origin:50% 50%;animation:logo-bonobon-twist 5.2s cubic-bezier(.22,1,.36,1) infinite!important}
 .logo-shop{display:block;width:44px;height:44px;margin:-7px 0 -7px 10px;object-fit:contain;flex:0 0 44px;transform-origin:50% 70%;animation:logo-shop-float 3s ease-in-out infinite;filter:drop-shadow(0 3px 5px rgba(0,0,0,.3))}
@@ -2153,6 +2151,7 @@ img,svg,canvas{max-width:100%}
   .logo-treats{top:-22px!important;height:22px!important}
   .logo-treat{width:20px!important;height:22px!important;font-size:14px!important}
   .logo-treat-bottle{top:12px!important;width:19px!important;height:25px!important}
+  .logo-treat-kinder{top:5px!important;width:20px!important;height:26px!important}
   .logo-treat-bonobon{top:6px!important;width:27px!important;height:20px!important}
   .logo-sub{font-size:12px!important;white-space:normal!important}
   .mp-mini-badge{height:30px!important;padding:3px 7px!important;margin-left:2px!important;max-width:120px!important}
@@ -2259,6 +2258,7 @@ img,svg,canvas{max-width:100%}
   .logo-treats{top:-20px!important;height:20px!important}
   .logo-treat{width:18px!important;height:20px!important}
   .logo-treat-bottle{top:13px!important;width:17px!important;height:23px!important}
+  .logo-treat-kinder{top:5px!important;width:18px!important;height:24px!important}
   .logo-treat-bonobon{top:6px!important;width:24px!important;height:18px!important}
   .logo-shop{width:30px!important;height:30px!important;flex-basis:30px!important;margin:-4px 0 -4px 6px!important}
   .mp-mini-badge{height:28px!important;padding:2px 6px!important}
@@ -2691,8 +2691,6 @@ body.light .price-error{color:#991b1b}
 </style>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flipclock@1.0.1/dist/themes/flipclock.min.css">
 <script src="https://cdn.jsdelivr.net/npm/tsparticles-slim@2/tsparticles.slim.bundle.min.js" defer></script>
-<script src="https://cdn.jsdelivr.net/npm/lottie-web@5.13.0/build/player/lottie_light.min.js" defer></script>
-<script src="./assets/logo-candy-lotties.js" defer></script>
 </head>
 <body>
 <!-- Fondo liviano: sin blobs, grano ni emojis flotantes -->
@@ -5608,14 +5606,15 @@ tickFecha();setInterval(tickFecha,1000);
     bottle.querySelector('.logo-bottle-img').style.transform='scale(1.7) rotate(-2deg)';
   }
   treats.appendChild(bottle);
-  [
-    ['marshmallow','logo-treat-marshmallow']
-  ].forEach(([key,cls])=>{
-    const item=document.createElement('span');
-    item.className=`logo-lottie-slot logo-treat ${cls}`;
-    item.dataset.logoLottie=key;
-    treats.appendChild(item);
-  });
+  const kinder=document.createElement('span');
+  kinder.className='logo-treat logo-treat-kinder';
+  kinder.innerHTML='<img class="logo-kinder-img" src="./assets/kinder-egg-kawaii.png" alt="">';
+  if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+    kinder.querySelector('.logo-kinder-img').style.setProperty('animation','logo-kinder-wobble 4.9s cubic-bezier(.22,1,.36,1) infinite','important');
+  }else{
+    kinder.querySelector('.logo-kinder-img').style.transform='scale(1.12) rotate(-3deg)';
+  }
+  treats.appendChild(kinder);
   const bonobon=document.createElement('span');
   bonobon.className='logo-treat logo-treat-bonobon';
   bonobon.innerHTML='<img class="logo-bonobon-img" src="./assets/bonobon-kawaii.png" alt="">';
@@ -5652,23 +5651,6 @@ tickFecha();setInterval(tickFecha,1000);
       },100+i*60+300);
     }
   });
-  // El marshmallow sigue siendo Lottie; los productos reales usan PNG locales optimizados.
-  const mountLogoLotties=()=>{
-    if(!window.lottie||!window.KIOSCO_LOGO_LOTTIES)return;
-    const reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    name.querySelectorAll('[data-logo-lottie]').forEach((slot,index)=>{
-      const data=window.KIOSCO_LOGO_LOTTIES[slot.dataset.logoLottie];
-      if(!data)return;
-      const anim=lottie.loadAnimation({container:slot,renderer:'svg',loop:!reduced,autoplay:!reduced,animationData:data});
-      anim.addEventListener('DOMLoaded',()=>{
-        slot.classList.add('lottie-ready');
-        if(reduced)anim.goToAndStop(18+index*13,true);
-      });
-      if(!reduced)anim.setSpeed(.7+index*.08);
-    });
-  };
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mountLogoLotties,{once:true});
-  else mountLogoLotties();
   // Subtitle
   if(sub){sub.style.opacity='0';sub.style.transform='translateY(5px)';setTimeout(()=>{setImp(sub,'opacity .5s ease,transform .5s ease');sub.style.opacity='1';sub.style.transform='translateY(0)';},480);}
   // Badge
