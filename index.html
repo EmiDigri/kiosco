@@ -78,7 +78,7 @@ html.overlay-scroll-lock{overflow-y:hidden!important}
 @keyframes glow{0%,100%{box-shadow:0 0 6px var(--accent)}50%{box-shadow:0 0 18px var(--accent),0 0 30px rgba(61,90,254,.3)}}
 .logo-name{font-size:15px;font-weight:600;letter-spacing:-.2px;color:var(--text);display:inline-flex;align-items:center;overflow:visible}
 .fecha-chip{font-size:11px;color:var(--text-soft);background:var(--glass);border:1px solid var(--glass-border);border-radius:999px;padding:5px 12px;backdrop-filter:blur(10px);font-weight:500}
-.logo-name-row{display:flex;align-items:center;gap:20px;position:relative}
+.logo-name-row{display:flex;align-items:center;gap:20px;position:relative;padding-top:14px}
 @keyframes logo-shop-float{0%,100%{transform:translateY(0) rotate(-1deg)}50%{transform:translateY(-2px) rotate(1deg)}}
 @keyframes logo-lollipop-groove{0%,62%,100%{transform:scale(1.46) translateY(0) rotate(-4deg)}70%{transform:scale(1.57) translateY(-2px) rotate(8deg)}77%{transform:scale(1.4) translateY(1px) rotate(-9deg)}84%{transform:scale(1.5) translateY(-1px) rotate(3deg)}91%{transform:scale(1.46) translateY(0) rotate(-4deg)}}
 @keyframes logo-lollipop-spark{0%,60%,100%{opacity:0;transform:scale(.3) rotate(0)}69%{opacity:1;transform:scale(1.35) rotate(45deg)}79%{opacity:.35;transform:scale(.65) rotate(90deg)}88%{opacity:0;transform:scale(.25) rotate(135deg)}}
@@ -96,7 +96,7 @@ html.overlay-scroll-lock{overflow-y:hidden!important}
 .logo-word{position:relative;display:inline-flex;align-items:baseline;overflow:visible}
 .logo-treats{position:absolute;left:2%;right:0;top:-27px;height:27px;display:flex;align-items:flex-end;justify-content:space-around;pointer-events:none}
 .logo-treat{width:24px;height:26px;font-size:17px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.32))}
-.logo-treat-bottle{position:relative;top:3px;width:22px;height:29px;overflow:visible;pointer-events:none;filter:drop-shadow(0 2px 4px rgba(0,0,0,.34))}
+.logo-treat-bottle{position:relative;top:10px;width:22px;height:29px;overflow:visible;pointer-events:none;filter:drop-shadow(0 2px 4px rgba(0,0,0,.34))}
 .logo-bottle-img{display:block;width:100%;height:100%;object-fit:contain;transform-origin:50% 78%}
 .logo-bottle-bubble{position:absolute;width:4px;height:4px;border:1.5px solid #65D6C4;border-radius:50%;opacity:0;box-shadow:0 0 5px rgba(101,214,196,.7)}
 .logo-bottle-bubble-one{right:-2px;top:4px}.logo-bottle-bubble-two{right:3px;top:-1px;width:3px;height:3px}
@@ -2144,13 +2144,13 @@ img,svg,canvas{max-width:100%}
   /* Header: en celular se apila para que no se vaya afuera */
   .header{display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:12px!important;padding:0!important;margin-bottom:14px!important;overflow:visible!important}
   .header .logo{width:100%;max-width:100%;align-items:flex-start!important}
-  .logo-name-row{display:flex!important;align-items:center!important;gap:14px!important;flex-wrap:wrap!important;max-width:100%;overflow:visible!important}
+  .logo-name-row{display:flex!important;align-items:center!important;gap:14px!important;flex-wrap:wrap!important;max-width:100%;overflow:visible!important;padding-top:9px!important}
   .logo-name{font-size:22px!important;line-height:1!important;overflow:visible!important}
   .logo-shop{width:34px!important;height:34px!important;flex-basis:34px!important;margin:-5px 0 -5px 7px!important}
   .logo-lollipop{width:40px!important;height:44px!important;flex-basis:40px!important;margin:-8px 1px -7px -4px!important}
   .logo-treats{top:-22px!important;height:22px!important}
   .logo-treat{width:20px!important;height:22px!important;font-size:14px!important}
-  .logo-treat-bottle{top:8px!important;width:19px!important;height:25px!important}
+  .logo-treat-bottle{top:12px!important;width:19px!important;height:25px!important}
   .logo-sub{font-size:12px!important;white-space:normal!important}
   .mp-mini-badge{height:30px!important;padding:3px 7px!important;margin-left:2px!important;max-width:120px!important}
   .mp-mini-logo{height:23px!important;width:auto!important;max-width:100px!important;object-fit:contain!important}
@@ -2255,7 +2255,7 @@ img,svg,canvas{max-width:100%}
   .logo-lollipop{width:36px!important;height:40px!important;flex-basis:36px!important;margin:-7px 1px -6px -3px!important}
   .logo-treats{top:-20px!important;height:20px!important}
   .logo-treat{width:18px!important;height:20px!important}
-  .logo-treat-bottle{top:9px!important;width:17px!important;height:23px!important}
+  .logo-treat-bottle{top:13px!important;width:17px!important;height:23px!important}
   .logo-shop{width:30px!important;height:30px!important;flex-basis:30px!important;margin:-4px 0 -4px 6px!important}
   .mp-mini-badge{height:28px!important;padding:2px 6px!important}
   .mp-mini-logo{height:21px!important;max-width:88px!important}
