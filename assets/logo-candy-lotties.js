@@ -46,29 +46,6 @@
   });
   const animation=(name,w,h,layers)=>({v:'5.13.0',fr:60,ip:0,op:120,w,h,nm:name,ddd:0,assets:[],layers,markers:[]});
 
-  const candyMotion={
-    position:loop([45,47,0],[45,42,0]),
-    rotation:loop([-5],[5],[-5]),
-    scale:loop([100,100,100],[105,105,100],[100,100,100])
-  };
-  const lollipop=animation('Kiosco lollipop',90,90,[
-    layer(1,'Candy shine',[ellipse('Shine',[9,15],[-10,-22],C.white)],candyMotion),
-    layer(2,'Candy center',[ellipse('Center',[10,10],[0,-12],C.white),ellipse('Center dot',[5,5],[0,-12],C.red)],candyMotion),
-    layer(3,'Candy pinwheel',[
-      polygon('White top',[[0,-12],[-7,-34],[2,-36]],C.white),
-      polygon('White right',[[0,-12],[21,-19],[24,-10]],C.white),
-      polygon('White bottom',[[0,-12],[7,10],[-2,12]],C.white),
-      polygon('White left',[[0,-12],[-21,-5],[-24,-14]],C.white),
-      polygon('Red upper right',[[0,-12],[12,-31],[19,-25]],C.redDark),
-      polygon('Red lower right',[[0,-12],[19,1],[12,8]],C.redDark),
-      polygon('Red lower left',[[0,-12],[-12,7],[-19,1]],C.redDark),
-      polygon('Red upper left',[[0,-12],[-19,-25],[-12,-31]],C.redDark)
-    ],candyMotion),
-    layer(4,'Candy face',[ellipse('Candy',[52,52],[0,-12],C.pink)],candyMotion),
-    layer(5,'Paper collar',[polygon('Left collar',[[-4,10],[-17,18],[-10,4]],C.cream),polygon('Right collar',[[4,10],[17,18],[10,4]],C.white)],candyMotion),
-    layer(6,'Stick',[rect('Stick',[7,39],[0,27],3.5,C.white),rect('Stick shade',[2,34],[2,28],1,C.silver)],candyMotion)
-  ]);
-
   const canMotion={
     position:loop([32,34,0],[32,29,0]),
     rotation:loop([-7],[7],[-7]),
@@ -101,5 +78,5 @@
     layer(3,'Wrapper ends',[polygon('Left wrapper',[[-16,-7],[-30,-14],[-26,0],[-30,14],[-15,8]],C.red),polygon('Left blue fold',[[-18,-5],[-28,-10],[-25,0],[-28,10],[-17,6]],C.blue),polygon('Right wrapper',[[16,-7],[30,-14],[26,0],[30,14],[15,8]],C.red),polygon('Right blue fold',[[18,-5],[28,-10],[25,0],[28,10],[17,6]],C.blue)],bonbonMotion)
   ]);
 
-  window.KIOSCO_LOGO_LOTTIES={lollipop,sodaCan,marshmallow,bonbon};
+  window.KIOSCO_LOGO_LOTTIES={sodaCan,marshmallow,bonbon};
 })();
