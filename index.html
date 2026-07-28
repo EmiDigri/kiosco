@@ -2144,16 +2144,18 @@ img,svg,canvas{max-width:100%}
   /* Header: en celular se apila para que no se vaya afuera */
   .header{display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:12px!important;padding:0!important;margin-bottom:14px!important;overflow:visible!important}
   .header .logo{width:100%;max-width:100%;align-items:flex-start!important}
-  .logo-name-row{display:flex!important;align-items:center!important;column-gap:12px!important;row-gap:7px!important;flex-wrap:wrap!important;max-width:100%;overflow:visible!important;padding-top:0!important}
-  .logo-name{font-size:22px!important;line-height:1!important;letter-spacing:0!important;gap:7px!important;align-items:center!important;overflow:visible!important}
-  .logo-word{padding-top:29px!important}
-  .logo-shop{width:28px!important;height:28px!important;flex-basis:28px!important;margin:0!important}
-  .logo-lollipop{width:32px!important;height:36px!important;flex-basis:32px!important;margin:0!important}
-  .logo-treats{left:0!important;right:0!important;top:1px!important;height:19px!important;align-items:center!important;justify-content:center!important;gap:7px!important}
-  .logo-treat{width:20px!important;height:22px!important;font-size:14px!important}
-  .logo-treat-bottle{top:0!important;width:14px!important;height:19px!important}
-  .logo-treat-kinder{top:0!important;width:14px!important;height:19px!important}
-  .logo-treat-bonobon{top:0!important;width:23px!important;height:17px!important}
+  .logo-name-row{display:flex!important;align-items:center!important;column-gap:16px!important;row-gap:7px!important;flex-wrap:wrap!important;max-width:100%;overflow:visible!important;padding-top:0!important}
+  .logo-name{font-size:22px!important;line-height:1!important;letter-spacing:0!important;gap:12px!important;align-items:center!important;overflow:visible!important}
+  .logo-word{padding-top:36px!important}
+  .logo-shop{width:31px!important;height:31px!important;flex-basis:31px!important;margin:0!important}
+  .logo-lollipop{width:37px!important;height:41px!important;flex-basis:37px!important;margin:0!important}
+  /* Los tres dulces repartidos a lo ancho de la palabra (space-between) y bien
+     separados de las letras: era todo muy apretado. */
+  .logo-treats{left:-3px!important;right:-3px!important;top:0!important;height:27px!important;align-items:center!important;justify-content:space-between!important;gap:0!important;padding:0 3px!important}
+  .logo-treat{width:22px!important;height:24px!important;font-size:15px!important}
+  .logo-treat-bottle{top:0!important;width:16px!important;height:23px!important}
+  .logo-treat-kinder{top:0!important;width:17px!important;height:22px!important}
+  .logo-treat-bonobon{top:0!important;width:27px!important;height:20px!important}
   .logo-sub{font-size:12px!important;white-space:normal!important}
   .mp-mini-badge{height:30px!important;padding:3px 7px!important;margin-left:2px!important;max-width:120px!important}
   .mp-mini-logo{height:23px!important;width:auto!important;max-width:100px!important;object-fit:contain!important}
@@ -2254,16 +2256,16 @@ img,svg,canvas{max-width:100%}
 
 @media(max-width:390px){
   .app{padding-left:8px!important;padding-right:8px!important}
-  .logo-name-row{column-gap:10px!important;row-gap:6px!important}
-  .logo-name{font-size:20px!important;gap:6px!important}
-  .logo-word{padding-top:27px!important}
-  .logo-lollipop{width:29px!important;height:33px!important;flex-basis:29px!important;margin:0!important}
-  .logo-treats{top:1px!important;height:17px!important;gap:5px!important}
-  .logo-treat{width:18px!important;height:20px!important}
-  .logo-treat-bottle{top:0!important;width:13px!important;height:18px!important}
-  .logo-treat-kinder{top:0!important;width:13px!important;height:18px!important}
-  .logo-treat-bonobon{top:0!important;width:21px!important;height:16px!important}
-  .logo-shop{width:26px!important;height:26px!important;flex-basis:26px!important;margin:0!important}
+  .logo-name-row{column-gap:13px!important;row-gap:6px!important}
+  .logo-name{font-size:20px!important;gap:10px!important}
+  .logo-word{padding-top:33px!important}
+  .logo-lollipop{width:33px!important;height:37px!important;flex-basis:33px!important;margin:0!important}
+  .logo-treats{left:-3px!important;right:-3px!important;top:0!important;height:24px!important;justify-content:space-between!important;gap:0!important;padding:0 2px!important}
+  .logo-treat{width:20px!important;height:22px!important}
+  .logo-treat-bottle{top:0!important;width:15px!important;height:21px!important}
+  .logo-treat-kinder{top:0!important;width:15px!important;height:20px!important}
+  .logo-treat-bonobon{top:0!important;width:24px!important;height:18px!important}
+  .logo-shop{width:29px!important;height:29px!important;flex-basis:29px!important;margin:0!important}
   .mp-mini-badge{height:28px!important;padding:2px 6px!important}
   .mp-mini-logo{height:21px!important;max-width:88px!important}
   .btn-historial,#btnCierreManual{font-size:10.8px!important;padding:7px 8px!important}
