@@ -76,13 +76,21 @@ html.overlay-scroll-lock{overflow-y:hidden!important}
 .logo{display:flex;align-items:center;gap:10px}
 .logo-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent);animation:glow 2s ease-in-out infinite}
 @keyframes glow{0%,100%{box-shadow:0 0 6px var(--accent)}50%{box-shadow:0 0 18px var(--accent),0 0 30px rgba(61,90,254,.3)}}
-.logo-name{font-size:15px;font-weight:600;letter-spacing:-.2px;color:var(--text)}
+.logo-name{font-size:15px;font-weight:600;letter-spacing:-.2px;color:var(--text);display:inline-flex;align-items:center;overflow:visible}
 .fecha-chip{font-size:11px;color:var(--text-soft);background:var(--glass);border:1px solid var(--glass-border);border-radius:999px;padding:5px 12px;backdrop-filter:blur(10px);font-weight:500}
 .logo-name-row{display:flex;align-items:center;gap:20px;position:relative}
-@keyframes ball-spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
 @keyframes logo-flag-wave{0%,100%{transform:skewY(0deg) scaleX(1)}33%{transform:skewY(3deg) scaleX(.96)}66%{transform:skewY(-2.5deg) scaleX(.97)}}
-@keyframes star-twinkle{0%,100%{transform:translateX(-50%) scale(1);text-shadow:0 0 6px #FFD700,0 0 12px #FFA500;opacity:1}40%{transform:translateX(-50%) scale(1.5);text-shadow:0 0 16px #FFD700,0 0 32px #FFA500,0 0 55px #FFE566,0 0 80px #FFD700;opacity:1}60%{transform:translateX(-50%) scale(.85);text-shadow:0 0 4px #FFD700,0 0 8px #FFA500;opacity:.7}}
-.logo-ball{display:inline-block;width:.9em;height:.9em;margin-right:8px;vertical-align:-.08em;border-radius:50%;background:#f7f7f2 url("./assets/trionda.jpg") center center/142% auto no-repeat;border:1px solid rgba(255,255,255,.72);box-shadow:0 1px 5px rgba(0,0,0,.32),0 0 0 2px rgba(255,255,255,.08);overflow:hidden;transform-origin:50% 50%;will-change:transform;backface-visibility:hidden}
+.logo-lottie-slot{position:relative;display:block;overflow:visible;flex:0 0 auto;pointer-events:none}
+.logo-lottie-slot::before{content:var(--logo-fallback);position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:inherit;line-height:1}
+.logo-lottie-slot.lottie-ready::before{display:none}
+.logo-lottie-slot svg{display:block;width:100%!important;height:100%!important;overflow:visible!important}
+.logo-lollipop{width:48px;height:52px;margin:-10px 2px -9px -5px;font-size:34px;filter:drop-shadow(0 3px 5px rgba(0,0,0,.28));--logo-fallback:'🍭'}
+.logo-word{position:relative;display:inline-flex;align-items:baseline;overflow:visible}
+.logo-treats{position:absolute;left:2%;right:0;top:-27px;height:27px;display:flex;align-items:flex-end;justify-content:space-around;pointer-events:none}
+.logo-treat{width:24px;height:26px;font-size:17px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.32))}
+.logo-treat-can{--logo-fallback:'🥤'}
+.logo-treat-marshmallow{--logo-fallback:'▢'}
+.logo-treat-bonbon{--logo-fallback:'🍬'}
 .logo-flag{display:inline-block;margin-left:11px;vertical-align:middle;transform-origin:left center;animation:logo-flag-wave 2.2s ease-in-out infinite;filter:drop-shadow(0 1px 3px rgba(0,0,0,.4))}
 .logo-sub{font-size:11px;color:var(--text-soft);margin-top:2px;letter-spacing:.01em}
 
@@ -275,15 +283,6 @@ body.light .iw-calendar-day.is-long-weekend{background:rgba(14,116,107,.12)}
 .egg-pop{position:fixed;left:50%;top:18%;transform:translate(-50%,-50%);z-index:10002;pointer-events:none;background:rgba(8,11,26,.78);border:1px solid rgba(255,255,255,.18);color:var(--text);border-radius:16px;padding:12px 18px;font-size:18px;font-weight:850;letter-spacing:0;text-align:center;box-shadow:0 18px 60px rgba(0,0,0,.35);backdrop-filter:blur(14px);animation:egg-pop .95s cubic-bezier(.22,1,.36,1) forwards}
 .egg-pop small{display:block;margin-top:3px;font-size:11px;font-weight:700;color:var(--text-soft);text-transform:uppercase;letter-spacing:.12em}
 @keyframes egg-pop{0%{opacity:0;transform:translate(-50%,-35%) scale(.75)}18%,78%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-62%) scale(.96)}}
-.egg-goal{position:fixed;z-index:10000;right:20px;top:90px;width:100px;height:130px;border:4px solid #fff;border-left:none;border-radius:0;pointer-events:none;box-shadow:0 0 18px rgba(255,255,255,.35),inset 0 0 0 2px rgba(0,0,0,.25);image-rendering:pixelated;overflow:hidden}
-.egg-goal::before{content:'';position:absolute;inset:4px;background:linear-gradient(90deg,rgba(255,255,255,.12) 1px,transparent 1px),linear-gradient(0deg,rgba(255,255,255,.12) 1px,transparent 1px);background-size:12px 12px}
-.egg-goal canvas{position:absolute;inset:0;image-rendering:pixelated}
-.egg-ball-flight{position:fixed!important;z-index:10002!important;pointer-events:none!important;margin:0!important;filter:contrast(1.25) saturate(1.35)}
-.egg-pop.retro{font-family:'Press Start 2P',monospace;background:#0b0e1a;border:3px solid #FFD43B;border-radius:4px;padding:16px 20px;box-shadow:0 0 0 3px #0b0e1a,0 0 28px rgba(255,212,59,.55);color:#FFD43B;text-shadow:2px 2px 0 #1a1a2e;font-size:14px;letter-spacing:1px;backdrop-filter:none;image-rendering:pixelated}
-.egg-pop.retro small{font-family:'Press Start 2P',monospace;color:#74C0FC;font-size:7px;letter-spacing:.5px;text-shadow:1px 1px 0 #1a1a2e;margin-top:9px}
-.egg-pixel{position:fixed;z-index:10001;pointer-events:none;image-rendering:pixelated;box-shadow:0 0 0 1px rgba(0,0,0,.35)}
-.egg-retro-scan{position:fixed;inset:0;z-index:10001;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.22) 0 2px,transparent 2px 4px),radial-gradient(circle,rgba(255,255,255,.12),transparent 70%);opacity:0;animation:egg-retro-scan .55s steps(3) forwards}
-@keyframes egg-retro-scan{0%{opacity:0}25%{opacity:1}100%{opacity:0}}
 .egg-stamp{position:fixed;left:50%;top:50%;z-index:10003;pointer-events:none;transform:translate(-50%,-50%) rotate(-8deg) scale(.65);border:3px solid #5FD68A;color:#5FD68A;border-radius:14px;padding:14px 22px;font-size:26px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;background:rgba(8,11,26,.72);box-shadow:0 0 35px rgba(95,214,138,.24);animation:egg-stamp 1.8s cubic-bezier(.22,1,.36,1) forwards}
 @keyframes egg-stamp{0%{opacity:0;transform:translate(-50%,-50%) rotate(-14deg) scale(1.8)}18%,78%{opacity:1;transform:translate(-50%,-50%) rotate(-8deg) scale(1)}100%{opacity:0;transform:translate(-50%,-50%) rotate(-8deg) scale(.9)}}
 /* Mejoras eggs: flash de rayo, sacudida, anillos, monedas, sello dorado */
@@ -306,7 +305,7 @@ body.light .iw-calendar-day.is-long-weekend{background:rgba(14,116,107,.12)}
 body.egg-arcade .hero-card,body.egg-champion .hero-card{box-shadow:0 0 0 1px rgba(116,172,223,.35),0 0 42px rgba(116,172,223,.22)!important}
 body.egg-arcade .logo-name{color:#fff;text-shadow:0 0 10px #74c0fc,0 0 22px rgba(116,192,252,.55)}
 body.egg-champion .logo-flag{filter:drop-shadow(0 0 8px rgba(116,172,223,.9)) drop-shadow(0 0 16px rgba(255,255,255,.5))}
-@media(prefers-reduced-motion:reduce){.iw-moon-img,.egg-rain-item,.egg-dollar-rain,.egg-pop,.egg-stamp,.egg-flash,.egg-ring,.egg-coin.fall,.egg-gold-vignette,.egg-lucky-glow,.egg-retro-scan,.app.egg-shake{animation-duration:.01ms!important}}
+@media(prefers-reduced-motion:reduce){.iw-moon-img,.egg-rain-item,.egg-dollar-rain,.egg-pop,.egg-stamp,.egg-flash,.egg-ring,.egg-coin.fall,.egg-gold-vignette,.egg-lucky-glow,.app.egg-shake{animation-duration:.01ms!important}}
 .hero-card{position:relative;z-index:1;transition:transform .08s ease;will-change:transform;margin-bottom:0!important;background:var(--glass);border:1px solid var(--glass-border);border-radius:28px;padding:28px 26px 24px;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);overflow:hidden}
 .hero-card::before{content:'';position:absolute;inset:0;border-radius:28px;background:linear-gradient(135deg,rgba(61,90,254,.08) 0%,transparent 60%);pointer-events:none}
 .hero-shimmer{position:absolute;top:0;left:-100%;width:60%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.04),transparent);animation:shimmerSlide 3s ease-in-out infinite}
@@ -2137,7 +2136,9 @@ img,svg,canvas{max-width:100%}
   .logo-name{font-size:22px!important;line-height:1!important;overflow:visible!important}
   .logo-flag{width:30px!important;height:20px!important}
   .logo-flag svg{width:30px!important;height:20px!important}
-  .logo-star{font-size:11px!important;top:-10px!important}
+  .logo-lollipop{width:40px!important;height:44px!important;margin:-8px 1px -7px -4px!important}
+  .logo-treats{top:-22px!important;height:22px!important}
+  .logo-treat{width:20px!important;height:22px!important;font-size:14px!important}
   .logo-sub{font-size:12px!important;white-space:normal!important}
   .mp-mini-badge{height:30px!important;padding:3px 7px!important;margin-left:2px!important;max-width:120px!important}
   .mp-mini-logo{height:23px!important;width:auto!important;max-width:100px!important;object-fit:contain!important}
@@ -2239,6 +2240,9 @@ img,svg,canvas{max-width:100%}
 @media(max-width:390px){
   .app{padding-left:8px!important;padding-right:8px!important}
   .logo-name{font-size:20px!important}
+  .logo-lollipop{width:36px!important;height:40px!important;margin:-7px 1px -6px -3px!important}
+  .logo-treats{top:-20px!important;height:20px!important}
+  .logo-treat{width:18px!important;height:20px!important}
   .mp-mini-badge{height:28px!important;padding:2px 6px!important}
   .mp-mini-logo{height:21px!important;max-width:88px!important}
   .btn-historial,#btnCierreManual{font-size:10.8px!important;padding:7px 8px!important}
@@ -2669,16 +2673,11 @@ body.light .price-error{color:#991b1b}
 </style>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flipclock@1.0.1/dist/themes/flipclock.min.css">
 <script src="https://cdn.jsdelivr.net/npm/tsparticles-slim@2/tsparticles.slim.bundle.min.js" defer></script>
-<script src="https://cdn.jsdelivr.net/npm/tsparticles-preset-fire@2/tsparticles.preset.fire.bundle.min.js" defer></script>
-<script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js" defer></script>
-<script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/MotionPathPlugin.min.js" defer></script>
-<script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/CustomBounce.min.js" defer></script>
-<script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/CustomEase.min.js" defer></script>
-<script src="https://cdn.jsdelivr.net/npm/matter-js@0.19.0/build/matter.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/lottie-web@5.13.0/build/player/lottie_light.min.js" defer></script>
+<script src="./assets/logo-candy-lotties.js" defer></script>
 </head>
 <body>
 <!-- Fondo liviano: sin blobs, grano ni emojis flotantes -->
-<div id="eggBallFireBox" style="position:fixed;z-index:4000;pointer-events:none;display:none"></div>
 <div id="iwWeatherScene" class="iw-wscene egg-wscene" hidden>
   <div class="iw-wscene-head">
     <div class="iw-wscene-label" id="iwWsceneLabel"></div>
@@ -5558,27 +5557,44 @@ tickFecha();setInterval(tickFecha,1000);
   const setImp=(el,t)=>el.style.setProperty('transition',t,'important');
   // Dot
   if(dot){dot.style.opacity='0';dot.style.transform='scale(0)';setTimeout(()=>{setImp(dot,'opacity .4s ease,transform .5s cubic-bezier(.34,1.56,.64,1)');dot.style.opacity='1';dot.style.transform='scale(1)';},60);}
-  // Pelota que rueda desde la izquierda
+  // Chupetin animado que presenta la marca desde la izquierda
   name.textContent='';
-  const ball=document.createElement('span');
-  ball.className='logo-ball';
-  ball.setAttribute('aria-hidden','true');
-  ball.style.cssText='opacity:0;transform:translateX(-40px) rotate(-180deg)';
-  setImp(ball,'opacity .35s ease,transform .6s cubic-bezier(.22,1,.36,1)');
-  name.appendChild(ball);
+  const lollipop=document.createElement('span');
+  lollipop.className='logo-lottie-slot logo-lollipop';
+  lollipop.dataset.logoLottie='lollipop';
+  lollipop.setAttribute('aria-hidden','true');
+  lollipop.style.cssText='opacity:0;transform:translateX(-30px) rotate(-12deg) scale(.72)';
+  setImp(lollipop,'opacity .4s ease,transform .7s cubic-bezier(.22,1,.36,1)');
+  name.appendChild(lollipop);
   setTimeout(()=>{
-    ball.style.opacity='1';ball.style.transform='translateX(0) rotate(0deg)';
-    setTimeout(()=>{ball.style.transform='';ball.style.setProperty('animation','ball-spin 3s linear infinite','important');},650);
+    lollipop.style.opacity='1';lollipop.style.transform='translateX(0) rotate(0deg) scale(1)';
   },60);
-  // Letters — celeste y blanco alternados (colores Argentina)
+  const word=document.createElement('span');
+  word.className='logo-word';
+  name.appendChild(word);
+  const treats=document.createElement('span');
+  treats.className='logo-treats';
+  treats.setAttribute('aria-hidden','true');
+  [
+    ['sodaCan','logo-treat-can'],
+    ['marshmallow','logo-treat-marshmallow'],
+    ['bonbon','logo-treat-bonbon']
+  ].forEach(([key,cls])=>{
+    const item=document.createElement('span');
+    item.className=`logo-lottie-slot logo-treat ${cls}`;
+    item.dataset.logoLottie=key;
+    treats.appendChild(item);
+  });
+  word.appendChild(treats);
+  // Letras con paleta candy shop: frambuesa, vainilla y menta.
   const text='Kiosco';
-  const colors=['#ffffff','#75AADB'];
+  const colors=['#FF4F7B','#FFF1D6','#65D6C4'];
   text.split('').forEach((ch,i)=>{
     const s=document.createElement('span');
     s.textContent=ch;
-    s.style.cssText=`display:inline-block;opacity:0;transform:translateY(16px);filter:blur(8px);color:${colors[i%2]}`;
+    s.style.cssText=`display:inline-block;opacity:0;transform:translateY(16px);filter:blur(8px);color:${colors[i%3]};text-shadow:0 2px 6px rgba(54,20,34,.3)`;
     setImp(s,'opacity .45s ease,transform .45s cubic-bezier(.22,1,.36,1),filter .45s ease');
-    name.appendChild(s);
+    word.appendChild(s);
     setTimeout(()=>{s.style.opacity='1';s.style.transform='translateY(0)';s.style.filter='blur(0)';},100+i*60);
     if(i===text.length-1){
       const flag=document.createElement('span');
@@ -5596,34 +5612,23 @@ tickFecha();setInterval(tickFecha,1000);
       },100+i*60+300);
     }
   });
-  // Estrellas doradas: explotan y quedan fijas arriba de Kiosco
-  name.style.position='relative';
-  const revealEnd=100+5*60+450;
-  [{left:'28%',delay:0},{left:'43%',delay:100},{left:'58%',delay:200}].forEach(({left,delay})=>{
-    const star=document.createElement('span');
-    star.textContent='★';
-    star.className='logo-star';
-    star.style.cssText=`position:absolute;left:${left};top:-18px;transform:translateX(-50%) scale(0) translateY(20px);font-size:16px;color:#FFD700;text-shadow:0 0 8px #FFD700,0 0 16px #FFA500;pointer-events:none;z-index:10;opacity:0`;
-    name.appendChild(star);
-    setTimeout(()=>{
-      // Explosión: aparece grande desde abajo
-      star.style.transition='opacity .2s ease,transform .35s cubic-bezier(.2,1.6,.4,1),text-shadow .3s ease';
-      star.style.opacity='1';
-      star.style.transform='translateX(-50%) scale(1.8) translateY(-8px)';
-      star.style.textShadow='0 0 12px #FFD700,0 0 24px #FFA500,0 0 40px #FFD700';
-      // Settle: encoge a tamaño final y queda fija
-      setTimeout(()=>{
-        star.style.transition='transform .4s cubic-bezier(.34,1.56,.64,1),text-shadow .4s ease';
-        star.style.transform='translateX(-50%) scale(1) translateY(0)';
-        star.style.textShadow='0 0 6px #FFD700,0 0 12px #FFA500';
-        // Activar brillo pulsante con delay escalonado
-        setTimeout(()=>{
-          star.style.transition='';
-          star.style.setProperty('animation',`star-twinkle 1.4s ease-in-out ${delay*2}ms infinite`,'important');
-        },450);
-      },350);
-    },revealEnd+delay);
-  });
+  // Los cuatro dibujos son Lottie vectoriales locales; el CDN solo aporta el renderer.
+  const mountLogoLotties=()=>{
+    if(!window.lottie||!window.KIOSCO_LOGO_LOTTIES)return;
+    const reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    name.querySelectorAll('[data-logo-lottie]').forEach((slot,index)=>{
+      const data=window.KIOSCO_LOGO_LOTTIES[slot.dataset.logoLottie];
+      if(!data)return;
+      const anim=lottie.loadAnimation({container:slot,renderer:'svg',loop:!reduced,autoplay:!reduced,animationData:data});
+      anim.addEventListener('DOMLoaded',()=>{
+        slot.classList.add('lottie-ready');
+        if(reduced)anim.goToAndStop(index===0?35:18+index*13,true);
+      });
+      if(!reduced)anim.setSpeed(index===0?.82:.68+index*.08);
+    });
+  };
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mountLogoLotties,{once:true});
+  else mountLogoLotties();
   // Subtitle
   if(sub){sub.style.opacity='0';sub.style.transform='translateY(5px)';setTimeout(()=>{setImp(sub,'opacity .5s ease,transform .5s ease');sub.style.opacity='1';sub.style.transform='translateY(0)';},480);}
   // Badge
@@ -6494,51 +6499,6 @@ function eggBallFireStop(){
   const box=document.getElementById('eggBallFireBox');
   if(box){box.style.display='none';box.innerHTML='';}
 }
-function eggBallGoal(ball){
-  if(!ball||ball.dataset.goalBusy==='1')return;
-  ball.dataset.goalBusy='1';
-  eggBallFireStop();
-  const r=ball.getBoundingClientRect();
-  const clone=ball.cloneNode(true);
-  clone.className='logo-ball egg-ball-flight';
-  clone.style.left=r.left+'px';clone.style.top=r.top+'px';clone.style.width=r.width+'px';clone.style.height=r.height+'px';
-  clone.style.opacity='1';clone.style.animation='none';
-  document.body.appendChild(clone);
-  const goal=document.createElement('div');goal.className='egg-goal';document.body.appendChild(goal);
-  const net=eggBuildNetPhysics(goal);
-  const dx=innerWidth-r.left-70,dy=Math.max(20,155-r.top);
-  const finish=()=>{
-    eggRetroFlash();eggShake();
-    eggPopRetro('¡GOOOL!','pelota al ángulo');
-    eggPixelBurst(innerWidth-70,155,26);
-    clone.remove();
-    if(net){
-      net.impact(.55,.35,26);
-      setTimeout(()=>{net.destroy();goal.remove();},1400);
-    }else{
-      goal.remove();
-    }
-    ball.dataset.goalBusy='0';
-  };
-  if(eggEnsureGsap()&&eggMotionOk()){
-    const midX=dx*.55,midY=dy-150-Math.random()*40;
-    const tl=gsap.timeline({onComplete:finish});
-    tl.to(clone,{duration:.16,scaleX:1.3,scaleY:.72,transformOrigin:'50% 100%',ease:'power2.out'},0)
-      .to(clone,{duration:1.1,ease:'power1.inOut',motionPath:{path:[{x:0,y:0},{x:midX,y:midY},{x:dx,y:dy}],curviness:1.3}},0)
-      .to(clone,{duration:1.1,ease:'none',rotation:'+=900'},0)
-      .to(clone,{duration:.2,scaleX:1,scaleY:1,ease:'power2.out'},.16)
-      .to(clone,{duration:.28,scaleX:1.55,scaleY:.5,transformOrigin:'50% 100%',ease:eggNetBounceReady?'eggNetBounce-squash':'power2.out'},'-=.04')
-      .to(clone,{duration:.34,scaleX:1,scaleY:1,ease:'elastic.out(1,.4)'});
-  }else{
-    const anim=clone.animate([
-      {transform:'translate(0,0) rotate(0deg)',offset:0},
-      {transform:`translate(${dx*.42}px,${dy-52}px) rotate(420deg)`,offset:.45},
-      {transform:`translate(${dx*.76}px,${dy+26}px) rotate(780deg)`,offset:.76},
-      {transform:`translate(${dx}px,${dy}px) rotate(1040deg)`,offset:1}
-    ],{duration:1450,easing:'cubic-bezier(.22,1,.36,1)'});
-    anim.onfinish=finish;
-  }
-}
 function eggDolarLoco(card){
   const val=card.querySelector('.iw-dolar-val')?.innerText.replace(/\s+/g,' ')||'$';
   eggPop('Dólar loco',val);
@@ -7066,10 +7026,7 @@ function eggAmountFromText(txt){return Number(String(txt||'').replace(/[^\d-]/g,
 function initEasterEggs(){
   const konami=['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'];let k=0;
   document.addEventListener('keydown',e=>{if(/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;const key=e.key.length===1?e.key.toLowerCase():e.key;k=key===konami[k]?k+1:(key===konami[0]?1:0);if(k===konami.length){k=0;eggArcade();}});
-  let logoTaps=0,logoTimer=null;document.getElementById('logoName')?.addEventListener('click',e=>{if(e.target.closest('.logo-ball'))return;logoTaps++;clearTimeout(logoTimer);logoTimer=setTimeout(()=>logoTaps=0,1600);if(logoTaps>=8){logoTaps=0;eggArcade();}});
-  document.addEventListener('click',e=>{const ball=e.target.closest('.logo-ball');if(!ball)return;e.stopPropagation();eggBallGoal(ball);});
-  document.addEventListener('pointerover',e=>{const ball=e.target.closest('.logo-ball');if(ball)eggBallFireStart(ball);});
-  document.addEventListener('pointerout',e=>{const ball=e.target.closest('.logo-ball');if(ball&&!ball.contains(e.relatedTarget))eggBallFireStop();});
+  let logoTaps=0,logoTimer=null;document.getElementById('logoName')?.addEventListener('click',()=>{logoTaps++;clearTimeout(logoTimer);logoTimer=setTimeout(()=>logoTaps=0,1600);if(logoTaps>=8){logoTaps=0;eggArcade();}});
   const dollarTaps={};document.addEventListener('click',e=>{const bill=e.target.closest('.iw-mep-bill');if(bill){const card=bill.closest('.iw-dolar');if(card)eggDolarLoco(card);return;}const card=e.target.closest('.iw-dolar');if(!card)return;const label=card.dataset.dolarKind||card.querySelector('.iw-dolar-label')?.textContent?.trim();if(!['MEP','Blue','BLUE'].includes(label))return;dollarTaps[label]=(dollarTaps[label]||0)+1;clearTimeout(card._eggDollarTimer);card._eggDollarTimer=setTimeout(()=>dollarTaps[label]=0,1400);if(dollarTaps[label]>=5){dollarTaps[label]=0;eggDolarLoco(card);}});
   document.addEventListener('click',e=>{
     const icon=e.target.closest('.iw-weather-emoji');
