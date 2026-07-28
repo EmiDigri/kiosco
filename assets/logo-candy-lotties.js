@@ -46,16 +46,6 @@
   });
   const animation=(name,w,h,layers)=>({v:'5.13.0',fr:60,ip:0,op:120,w,h,nm:name,ddd:0,assets:[],layers,markers:[]});
 
-  const canMotion={
-    position:loop([32,34,0],[32,29,0]),
-    rotation:loop([-7],[7],[-7]),
-    scale:loop([100,100,100],[102,104,100],[100,100,100])
-  };
-  const sodaCan=animation('Kiosco soda can',64,64,[
-    layer(1,'Can details',[ellipse('Top',[29,8],[0,-19],C.silver),ellipse('Tab',[9,3],[2,-20],C.silverDark),line('White wave',[[-12,3],[-7,0],[-1,1],[5,5],[12,1]],C.white,4),rect('Highlight',[3,24],[-8,-1],1.5,[1,.55,.58,1])],canMotion),
-    layer(2,'Can body',[rect('Body',[29,42],[0,1],5,C.red),ellipse('Bottom',[28,6],[0,21],C.redDark)],canMotion)
-  ]);
-
   const marshMotion={
     position:loop([32,34,0],[32,30,0]),
     rotation:loop([-3],[3],[-3]),
@@ -78,5 +68,5 @@
     layer(3,'Wrapper ends',[polygon('Left wrapper',[[-16,-7],[-30,-14],[-26,0],[-30,14],[-15,8]],C.red),polygon('Left blue fold',[[-18,-5],[-28,-10],[-25,0],[-28,10],[-17,6]],C.blue),polygon('Right wrapper',[[16,-7],[30,-14],[26,0],[30,14],[15,8]],C.red),polygon('Right blue fold',[[18,-5],[28,-10],[25,0],[28,10],[17,6]],C.blue)],bonbonMotion)
   ]);
 
-  window.KIOSCO_LOGO_LOTTIES={sodaCan,marshmallow,bonbon};
+  window.KIOSCO_LOGO_LOTTIES={marshmallow,bonbon};
 })();
