@@ -2692,28 +2692,33 @@ body.light .price-error{color:#991b1b}
   .price-saved{max-width:105px;white-space:normal;text-align:right;line-height:1.2;font-size:9px}
 }
 
-/* Desafío del turno: ocupa la celda libre a la derecha sin mover el hero. */
+/* Desafío del día: ocupa la celda libre a la derecha sin mover el hero. */
 .turn-game{min-width:0;align-self:start;padding-top:14px;border-top:1px solid var(--glass-border);color:var(--text)}
 .tg-head,.tg-head-actions,.tg-meta,.tg-ranking-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
-.tg-title{display:inline-flex;align-items:center;gap:6px;min-height:26px;padding:0;border:0;background:transparent;color:var(--text-mid);font:800 10px/1 'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;letter-spacing:.09em;text-transform:uppercase;cursor:help}
+.tg-title-row{display:flex;align-items:center;gap:7px;min-width:0}
+.tg-title{display:inline-flex;align-items:center;gap:6px;min-height:28px;padding:0;border:0;background:transparent;color:var(--text-mid);font:800 10px/1 'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;letter-spacing:.09em;text-transform:uppercase;cursor:pointer}
 .tg-title:hover,.tg-title:focus-visible{color:var(--text);outline:none}
+.tg-title-chevron{margin-left:2px;transition:transform .18s ease}
 .tg-live{width:7px;height:7px;flex:0 0 7px;border-radius:50%;background:#5fd68a;box-shadow:0 0 0 4px rgba(95,214,138,.1),0 0 11px rgba(95,214,138,.4)}
-.tg-help{display:grid;place-items:center;width:15px;height:15px;flex:0 0 15px;border:1px solid var(--glass-border);border-radius:50%;color:var(--text-soft);font-size:9px;letter-spacing:0}
+.tg-help{display:grid;place-items:center;width:17px;height:17px;min-height:17px;flex:0 0 17px;padding:0;border:1px solid var(--glass-border);border-radius:50%;background:var(--glass);color:var(--text-soft);font:800 9px/1 'Inter',sans-serif;letter-spacing:0;cursor:help}
+.tg-help:hover,.tg-help:focus-visible{border-color:rgba(124,144,255,.55);color:var(--text);outline:none}
 .tg-owner{max-width:92px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--accent);font-size:10px;font-weight:800;text-transform:uppercase}
-.tg-toggle{display:none;align-items:center;gap:4px;border:1px solid var(--glass-border);border-radius:6px;background:var(--glass);color:var(--text-mid);padding:6px 8px;font:750 10px/1 'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;cursor:pointer}
-.tg-toggle svg{transition:transform .16s ease}
-.tg-body{padding-top:10px}
+.tg-body{display:none;padding-top:10px}
+.turn-game.is-open .tg-body{display:block}
+.turn-game.is-open .tg-title-chevron{transform:rotate(180deg)}
 .tg-meta{margin-bottom:10px;color:var(--text-soft);font-size:9.5px;font-weight:700}
 .tg-meta strong{color:var(--text-mid);font-weight:800;font-variant-numeric:tabular-nums}
-.tg-board-wrap{--tg-active-row:0;position:relative;width:max-content;margin:0 auto 11px}
-.tg-board{display:grid;grid-template-columns:repeat(5,37px);grid-template-rows:repeat(6,37px);gap:5px;width:max-content}
-.tg-tile{display:grid;place-items:center;width:37px;height:37px;border:1px solid var(--glass-border);border-radius:4px;background:rgba(255,255,255,.025);color:var(--text);font-size:15px;font-weight:850;text-transform:uppercase;user-select:none}
-.tg-tile.is-active{border-color:rgba(124,144,255,.72);box-shadow:inset 0 0 0 1px rgba(124,144,255,.35)}
+.tg-board-wrap{--tg-active-row:0;--tg-selected-col:0;--tg-cols:5;--tg-tile-size:38px;--tg-gap:5px;position:relative;width:max-content;margin:0 auto 11px}
+.tg-board{display:grid;grid-template-columns:repeat(var(--tg-cols),var(--tg-tile-size));grid-template-rows:repeat(6,var(--tg-tile-size));gap:var(--tg-gap);width:max-content}
+.tg-tile{display:grid;place-items:center;width:var(--tg-tile-size);height:var(--tg-tile-size);border:1px solid var(--glass-border);border-radius:4px;background:rgba(255,255,255,.025);color:var(--text);font-size:15px;font-weight:850;text-transform:uppercase;user-select:none;cursor:default;transition:border-color .12s ease,box-shadow .12s ease,background .12s ease}
+.tg-tile.is-active{border-color:rgba(124,144,255,.48);cursor:text}
+.tg-tile.is-selected{border-color:#8fa2ff;box-shadow:inset 0 0 0 1px rgba(143,162,255,.72),0 0 0 3px rgba(124,144,255,.12);background:rgba(124,144,255,.09)}
 .tg-tile.is-filled{border-color:var(--text-soft)}
+.tg-tile.is-filled.is-selected{border-color:#8fa2ff}
 .tg-tile.is-correct{border-color:#29966a;background:#29966a;color:#fff;box-shadow:none}
 .tg-tile.is-present{border-color:#b47a12;background:#b47a12;color:#fff;box-shadow:none}
 .tg-tile.is-absent{border-color:#474a51;background:#474a51;color:#d8d9dc;box-shadow:none}
-.tg-board-input{position:absolute;z-index:3;left:0;top:calc(var(--tg-active-row)*42px);width:100%;height:37px;min-height:0;padding:0;border:0;outline:0;background:transparent;color:transparent;caret-color:transparent;opacity:.01;cursor:text;text-transform:uppercase}
+.tg-board-input{position:absolute;z-index:3;left:calc(var(--tg-selected-col)*(var(--tg-tile-size) + var(--tg-gap)));top:calc(var(--tg-active-row)*(var(--tg-tile-size) + var(--tg-gap)));width:var(--tg-tile-size);height:var(--tg-tile-size);min-height:0;padding:0;border:0;outline:0;background:transparent;color:transparent;caret-color:transparent;opacity:.01;pointer-events:none;text-transform:uppercase}
 .tg-lock{position:absolute;z-index:4;inset:0;display:grid;place-items:center;padding:18px;border:1px solid var(--glass-border);border-radius:5px;background:color-mix(in srgb,var(--surface) 94%,transparent);color:var(--text-mid);font-size:11px;font-weight:750;text-align:center;line-height:1.45;backdrop-filter:blur(5px)}
 .tg-lock[hidden]{display:none}
 .tg-controls{display:grid;grid-template-columns:1fr 1fr;gap:7px}
@@ -2749,22 +2754,17 @@ body.light .tg-lock{background:rgba(255,255,255,.96)}
   .hero-clock-col{grid-column:2;grid-row:1}
   .hero-side{grid-column:1;grid-row:2}
   .turn-game{grid-column:2;grid-row:2}
-  .tg-body{display:block!important}
 }
 @media(min-width:1200px){.hero-card{grid-template-columns:minmax(0,1.3fr) 360px!important}}
 @media(max-width:900px){
   .turn-game{margin-top:16px;padding-top:12px}
-  .tg-toggle{display:inline-flex}
-  .tg-body{display:none;padding-top:11px}
-  .turn-game.is-open .tg-body{display:block}
-  .turn-game.is-open .tg-toggle svg{transform:rotate(180deg)}
+  .tg-body{padding-top:11px}
 }
 @media(max-width:430px){
-  .tg-board{grid-template-columns:repeat(5,34px);grid-template-rows:repeat(6,34px);gap:4px}
-  .tg-tile{width:34px;height:34px;font-size:14px}
-  .tg-board-input{top:calc(var(--tg-active-row)*38px);height:34px}
+  .tg-board-wrap{--tg-gap:4px}
+  .tg-tile{font-size:14px}
 }
-@media(prefers-reduced-motion:reduce){.tg-toggle svg{transition:none}}
+@media(prefers-reduced-motion:reduce){.tg-title-chevron,.tg-tile{transition:none}}
 
 
 
@@ -2903,26 +2903,28 @@ body.light .tg-lock{background:rgba(255,255,255,.96)}
 
       <section class="turn-game" id="turnGame" aria-labelledby="tgTitle">
         <div class="tg-head">
-          <button class="tg-title" id="tgTitle" type="button" aria-label="Cómo jugar al desafío del turno" data-iw-tooltip="Adiviná la palabra en 6 intentos. Verde: letra y lugar correctos. Amarillo: letra correcta en otro lugar. Tocá la fila para escribir. Cada pista resta 100 puntos.">
-            <span class="tg-live" aria-hidden="true"></span>
-            <span>Desafío del turno</span>
-            <span class="tg-help" aria-hidden="true">?</span>
-          </button>
+          <div class="tg-title-row">
+            <button class="tg-title" id="tgTitle" type="button" aria-controls="tgBody" aria-expanded="false">
+              <span class="tg-live" aria-hidden="true"></span>
+              <span>Desafío del día</span>
+              <svg class="tg-title-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <button class="tg-help" type="button" aria-label="Cómo jugar" data-iw-tooltip="Adiviná una palabra de 5 a 8 letras en 6 intentos. Verde: letra y lugar correctos. Amarillo: letra correcta en otro lugar. Tocá cualquier casillero para cambiar sólo esa letra. Cada pista poética resta 1 punto.">?</button>
+          </div>
           <div class="tg-head-actions">
             <span class="tg-owner" id="tgOwner">—</span>
-            <button class="tg-toggle" id="tgToggle" type="button" aria-controls="tgBody" aria-expanded="false"><span id="tgToggleText">Jugar</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button>
           </div>
         </div>
         <div class="tg-body" id="tgBody">
-          <div class="tg-meta"><span>5 letras</span><strong id="tgPotential">1.000 pts posibles</strong></div>
+          <div class="tg-meta"><span id="tgLength">5–8 letras</span><strong id="tgPotential">10 pts posibles</strong></div>
           <div class="tg-board-wrap" id="tgBoardWrap">
             <div class="tg-board" id="tgBoard" role="grid" aria-label="Tablero de seis intentos"></div>
-            <input class="tg-board-input" id="tgInput" maxlength="5" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Escribir intento en la fila activa">
+            <input class="tg-board-input" id="tgInput" maxlength="8" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Escribir en el casillero seleccionado">
             <div class="tg-lock" id="tgLock" hidden></div>
           </div>
           <div class="tg-controls">
             <button class="tg-submit" id="tgSubmit" type="button">Probar</button>
-            <button class="tg-hint-btn" id="tgHint" type="button">Pista -100</button>
+            <button class="tg-hint-btn" id="tgHint" type="button">Pista -1</button>
             <button class="tg-reset" id="tgReset" type="button" aria-label="Reiniciar la partida de práctica" data-iw-tooltip="Reiniciar la práctica con una palabra nueva" hidden><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg></button>
           </div>
           <div class="tg-status" id="tgStatus" aria-live="polite">Quedan 6 intentos</div>
@@ -3486,26 +3488,221 @@ function showToast(msg){
 (function initTurnGame(){
   const root=document.getElementById('turnGame');
   if(!root)return;
-  const rawWords=[
-    'ABEJA','ABRIL','ABRIR','ACERO','ACTOR','ADIÓS','AGITA','AGUAS','AGUJA','AHORA','ÁLBUM','ALDEA','ALGÚN','ALTAR','AMADO','AMIGA','AMIGO','ANCHO','ANTES','ÁNIMO','APAGA','APOYO','ÁRBOL','ARDER','ARENA','ARMAR','AROMA','ARROZ','ASADO','ATADO','AUTOR','AVIÓN','AYUDA',
-    'BAILE','BAJAR','BALDE','BANCO','BANDA','BAÑOS','BARBA','BARCO','BARRO','BASTA','BATIR','BEBER','BEBÉS','BELLA','BESOS','BICHO','BLUSA','BOCAS','BODAS','BOLSA','BOLSO','BOMBA','BORDE','BOTAS','BOTÓN','BRAZO','BRAVO','BREVE','BRISA','BRUJA','BUENO','BURRO','BUSCA',
-    'CABLE','CABRA','CAÍDA','CAJAS','CAJÓN','CALLE','CALMA','CALOR','CAMAS','CAMPO','CANAL','CANSA','CANTO','CAÑÓN','CAPAZ','CARAS','CARGO','CARNE','CARPA','CARRO','CARTA','CASCO','CAUSA','CENAS','CERCA','CERDO','CERRO','CHICO','CIELO','CINCO','CITAR','CLARO','CLASE','CLAVE','COBRA','COCHE','COLOR','COMER','COMÚN','COPAS','CORAL','CORRE','CORTE','COSAS','COSTA','CREER','CREMA','CRUCE','CUERO','CUEVA','CUIDA','CULPA','CURAR','CURSO',
-    'DANZA','DATOS','DÉBIL','DEBER','DECIR','DEDOS','DESEO','DIETA','DOLOR','DUCHA','DULCE','DUEÑO','ECHAR','ENERO','ENOJO','ENTRE','ENVÍO','ÉPOCA','ERROR','ESPÍA','ESTAR','ETAPA','ÉXITO',
-    'FALDA','FALLO','FALSO','FALTA','FAROL','FAVOR','FELIZ','FERIA','FIJAR','FINAL','FINCA','FIRME','FLACO','FLORA','FLOTA','FONDO','FORMA','FRASE','FRENO','FRESA','FRITO','FRUTA','FUEGO','FUERA','FUMAR',
-    'GAFAS','GANAR','GANAS','GARRA','GATOS','GENTE','GLOBO','GOLPE','GORRA','GORRO','GRANO','GRASA','GRAVE','GRITO','GRUPO','GUAPA','HABER','HABLA','HACER','HACIA','HALLA','HASTA','HERIR','HIELO','HIJOS','HOJAS','HOGAR','HONDO','HORNO','HOTEL','HUECO','HUESO','HUEVO',
-    'IDEAL','IGUAL','JABÓN','JARRA','JAULA','JOVEN','JUEGO','JUGAR','JUNIO','JUNTO','LADOS','LAGOS','LANZA','LÁPIZ','LARGO','LATIR','LAVAR','LECHE','LEJOS','LENTO','LIBRE','LIBRO','LIMÓN','LINDO','LISTA','LISTO','LLAMA','LLANO','LLAVE','LLENO','LOCAL','LOGRO','LUCES','LUEGO','LUGAR',
-    'MADRE','MAGIA','MALLA','MANGO','MANTA','MANOS','MARCA','MAREA','MARZO','MAYOR','MEDIO','MEJOR','MENOR','MENTE','MESAS','METAL','MIEDO','MIRAR','MONTE','MORIR','MOSCA','MOTOR','MUJER','MUNDO','NACER','NADAR','NARIZ','NEGAR','NEGRO','NIEVE','NIETA','NIÑOS','NIVEL','NOCHE','NORTE','NOVIO','NUBES','NUEVO','NUNCA',
-    'OLIVA','ORDEN','OVEJA','PADRE','PAGAR','PALMA','PALOS','PANEL','PANZA','PAPEL','PARAR','PARDO','PARED','PARTE','PASAR','PASEO','PASTA','PATIO','PECES','PERLA','PERRO','PESAR','PIANO','PIEZA','PILAR','PISTA','PLANO','PLATO','PLAYA','PLAZA','PLENO','PLUMA','POBRE','PODER','POEMA','POLLO','PONER','PRADO','PRESA','PRIMO','PUNTA',
-    'QUESO','RADAR','RADIO','RAMOS','RATÓN','RAYOS','REGLA','REINA','RELOJ','RENTA','RESTO','RISAS','RITMO','ROBAR','ROBLE','ROCAS','ROMPE','RUEDA','RUIDO','SABER','SALIR','SALSA','SALTO','SALUD','SANTO','SECAR','SERIO','SILLA','SOBRE','SOLAR','SUELO','SUEÑO',
-    'TAPAR','TARDE','TAREA','TECHO','TELÓN','TEMAS','TEMOR','TENER','TENIS','TIBIO','TINTA','TOCAR','TOMAR','TORRE','TOTAL','TRAER','TRAJE','TRATO','TRIGO','TROZO','TURNO','ÚNICO','UNIÓN','VACÍO','VALOR','VAPOR','VENIR','VENTA','VERBO','VERDE','VIAJE','VIDEO','VIEJO','VIRUS','VISTA','VIVIR','VOLAR','VOTOS','VUELO','YERBA','YOGUR','ZONAS'
+  const rawChallenges=[
+    ['ABEJA','sustantivo','Guarda verano en sus alas y convierte flores en oro.'],
+    ['ABRIL','sustantivo','Llega con luz más suave y hojas que empiezan a despedirse.'],
+    ['ÁRBOL','sustantivo','Bebe en silencio desde la tierra y conversa con el cielo.'],
+    ['ARENA','sustantivo','Fue piedra, ahora se escapa entre los dedos y cuenta costas.'],
+    ['AROMA','sustantivo','Viaja sin cuerpo y abre recuerdos antes que puertas.'],
+    ['BAILE','sustantivo','Cuando el cuerpo decide hablar sin pedirle palabras a la boca.'],
+    ['BARCO','sustantivo','Una casa pequeña que aprende a caminar sobre el agua.'],
+    ['BRISA','sustantivo','Pasa sin pedir permiso y apenas despeina al mundo.'],
+    ['CALMA','sustantivo','El instante en que hasta el ruido parece respirar despacio.'],
+    ['CALOR','sustantivo','Abrazo invisible que a veces abriga y a veces obliga a buscar sombra.'],
+    ['CAMPO','sustantivo','Horizonte sin apuro donde la tierra ocupa casi toda la mirada.'],
+    ['CIELO','sustantivo','Techo que nadie construyó y cambia de color sin pintura.'],
+    ['CLAVE','sustantivo','Pequeña respuesta capaz de abrir un secreto o una cerradura.'],
+    ['FUEGO','sustantivo','Baila mientras devora y deja luz donde antes había frío.'],
+    ['HIELO','sustantivo','Agua que aprendió a quedarse quieta y a conservar el invierno.'],
+    ['HOGAR','sustantivo','No siempre es una casa: es el lugar donde uno baja la guardia.'],
+    ['JUEGO','sustantivo','Un acuerdo para entrar por un rato en un mundo con otras reglas.'],
+    ['LÁPIZ','sustantivo','Deja un camino oscuro que una goma todavía puede hacer desaparecer.'],
+    ['LIBRO','sustantivo','Permanece cerrado hasta que unas manos despiertan todas sus voces.'],
+    ['MAGIA','sustantivo','Algo sucede ante los ojos y la explicación llega demasiado tarde.'],
+    ['MIEDO','sustantivo','Sombra interior que agranda los pasos de aquello que aún no ocurrió.'],
+    ['NOCHE','sustantivo','Apaga el horizonte para encender lo que el día no deja ver.'],
+    ['OTOÑO','sustantivo','La estación que pinta despedidas antes de soltarlas al suelo.'],
+    ['PLAYA','sustantivo','Frontera blanda donde el mar insiste y la tierra no se enoja.'],
+    ['RELOJ','sustantivo','Devora el día sin dientes y jamás devuelve lo que toma.'],
+    ['RITMO','sustantivo','Orden invisible que hace caminar juntos al tiempo y al cuerpo.'],
+    ['RUMOR','sustantivo','Una voz sin dueño que crece mientras cambia de boca.'],
+    ['SUEÑO','sustantivo','Cine privado que abre cuando los ojos cierran.'],
+    ['VIAJE','sustantivo','Comienza al dejar un lugar y a veces termina siendo otro por dentro.'],
+    ['VUELO','sustantivo','Un trayecto que deja al suelo mirando desde lejos.'],
+    ['RUIDO','sustantivo','Interrumpe el aire y obliga al silencio a hacerse notar.'],
+    ['FAROL','sustantivo','Pequeño sol de calle que trabaja cuando el grande se retira.'],
+    ['DULCE','adjetivo','Puede vivir en el sabor, en una voz o en una manera de cuidar.'],
+    ['VERDE','adjetivo','Color de lo que brota, de cierta esperanza y de algunas frutas impacientes.'],
+    ['JOVEN','adjetivo','Todavía guarda más comienzos que recuerdos.'],
+    ['FELIZ','adjetivo','Así se siente quien por un momento no necesita estar en otra parte.'],
+    ['NUEVO','adjetivo','Todavía no carga desgaste y conserva el brillo del primer encuentro.'],
+    ['SUAVE','adjetivo','Llega sin herir la piel, la voz ni el ánimo.'],
+    ['MIRAR','verbo','Abrir dos ventanas sin mover una puerta.'],
+    ['VOLAR','verbo','Discutir con el suelo y ganar por un rato.'],
+    ['LATIR','verbo','Golpear desde adentro para recordar que algo sigue vivo.'],
+    ['CREER','verbo','Sostener un puente aunque todavía no se vea.'],
+    ['AHORA','adverbio','El único instante que nunca puede visitarse después.'],
+    ['ANTES','adverbio','Territorio del tiempo al que sólo regresan los recuerdos.'],
+    ['CERCA','adverbio','Tan poca distancia que la llegada ya empieza a sentirse.'],
+    ['LEJOS','adverbio','Donde los detalles se rinden y el deseo necesita camino.'],
+    ['NUNCA','adverbio','Una puerta del tiempo que promete permanecer cerrada.'],
+    ['LUEGO','adverbio','No es todavía, pero espera apenas detrás de este momento.'],
+    ['HACIA','preposicion','No es llegada ni partida: apenas inclina el camino en una dirección.'],
+    ['HASTA','preposicion','Marca el borde donde un recorrido, un tiempo o una paciencia se detienen.'],
+    ['ENTRE','preposicion','Habita el pequeño territorio que separa y reúne dos cosas.'],
+    ['SOBRE','preposicion','Puede elevar algo, cubrirlo o convertirlo en tema de conversación.'],
+    ['DESDE','preposicion','Señala el punto secreto donde comienza una distancia o un recuerdo.'],
+    ['SEGÚN','preposicion','Entrega la verdad a la mirada, la regla o la voz de otro.'],
+
+    ['ABRAZO','sustantivo','Dos brazos construyen por un instante una casa alrededor de alguien.'],
+    ['ALTURA','sustantivo','Distancia vertical que vuelve pequeño aquello que queda abajo.'],
+    ['AURORA','sustantivo','Primera luz que rompe la noche sin hacer ruido.'],
+    ['BOSQUE','sustantivo','Muchas raíces comparten un techo hecho de hojas.'],
+    ['CAMINO','sustantivo','Una línea en la tierra que sabe de partidas y regresos.'],
+    ['CARIÑO','sustantivo','Cuidado que se nota incluso cuando nadie lo nombra.'],
+    ['CEREZA','sustantivo','Pequeño fruto rojo que suele coronar lo que ya era tentador.'],
+    ['CORAJE','sustantivo','No borra el miedo: consigue caminar a pesar de él.'],
+    ['ESPEJO','sustantivo','Devuelve todo lo que ve, pero guarda nada para sí.'],
+    ['ESPERA','sustantivo','Tiempo detenido entre lo que se desea y lo que finalmente llega.'],
+    ['ESPUMA','sustantivo','Multitud de burbujas que dura poco sobre agua, mar o jabón.'],
+    ['FUTURO','sustantivo','Habitación del tiempo a la que nadie entró todavía.'],
+    ['HAMACA','sustantivo','Asiento inquieto que va y vuelve sin viajar a ninguna parte.'],
+    ['HUELLA','sustantivo','La marca que queda cuando quien pasó ya no está.'],
+    ['JARDÍN','sustantivo','Un pedazo de tierra al que alguien convenció de florecer.'],
+    ['LAGUNA','sustantivo','Espejo de agua que la tierra abraza por todos lados.'],
+    ['LATIDO','sustantivo','Golpe diminuto y constante que cuenta la vida desde adentro.'],
+    ['LLUVIA','sustantivo','El cielo se desarma en pequeños espejos sobre la vereda.'],
+    ['MAÑANA','sustantivo','Puede ser la primera mitad del día o aquello que todavía no llegó.'],
+    ['MÚSICA','sustantivo','El aire se ordena y de pronto encuentra una forma de emocionar.'],
+    ['OCÉANO','sustantivo','Agua sin apuro que ocupa tanto mundo que parece no terminar.'],
+    ['OLVIDO','sustantivo','Un recuerdo pierde lentamente el camino de regreso.'],
+    ['PÁJARO','sustantivo','Lleva una canción liviana en un cuerpo hecho para el cielo.'],
+    ['PÉTALO','sustantivo','Una de las delicadas páginas con las que una flor se presenta.'],
+    ['PIEDRA','sustantivo','Pedazo de tiempo duro que la tierra guarda en la mano.'],
+    ['POESÍA','sustantivo','Las palabras dejan de explicar y empiezan a revelar.'],
+    ['PUENTE','sustantivo','Convence a dos orillas de que la distancia puede cruzarse.'],
+    ['PUERTA','sustantivo','Una pared aprende a permitir entradas y despedidas.'],
+    ['RINCÓN','sustantivo','Pequeño lugar donde dos paredes guardan algo de intimidad.'],
+    ['SONIDO','sustantivo','Una vibración encuentra oído y deja de ser solamente aire.'],
+    ['TESORO','sustantivo','Vale tanto para alguien que esconderlo parece una forma de cuidarlo.'],
+    ['TIEMPO','sustantivo','Todos lo gastan, nadie puede guardarlo y siempre sigue andando.'],
+    ['TRUENO','sustantivo','La tormenta habla fuerte después de encender el cielo.'],
+    ['UMBRAL','sustantivo','La línea mínima donde terminar afuera significa empezar adentro.'],
+    ['VIENTO','sustantivo','Aire viajero que se deja ver sólo en aquello que mueve.'],
+    ['ZAPATO','sustantivo','Casa para el pie que conoce cada paso sin elegir el destino.'],
+    ['ALEGRE','adjetivo','Lleva una pequeña fiesta visible incluso cuando permanece quieto.'],
+    ['SERENO','adjetivo','Nada lo apura por dentro aunque el mundo corra alrededor.'],
+    ['ENORME','adjetivo','Tan grande que obliga a la mirada a tomar distancia.'],
+    ['TÍMIDO','adjetivo','Prefiere el borde de la escena aunque tenga algo para decir.'],
+    ['AMABLE','adjetivo','Hace más liviano el encuentro con una forma sencilla de tratar.'],
+    ['PENSAR','verbo','Caminar por dentro sin mover los pies.'],
+    ['SENTIR','verbo','Dejar que el mundo encuentre eco debajo de la piel.'],
+    ['CANTAR','verbo','Dejar que el aire salga vestido de emoción.'],
+    ['QUIZÁS','adverbio','Deja una puerta entreabierta sin prometer que alguien pasará.'],
+    ['ARRIBA','adverbio','El lugar al que apunta una mirada cuando se aleja del suelo.'],
+    ['AFUERA','adverbio','Todo lo que comienza después de cruzar el límite de adentro.'],
+    ['APENAS','adverbio','Tan poco o tan pronto que casi podría pasar inadvertido.'],
+    ['CONTRA','preposicion','Pone una cosa frente a otra, como viento que niega el paso.'],
+    ['AUNQUE','conector','Admite un obstáculo y aun así deja que la frase continúe.'],
+    ['PORQUE','conector','Abre la habitación donde una causa explica lo sucedido.'],
+
+    ['ALEGRÍA','sustantivo','Luz interior que a veces se escapa en forma de sonrisa.'],
+    ['ALIENTO','sustantivo','Aire que sale del cuerpo o fuerza que otro presta para continuar.'],
+    ['AMISTAD','sustantivo','Un vínculo elegido que sabe quedarse sin obligación.'],
+    ['BURBUJA','sustantivo','Pequeña esfera que encierra aire y vive al borde de desaparecer.'],
+    ['CABALLO','sustantivo','Cuatro cascos, una crin y un antiguo acuerdo con el camino.'],
+    ['CANCIÓN','sustantivo','Palabras y melodía deciden recordar juntas una emoción.'],
+    ['CASCADA','sustantivo','Un río encuentra un escalón y cae sin dejar de avanzar.'],
+    ['CERTEZA','sustantivo','Cuando la duda deja de encontrar dónde sentarse.'],
+    ['CÍRCULO','sustantivo','Línea que vuelve a su comienzo sin encontrar una esquina.'],
+    ['CORAZÓN','sustantivo','Trabaja sin descanso y también carga con todo lo que se siente.'],
+    ['CRISTAL','sustantivo','Deja pasar la luz, pero un golpe puede convertirlo en muchas piezas.'],
+    ['DESTINO','sustantivo','Punto al que llega un viaje o historia que algunos creen ya escrita.'],
+    ['ECLIPSE','sustantivo','Un astro pasa delante de otro y la luz aprende a esconderse.'],
+    ['ESENCIA','sustantivo','Lo que permanece siendo verdad cuando todo adorno se retira.'],
+    ['FAMILIA','sustantivo','Personas unidas por origen, elección o una historia compartida.'],
+    ['GAVIOTA','sustantivo','Ave costera que escribe curvas blancas sobre el viento marino.'],
+    ['IMPULSO','sustantivo','Empujón nacido adentro que pone en marcha antes de preguntar.'],
+    ['LÁGRIMA','sustantivo','Una emoción encuentra salida en una gota salada.'],
+    ['MÁSCARA','sustantivo','Un rostro prestado que muestra algo mientras oculta otra cosa.'],
+    ['MEMORIA','sustantivo','Archivo imperfecto donde el pasado cambia cada vez que regresa.'],
+    ['MONTAÑA','sustantivo','La tierra se eleva hasta obligar al horizonte a rodearla.'],
+    ['NARANJA','sustantivo','Fruta y color comparten una misma palabra jugosa.'],
+    ['NEBLINA','sustantivo','Nube baja que le quita precisión al paisaje.'],
+    ['PAISAJE','sustantivo','Una porción del mundo se deja abarcar por la mirada.'],
+    ['PALABRA','sustantivo','Pocas letras pueden nombrar una cosa o cambiar una historia.'],
+    ['PERFUME','sustantivo','Aroma elegido que llega antes y suele quedarse después.'],
+    ['PINTURA','sustantivo','El color aprende a ocupar una pared, una tela o una idea.'],
+    ['PLANETA','sustantivo','Mundo redondo que viaja sin descanso alrededor de una estrella.'],
+    ['PROMESA','sustantivo','Una frase empeña el futuro para darle confianza al presente.'],
+    ['REFUGIO','sustantivo','Lugar donde el peligro queda afuera y el cuerpo puede aflojar.'],
+    ['REGRESO','sustantivo','El camino deja de alejarse y vuelve hacia lo conocido.'],
+    ['RESPIRO','sustantivo','Pausa breve donde el aire y el ánimo recuperan espacio.'],
+    ['SECRETO','sustantivo','Información que vive mejor mientras pocas bocas conocen su nombre.'],
+    ['SEMILLA','sustantivo','Guarda un bosque posible dentro de un cuerpo diminuto.'],
+    ['SENDERO','sustantivo','Camino angosto que invita a pasar de a pocos.'],
+    ['SONRISA','sustantivo','Una curva del rostro cambia la temperatura de un encuentro.'],
+    ['VENTANA','sustantivo','La pared abre un ojo para que entren paisaje y luz.'],
+    ['SINCERO','adjetivo','No disfraza lo que piensa aunque la verdad pese.'],
+    ['DORMIDO','adjetivo','Está lejos del ruido aun cuando su cuerpo permanece cerca.'],
+    ['ABIERTO','adjetivo','No pone barrera al paso, a la mirada ni a una posibilidad.'],
+    ['BRILLAR','verbo','Devolver luz hasta conseguir que la oscuridad retroceda.'],
+    ['ADENTRO','adverbio','El lado de un límite donde algo queda contenido.'],
+    ['SIEMPRE','adverbio','Una palabra que intenta estirar el tiempo hasta no dejarle final.'],
+    ['DESPUÉS','adverbio','La región del tiempo que comienza cuando esto termina.'],
+    ['TAMBIÉN','adverbio','Suma compañía a algo que ya estaba dicho o presente.'],
+    ['DURANTE','preposicion','Extiende una acción dentro del tiempo que la contiene.'],
+
+    ['AMANECER','sustantivo','La noche afloja lentamente hasta que el mundo recupera sus colores.'],
+    ['AVENTURA','sustantivo','Un viaje acepta lo inesperado y vuelve convertido en relato.'],
+    ['ARCOÍRIS','sustantivo','La luz atraviesa agua y despliega sus colores en el cielo.'],
+    ['CARACOLA','sustantivo','Pequeña casa espiral donde el mar parece haber dejado un rumor.'],
+    ['CARRUSEL','sustantivo','Viaje circular de feria que avanza sin abandonar su lugar.'],
+    ['CUADERNO','sustantivo','Muchas páginas vacías esperan ideas, cuentas o dibujos.'],
+    ['DESIERTO','sustantivo','La tierra se extiende casi sola bajo un cielo sin sombra.'],
+    ['DIAMANTE','sustantivo','La presión escondida durante años termina convertida en brillo duro.'],
+    ['ELEFANTE','sustantivo','Gigante de memoria larga, pasos pesados y una nariz extraordinaria.'],
+    ['EQUIPAJE','sustantivo','Todo lo que viaja con uno sin caminar por sus propios medios.'],
+    ['ESCALERA','sustantivo','Divide una altura en pequeños pasos que los pies pueden negociar.'],
+    ['ESTRELLA','sustantivo','Parece un punto nocturno, aunque arde enorme a una distancia imposible.'],
+    ['FANTASMA','sustantivo','Presencia sin cuerpo que los relatos dejan atravesar paredes.'],
+    ['FRONTERA','sustantivo','Línea imaginada que consigue separar territorios reales.'],
+    ['GALAXIAS','sustantivo','Ciudades inmensas de estrellas separadas por noches todavía mayores.'],
+    ['GUITARRA','sustantivo','Seis cuerdas suelen bastarle para llenar una habitación de música.'],
+    ['HISTORIA','sustantivo','El tiempo se vuelve relato para no desaparecer del todo.'],
+    ['INVIERNO','sustantivo','Estación en que el aire enfría y la luz se retira más temprano.'],
+    ['JUGUETES','sustantivo','Objetos quietos hasta que la imaginación les presta una vida.'],
+    ['LIBÉLULA','sustantivo','Insecto de alas transparentes que patrulla el aire cerca del agua.'],
+    ['LIBERTAD','sustantivo','Espacio para elegir el propio paso sin cadenas visibles ni ocultas.'],
+    ['LINTERNA','sustantivo','Pequeña herramienta que lleva un círculo de día dentro de la noche.'],
+    ['LLOVIZNA','sustantivo','Lluvia tan fina que parece flotar antes de mojar.'],
+    ['MARIPOSA','sustantivo','Una antigua oruga aprende a escribir colores en el aire.'],
+    ['MISTERIO','sustantivo','Una puerta cerrada que invita más de lo que prohíbe.'],
+    ['MURMULLO','sustantivo','Voz tan baja que obliga al oído a acercarse.'],
+    ['PARAGUAS','sustantivo','Techo portátil que florece cuando el cielo empieza a caer.'],
+    ['PINGÜINO','sustantivo','Ave de traje oscuro que cambió el vuelo por una gran natación.'],
+    ['PREGUNTA','sustantivo','Una frase abre un hueco que espera ser llenado por una respuesta.'],
+    ['RECUERDO','sustantivo','El pasado encuentra una pequeña forma de seguir presente.'],
+    ['SERENATA','sustantivo','Música que viaja hasta una ventana con alguien especial como destino.'],
+    ['SILENCIO','sustantivo','Llena una habitación sin decir una sola cosa.'],
+    ['SINFONÍA','sustantivo','Muchas voces musicales construyen juntas una sola arquitectura.'],
+    ['TORMENTA','sustantivo','El cielo mezcla agua, viento, luz y estruendo en una misma escena.'],
+    ['TRISTEZA','sustantivo','El ánimo se vuelve pesado y hasta la luz parece quedar más lejos.'],
+    ['UNIVERSO','sustantivo','Todo lo que existe comparte este nombre, incluso lo que aún ignoramos.'],
+    ['VENTISCA','sustantivo','El viento arrastra nieve hasta borrar los bordes del paisaje.'],
+    ['VALIENTE','adjetivo','Avanza con miedo, porque el valor no necesita que desaparezca.'],
+    ['DISTINTO','adjetivo','No cabe del todo en el molde con el que se compara.'],
+    ['TEMPRANO','adverbio','Llega cuando al día todavía le queda casi todo por suceder.'],
+    ['ENTONCES','adverbio','Puede señalar aquel momento o empujar una consecuencia.'],
+    ['DESPACIO','adverbio','Hace del avance una paciencia y le quita urgencia al movimiento.'],
+    ['MEDIANTE','preposicion','Nombra el puente o recurso por el que algo logra suceder.'],
+    ['MIENTRAS','conector','Mantiene dos acciones compartiendo el mismo tramo de tiempo.'],
+    ['ESCRIBIR','verbo','Dejar que una idea encuentre cuerpo en una sucesión de signos.'],
+    ['IMAGINAR','verbo','Mirar lo que no está usando solamente los ojos de adentro.'],
+    ['RESPIRAR','verbo','Intercambiar aire con el mundo para sostener la vida.'],
+    ['SUSURRAR','verbo','Hablar tan bajo que la voz parece destinada a una sola persona.'],
+    ['ACARICIA','verbo','Una mano dice ternura sin necesitar palabras.'],
+    ['FLOTANDO','verbo','Permanece sostenido sin tocar el fondo ni caer por completo.']
   ];
-  const scores=[1000,850,700,550,400,250],storageKey='kiosco_turn_game_v1';
-  const normalize=value=>String(value??'').toLocaleUpperCase('es-AR').replace(/Ñ/g,'\uE000').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\uE000/g,'Ñ').replace(/[^A-ZÑ]/g,'').slice(0,5);
-  const words=[...new Map(rawWords.map(display=>[normalize(display),{display,key:normalize(display)}]).filter(([key])=>key.length===5)).values()];
+  const scores=[10,8,6,4,2,1],storageKey='kiosco_turn_game_v2';
+  const normalize=value=>String(value??'').toLocaleUpperCase('es-AR').replace(/Ñ/g,'\uE000').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\uE000/g,'Ñ').replace(/[^A-ZÑ]/g,'');
+  const words=[...new Map(rawChallenges.map(([display,category,clue])=>{
+    const key=normalize(display);return[key,{display,category,clue,key,length:[...key].length}];
+  }).filter(([key])=>key.length>=5&&key.length<=8)).values()];
   const els={
     owner:document.getElementById('tgOwner'),potential:document.getElementById('tgPotential'),board:document.getElementById('tgBoard'),wrap:document.getElementById('tgBoardWrap'),
     input:document.getElementById('tgInput'),lock:document.getElementById('tgLock'),submit:document.getElementById('tgSubmit'),hint:document.getElementById('tgHint'),reset:document.getElementById('tgReset'),
-    status:document.getElementById('tgStatus'),ranking:document.getElementById('tgRanking'),week:document.getElementById('tgWeek'),toggle:document.getElementById('tgToggle'),toggleText:document.getElementById('tgToggleText')
+    status:document.getElementById('tgStatus'),ranking:document.getElementById('tgRanking'),week:document.getElementById('tgWeek'),title:document.getElementById('tgTitle'),length:document.getElementById('tgLength')
   };
   const readState=()=>{
     try{const data=JSON.parse(localStorage.getItem(storageKey)||'{}');return{assignments:data.assignments||{},used:Array.isArray(data.used)?data.used:[],games:data.games||{}};}
@@ -3516,17 +3713,6 @@ function showToast(msg){
   const mondayKey=date=>{const d=new Date(date.getFullYear(),date.getMonth(),date.getDate(),12);d.setDate(d.getDate()-((d.getDay()+6)%7));return dateKey(d);};
   const timeLabel=(h,m)=>`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
   const hash=value=>{let h=2166136261;for(let i=0;i<value.length;i++){h^=value.charCodeAt(i);h=Math.imul(h,16777619);}return h>>>0;};
-  const crypticHint=word=>{
-    const letters=[...word],vowels=letters.filter(letter=>'AEIOU'.includes(letter)),counts={};letters.forEach(letter=>counts[letter]=(counts[letter]||0)+1);
-    const repeated=Object.values(counts).some(count=>count>1),middle=letters[2],firstVowel='AEIOU'.includes(letters[0]),lastVowel='AEIOU'.includes(letters[4]);
-    const clues=[
-      repeated?'Una letra insiste en volver.':'Cada letra aparece una sola vez.',
-      `${vowels.length===1?'Una sola vocal respira':vowels.length===2?'Dos vocales se esconden':`${vowels.length} vocales se reparten`} entre cinco lugares.`,
-      `En el corazón hay ${'AEIOU'.includes(middle)?'una vocal':'una consonante'}.`,
-      firstVowel===lastVowel?`Sus dos extremos pertenecen a la misma familia.`:`Sus extremos no pertenecen a la misma familia.`
-    ];
-    const start=hash(word)%clues.length;return`${clues[start]} ${clues[(start+1)%clues.length]}`;
-  };
   const now=new Date(),mins=now.getHours()*60+now.getMinutes(),first=TURNOS[0],last=TURNOS[TURNOS.length-1],day=dateKey(now);
   const practiceRequested=new URLSearchParams(location.search).get('prueba')==='vale';
   const isPractice=practiceRequested&&day==='2026-08-01'&&mins<first.desdeH*60+first.desdeM;
@@ -3540,23 +3726,34 @@ function showToast(msg){
     if(saved){const found=words.find(word=>word.key===normalize(saved));if(found)return found;}
     const used=new Set(state.used.map(normalize));
     if(used.size>=words.length)return null;
-    let index=hash(puzzleId)%words.length,word=null;
-    for(let i=0;i<words.length;i++){const candidate=words[(index+i)%words.length];if(!used.has(candidate.key)){word=candidate;break;}}
+    const available=words.filter(word=>!used.has(word.key));
+    const preferredLength=5+(hash(`${puzzleId}|longitud`)%4);
+    let lengthPool=available.filter(word=>word.length===preferredLength);
+    if(!lengthPool.length)lengthPool=available;
+    const categories=[...new Set(lengthPool.map(word=>word.category))];
+    const category=categories[hash(`${puzzleId}|categoria`)%categories.length];
+    const candidates=lengthPool.filter(word=>word.category===category);
+    const word=candidates[hash(`${puzzleId}|palabra`)%candidates.length];
     if(!word)return null;
     state.assignments[puzzleId]=word.display;state.used.push(word.key);writeState(state);return word;
   }
   const answer=locked?null:assignWord();
   if(!locked&&!answer)locked=true;
+  const wordLength=answer?.length||5;
   const game=state.games[puzzleId]||{puzzleId,puzzleDate:day,owner:owner.nombre,practice:isPractice,guesses:[],penalty:0,hintUsed:false,won:false,lost:false,score:0,completedAt:null};
   if(!Array.isArray(game.guesses))game.guesses=[];
   state.games[puzzleId]=game;
   const tiles=[];
-  for(let row=0;row<6;row++)for(let col=0;col<5;col++){
-    const tile=document.createElement('span');tile.className='tg-tile';tile.setAttribute('role','gridcell');tile.dataset.row=row;tile.dataset.col=col;els.board.appendChild(tile);tiles.push(tile);
+  els.length.textContent=answer?`${wordLength} letras`:'5–8 letras';
+  els.input.maxLength=wordLength;
+  els.wrap.style.setProperty('--tg-cols',wordLength);
+  els.wrap.style.setProperty('--tg-tile-size',`${wordLength<=5?38:wordLength===6?36:wordLength===7?34:32}px`);
+  for(let row=0;row<6;row++)for(let col=0;col<wordLength;col++){
+    const tile=document.createElement('span');tile.className='tg-tile';tile.setAttribute('role','gridcell');tile.setAttribute('aria-label',`Intento ${row+1}, letra ${col+1}`);tile.dataset.row=row;tile.dataset.col=col;els.board.appendChild(tile);tiles.push(tile);
   }
-  const tileAt=(row,col)=>tiles[row*5+col];
+  const tileAt=(row,col)=>tiles[row*wordLength+col];
   const resultFor=guess=>{
-    const result=Array(5).fill('absent'),remaining={};
+    const result=Array(wordLength).fill('absent'),remaining={};
     [...answer.key].forEach((letter,index)=>{if(guess[index]===letter)result[index]='correct';else remaining[letter]=(remaining[letter]||0)+1;});
     [...guess].forEach((letter,index)=>{if(result[index]==='correct')return;if(remaining[letter]>0){result[index]='present';remaining[letter]--;}});
     return result;
@@ -3566,18 +3763,35 @@ function showToast(msg){
     result.forEach((kind,col)=>{
       const tile=tileAt(row,col),apply=()=>{
         tile.textContent=kind==='correct'?answerChars[col]:guess[col];
-        tile.classList.remove('is-active','is-filled','is-correct','is-present','is-absent');tile.classList.add(`is-${kind}`);
+        tile.classList.remove('is-active','is-selected','is-filled','is-correct','is-present','is-absent');tile.classList.add(`is-${kind}`);
         if(animate&&tile.animate)tile.animate([{transform:'rotateX(0deg)'},{transform:'rotateX(88deg)',offset:.48},{transform:'rotateX(0deg)'}],{duration:430,easing:'ease-in-out'});
       };
       if(animate)setTimeout(apply,col*82);else apply();
     });
     return result;
   }
+  let draft=Array(wordLength).fill(''),selectedCol=0;
+  function renderDraft(){
+    const finished=locked||game.won||game.lost,row=game.guesses.length;
+    for(let col=0;col<wordLength;col++){
+      const tile=tileAt(row,col);if(!tile)continue;
+      tile.textContent=draft[col]||'';
+      tile.classList.toggle('is-filled',Boolean(draft[col]));
+      tile.classList.toggle('is-selected',!finished&&col===selectedCol);
+      tile.setAttribute('aria-selected',String(!finished&&col===selectedCol));
+    }
+    els.wrap.style.setProperty('--tg-selected-col',selectedCol);
+  }
   function setActiveRow(){
     const finished=locked||game.won||game.lost,row=game.guesses.length;
-    tiles.forEach(tile=>tile.classList.toggle('is-active',!finished&&Number(tile.dataset.row)===row));
+    tiles.forEach(tile=>{
+      const active=!finished&&Number(tile.dataset.row)===row;
+      tile.classList.toggle('is-active',active);
+      if(!active)tile.classList.remove('is-selected');
+    });
     els.wrap.style.setProperty('--tg-active-row',Math.min(row,5));
     els.input.disabled=finished;els.submit.disabled=finished;els.hint.disabled=finished||game.hintUsed;
+    if(!finished)renderDraft();
   }
   function potential(){
     if(game.won){els.potential.textContent=`${Number(game.score).toLocaleString('es-AR')} pts ${isPractice?'de práctica':'ganados'}`;return Number(game.score)||0;}
@@ -3585,16 +3799,12 @@ function showToast(msg){
     const index=Math.min(game.guesses.length,5),value=Math.max(0,scores[index]-(Number(game.penalty)||0));
     els.potential.textContent=`${value.toLocaleString('es-AR')} pts ${isPractice?'de práctica':'posibles'}`;return value;
   }
-  function preview(){
-    els.input.value=normalize(els.input.value);const row=game.guesses.length;
-    for(let col=0;col<5;col++){const tile=tileAt(row,col);if(!tile||game.won||game.lost||locked)continue;tile.textContent=els.input.value[col]||'';tile.classList.toggle('is-filled',Boolean(els.input.value[col]));}
-  }
   function motionOk(){return!matchMedia('(prefers-reduced-motion: reduce)').matches;}
   function winEffect(row){
     root.classList.add('is-win');
     if(!motionOk())return;
     setTimeout(()=>{
-      for(let col=0;col<5;col++)tileAt(row,col).animate?.([{transform:'translateY(0) scale(1)'},{transform:'translateY(-12px) scale(1.08)',offset:.45},{transform:'translateY(0) scale(1)'}],{duration:620,delay:col*65,easing:'cubic-bezier(.2,.8,.3,1)'});
+      for(let col=0;col<wordLength;col++)tileAt(row,col).animate?.([{transform:'translateY(0) scale(1)'},{transform:'translateY(-12px) scale(1.08)',offset:.45},{transform:'translateY(0) scale(1)'}],{duration:620,delay:col*65,easing:'cubic-bezier(.2,.8,.3,1)'});
       const rect=els.board.getBoundingClientRect();if(typeof eggRing==='function')eggRing(rect.left+rect.width/2,rect.top+rect.height/2,'green',0);
       if(typeof launchConfetti==='function')launchConfetti(2300);
       navigator.vibrate?.([45,30,90]);
@@ -3605,7 +3815,7 @@ function showToast(msg){
     if(!motionOk())return;
     setTimeout(()=>{
       root.animate?.([{transform:'translateX(0)'},{transform:'translateX(-5px)'},{transform:'translateX(5px)'},{transform:'translateX(-3px)'},{transform:'translateX(0)'}],{duration:430,easing:'ease-out'});
-      for(let col=0;col<5;col++)tileAt(row,col).animate?.([{transform:'translateY(0) rotate(0)',opacity:1},{transform:`translateY(${14+col*2}px) rotate(${col%2?5:-5}deg)`,opacity:.35,offset:.62},{transform:'translateY(0) rotate(0)',opacity:1}],{duration:720,delay:col*55,easing:'cubic-bezier(.3,.7,.25,1)'});
+      for(let col=0;col<wordLength;col++)tileAt(row,col).animate?.([{transform:'translateY(0) rotate(0)',opacity:1},{transform:`translateY(${14+col*2}px) rotate(${col%2?5:-5}deg)`,opacity:.35,offset:.62},{transform:'translateY(0) rotate(0)',opacity:1}],{duration:720,delay:col*55,easing:'cubic-bezier(.3,.7,.25,1)'});
       navigator.vibrate?.([85,45,85]);
     },470);
   }
@@ -3636,32 +3846,54 @@ function showToast(msg){
       const agotado=!answer&&mins>=first.desdeH*60+first.desdeM;els.lock.hidden=false;els.lock.textContent=agotado?'Temporada completa: no se repetirá ninguna palabra.':'Disponible con '+owner.nombre+' · '+timeLabel(owner.desdeH,owner.desdeM);els.status.textContent=agotado?'Próximamente, nueva temporada de palabras':'Se habilita al comenzar el turno';
     }else if(game.won){els.status.textContent=`Resuelta en ${game.guesses.length} intento${game.guesses.length===1?'':'s'} · +${Number(game.score).toLocaleString('es-AR')} pts${isPractice?' de práctica':''}`;els.status.classList.add('is-win');root.classList.add('is-win');}
     else if(game.lost){els.status.textContent=`Sin más intentos · era ${answer.display}`;els.status.classList.add('is-loss');root.classList.add('is-loss');}
-    else els.status.textContent=game.hintUsed?`Quedan ${6-game.guesses.length} · ${game.hintText||crypticHint(answer.key)}`:`Quedan ${6-game.guesses.length} intentos`;
+    else els.status.textContent=game.hintUsed?`Quedan ${6-game.guesses.length} · ${game.hintText||answer.clue}`:`Quedan ${6-game.guesses.length} intentos`;
     potential();setActiveRow();renderRanking();
   }
   function play(){
-    if(locked||game.won||game.lost)return;const guess=normalize(els.input.value);
-    if(guess.length!==5){els.status.textContent='Completá las cinco letras';return;}
+    if(locked||game.won||game.lost)return;const guess=draft.join('');
+    if(guess.length!==wordLength){els.status.textContent=`Completá las ${wordLength} letras`;return;}
     if(game.guesses.includes(guess)){els.status.textContent='Esa palabra ya la probaste';return;}
     const row=game.guesses.length;game.guesses.push(guess);const won=guess===answer.key;
     if(won){game.won=true;game.score=Math.max(0,scores[row]-(Number(game.penalty)||0));game.completedAt=new Date().toISOString();}
     else if(game.guesses.length>=6){game.lost=true;game.score=0;game.completedAt=new Date().toISOString();}
-    state.games[puzzleId]=game;writeState(state);els.input.value='';paintRow(row,guess,true);
+    state.games[puzzleId]=game;writeState(state);els.input.value='';paintRow(row,guess,true);draft=Array(wordLength).fill('');selectedCol=0;
     if(won){els.status.textContent=`¡Correcto! +${game.score.toLocaleString('es-AR')} puntos${isPractice?' de práctica':''}`;els.status.className='tg-status is-win';potential();setActiveRow();renderRanking();winEffect(row);}
     else if(game.lost){els.status.textContent=`Sin más intentos · era ${answer.display}`;els.status.className='tg-status is-loss';potential();setActiveRow();renderRanking();lossEffect(row);}
-    else{potential();setActiveRow();els.status.textContent=game.hintUsed?`Quedan ${6-game.guesses.length} · ${game.hintText||crypticHint(answer.key)}`:`Quedan ${6-game.guesses.length} intentos`;els.input.focus();}
+    else{potential();setActiveRow();els.status.textContent=game.hintUsed?`Quedan ${6-game.guesses.length} · ${game.hintText||answer.clue}`:`Quedan ${6-game.guesses.length} intentos`;els.input.focus();}
   }
-  els.wrap.addEventListener('click',()=>{if(!locked&&!game.won&&!game.lost)els.input.focus();});
-  els.input.addEventListener('input',preview);els.input.addEventListener('keydown',event=>{if(event.key==='Enter')play();});els.submit.addEventListener('click',play);
+  els.board.addEventListener('click',event=>{
+    const tile=event.target.closest('.tg-tile');
+    if(!tile||locked||game.won||game.lost||Number(tile.dataset.row)!==game.guesses.length)return;
+    selectedCol=Number(tile.dataset.col);renderDraft();els.input.focus();
+  });
+  els.input.addEventListener('input',()=>{
+    const chars=[...normalize(els.input.value)];
+    chars.forEach(char=>{draft[selectedCol]=char;if(selectedCol<wordLength-1)selectedCol++;});
+    els.input.value='';renderDraft();
+  });
+  els.input.addEventListener('keydown',event=>{
+    if(event.key==='Enter'){event.preventDefault();play();return;}
+    if(event.key==='ArrowLeft'||event.key==='ArrowRight'){
+      event.preventDefault();selectedCol=Math.max(0,Math.min(wordLength-1,selectedCol+(event.key==='ArrowLeft'?-1:1)));renderDraft();return;
+    }
+    if(event.key==='Backspace'){
+      event.preventDefault();
+      if(draft[selectedCol])draft[selectedCol]='';
+      else if(selectedCol>0){selectedCol--;draft[selectedCol]='';}
+      renderDraft();return;
+    }
+    if(event.key==='Delete'){event.preventDefault();draft[selectedCol]='';renderDraft();}
+  });
+  els.submit.addEventListener('click',play);
   els.hint.addEventListener('click',()=>{
-    if(locked||game.won||game.lost||game.hintUsed)return;game.hintUsed=true;game.penalty=100;game.hintText=crypticHint(answer.key);state.games[puzzleId]=game;writeState(state);els.hint.disabled=true;potential();els.status.textContent=`Pista: ${game.hintText}`;els.input.focus();
+    if(locked||game.won||game.lost||game.hintUsed)return;game.hintUsed=true;game.penalty=1;game.hintText=answer.clue;state.games[puzzleId]=game;writeState(state);els.hint.disabled=true;potential();els.status.textContent=`Pista: ${game.hintText}`;els.input.focus();
   });
   els.reset.addEventListener('click',()=>{
     if(!isPractice)return;delete state.games[puzzleId];delete state.assignments[puzzleId];writeState(state);
     const url=new URL(location.href);url.searchParams.set('prueba','vale');url.searchParams.set('reinicio',String(Date.now()));location.replace(url.toString());
   });
-  const setOpen=open=>{root.classList.toggle('is-open',open);els.toggle.setAttribute('aria-expanded',String(open));els.toggleText.textContent=open?'Ocultar':'Jugar';};
-  const mobile=matchMedia('(max-width:900px)');setOpen(!mobile.matches);els.toggle.addEventListener('click',()=>setOpen(!root.classList.contains('is-open')));
+  const setOpen=open=>{root.classList.toggle('is-open',open);els.title.setAttribute('aria-expanded',String(open));};
+  setOpen(false);els.title.addEventListener('click',()=>setOpen(!root.classList.contains('is-open')));
   renderState();
 })();
 
