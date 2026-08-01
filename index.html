@@ -3523,10 +3523,13 @@ function showToast(msg){
     ];
     const start=hash(word)%clues.length;return`${clues[start]} ${clues[(start+1)%clues.length]}`;
   };
-  const now=new Date(),mins=now.getHours()*60+now.getMinutes(),first=TURNOS[0],last=TURNOS[TURNOS.length-1];
+  const now=new Date(),mins=now.getHours()*60+now.getMinutes(),first=TURNOS[0],last=TURNOS[TURNOS.length-1],day=dateKey(now);
+  const practiceRequested=new URLSearchParams(location.search).get('prueba')==='vale';
+  const isPractice=practiceRequested&&day==='2026-08-01'&&mins<first.desdeH*60+first.desdeM;
   let owner=turno||turnoReciente,locked=false;
-  if(!owner){if(mins<first.desdeH*60+first.desdeM){owner=first;locked=true;}else owner=last;}
-  const day=dateKey(now),puzzleId=`${day}|${owner.nombre}`,state=readState();
+  if(isPractice)owner=first;
+  else if(!owner){if(mins<first.desdeH*60+first.desdeM){owner=first;locked=true;}else owner=last;}
+  const puzzleId=isPractice?`${day}|practica-unica-antes-vale`:`${day}|${owner.nombre}`,state=readState();
   function assignWord(){
     const saved=state.assignments[puzzleId];
     if(saved){const found=words.find(word=>word.key===normalize(saved));if(found)return found;}
@@ -3539,7 +3542,7 @@ function showToast(msg){
   }
   const answer=locked?null:assignWord();
   if(!locked&&!answer)locked=true;
-  const game=state.games[puzzleId]||{puzzleId,puzzleDate:day,owner:owner.nombre,guesses:[],penalty:0,hintUsed:false,won:false,lost:false,score:0,completedAt:null};
+  const game=state.games[puzzleId]||{puzzleId,puzzleDate:day,owner:owner.nombre,practice:isPractice,guesses:[],penalty:0,hintUsed:false,won:false,lost:false,score:0,completedAt:null};
   if(!Array.isArray(game.guesses))game.guesses=[];
   state.games[puzzleId]=game;
   const tiles=[];
@@ -3572,10 +3575,10 @@ function showToast(msg){
     els.input.disabled=finished;els.submit.disabled=finished;els.hint.disabled=finished||game.hintUsed;
   }
   function potential(){
-    if(game.won){els.potential.textContent=`${Number(game.score).toLocaleString('es-AR')} pts ganados`;return Number(game.score)||0;}
+    if(game.won){els.potential.textContent=`${Number(game.score).toLocaleString('es-AR')} pts ${isPractice?'de práctica':'ganados'}`;return Number(game.score)||0;}
     if(game.lost){els.potential.textContent='0 pts';return 0;}
     const index=Math.min(game.guesses.length,5),value=Math.max(0,scores[index]-(Number(game.penalty)||0));
-    els.potential.textContent=`${value.toLocaleString('es-AR')} pts posibles`;return value;
+    els.potential.textContent=`${value.toLocaleString('es-AR')} pts ${isPractice?'de práctica':'posibles'}`;return value;
   }
   function preview(){
     els.input.value=normalize(els.input.value);const row=game.guesses.length;
@@ -3603,7 +3606,7 @@ function showToast(msg){
   }
   function renderRanking(){
     const currentWeek=mondayKey(now),baseNames=['Vale','Ani','Marta'];if(!baseNames.includes(owner.nombre))baseNames.push(owner.nombre);
-    const completed=Object.values(state.games).filter(item=>item&&item.completedAt);
+    const completed=Object.values(state.games).filter(item=>item&&item.completedAt&&!item.practice);
     const rows=baseNames.map(name=>{
       const weekly=completed.filter(item=>item.owner===name&&mondayKey(new Date(`${item.puzzleDate}T12:00:00`))===currentWeek);
       const recent=completed.filter(item=>item.owner===name).sort((a,b)=>String(b.completedAt).localeCompare(String(a.completedAt)));
@@ -3621,12 +3624,12 @@ function showToast(msg){
     const monday=new Date(`${currentWeek}T12:00:00`);els.week.textContent=`desde ${monday.toLocaleDateString('es-AR',{day:'numeric',month:'short'})}`;
   }
   function renderState(){
-    els.owner.textContent=owner.nombre;
+    els.owner.textContent=isPractice?'Prueba única':owner.nombre;
     if(answer)game.guesses.forEach((guess,row)=>paintRow(row,guess,false));
     els.status.classList.remove('is-win','is-loss');root.classList.remove('is-win','is-loss');
     if(locked){
       const agotado=!answer&&mins>=first.desdeH*60+first.desdeM;els.lock.hidden=false;els.lock.textContent=agotado?'Temporada completa: no se repetirá ninguna palabra.':'Disponible con '+owner.nombre+' · '+timeLabel(owner.desdeH,owner.desdeM);els.status.textContent=agotado?'Próximamente, nueva temporada de palabras':'Se habilita al comenzar el turno';
-    }else if(game.won){els.status.textContent=`Resuelta en ${game.guesses.length} intento${game.guesses.length===1?'':'s'} · +${Number(game.score).toLocaleString('es-AR')} pts`;els.status.classList.add('is-win');root.classList.add('is-win');}
+    }else if(game.won){els.status.textContent=`Resuelta en ${game.guesses.length} intento${game.guesses.length===1?'':'s'} · +${Number(game.score).toLocaleString('es-AR')} pts${isPractice?' de práctica':''}`;els.status.classList.add('is-win');root.classList.add('is-win');}
     else if(game.lost){els.status.textContent=`Sin más intentos · era ${answer.display}`;els.status.classList.add('is-loss');root.classList.add('is-loss');}
     else els.status.textContent=game.hintUsed?`Quedan ${6-game.guesses.length} · ${game.hintText||crypticHint(answer.key)}`:`Quedan ${6-game.guesses.length} intentos`;
     potential();setActiveRow();renderRanking();
@@ -3639,7 +3642,7 @@ function showToast(msg){
     if(won){game.won=true;game.score=Math.max(0,scores[row]-(Number(game.penalty)||0));game.completedAt=new Date().toISOString();}
     else if(game.guesses.length>=6){game.lost=true;game.score=0;game.completedAt=new Date().toISOString();}
     state.games[puzzleId]=game;writeState(state);els.input.value='';paintRow(row,guess,true);
-    if(won){els.status.textContent=`¡Correcto! +${game.score.toLocaleString('es-AR')} puntos`;els.status.className='tg-status is-win';potential();setActiveRow();renderRanking();winEffect(row);}
+    if(won){els.status.textContent=`¡Correcto! +${game.score.toLocaleString('es-AR')} puntos${isPractice?' de práctica':''}`;els.status.className='tg-status is-win';potential();setActiveRow();renderRanking();winEffect(row);}
     else if(game.lost){els.status.textContent=`Sin más intentos · era ${answer.display}`;els.status.className='tg-status is-loss';potential();setActiveRow();renderRanking();lossEffect(row);}
     else{potential();setActiveRow();els.status.textContent=game.hintUsed?`Quedan ${6-game.guesses.length} · ${game.hintText||crypticHint(answer.key)}`:`Quedan ${6-game.guesses.length} intentos`;els.input.focus();}
   }
