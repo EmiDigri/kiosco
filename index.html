@@ -259,7 +259,7 @@ body.light .iw-calendar-day.is-long-weekend{background:rgba(14,116,107,.12)}
 .iw-wscene-loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.75);font:750 12.5px/1 'Inter',sans-serif;letter-spacing:.04em;z-index:1}
 .iw-wscene-flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:1}
 .iw-wscene-flash.on{animation:iw-wscene-flash .5s ease-out!important}
-@keyframes iw-wscene-flash{0%{opacity:0}12%{opacity:.75}30%{opacity:.12}45%{opacity:.5}100%{opacity:0}}
+@keyframes iw-wscene-flash{0%{opacity:0}12%{opacity:.32}30%{opacity:.06}45%{opacity:.18}100%{opacity:0}}
 @media(prefers-reduced-motion:reduce){.iw-wscene{transition:none!important}.iw-wscene-flash.on{animation:none!important}}
 /* Luna 3D a pantalla completa (Three.js) */
 .iw-moon-scene{position:fixed;inset:0;z-index:20000;opacity:0;transition:opacity 3.5s ease!important;cursor:pointer;overflow:hidden;background:radial-gradient(ellipse at 50% 45%,#0b1020 0%,#05070f 60%,#020307 100%)}
@@ -6683,11 +6683,13 @@ function iwLoadThreePost(){
   if(!iwThreePostPromise)iwThreePostPromise=Promise.all([
     import('https://esm.sh/three@0.160.0/examples/jsm/postprocessing/EffectComposer.js'),
     import('https://esm.sh/three@0.160.0/examples/jsm/postprocessing/RenderPass.js'),
+    import('https://esm.sh/three@0.160.0/examples/jsm/postprocessing/ShaderPass.js'),
     import('https://esm.sh/three@0.160.0/examples/jsm/postprocessing/UnrealBloomPass.js'),
     import('https://esm.sh/three@0.160.0/examples/jsm/postprocessing/OutputPass.js')
-  ]).then(([composer,render,bloom,output])=>({
+  ]).then(([composer,render,shader,bloom,output])=>({
     EffectComposer:composer.EffectComposer,
     RenderPass:render.RenderPass,
+    ShaderPass:shader.ShaderPass,
     UnrealBloomPass:bloom.UnrealBloomPass,
     OutputPass:output.OutputPass
   })).catch(err=>{iwThreePostPromise=null;throw err;});
@@ -6717,8 +6719,127 @@ function iwTextures(THREE){
     g.addColorStop(0,'rgba(255,255,255,0)');g.addColorStop(.5,'rgba(235,245,255,.9)');g.addColorStop(1,'rgba(255,255,255,0)');
     ctx.fillStyle=g;ctx.fillRect(0,s*.42,s,s*.16);
   },64);
-  iwTexCache={soft,streakV,streakH};
+  const cloud=iwCanvasTexture(THREE,(ctx,s)=>{
+    const puffs=[[.18,.58,.22,.56],[.34,.45,.3,.7],[.52,.52,.36,.82],[.7,.43,.29,.7],[.84,.58,.2,.48],[.48,.67,.38,.58]];
+    puffs.forEach(([x,y,r,a])=>{
+      const g=ctx.createRadialGradient(x*s,y*s,0,x*s,y*s,r*s);
+      g.addColorStop(0,`rgba(255,255,255,${a})`);g.addColorStop(.5,`rgba(255,255,255,${a*.55})`);g.addColorStop(1,'rgba(255,255,255,0)');
+      ctx.fillStyle=g;ctx.fillRect(0,0,s,s);
+    });
+  },256);
+  const flake=iwCanvasTexture(THREE,(ctx,s)=>{
+    ctx.translate(s/2,s/2);ctx.strokeStyle='rgba(255,255,255,.96)';ctx.lineWidth=2;ctx.lineCap='round';
+    for(let i=0;i<6;i++){ctx.save();ctx.rotate(i*Math.PI/3);ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(0,-s*.35);ctx.moveTo(0,-s*.22);ctx.lineTo(-s*.08,-s*.28);ctx.moveTo(0,-s*.22);ctx.lineTo(s*.08,-s*.28);ctx.stroke();ctx.restore();}
+    ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(0,0,s*.035,0,Math.PI*2);ctx.fill();
+  },64);
+  const sun=iwCanvasTexture(THREE,(ctx,s)=>{
+    const corona=ctx.createRadialGradient(s/2,s/2,0,s/2,s/2,s*.49);
+    corona.addColorStop(0,'rgba(255,255,245,1)');corona.addColorStop(.3,'rgba(255,244,178,1)');corona.addColorStop(.56,'rgba(255,188,72,.9)');corona.addColorStop(.73,'rgba(255,151,47,.3)');corona.addColorStop(1,'rgba(255,130,35,0)');
+    ctx.fillStyle=corona;ctx.fillRect(0,0,s,s);
+  },256);
+  iwTexCache={soft,streakV,streakH,cloud,flake,sun};
   return iwTexCache;
+}
+function iwWeatherPostShader(THREE,kind,weather){
+  const kindId={clear:0,rain:1,storm:2,snow:3,fog:4,wind:5,cloud:6,night:7,cold:8,hot:9}[kind]??0;
+  const precip=Math.max(0,Number(weather.precip)||0),wind=Math.max(0,Number(weather.wind)||0);
+  const code=Number(weather.code)||0;
+  const intensity=kind==='storm'?1.35:kind==='rain'?Math.max(.62,Math.min(1.25,.58+precip*.28+(code===65||code===82?.3:0))):kind==='fog'?1.05:1;
+  const direction=((Number(weather.windDir)||0)+180)*Math.PI/180;
+  return{
+    uniforms:{
+      tDiffuse:{value:null},uTime:{value:0},uReveal:{value:0},uLightning:{value:0},uKind:{value:kindId},
+      uIntensity:{value:intensity},uAspect:{value:innerWidth/Math.max(1,innerHeight)},uResolution:{value:new THREE.Vector2(innerWidth,innerHeight)},
+      uWind:{value:new THREE.Vector2(Math.sin(direction),-Math.cos(direction)).multiplyScalar(Math.min(1.5,wind/45))}
+    },
+    vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
+    fragmentShader:`
+      precision highp float;
+      uniform sampler2D tDiffuse;
+      uniform float uTime;
+      uniform float uReveal;
+      uniform float uLightning;
+      uniform float uKind;
+      uniform float uIntensity;
+      uniform float uAspect;
+      uniform vec2 uResolution;
+      uniform vec2 uWind;
+      varying vec2 vUv;
+
+      float iwHash(vec2 p){p=fract(p*vec2(123.34,456.21));p+=dot(p,p+45.32);return fract(p.x*p.y);}
+      float iwNoise(vec2 p){
+        vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);
+        return mix(mix(iwHash(i),iwHash(i+vec2(1.0,0.0)),f.x),mix(iwHash(i+vec2(0.0,1.0)),iwHash(i+1.0),f.x),f.y);
+      }
+      float iwFbm(vec2 p){float v=0.0,a=.5;for(int i=0;i<4;i++){v+=a*iwNoise(p);p=p*2.03+17.17;a*=.5;}return v;}
+      vec2 iwDropLayer(vec2 uv,float cells,float speed,float seed){
+        vec2 p=uv*vec2(cells*uAspect,cells),id=floor(p),gv=fract(p)-.5;
+        float n=iwHash(id+seed),slide=fract(n*7.13+uTime*speed*(.55+n*.65));
+        vec2 center=vec2((n-.5)*.68,.48-slide*.96),q=gv-center;
+        float d=length(q*vec2(1.0,1.38));
+        float body=smoothstep(.19,.055,d);
+        float tail=smoothstep(.05,.008,abs(q.x))*smoothstep(.48,.02,q.y)*smoothstep(-.48,-.08,q.y);
+        float mask=max(body,tail*(.18+.48*n));
+        vec2 normal=q/(d+.035)*body+vec2(sign(q.x)*tail*.16,0.0);
+        return normal*mask;
+      }
+      float iwRainStreak(vec2 uv,float seed){
+        vec2 p=uv*vec2(34.0*uAspect,13.0);vec2 id=floor(p);float n=iwHash(id+seed);
+        float y=fract(p.y+uTime*(2.8+n*2.5)+n*9.0),x=abs(fract(p.x+n*.73)-.5);
+        return smoothstep(.032,.004,x)*smoothstep(.04,.18,y)*smoothstep(.92,.35,y)*step(.54,n);
+      }
+      void main(){
+        vec2 uv=vUv;float reveal=smoothstep(0.0,1.0,uReveal);vec3 col=texture2D(tDiffuse,uv).rgb;
+        if(uKind>0.5&&uKind<2.5){
+          vec2 d1=iwDropLayer(uv+uWind*uTime*.0035,3.5,.075,1.7);
+          vec2 d2=iwDropLayer(uv-uWind*uTime*.002,7.0,.11,8.3)*.46;
+          vec2 normal=(d1+d2)*uIntensity*reveal;
+          vec2 refr=normal*vec2(.012/uAspect,.016);
+          vec2 ru=clamp(uv+refr*1.2,vec2(.002),vec2(.998));
+          vec2 gu=clamp(uv+refr,vec2(.002),vec2(.998));
+          vec2 bu=clamp(uv+refr*.72,vec2(.002),vec2(.998));
+          col=vec3(texture2D(tDiffuse,ru).r,texture2D(tDiffuse,gu).g,texture2D(tDiffuse,bu).b);
+          float drops=clamp(length(normal)*2.2,0.0,1.0),edgeDrop=smoothstep(.04,.24,drops)*(1.0-smoothstep(.45,.92,drops));
+          float streak=iwRainStreak(uv,4.1)+iwRainStreak(uv*vec2(1.35,.82),13.9)*.55;
+          col=mix(col,col*.86,drops*.025)+vec3(.67,.86,1.0)*(edgeDrop*.006+streak*.11)*reveal;
+        }else if(uKind>3.5&&uKind<4.5){
+          float fog=iwFbm(uv*vec2(2.4,3.2)+vec2(uTime*.035,-uTime*.012)+uWind*uTime*.025);
+          fog=smoothstep(.25,.84,fog+sin((uv.y+uTime*.018)*8.0)*.08);
+          col=mix(col,vec3(.71,.75,.8),fog*.66*reveal);
+        }else if(uKind>4.5&&uKind<5.5){
+          float flow=iwNoise(uv*vec2(3.0,8.0)+uWind*uTime*.35);
+          float ribbon=pow(max(0.0,.5+.5*sin(uv.y*54.0+uv.x*8.0-uTime*7.0+flow*5.0)),18.0);
+          col+=vec3(.55,.78,1.0)*ribbon*.012*reveal;
+        }else if(uKind>5.5&&uKind<6.5){
+          vec2 cp=uv*vec2(2.2*uAspect,3.0)+vec2(uTime*.018,0.0)+uWind*uTime*.018;
+          float cloud=iwFbm(cp),light=iwFbm(cp+vec2(.18,-.12));
+          float body=smoothstep(.48,.72,cloud+(1.0-abs(uv.y-.56)*2.0)*.12);
+          vec3 cloudColor=mix(vec3(.42,.5,.61),vec3(.82,.86,.9),smoothstep(-.08,.16,light-cloud));
+          col=mix(col,cloudColor,body*.05*reveal);
+        }else if(uKind>8.5){
+          float haze=iwNoise(vec2(uv.x*5.0+uTime*.2,uv.y*18.0-uTime*.8));
+          vec2 huv=clamp(uv+vec2((haze-.5)*.009*(1.15-uv.y),sin(uv.y*92.0-uTime*3.0)*.0018),vec2(.002),vec2(.998));
+          col=texture2D(tDiffuse,mix(uv,huv,reveal)).rgb;col=mix(col,col*vec3(1.1,.91,.73),.17*reveal);
+        }
+        if((uKind>2.5&&uKind<3.5)||(uKind>7.5&&uKind<8.5)){
+          float edge=1.0-smoothstep(0.0,.09,min(min(uv.x,1.0-uv.x),min(uv.y,1.0-uv.y)));
+          float frost=.045+iwFbm(uv*18.0)*.06;
+          col=mix(col,vec3(.78,.9,1.0),edge*frost*reveal);
+        }
+        if(uKind<.5){
+          vec2 sunPos=vec2(.58,.61),sd=uv-sunPos;float ang=atan(sd.y,sd.x),rad=length(sd);
+          float rayNoise=.68+.32*iwNoise(vec2(ang*3.0,uTime*.025));
+          float rays=pow(max(0.0,.5+.5*sin(ang*18.0)),28.0)*(1.0-smoothstep(.05,.48,rad))*rayNoise;
+          float glow=1.0-smoothstep(.02,.38,rad);
+          col+=vec3(1.0,.83,.53)*(rays*.006+glow*.02)*reveal;
+        }
+        if(uKind>6.5&&uKind<7.5){float v=1.0-smoothstep(.28,.78,length(uv-.5));col*=mix(.68,1.0,v);col*=vec3(.86,.92,1.08);}
+        if(uKind>1.5&&uKind<2.5)col+=vec3(.78,.88,1.0)*uLightning*(.3+iwNoise(uv*8.0)*.08);
+        float vignette=smoothstep(.88,.34,length((uv-.5)*vec2(uAspect,1.0)));
+        col*=mix(.82,1.0,vignette);
+        gl_FragColor=vec4(col,1.0);
+      }`
+  };
 }
 const IW_GOES19_URL='https://cdn.star.nesdis.noaa.gov/GOES19/ABI/FD/GEOCOLOR/678x678.jpg';
 let iwSatelliteTex=null,iwSatelliteBucket=-1,iwSatellitePromise=null;
@@ -6770,10 +6891,14 @@ async function iwOpenWeatherScene(cls,desc,isDay,weather={}){
   document.body.style.overflow='hidden';
   document.documentElement.style.overflow='hidden';
 
-  let THREE,satelliteTex=null,post=null;
+  let THREE,satelliteTex=null,post=null,moonTexs=null;
   try{
     THREE=await iwLoadThree();
-    [satelliteTex,post]=await Promise.all([iwLoadWeatherSatellite(THREE),iwLoadThreePost().catch(()=>null)]);
+    [satelliteTex,post,moonTexs]=await Promise.all([
+      iwLoadWeatherSatellite(THREE),
+      iwLoadThreePost().catch(()=>null),
+      kind==='night'&&typeof iwMoonTextures==='function'?iwMoonTextures(THREE).catch(()=>null):Promise.resolve(null)
+    ]);
   }
   catch(err){
     if(gen!==iwWsceneGen)return;
@@ -6785,7 +6910,7 @@ async function iwOpenWeatherScene(cls,desc,isDay,weather={}){
   if(loadingEl)loadingEl.style.display='none';
   if(labelEl)labelEl.innerHTML=`${iwEscapeHtml(desc||'Clima')}<small>${[weatherMeta,satelliteTex?'GOES-19 · NOAA/NASA':'Buenos Aires'].filter(Boolean).join(' · ')}</small>`;
 
-  const {soft,streakV,streakH}=iwTextures(THREE);
+  const {soft,streakV,streakH,cloud,flake,sun}=iwTextures(THREE);
   const canvas=document.createElement('canvas');
   box.insertBefore(canvas,box.firstChild);
   const renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true});
@@ -6800,7 +6925,7 @@ async function iwOpenWeatherScene(cls,desc,isDay,weather={}){
   scene.background=satelliteTex?new THREE.Color(0x01030a):skyTexture;
   const camera=new THREE.PerspectiveCamera(58,innerWidth/innerHeight,.1,200);
   camera.position.set(0,0,20);
-  const groups=[],localMaterials=[],cloudSprites=[];
+  const groups=[],localMaterials=[],cloudSprites=[],windRibbons=[],lightningLines=[];
   const localGroup=new THREE.Group();scene.add(localGroup);
   const orbitGroup=new THREE.Group();scene.add(orbitGroup);
   const orbitMaterials=[];
@@ -6850,12 +6975,41 @@ async function iwOpenWeatherScene(cls,desc,isDay,weather={}){
   const cloudAmount=Math.max(0,Math.min(100,Number(weather.cloud)||0));
   function cloudLayer(count,color,opacity,size,depth){
     for(let i=0;i<count;i++){
-      const mat=rememberLocal(new THREE.SpriteMaterial({map:soft,color,transparent:true,opacity,depthWrite:false}),opacity);
+      const mat=rememberLocal(new THREE.SpriteMaterial({map:cloud,color,transparent:true,opacity,depthWrite:false}),opacity);
       const sprite=new THREE.Sprite(mat),scale=size*(.72+Math.random()*.7);
       sprite.scale.set(scale,scale*(.42+Math.random()*.18),1);
       sprite.position.set((Math.random()-.5)*34,(Math.random()-.15)*12-1,depth+Math.random()*5);
       localGroup.add(sprite);cloudSprites.push({sprite,speed:(.18+Math.random()*.35)*(windDrift<0?-1:1),phase:Math.random()*Math.PI*2});
     }
+  }
+  function windRibbonLayer(count){
+    for(let i=0;i<count;i++){
+      const points=[],phase=Math.random()*Math.PI*2,length=8+Math.random()*8;
+      for(let j=0;j<30;j++){
+        const p=j/29;
+        points.push(new THREE.Vector3(p*length,Math.sin(p*Math.PI*2+phase)*.18+Math.sin(p*Math.PI*5+phase)*.035,0));
+      }
+      const geo=new THREE.BufferGeometry().setFromPoints(points);
+      const base=.18+Math.random()*.24;
+      const mat=rememberLocal(new THREE.LineBasicMaterial({color:i%3===0?0xa8dcff:0xe6f5ff,transparent:true,opacity:base,depthWrite:false,blending:THREE.AdditiveBlending}),base);
+      const line=new THREE.Line(geo,mat);
+      line.position.set(-24+Math.random()*42,-8+Math.random()*16,-9+Math.random()*17);
+      line.rotation.z=(-.08+Math.random()*.16)+(windDrift<0?Math.PI:0);
+      localGroup.add(line);windRibbons.push({line,speed:4+Math.random()*7,phase});
+    }
+  }
+  let lightningLife=0;
+  function lightningStrike(){
+    lightningLines.splice(0).forEach(line=>{localGroup.remove(line);line.geometry.dispose();line.material.dispose();});
+    const startX=-5+Math.random()*10,main=[];let x=startX;
+    for(let i=0;i<11;i++){const y=9-i*1.75;x+=(Math.random()-.48)*(i===0?.2:1.1);main.push(new THREE.Vector3(x,y,-1+Math.random()*.3));}
+    const addLine=(points,opacity=1)=>{
+      const geo=new THREE.BufferGeometry().setFromPoints(points),mat=new THREE.LineBasicMaterial({color:0xdff4ff,transparent:true,opacity,depthWrite:false,blending:THREE.AdditiveBlending});
+      const line=new THREE.Line(geo,mat);localGroup.add(line);lightningLines.push(line);
+    };
+    addLine(main,1);
+    [4,6].forEach((at,index)=>{const branch=[main[at].clone()];let bx=main[at].x,by=main[at].y;for(let j=1;j<5;j++){bx+=(index?1:-1)*(.45+Math.random()*.65);by-=.45+Math.random()*.5;branch.push(new THREE.Vector3(bx,by,-1));}addLine(branch,.62);});
+    lightningLife=1;
   }
 
   if(kind==='rain'||kind==='storm'){
@@ -6866,7 +7020,8 @@ async function iwOpenWeatherScene(cls,desc,isDay,weather={}){
     scene.fog=new THREE.FogExp2(kind==='storm'?0x0a0d16:0x18213a,kind==='storm'?.026:.019);
   }else if(kind==='snow'){
     cloudLayer(mobile?14:24,0xdce7f3,.25,mobile?7:9,-16);
-    particleField({count:mobile?180:300,texture:soft,color:0xffffff,size:mobile?1.6:2.15,spread:36,speedMin:1.5,speedMax:3.8,depthMin:-12,depthMax:10,wobble:true,drift:windDrift*.25,blending:THREE.AdditiveBlending,opacity:.9});
+    particleField({count:mobile?130:220,texture:soft,color:0xffffff,size:mobile?1.3:1.7,spread:36,speedMin:1.4,speedMax:3.2,depthMin:-14,depthMax:4,wobble:true,drift:windDrift*.25,blending:THREE.AdditiveBlending,opacity:.72});
+    particleField({count:mobile?36:62,texture:flake,color:0xffffff,size:mobile?1.55:2.05,spread:32,speedMin:1.1,speedMax:2.5,depthMin:2,depthMax:12,wobble:true,drift:windDrift*.3,blending:THREE.AdditiveBlending,opacity:.9});
     scene.fog=new THREE.FogExp2(0x2a3a52,.018);
   }else if(kind==='fog'){
     cloudLayer(mobile?18:28,0xdbe3ec,.2,mobile?10:14,-10);
@@ -6875,32 +7030,46 @@ async function iwOpenWeatherScene(cls,desc,isDay,weather={}){
   }else if(kind==='wind'){
     cloudLayer(mobile?10:16,0xe4edf5,.17,mobile?7:9,-18);
     particleField({count:mobile?90:150,texture:streakH,color:0xe8f2ff,size:mobile?1.15:1.55,spread:34,speedMin:15,speedMax:28,depthMin:-10,depthMax:8,horizontal:true,blending:THREE.AdditiveBlending,opacity:.72});
+    windRibbonLayer(mobile?7:13);
   }else if(kind==='cloud'){
-    cloudLayer(mobile?20:34,0xf5f7fa,.26,mobile?7:9,-13);
-    cloudLayer(mobile?10:18,0xaebfd1,.2,mobile?10:13,-23);
+    cloudLayer(mobile?9:15,0xf5f7fa,.13,mobile?8:11,-16);
+    cloudLayer(mobile?5:9,0xaebfd1,.09,mobile?11:14,-25);
     scene.fog=new THREE.FogExp2(0x39485a,.015);
   }else if(kind==='night'){
     particleField({count:mobile?100:180,texture:soft,color:0xffffff,size:.72,spread:40,speedMin:0,speedMax:0,depthMin:-18,depthMax:3,wobble:'twinkle',opacity:.78});
-    const moonMat=rememberLocal(new THREE.MeshBasicMaterial({map:soft,color:0xeaf1ff,transparent:true,opacity:.92,blending:THREE.AdditiveBlending,depthWrite:false}),.92);
-    const moon=new THREE.Mesh(new THREE.PlaneGeometry(5.5,5.5),moonMat);moon.position.set(5,4,-7);localGroup.add(moon);
+    if(moonTexs){
+      const maxAniso=renderer.capabilities.getMaxAnisotropy?.()||1;
+      moonTexs.map.anisotropy=Math.min(maxAniso,mobile?3:6);moonTexs.bump.anisotropy=Math.min(maxAniso,3);
+      const moonMat=rememberLocal(new THREE.MeshStandardMaterial({map:moonTexs.map,bumpMap:moonTexs.bump,bumpScale:moonTexs.nasa?.09:0,color:0xf2eee7,roughness:.92,metalness:0,transparent:true,opacity:.98}),.98);
+      const moon=new THREE.Mesh(new THREE.SphereGeometry(2.05,mobile?64:96,mobile?44:68),moonMat);moon.position.set(5,3.2,-6);moon.rotation.y=-Math.PI/2;localGroup.add(moon);
+      const moonPhase=Number(iwCurrentMoon?.phase),phase=Number.isFinite(moonPhase)?moonPhase:.5,ang=phase*Math.PI*2;
+      const moonLight=new THREE.DirectionalLight(0xfff1d6,2.65);moonLight.position.set(-Math.sin(ang)*35,7,-Math.cos(ang)*35);scene.add(moonLight);
+      scene.add(new THREE.AmbientLight(0x44618d,.11));
+    }else{
+      const moonMat=rememberLocal(new THREE.SpriteMaterial({map:soft,color:0xeaf1ff,transparent:true,opacity:.82,blending:THREE.AdditiveBlending,depthWrite:false}),.82);
+      const moon=new THREE.Sprite(moonMat);moon.scale.set(4.8,4.8,1);moon.position.set(5,3.2,-6);localGroup.add(moon);
+    }
     if(cloudAmount>15)cloudLayer(mobile?7:12,0xaebfd1,.12,mobile?7:9,-5);
   }else{
     const sunColor=kind==='hot'?0xffb545:kind==='cold'?0xdcecff:0xfff3c8;
-    const sunMat=rememberLocal(new THREE.MeshBasicMaterial({map:soft,color:sunColor,transparent:true,opacity:.82,blending:THREE.AdditiveBlending,depthWrite:false}),.82);
-    const sun=new THREE.Mesh(new THREE.PlaneGeometry(9.5,9.5),sunMat);sun.position.set(4,3.4,-9);localGroup.add(sun);
+    const sunMat=rememberLocal(new THREE.SpriteMaterial({map:sun,color:sunColor,transparent:true,opacity:.96,blending:THREE.AdditiveBlending,depthWrite:false}),.96);
+    const sunDisc=new THREE.Sprite(sunMat);sunDisc.scale.set(5.8,5.8,1);sunDisc.position.set(4,3.4,-9);localGroup.add(sunDisc);
+    const coronaMat=rememberLocal(new THREE.SpriteMaterial({map:soft,color:sunColor,transparent:true,opacity:.15,blending:THREE.AdditiveBlending,depthWrite:false}),.15);
+    const corona=new THREE.Sprite(coronaMat);corona.scale.set(10.5,10.5,1);corona.position.copy(sunDisc.position);localGroup.add(corona);
     if(kind==='hot')particleField({count:mobile?42:70,texture:soft,color:0xffcf8a,size:1,spread:25,speedMin:.5,speedMax:1.4,depthMin:-8,depthMax:3,wobble:true,blending:THREE.AdditiveBlending,opacity:.55});
     if(cloudAmount>12)cloudLayer(mobile?6:10,0xffffff,.13,mobile?7:9,-10);
   }
 
-  let composer=null,bloomPass=null,postPasses=[];
-  if(post?.EffectComposer&&post?.RenderPass&&post?.UnrealBloomPass&&post?.OutputPass){
+  let composer=null,bloomPass=null,weatherPass=null,weatherFxUniforms=null,postPasses=[];
+  if(post?.EffectComposer&&post?.RenderPass&&post?.ShaderPass&&post?.UnrealBloomPass&&post?.OutputPass){
     try{
       composer=new post.EffectComposer(renderer);composer.setPixelRatio?.(pixelRatio);composer.setSize(innerWidth,innerHeight);
       const renderPass=new post.RenderPass(scene,camera);
+      weatherPass=new post.ShaderPass(iwWeatherPostShader(THREE,kind,weather));weatherFxUniforms=weatherPass.uniforms;
       bloomPass=new post.UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),kind==='storm'?.48:.34,.46,.78);
-      const outputPass=new post.OutputPass();composer.addPass(renderPass);composer.addPass(bloomPass);composer.addPass(outputPass);
-      postPasses=[renderPass,bloomPass,outputPass];
-    }catch(e){composer=null;bloomPass=null;postPasses=[];}
+      const outputPass=new post.OutputPass();composer.addPass(renderPass);composer.addPass(weatherPass);composer.addPass(bloomPass);composer.addPass(outputPass);
+      postPasses=[renderPass,weatherPass,bloomPass,outputPass];
+    }catch(e){composer=null;bloomPass=null;weatherPass=null;weatherFxUniforms=null;postPasses=[];}
   }
 
   let raf=null,last=performance.now(),t0=performance.now(),mx=0,my=0,transitionFlashed=false;
@@ -6916,6 +7085,7 @@ async function iwOpenWeatherScene(cls,desc,isDay,weather={}){
     const smooth=t=>{t=Math.max(0,Math.min(1,t));return t*t*(3-2*t);};
     const localReveal=smooth((el-(satelliteTex?1.25:0))/.9);
     localMaterials.forEach(item=>{item.mat.opacity=item.base*localReveal;});
+    if(weatherFxUniforms){weatherFxUniforms.uTime.value=el;weatherFxUniforms.uReveal.value=localReveal;weatherFxUniforms.uLightning.value=lightningLife;}
     if(satelliteTex){
       const zoom=smooth(el/2.15),scale=1+zoom*4.1;
       orbitGroup.scale.setScalar(scale);
@@ -6940,6 +7110,15 @@ async function iwOpenWeatherScene(cls,desc,isDay,weather={}){
       if(c.sprite.position.x>20)c.sprite.position.x=-20;
       if(c.sprite.position.x<-20)c.sprite.position.x=20;
     });
+    windRibbons.forEach(r=>{
+      r.line.position.x+=r.speed*dt;
+      r.line.position.y+=Math.sin(el*1.25+r.phase)*dt*.12;
+      if(r.line.position.x>24)r.line.position.x=-25;
+    });
+    if(lightningLife>0){
+      lightningLife=Math.max(0,lightningLife-dt*3.4);
+      lightningLines.forEach((line,index)=>{line.visible=lightningLife>0;line.material.opacity=lightningLife*(index?0.62:1)*localReveal;});
+    }
     groups.forEach(g=>{
       const pos=g.pts.geometry.attributes.position.array;
       for(let i=0;i<g.count;i++){
@@ -6967,6 +7146,7 @@ async function iwOpenWeatherScene(cls,desc,isDay,weather={}){
   let stormTimer=null;
   if(kind==='storm'&&flashEl){
     const flash=()=>{
+      lightningStrike();
       flashEl.classList.remove('on');void flashEl.offsetWidth;flashEl.classList.add('on');
       stormTimer=setTimeout(flash,3200+Math.random()*4200);
     };
@@ -6976,6 +7156,7 @@ async function iwOpenWeatherScene(cls,desc,isDay,weather={}){
   function onResize(){
     renderer.setSize(innerWidth,innerHeight);composer?.setSize(innerWidth,innerHeight);
     camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();
+    if(weatherFxUniforms){weatherFxUniforms.uAspect.value=innerWidth/Math.max(1,innerHeight);weatherFxUniforms.uResolution.value.set(innerWidth,innerHeight);}
   }
   addEventListener('resize',onResize);
   const autoCloseTimer=setTimeout(()=>{if(gen===iwWsceneGen)iwCloseWeatherScene();},satelliteTex?8200:6800);
