@@ -111,6 +111,7 @@ export default async function handler(req, res) {
 
     const now = series[0];
     const nowDetails = now?.data?.instant?.details || {};
+    const nextHourDetails = now?.data?.next_1_hours?.details || {};
     const nowSymbol = now?.data?.next_1_hours?.summary?.symbol_code || now?.data?.next_6_hours?.summary?.symbol_code || 'clearsky_day';
     const temperature = observation?.temperature ?? nowDetails.air_temperature;
     const windKmh = observation?.windKmh ?? ((nowDetails.wind_speed || 0) * 3.6);
@@ -125,6 +126,9 @@ export default async function handler(req, res) {
       wind_speed_10m: Math.round(windKmh),
       wind_direction_10m: Number.isFinite(windDirection) ? Math.round(windDirection) : null,
       wind_gusts_10m: Number.isFinite(windGustKmh) ? Math.round(windGustKmh) : null,
+      cloud_cover: Number.isFinite(Number(nowDetails.cloud_area_fraction)) ? Math.round(Number(nowDetails.cloud_area_fraction)) : null,
+      relative_humidity_2m: Number.isFinite(Number(nowDetails.relative_humidity)) ? Math.round(Number(nowDetails.relative_humidity)) : null,
+      precipitation: Number.isFinite(Number(nextHourDetails.precipitation_amount)) ? Number(nextHourDetails.precipitation_amount) : 0,
       is_day: isDayFromSymbol(nowSymbol, hourAR(observation?.observedAt || now.time)),
       observed_at: observation?.observedAt || now.time,
       source: observation ? 'METAR Aeroparque' : 'met.no',
