@@ -2717,11 +2717,14 @@ body.light .price-error{color:#991b1b}
 .tg-lock{position:absolute;z-index:4;inset:0;display:grid;place-items:center;padding:18px;border:1px solid var(--glass-border);border-radius:5px;background:color-mix(in srgb,var(--surface) 94%,transparent);color:var(--text-mid);font-size:11px;font-weight:750;text-align:center;line-height:1.45;backdrop-filter:blur(5px)}
 .tg-lock[hidden]{display:none}
 .tg-controls{display:grid;grid-template-columns:1fr 1fr;gap:7px}
-.tg-submit,.tg-hint-btn{min-height:34px;border-radius:6px;padding:7px 9px;font:800 11px/1 'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;cursor:pointer}
+.turn-game.is-practice .tg-controls{grid-template-columns:1fr 1fr 34px}
+.tg-submit,.tg-hint-btn,.tg-reset{min-height:34px;border-radius:6px;padding:7px 9px;font:800 11px/1 'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;cursor:pointer}
 .tg-submit{border:1px solid var(--accent);background:var(--accent);color:#0b1025}
-.tg-hint-btn{border:1px solid var(--glass-border);background:var(--glass);color:var(--text-mid)}
+.tg-hint-btn,.tg-reset{border:1px solid var(--glass-border);background:var(--glass);color:var(--text-mid)}
+.tg-reset{display:grid;place-items:center;width:34px;padding:0}
+.tg-reset[hidden]{display:none}
 .tg-submit:hover,.tg-submit:focus-visible{filter:brightness(1.08);outline:none}
-.tg-hint-btn:hover,.tg-hint-btn:focus-visible{border-color:rgba(124,144,255,.5);color:var(--text);outline:none}
+.tg-hint-btn:hover,.tg-hint-btn:focus-visible,.tg-reset:hover,.tg-reset:focus-visible{border-color:rgba(124,144,255,.5);color:var(--text);outline:none}
 .tg-submit:disabled,.tg-hint-btn:disabled{opacity:.42;cursor:default;filter:none}
 .tg-status{min-height:17px;margin-top:8px;color:var(--text-soft);font-size:10px;font-weight:700;line-height:1.35;text-align:center}
 .tg-status.is-win{color:#5fd68a}.tg-status.is-loss{color:#f87171}
@@ -2920,6 +2923,7 @@ body.light .tg-lock{background:rgba(255,255,255,.96)}
           <div class="tg-controls">
             <button class="tg-submit" id="tgSubmit" type="button">Probar</button>
             <button class="tg-hint-btn" id="tgHint" type="button">Pista -100</button>
+            <button class="tg-reset" id="tgReset" type="button" aria-label="Reiniciar la partida de práctica" data-iw-tooltip="Reiniciar la práctica con una palabra nueva" hidden><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg></button>
           </div>
           <div class="tg-status" id="tgStatus" aria-live="polite">Quedan 6 intentos</div>
           <div class="tg-ranking">
@@ -3500,7 +3504,7 @@ function showToast(msg){
   const words=[...new Map(rawWords.map(display=>[normalize(display),{display,key:normalize(display)}]).filter(([key])=>key.length===5)).values()];
   const els={
     owner:document.getElementById('tgOwner'),potential:document.getElementById('tgPotential'),board:document.getElementById('tgBoard'),wrap:document.getElementById('tgBoardWrap'),
-    input:document.getElementById('tgInput'),lock:document.getElementById('tgLock'),submit:document.getElementById('tgSubmit'),hint:document.getElementById('tgHint'),
+    input:document.getElementById('tgInput'),lock:document.getElementById('tgLock'),submit:document.getElementById('tgSubmit'),hint:document.getElementById('tgHint'),reset:document.getElementById('tgReset'),
     status:document.getElementById('tgStatus'),ranking:document.getElementById('tgRanking'),week:document.getElementById('tgWeek'),toggle:document.getElementById('tgToggle'),toggleText:document.getElementById('tgToggleText')
   };
   const readState=()=>{
@@ -3526,6 +3530,7 @@ function showToast(msg){
   const now=new Date(),mins=now.getHours()*60+now.getMinutes(),first=TURNOS[0],last=TURNOS[TURNOS.length-1],day=dateKey(now);
   const practiceRequested=new URLSearchParams(location.search).get('prueba')==='vale';
   const isPractice=practiceRequested&&day==='2026-08-01'&&mins<first.desdeH*60+first.desdeM;
+  root.classList.toggle('is-practice',isPractice);els.reset.hidden=!isPractice;
   let owner=turno||turnoReciente,locked=false;
   if(isPractice)owner=first;
   else if(!owner){if(mins<first.desdeH*60+first.desdeM){owner=first;locked=true;}else owner=last;}
@@ -3650,6 +3655,10 @@ function showToast(msg){
   els.input.addEventListener('input',preview);els.input.addEventListener('keydown',event=>{if(event.key==='Enter')play();});els.submit.addEventListener('click',play);
   els.hint.addEventListener('click',()=>{
     if(locked||game.won||game.lost||game.hintUsed)return;game.hintUsed=true;game.penalty=100;game.hintText=crypticHint(answer.key);state.games[puzzleId]=game;writeState(state);els.hint.disabled=true;potential();els.status.textContent=`Pista: ${game.hintText}`;els.input.focus();
+  });
+  els.reset.addEventListener('click',()=>{
+    if(!isPractice)return;delete state.games[puzzleId];delete state.assignments[puzzleId];writeState(state);
+    const url=new URL(location.href);url.searchParams.set('prueba','vale');url.searchParams.set('reinicio',String(Date.now()));location.replace(url.toString());
   });
   const setOpen=open=>{root.classList.toggle('is-open',open);els.toggle.setAttribute('aria-expanded',String(open));els.toggleText.textContent=open?'Ocultar':'Jugar';};
   const mobile=matchMedia('(max-width:900px)');setOpen(!mobile.matches);els.toggle.addEventListener('click',()=>setOpen(!root.classList.contains('is-open')));
