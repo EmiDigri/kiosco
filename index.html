@@ -2692,6 +2692,77 @@ body.light .price-error{color:#991b1b}
   .price-saved{max-width:105px;white-space:normal;text-align:right;line-height:1.2;font-size:9px}
 }
 
+/* Desafío del turno: ocupa la celda libre a la derecha sin mover el hero. */
+.turn-game{min-width:0;align-self:start;padding-top:14px;border-top:1px solid var(--glass-border);color:var(--text)}
+.tg-head,.tg-head-actions,.tg-meta,.tg-ranking-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.tg-title{display:inline-flex;align-items:center;gap:6px;min-height:26px;padding:0;border:0;background:transparent;color:var(--text-mid);font:800 10px/1 'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;letter-spacing:.09em;text-transform:uppercase;cursor:help}
+.tg-title:hover,.tg-title:focus-visible{color:var(--text);outline:none}
+.tg-live{width:7px;height:7px;flex:0 0 7px;border-radius:50%;background:#5fd68a;box-shadow:0 0 0 4px rgba(95,214,138,.1),0 0 11px rgba(95,214,138,.4)}
+.tg-help{display:grid;place-items:center;width:15px;height:15px;flex:0 0 15px;border:1px solid var(--glass-border);border-radius:50%;color:var(--text-soft);font-size:9px;letter-spacing:0}
+.tg-owner{max-width:92px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--accent);font-size:10px;font-weight:800;text-transform:uppercase}
+.tg-toggle{display:none;align-items:center;gap:4px;border:1px solid var(--glass-border);border-radius:6px;background:var(--glass);color:var(--text-mid);padding:6px 8px;font:750 10px/1 'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;cursor:pointer}
+.tg-toggle svg{transition:transform .16s ease}
+.tg-body{padding-top:10px}
+.tg-meta{margin-bottom:10px;color:var(--text-soft);font-size:9.5px;font-weight:700}
+.tg-meta strong{color:var(--text-mid);font-weight:800;font-variant-numeric:tabular-nums}
+.tg-board-wrap{--tg-active-row:0;position:relative;width:max-content;margin:0 auto 11px}
+.tg-board{display:grid;grid-template-columns:repeat(5,37px);grid-template-rows:repeat(6,37px);gap:5px;width:max-content}
+.tg-tile{display:grid;place-items:center;width:37px;height:37px;border:1px solid var(--glass-border);border-radius:4px;background:rgba(255,255,255,.025);color:var(--text);font-size:15px;font-weight:850;text-transform:uppercase;user-select:none}
+.tg-tile.is-active{border-color:rgba(124,144,255,.72);box-shadow:inset 0 0 0 1px rgba(124,144,255,.35)}
+.tg-tile.is-filled{border-color:var(--text-soft)}
+.tg-tile.is-correct{border-color:#29966a;background:#29966a;color:#fff;box-shadow:none}
+.tg-tile.is-present{border-color:#b47a12;background:#b47a12;color:#fff;box-shadow:none}
+.tg-tile.is-absent{border-color:#474a51;background:#474a51;color:#d8d9dc;box-shadow:none}
+.tg-board-input{position:absolute;z-index:3;left:0;top:calc(var(--tg-active-row)*42px);width:100%;height:37px;min-height:0;padding:0;border:0;outline:0;background:transparent;color:transparent;caret-color:transparent;opacity:.01;cursor:text;text-transform:uppercase}
+.tg-lock{position:absolute;z-index:4;inset:0;display:grid;place-items:center;padding:18px;border:1px solid var(--glass-border);border-radius:5px;background:color-mix(in srgb,var(--surface) 94%,transparent);color:var(--text-mid);font-size:11px;font-weight:750;text-align:center;line-height:1.45;backdrop-filter:blur(5px)}
+.tg-lock[hidden]{display:none}
+.tg-controls{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.tg-submit,.tg-hint-btn{min-height:34px;border-radius:6px;padding:7px 9px;font:800 11px/1 'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;cursor:pointer}
+.tg-submit{border:1px solid var(--accent);background:var(--accent);color:#0b1025}
+.tg-hint-btn{border:1px solid var(--glass-border);background:var(--glass);color:var(--text-mid)}
+.tg-submit:hover,.tg-submit:focus-visible{filter:brightness(1.08);outline:none}
+.tg-hint-btn:hover,.tg-hint-btn:focus-visible{border-color:rgba(124,144,255,.5);color:var(--text);outline:none}
+.tg-submit:disabled,.tg-hint-btn:disabled{opacity:.42;cursor:default;filter:none}
+.tg-status{min-height:17px;margin-top:8px;color:var(--text-soft);font-size:10px;font-weight:700;line-height:1.35;text-align:center}
+.tg-status.is-win{color:#5fd68a}.tg-status.is-loss{color:#f87171}
+.turn-game.is-win{border-top-color:rgba(95,214,138,.55)}.turn-game.is-loss{border-top-color:rgba(248,113,113,.45)}
+.tg-ranking{margin-top:10px;padding-top:9px;border-top:1px solid var(--glass-border)}
+.tg-ranking-head span{color:var(--text-soft);font-size:9px;font-weight:850;letter-spacing:.08em;text-transform:uppercase}
+.tg-ranking-head small{color:var(--text-soft);font-size:8.5px;font-weight:650}
+.tg-ranking ol{list-style:none;margin:6px 0 0;padding:0}
+.tg-ranking li{display:grid;grid-template-columns:18px minmax(0,1fr) auto;align-items:center;gap:7px;min-height:29px;border-bottom:1px solid rgba(255,255,255,.045);font-size:10px}
+.tg-ranking li:last-child{border-bottom:0}
+.tg-rank-pos{color:var(--text-soft);font-weight:800;text-align:center}
+.tg-rank-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-mid);font-weight:750}
+.tg-rank-name small{margin-left:5px;color:var(--text-soft);font-size:8px;font-weight:650}
+.tg-rank-score{color:var(--text);font-weight:850;font-variant-numeric:tabular-nums}
+.tg-ranking li.is-current .tg-rank-pos,.tg-ranking li.is-current .tg-rank-name{color:var(--accent)}
+body.light .tg-tile{background:#fff}body.light .tg-tile.is-absent{border-color:#9aa6b6;background:#9aa6b6;color:#fff}
+body.light .tg-lock{background:rgba(255,255,255,.96)}
+
+@media(min-width:901px){
+  .hero-card{grid-template-columns:minmax(0,1fr) 320px!important;align-items:start!important}
+  .hero-main{grid-column:1;grid-row:1}
+  .hero-clock-col{grid-column:2;grid-row:1}
+  .hero-side{grid-column:1;grid-row:2}
+  .turn-game{grid-column:2;grid-row:2}
+  .tg-body{display:block!important}
+}
+@media(min-width:1200px){.hero-card{grid-template-columns:minmax(0,1.3fr) 360px!important}}
+@media(max-width:900px){
+  .turn-game{margin-top:16px;padding-top:12px}
+  .tg-toggle{display:inline-flex}
+  .tg-body{display:none;padding-top:11px}
+  .turn-game.is-open .tg-body{display:block}
+  .turn-game.is-open .tg-toggle svg{transform:rotate(180deg)}
+}
+@media(max-width:430px){
+  .tg-board{grid-template-columns:repeat(5,34px);grid-template-rows:repeat(6,34px);gap:4px}
+  .tg-tile{width:34px;height:34px;font-size:14px}
+  .tg-board-input{top:calc(var(--tg-active-row)*38px);height:34px}
+}
+@media(prefers-reduced-motion:reduce){.tg-toggle svg{transition:none}}
+
 
 
 </style>
@@ -2826,6 +2897,37 @@ body.light .price-error{color:#991b1b}
           <button type="button" class="hero-soft-btn" id="heroBtnHistorial2">Ver historial</button>
         </div>
       </aside>
+
+      <section class="turn-game" id="turnGame" aria-labelledby="tgTitle">
+        <div class="tg-head">
+          <button class="tg-title" id="tgTitle" type="button" aria-label="Cómo jugar al desafío del turno" data-iw-tooltip="Adiviná la palabra en 6 intentos. Verde: letra y lugar correctos. Amarillo: letra correcta en otro lugar. Tocá la fila para escribir. Cada pista resta 100 puntos.">
+            <span class="tg-live" aria-hidden="true"></span>
+            <span>Desafío del turno</span>
+            <span class="tg-help" aria-hidden="true">?</span>
+          </button>
+          <div class="tg-head-actions">
+            <span class="tg-owner" id="tgOwner">—</span>
+            <button class="tg-toggle" id="tgToggle" type="button" aria-controls="tgBody" aria-expanded="false"><span id="tgToggleText">Jugar</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button>
+          </div>
+        </div>
+        <div class="tg-body" id="tgBody">
+          <div class="tg-meta"><span>5 letras</span><strong id="tgPotential">1.000 pts posibles</strong></div>
+          <div class="tg-board-wrap" id="tgBoardWrap">
+            <div class="tg-board" id="tgBoard" role="grid" aria-label="Tablero de seis intentos"></div>
+            <input class="tg-board-input" id="tgInput" maxlength="5" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Escribir intento en la fila activa">
+            <div class="tg-lock" id="tgLock" hidden></div>
+          </div>
+          <div class="tg-controls">
+            <button class="tg-submit" id="tgSubmit" type="button">Probar</button>
+            <button class="tg-hint-btn" id="tgHint" type="button">Pista -100</button>
+          </div>
+          <div class="tg-status" id="tgStatus" aria-live="polite">Quedan 6 intentos</div>
+          <div class="tg-ranking">
+            <div class="tg-ranking-head"><span>Tabla semanal</span><small id="tgWeek"></small></div>
+            <ol id="tgRanking"></ol>
+          </div>
+        </div>
+      </section>
     </div>
   </div>
 
@@ -3376,6 +3478,180 @@ function showToast(msg){
   t.textContent=msg;t.classList.add('show');
   setTimeout(()=>t.classList.remove('show'),3400);
 }
+
+(function initTurnGame(){
+  const root=document.getElementById('turnGame');
+  if(!root)return;
+  const rawWords=[
+    'ABEJA','ABRIL','ABRIR','ACERO','ACTOR','ADIÓS','AGITA','AGUAS','AGUJA','AHORA','ÁLBUM','ALDEA','ALGÚN','ALTAR','AMADO','AMIGA','AMIGO','ANCHO','ANTES','ÁNIMO','APAGA','APOYO','ÁRBOL','ARDER','ARENA','ARMAR','AROMA','ARROZ','ASADO','ATADO','AUTOR','AVIÓN','AYUDA',
+    'BAILE','BAJAR','BALDE','BANCO','BANDA','BAÑOS','BARBA','BARCO','BARRO','BASTA','BATIR','BEBER','BEBÉS','BELLA','BESOS','BICHO','BLUSA','BOCAS','BODAS','BOLSA','BOLSO','BOMBA','BORDE','BOTAS','BOTÓN','BRAZO','BRAVO','BREVE','BRISA','BRUJA','BUENO','BURRO','BUSCA',
+    'CABLE','CABRA','CAÍDA','CAJAS','CAJÓN','CALLE','CALMA','CALOR','CAMAS','CAMPO','CANAL','CANSA','CANTO','CAÑÓN','CAPAZ','CARAS','CARGO','CARNE','CARPA','CARRO','CARTA','CASCO','CAUSA','CENAS','CERCA','CERDO','CERRO','CHICO','CIELO','CINCO','CITAR','CLARO','CLASE','CLAVE','COBRA','COCHE','COLOR','COMER','COMÚN','COPAS','CORAL','CORRE','CORTE','COSAS','COSTA','CREER','CREMA','CRUCE','CUERO','CUEVA','CUIDA','CULPA','CURAR','CURSO',
+    'DANZA','DATOS','DÉBIL','DEBER','DECIR','DEDOS','DESEO','DIETA','DOLOR','DUCHA','DULCE','DUEÑO','ECHAR','ENERO','ENOJO','ENTRE','ENVÍO','ÉPOCA','ERROR','ESPÍA','ESTAR','ETAPA','ÉXITO',
+    'FALDA','FALLO','FALSO','FALTA','FAROL','FAVOR','FELIZ','FERIA','FIJAR','FINAL','FINCA','FIRME','FLACO','FLORA','FLOTA','FONDO','FORMA','FRASE','FRENO','FRESA','FRITO','FRUTA','FUEGO','FUERA','FUMAR',
+    'GAFAS','GANAR','GANAS','GARRA','GATOS','GENTE','GLOBO','GOLPE','GORRA','GORRO','GRANO','GRASA','GRAVE','GRITO','GRUPO','GUAPA','HABER','HABLA','HACER','HACIA','HALLA','HASTA','HERIR','HIELO','HIJOS','HOJAS','HOGAR','HONDO','HORNO','HOTEL','HUECO','HUESO','HUEVO',
+    'IDEAL','IGUAL','JABÓN','JARRA','JAULA','JOVEN','JUEGO','JUGAR','JUNIO','JUNTO','LADOS','LAGOS','LANZA','LÁPIZ','LARGO','LATIR','LAVAR','LECHE','LEJOS','LENTO','LIBRE','LIBRO','LIMÓN','LINDO','LISTA','LISTO','LLAMA','LLANO','LLAVE','LLENO','LOCAL','LOGRO','LUCES','LUEGO','LUGAR',
+    'MADRE','MAGIA','MALLA','MANGO','MANTA','MANOS','MARCA','MAREA','MARZO','MAYOR','MEDIO','MEJOR','MENOR','MENTE','MESAS','METAL','MIEDO','MIRAR','MONTE','MORIR','MOSCA','MOTOR','MUJER','MUNDO','NACER','NADAR','NARIZ','NEGAR','NEGRO','NIEVE','NIETA','NIÑOS','NIVEL','NOCHE','NORTE','NOVIO','NUBES','NUEVO','NUNCA',
+    'OLIVA','ORDEN','OVEJA','PADRE','PAGAR','PALMA','PALOS','PANEL','PANZA','PAPEL','PARAR','PARDO','PARED','PARTE','PASAR','PASEO','PASTA','PATIO','PECES','PERLA','PERRO','PESAR','PIANO','PIEZA','PILAR','PISTA','PLANO','PLATO','PLAYA','PLAZA','PLENO','PLUMA','POBRE','PODER','POEMA','POLLO','PONER','PRADO','PRESA','PRIMO','PUNTA',
+    'QUESO','RADAR','RADIO','RAMOS','RATÓN','RAYOS','REGLA','REINA','RELOJ','RENTA','RESTO','RISAS','RITMO','ROBAR','ROBLE','ROCAS','ROMPE','RUEDA','RUIDO','SABER','SALIR','SALSA','SALTO','SALUD','SANTO','SECAR','SERIO','SILLA','SOBRE','SOLAR','SUELO','SUEÑO',
+    'TAPAR','TARDE','TAREA','TECHO','TELÓN','TEMAS','TEMOR','TENER','TENIS','TIBIO','TINTA','TOCAR','TOMAR','TORRE','TOTAL','TRAER','TRAJE','TRATO','TRIGO','TROZO','TURNO','ÚNICO','UNIÓN','VACÍO','VALOR','VAPOR','VENIR','VENTA','VERBO','VERDE','VIAJE','VIDEO','VIEJO','VIRUS','VISTA','VIVIR','VOLAR','VOTOS','VUELO','YERBA','YOGUR','ZONAS'
+  ];
+  const scores=[1000,850,700,550,400,250],storageKey='kiosco_turn_game_v1';
+  const normalize=value=>String(value??'').toLocaleUpperCase('es-AR').replace(/Ñ/g,'\uE000').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\uE000/g,'Ñ').replace(/[^A-ZÑ]/g,'').slice(0,5);
+  const words=[...new Map(rawWords.map(display=>[normalize(display),{display,key:normalize(display)}]).filter(([key])=>key.length===5)).values()];
+  const els={
+    owner:document.getElementById('tgOwner'),potential:document.getElementById('tgPotential'),board:document.getElementById('tgBoard'),wrap:document.getElementById('tgBoardWrap'),
+    input:document.getElementById('tgInput'),lock:document.getElementById('tgLock'),submit:document.getElementById('tgSubmit'),hint:document.getElementById('tgHint'),
+    status:document.getElementById('tgStatus'),ranking:document.getElementById('tgRanking'),week:document.getElementById('tgWeek'),toggle:document.getElementById('tgToggle'),toggleText:document.getElementById('tgToggleText')
+  };
+  const readState=()=>{
+    try{const data=JSON.parse(localStorage.getItem(storageKey)||'{}');return{assignments:data.assignments||{},used:Array.isArray(data.used)?data.used:[],games:data.games||{}};}
+    catch(e){return{assignments:{},used:[],games:{}};}
+  };
+  const writeState=state=>{try{localStorage.setItem(storageKey,JSON.stringify(state));}catch(e){console.warn('No pude guardar el desafío:',e);}};
+  const dateKey=date=>`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+  const mondayKey=date=>{const d=new Date(date.getFullYear(),date.getMonth(),date.getDate(),12);d.setDate(d.getDate()-((d.getDay()+6)%7));return dateKey(d);};
+  const timeLabel=(h,m)=>`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+  const hash=value=>{let h=2166136261;for(let i=0;i<value.length;i++){h^=value.charCodeAt(i);h=Math.imul(h,16777619);}return h>>>0;};
+  const crypticHint=word=>{
+    const letters=[...word],vowels=letters.filter(letter=>'AEIOU'.includes(letter)),counts={};letters.forEach(letter=>counts[letter]=(counts[letter]||0)+1);
+    const repeated=Object.values(counts).some(count=>count>1),middle=letters[2],firstVowel='AEIOU'.includes(letters[0]),lastVowel='AEIOU'.includes(letters[4]);
+    const clues=[
+      repeated?'Una letra insiste en volver.':'Cada letra aparece una sola vez.',
+      `${vowels.length===1?'Una sola vocal respira':vowels.length===2?'Dos vocales se esconden':`${vowels.length} vocales se reparten`} entre cinco lugares.`,
+      `En el corazón hay ${'AEIOU'.includes(middle)?'una vocal':'una consonante'}.`,
+      firstVowel===lastVowel?`Sus dos extremos pertenecen a la misma familia.`:`Sus extremos no pertenecen a la misma familia.`
+    ];
+    const start=hash(word)%clues.length;return`${clues[start]} ${clues[(start+1)%clues.length]}`;
+  };
+  const now=new Date(),mins=now.getHours()*60+now.getMinutes(),first=TURNOS[0],last=TURNOS[TURNOS.length-1];
+  let owner=turno||turnoReciente,locked=false;
+  if(!owner){if(mins<first.desdeH*60+first.desdeM){owner=first;locked=true;}else owner=last;}
+  const day=dateKey(now),puzzleId=`${day}|${owner.nombre}`,state=readState();
+  function assignWord(){
+    const saved=state.assignments[puzzleId];
+    if(saved){const found=words.find(word=>word.key===normalize(saved));if(found)return found;}
+    const used=new Set(state.used.map(normalize));
+    if(used.size>=words.length)return null;
+    let index=hash(puzzleId)%words.length,word=null;
+    for(let i=0;i<words.length;i++){const candidate=words[(index+i)%words.length];if(!used.has(candidate.key)){word=candidate;break;}}
+    if(!word)return null;
+    state.assignments[puzzleId]=word.display;state.used.push(word.key);writeState(state);return word;
+  }
+  const answer=locked?null:assignWord();
+  if(!locked&&!answer)locked=true;
+  const game=state.games[puzzleId]||{puzzleId,puzzleDate:day,owner:owner.nombre,guesses:[],penalty:0,hintUsed:false,won:false,lost:false,score:0,completedAt:null};
+  if(!Array.isArray(game.guesses))game.guesses=[];
+  state.games[puzzleId]=game;
+  const tiles=[];
+  for(let row=0;row<6;row++)for(let col=0;col<5;col++){
+    const tile=document.createElement('span');tile.className='tg-tile';tile.setAttribute('role','gridcell');tile.dataset.row=row;tile.dataset.col=col;els.board.appendChild(tile);tiles.push(tile);
+  }
+  const tileAt=(row,col)=>tiles[row*5+col];
+  const resultFor=guess=>{
+    const result=Array(5).fill('absent'),remaining={};
+    [...answer.key].forEach((letter,index)=>{if(guess[index]===letter)result[index]='correct';else remaining[letter]=(remaining[letter]||0)+1;});
+    [...guess].forEach((letter,index)=>{if(result[index]==='correct')return;if(remaining[letter]>0){result[index]='present';remaining[letter]--;}});
+    return result;
+  };
+  function paintRow(row,guess,animate=false){
+    const result=resultFor(guess),answerChars=[...answer.display.toLocaleUpperCase('es-AR')];
+    result.forEach((kind,col)=>{
+      const tile=tileAt(row,col),apply=()=>{
+        tile.textContent=kind==='correct'?answerChars[col]:guess[col];
+        tile.classList.remove('is-active','is-filled','is-correct','is-present','is-absent');tile.classList.add(`is-${kind}`);
+        if(animate&&tile.animate)tile.animate([{transform:'rotateX(0deg)'},{transform:'rotateX(88deg)',offset:.48},{transform:'rotateX(0deg)'}],{duration:430,easing:'ease-in-out'});
+      };
+      if(animate)setTimeout(apply,col*82);else apply();
+    });
+    return result;
+  }
+  function setActiveRow(){
+    const finished=locked||game.won||game.lost,row=game.guesses.length;
+    tiles.forEach(tile=>tile.classList.toggle('is-active',!finished&&Number(tile.dataset.row)===row));
+    els.wrap.style.setProperty('--tg-active-row',Math.min(row,5));
+    els.input.disabled=finished;els.submit.disabled=finished;els.hint.disabled=finished||game.hintUsed;
+  }
+  function potential(){
+    if(game.won){els.potential.textContent=`${Number(game.score).toLocaleString('es-AR')} pts ganados`;return Number(game.score)||0;}
+    if(game.lost){els.potential.textContent='0 pts';return 0;}
+    const index=Math.min(game.guesses.length,5),value=Math.max(0,scores[index]-(Number(game.penalty)||0));
+    els.potential.textContent=`${value.toLocaleString('es-AR')} pts posibles`;return value;
+  }
+  function preview(){
+    els.input.value=normalize(els.input.value);const row=game.guesses.length;
+    for(let col=0;col<5;col++){const tile=tileAt(row,col);if(!tile||game.won||game.lost||locked)continue;tile.textContent=els.input.value[col]||'';tile.classList.toggle('is-filled',Boolean(els.input.value[col]));}
+  }
+  function motionOk(){return!matchMedia('(prefers-reduced-motion: reduce)').matches;}
+  function winEffect(row){
+    root.classList.add('is-win');
+    if(!motionOk())return;
+    setTimeout(()=>{
+      for(let col=0;col<5;col++)tileAt(row,col).animate?.([{transform:'translateY(0) scale(1)'},{transform:'translateY(-12px) scale(1.08)',offset:.45},{transform:'translateY(0) scale(1)'}],{duration:620,delay:col*65,easing:'cubic-bezier(.2,.8,.3,1)'});
+      const rect=els.board.getBoundingClientRect();if(typeof eggRing==='function')eggRing(rect.left+rect.width/2,rect.top+rect.height/2,'green',0);
+      if(typeof launchConfetti==='function')launchConfetti(2300);
+      navigator.vibrate?.([45,30,90]);
+    },470);
+  }
+  function lossEffect(row){
+    root.classList.add('is-loss');
+    if(!motionOk())return;
+    setTimeout(()=>{
+      root.animate?.([{transform:'translateX(0)'},{transform:'translateX(-5px)'},{transform:'translateX(5px)'},{transform:'translateX(-3px)'},{transform:'translateX(0)'}],{duration:430,easing:'ease-out'});
+      for(let col=0;col<5;col++)tileAt(row,col).animate?.([{transform:'translateY(0) rotate(0)',opacity:1},{transform:`translateY(${14+col*2}px) rotate(${col%2?5:-5}deg)`,opacity:.35,offset:.62},{transform:'translateY(0) rotate(0)',opacity:1}],{duration:720,delay:col*55,easing:'cubic-bezier(.3,.7,.25,1)'});
+      navigator.vibrate?.([85,45,85]);
+    },470);
+  }
+  function renderRanking(){
+    const currentWeek=mondayKey(now),baseNames=['Vale','Ani','Marta'];if(!baseNames.includes(owner.nombre))baseNames.push(owner.nombre);
+    const completed=Object.values(state.games).filter(item=>item&&item.completedAt);
+    const rows=baseNames.map(name=>{
+      const weekly=completed.filter(item=>item.owner===name&&mondayKey(new Date(`${item.puzzleDate}T12:00:00`))===currentWeek);
+      const recent=completed.filter(item=>item.owner===name).sort((a,b)=>String(b.completedAt).localeCompare(String(a.completedAt)));
+      let streak=0;for(const item of recent){if(item.won)streak++;else break;}
+      return{name,score:weekly.reduce((sum,item)=>sum+(Number(item.score)||0),0),wins:weekly.filter(item=>item.won).length,streak};
+    }).sort((a,b)=>b.score-a.score||b.wins-a.wins||baseNames.indexOf(a.name)-baseNames.indexOf(b.name));
+    rows.forEach((row,index)=>row.rank=index+1);let shown=rows.slice(0,3);
+    if(!shown.some(row=>row.name===owner.nombre)){const current=rows.find(row=>row.name===owner.nombre);if(current)shown=[...shown.slice(0,2),current];}
+    els.ranking.innerHTML='';shown.forEach(row=>{
+      const li=document.createElement('li');if(row.name===owner.nombre)li.className='is-current';
+      const pos=document.createElement('span');pos.className='tg-rank-pos';pos.textContent=row.rank;
+      const name=document.createElement('span');name.className='tg-rank-name';name.textContent=row.name;const sub=document.createElement('small');sub.textContent=`${row.wins} res. · racha ${row.streak}`;name.appendChild(sub);
+      const score=document.createElement('strong');score.className='tg-rank-score';score.textContent=row.score.toLocaleString('es-AR');li.append(pos,name,score);els.ranking.appendChild(li);
+    });
+    const monday=new Date(`${currentWeek}T12:00:00`);els.week.textContent=`desde ${monday.toLocaleDateString('es-AR',{day:'numeric',month:'short'})}`;
+  }
+  function renderState(){
+    els.owner.textContent=owner.nombre;
+    if(answer)game.guesses.forEach((guess,row)=>paintRow(row,guess,false));
+    els.status.classList.remove('is-win','is-loss');root.classList.remove('is-win','is-loss');
+    if(locked){
+      const agotado=!answer&&mins>=first.desdeH*60+first.desdeM;els.lock.hidden=false;els.lock.textContent=agotado?'Temporada completa: no se repetirá ninguna palabra.':'Disponible con '+owner.nombre+' · '+timeLabel(owner.desdeH,owner.desdeM);els.status.textContent=agotado?'Próximamente, nueva temporada de palabras':'Se habilita al comenzar el turno';
+    }else if(game.won){els.status.textContent=`Resuelta en ${game.guesses.length} intento${game.guesses.length===1?'':'s'} · +${Number(game.score).toLocaleString('es-AR')} pts`;els.status.classList.add('is-win');root.classList.add('is-win');}
+    else if(game.lost){els.status.textContent=`Sin más intentos · era ${answer.display}`;els.status.classList.add('is-loss');root.classList.add('is-loss');}
+    else els.status.textContent=game.hintUsed?`Quedan ${6-game.guesses.length} · ${game.hintText||crypticHint(answer.key)}`:`Quedan ${6-game.guesses.length} intentos`;
+    potential();setActiveRow();renderRanking();
+  }
+  function play(){
+    if(locked||game.won||game.lost)return;const guess=normalize(els.input.value);
+    if(guess.length!==5){els.status.textContent='Completá las cinco letras';return;}
+    if(game.guesses.includes(guess)){els.status.textContent='Esa palabra ya la probaste';return;}
+    const row=game.guesses.length;game.guesses.push(guess);const won=guess===answer.key;
+    if(won){game.won=true;game.score=Math.max(0,scores[row]-(Number(game.penalty)||0));game.completedAt=new Date().toISOString();}
+    else if(game.guesses.length>=6){game.lost=true;game.score=0;game.completedAt=new Date().toISOString();}
+    state.games[puzzleId]=game;writeState(state);els.input.value='';paintRow(row,guess,true);
+    if(won){els.status.textContent=`¡Correcto! +${game.score.toLocaleString('es-AR')} puntos`;els.status.className='tg-status is-win';potential();setActiveRow();renderRanking();winEffect(row);}
+    else if(game.lost){els.status.textContent=`Sin más intentos · era ${answer.display}`;els.status.className='tg-status is-loss';potential();setActiveRow();renderRanking();lossEffect(row);}
+    else{potential();setActiveRow();els.status.textContent=game.hintUsed?`Quedan ${6-game.guesses.length} · ${game.hintText||crypticHint(answer.key)}`:`Quedan ${6-game.guesses.length} intentos`;els.input.focus();}
+  }
+  els.wrap.addEventListener('click',()=>{if(!locked&&!game.won&&!game.lost)els.input.focus();});
+  els.input.addEventListener('input',preview);els.input.addEventListener('keydown',event=>{if(event.key==='Enter')play();});els.submit.addEventListener('click',play);
+  els.hint.addEventListener('click',()=>{
+    if(locked||game.won||game.lost||game.hintUsed)return;game.hintUsed=true;game.penalty=100;game.hintText=crypticHint(answer.key);state.games[puzzleId]=game;writeState(state);els.hint.disabled=true;potential();els.status.textContent=`Pista: ${game.hintText}`;els.input.focus();
+  });
+  const setOpen=open=>{root.classList.toggle('is-open',open);els.toggle.setAttribute('aria-expanded',String(open));els.toggleText.textContent=open?'Ocultar':'Jugar';};
+  const mobile=matchMedia('(max-width:900px)');setOpen(!mobile.matches);els.toggle.addEventListener('click',()=>setOpen(!root.classList.contains('is-open')));
+  renderState();
+})();
 
 function springCount(el,end,prefix,dur){
   if(!el)return;
