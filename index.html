@@ -2694,6 +2694,7 @@ body.light .price-error{color:#991b1b}
 
 /* Desafío del día: ocupa la celda libre a la derecha sin mover el hero. */
 .turn-game{min-width:0;align-self:start;padding-top:14px;border-top:1px solid var(--glass-border);color:var(--text)}
+.turn-game[hidden]{display:none!important}
 .tg-head,.tg-head-actions,.tg-meta,.tg-ranking-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .tg-title-row{display:flex;align-items:center;gap:7px;min-width:0}
 .tg-title{display:inline-flex;align-items:center;gap:6px;min-height:28px;padding:0;border:0;background:transparent;color:var(--text-mid);font:800 10px/1 'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;letter-spacing:.09em;text-transform:uppercase;cursor:pointer}
@@ -2901,7 +2902,7 @@ body.light .tg-lock{background:rgba(255,255,255,.96)}
         </div>
       </aside>
 
-      <section class="turn-game" id="turnGame" aria-labelledby="tgTitle">
+      <section class="turn-game" id="turnGame" aria-labelledby="tgTitle" hidden>
         <div class="tg-head">
           <div class="tg-title-row">
             <button class="tg-title" id="tgTitle" type="button" aria-controls="tgBody" aria-expanded="false">
@@ -3486,8 +3487,11 @@ function showToast(msg){
 }
 
 (function initTurnGame(){
+  const TURN_GAME_VISIBLE=false;
   const root=document.getElementById('turnGame');
   if(!root)return;
+  root.hidden=!TURN_GAME_VISIBLE;
+  if(!TURN_GAME_VISIBLE)return;
   const rawChallenges=[
     ['ABEJA','sustantivo','Guarda verano en sus alas y convierte flores en oro.'],
     ['ABRIL','sustantivo','Llega con luz más suave y hojas que empiezan a despedirse.'],
