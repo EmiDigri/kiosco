@@ -4540,6 +4540,71 @@ function pulseReplay(elements){
     ],{duration:420,delay:i*spacing,easing:'cubic-bezier(.2,.8,.2,1)',fill:'backwards'});
   });
 }
+// ── Proyección de cierre autoaprendida (turno y día) ──────────────────
+// Estima el total al cierre a partir de los días anteriores del MISMO día de
+// semana: mediana del factor (total de la ventana / total hasta esta hora).
+// Se autoevalúa: registra cada proyección y, cuando el día cierra, mide su
+// error real y corrige un sesgo. Cuantos más cierres acumula, más certera y
+// más ajustado el margen. (Pedido: que el sistema aprenda de sí mismo.)
+const PULSE_LEARN_KEY='pulse_learn_v1';
+function pulseLearnRead(){try{return JSON.parse(localStorage.getItem(PULSE_LEARN_KEY))||{};}catch(e){return{};}}
+function pulseLearnWrite(v){try{localStorage.setItem(PULSE_LEARN_KEY,JSON.stringify(v));}catch(e){}}
+function pulseMediana(a){if(!a.length)return null;const s=[...a].sort((x,y)=>x-y),m=s.length>>1;return s.length%2?s[m]:(s[m-1]+s[m])/2;}
+function pulseVentanaTotal(rows,startM,endExclM){return rows.reduce((a,r)=>{const m=pulseMinutes(r.hora);return(m>=startM&&m<endExclM)?a+(Number(r.monto)||0):a;},0);}
+// Factores (total ventana / total hasta el corte) de días previos del mismo día
+// de semana. Es la base del modelo y se afina con cada día nuevo que se acumula.
+function pulseFactores(byDate,todayIso,dow,startM,endExclM,cutoffM){
+  const ratios=[],pEnd=Math.min(cutoffM+1,endExclM);
+  byDate.forEach((rows,fecha)=>{
+    if(fecha>=todayIso||pulseDate(fecha).getDay()!==dow)return;
+    const parcial=pulseVentanaTotal(rows,startM,pEnd),full=pulseVentanaTotal(rows,startM,endExclM);
+    if(parcial>0&&full>0)ratios.push(full/parcial);
+  });
+  return ratios;
+}
+// Backtest leave-one-out: error típico honesto ya con los datos actuales.
+function pulseBacktestError(ratios){
+  if(ratios.length<3)return null;
+  const errs=ratios.map((r,i)=>{const est=pulseMediana(ratios.filter((_,j)=>j!==i));return est?Math.abs(r-est)/r:null;}).filter(x=>x!=null);
+  return pulseMediana(errs);
+}
+// Califica las proyecciones ya registradas contra el cierre real conocido.
+function pulseAprender(byDate,todayIso){
+  const learn=pulseLearnRead();let changed=false;
+  Object.keys(learn).forEach(key=>{
+    const rec=learn[key];if(!rec||!rec.log)return;
+    Object.keys(rec.log).forEach(fecha=>{
+      if(fecha>=todayIso)return; // hoy todavía no cerró
+      const rows=byDate.get(fecha);if(!rows)return;
+      const e=rec.log[fecha],real=pulseVentanaTotal(rows,e.s,e.e);
+      if(real>0&&e.proj>0){
+        rec.errs=(rec.errs||[]).concat(Math.abs(real-e.proj)/real).slice(-40);
+        rec.bias=(rec.bias||[]).concat(real/e.proj).slice(-40);
+      }
+      delete rec.log[fecha];changed=true;
+    });
+  });
+  if(changed)pulseLearnWrite(learn);
+}
+// Registra la proyección de hoy (una sola vez por día) para calificarla mañana.
+function pulseRegistrar(key,fecha,startM,endExclM,proj){
+  const learn=pulseLearnRead(),rec=learn[key]||(learn[key]={log:{},errs:[],bias:[]});
+  if(rec.log[fecha]||!(proj>0))return;
+  rec.log[fecha]={s:startM,e:endExclM,proj};pulseLearnWrite(learn);
+}
+// Proyección de una ventana (turno o día completo), calibrada con lo aprendido.
+function pulseProyeccion(byDate,todayIso,dow,startM,endExclM,cutoffM,parcialHoy,key){
+  const ratios=pulseFactores(byDate,todayIso,dow,startM,endExclM,cutoffM);
+  if(ratios.length<3||!(parcialHoy>0))return{n:ratios.length};
+  const learn=pulseLearnRead()[key]||{errs:[],bias:[]};
+  const central=pulseMediana(ratios);
+  const biasReal=(learn.bias&&learn.bias.length>=4)?pulseMediana(learn.bias):null;
+  const factor=central*(biasReal?Math.max(.8,Math.min(1.25,biasReal)):1);
+  const value=Math.max(parcialHoy,parcialHoy*factor);
+  const errReal=(learn.errs&&learn.errs.length>=4)?pulseMediana(learn.errs):null;
+  const err=errReal!=null?errReal:(pulseBacktestError(ratios)??.14);
+  return{value,low:Math.max(parcialHoy,value*(1-err)),high:value*(1+err),err,n:ratios.length,nCierres:(learn.errs||[]).length};
+}
 function pulseRender(rows){
   const content=document.getElementById('pulseContent');if(!content)return;
   const now=new Date(),actualToday=pulseIso(now),actualCutoff=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
@@ -4594,15 +4659,22 @@ function pulseRender(rows){
   const comparableMoment=isToday?'a esa hora':'al cierre';
   const paceTip=`${selectedMoment}: ${pulseMoney(todayTotal)}\n\n${compCount?`Otros ${pulseWeekdayPlural(todayDow)} ${comparableMoment}:\n${paceLineas}`:`Todavía no hay ${pulseWeekdayPlural(todayDow)} anteriores para comparar.`}`;
   const pace30Tip=`${selectedMoment}: ${pulseMoney(todayTotal)}\n\n${compCount30?`Promedio de los ${compCount30} días anteriores ${comparableMoment}: ${pulseMoney(avgPartial30)}`:'Todavía no hay suficientes días para comparar.'}`;
-  let projectionValue='—',projectionNote='Necesita 3 días comparables';
   const nowMins=now.getHours()*60+now.getMinutes();
-  if(isToday&&enough&&todayTotal>0){
-    if(nowMins>=22*60){projectionValue=pulseMoneyShort(todayTotal);projectionNote='Cierre MP observado hasta ahora';}
-    else{
-      const ratio=Math.max(1,Math.min(4,avgFull/avgPartial));
-      const projected=Math.max(todayTotal,todayTotal*ratio),low=Math.max(todayTotal,projected*.92),high=projected*1.08;
-      projectionValue=`${pulseMoneyShort(low)} – ${pulseMoneyShort(high)}`;
-      projectionNote='Rango estimado al cierre de MP';
+  // Dos proyecciones autoaprendidas: la del turno actual y la del día completo.
+  let dayProj=null,turnoProj=null,turnoProjNombre='';
+  if(isToday){
+    pulseAprender(byDate,today);
+    dayProj=pulseProyeccion(byDate,today,todayDow,0,1440,nowMins,todayTotal,'dia');
+    // Se registra para calificar solo en un punto representativo (entre el 25% y
+    // el 90% de lo proyectado ya cobrado): ni el arranque ruidoso ni el cierre obvio.
+    if(dayProj&&dayProj.value){const f=todayTotal/dayProj.value;if(f>=.25&&f<=.9)pulseRegistrar('dia',today,0,1440,dayProj.value);}
+    const tAct=TURNOS.find(t=>nowMins>=t.desdeH*60+t.desdeM&&nowMins<=visFin(t));
+    if(tAct){
+      const tS=tAct.desdeH*60+tAct.desdeM,tEnd=visFin(tAct)+1;
+      const tParcial=pulseVentanaTotal(todayRows,tS,tEnd);
+      turnoProj=pulseProyeccion(byDate,today,todayDow,tS,tEnd,nowMins,tParcial,'turno:'+tAct.nombre);
+      turnoProjNombre=tAct.nombre;
+      if(turnoProj&&turnoProj.value){const f=tParcial/turnoProj.value;if(f>=.25&&f<=.9)pulseRegistrar('turno:'+tAct.nombre,today,tS,tEnd,turnoProj.value);}
     }
   }
   const hourTotals=Array.from({length:24},()=>0);
@@ -4643,9 +4715,22 @@ function pulseRender(rows){
   const totalLabel=isToday?'Mercado Pago hoy':'Mercado Pago ayer';
   const totalNote=isToday?`${todayRows.length} movimiento${todayRows.length===1?'':'s'} hasta ${cutoff}`:todayRows.length?`${todayRows.length} movimientos · ${firstTime}–${lastTime}`:'Sin movimientos registrados';
   const paceLabel=isToday?'Ritmo del día':'Resultado del día';
-  const thirdLabel=isToday?'Proyección de cierre':'Ticket promedio';
-  const thirdValue=isToday?projectionValue:todayRows.length?pulseMoney(todayTotal/todayRows.length):'—';
-  const thirdNote=isToday?projectionNote:hourTotals[peakHour]>0?`Hora pico ${String(peakHour).padStart(2,'0')}:00 · ${pulseMoney(hourTotals[peakHour])}`:'Sin hora pico';
+  let tercerTileHtml;
+  if(isToday){
+    const projCell=(p,label,tipLabel)=>{
+      if(!p||!p.value){const falta=p&&p.n!=null?`faltan ${Math.max(1,3-p.n)} ${p.n>=2?'día':'días'}`:'sin datos';return`<div class="pulse-pace-item" title="${cmEsc?cmEsc(tipLabel+': todavía no hay suficientes días del mismo día de semana'):''}"><div class="pulse-metric-value pace-mini">—</div><div class="pulse-metric-note">${label} · ${falta}</div></div>`;}
+      const errPct=Math.round((p.err||0)*100);
+      const aprende=p.nCierres>=4?`aprendió de ${p.nCierres} cierres`:'todavía aprendiendo';
+      const tip=`${tipLabel}: entre ${pulseMoneyShort(p.low)} y ${pulseMoneyShort(p.high)} al cierre. Error típico ±${errPct}% · ${aprende}.`;
+      return`<div class="pulse-pace-item" title="${cmEsc?cmEsc(tip):tip}"><div class="pulse-metric-value pace-mini">${pulseMoneyShort(p.value)}</div><div class="pulse-metric-note">${label} · ±${errPct}%</div></div>`;
+    };
+    const turnoCell=turnoProjNombre?projCell(turnoProj,turnoProjNombre,'Turno '+turnoProjNombre):`<div class="pulse-pace-item" title="No hay un turno en curso ahora"><div class="pulse-metric-value pace-mini">—</div><div class="pulse-metric-note">Sin turno activo</div></div>`;
+    tercerTileHtml=`<div class="pulse-metric"><div class="pulse-metric-label">Proyección de cierre</div><div class="pulse-pace-row">${turnoCell}${projCell(dayProj,'Día','Día completo')}</div></div>`;
+  }else{
+    const tV=todayRows.length?pulseMoney(todayTotal/todayRows.length):'—';
+    const tN=hourTotals[peakHour]>0?`Hora pico ${String(peakHour).padStart(2,'0')}:00 · ${pulseMoney(hourTotals[peakHour])}`:'Sin hora pico';
+    tercerTileHtml=`<div class="pulse-metric"><div class="pulse-metric-label">Ticket promedio</div><div class="pulse-metric-value">${tV}</div><div class="pulse-metric-note">${tN}</div></div>`;
+  }
   let footLead=peakText;
   if(!isToday){
     const verdict=pacePct===null?'Día completo':pacePct>=15?'Día fuerte':pacePct>=5?'Por encima de lo habitual':pacePct<=-15?'Día flojo':pacePct<=-5?'Por debajo de lo habitual':'Día parejo';
@@ -4656,7 +4741,7 @@ function pulseRender(rows){
     <div class="pulse-metrics">
       <div class="pulse-metric"><div class="pulse-metric-label">${totalLabel}</div><div class="pulse-metric-value">${pulseMoney(todayTotal)}</div><div class="pulse-metric-note">${totalNote}</div></div>
       <div class="pulse-metric"><div class="pulse-metric-label">${paceLabel}</div><div class="pulse-pace-row"><div class="pulse-pace-item" title="${cmEsc?cmEsc(paceTip):paceTip}"><div class="pulse-metric-value pace-mini">${paceValue}</div><div class="pulse-metric-note ${paceClass}">${paceNote}</div></div><div class="pulse-pace-item" title="${cmEsc?cmEsc(pace30Tip):pace30Tip}"><div class="pulse-metric-value pace-mini">${pace30Value}</div><div class="pulse-metric-note ${pace30Class}">${pace30Note}</div></div></div></div>
-      <div class="pulse-metric"><div class="pulse-metric-label">${thirdLabel}</div><div class="pulse-metric-value">${thirdValue}</div><div class="pulse-metric-note">${thirdNote}</div></div>
+      ${tercerTileHtml}
     </div>
     <div class="pulse-chart" role="img" aria-label="Actividad de Mercado Pago ${isToday?'de hoy':'de ayer'} entre las ${String(rangeStartHour).padStart(2,'0')}:00 y las ${String(rangeEndHour).padStart(2,'0')}:00">
       <div class="pulse-gridlines">${gridlines}</div><div class="pulse-bars" style="grid-template-columns:repeat(${rangeHours},minmax(3px,1fr))">${bars}</div><div class="pulse-events">${events}</div>${nowMarker}
