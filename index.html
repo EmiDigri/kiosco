@@ -6948,30 +6948,75 @@ async function eggDollar3D(){
 // puesta en el ángulo real de la fase: el terminador (el borde luz/sombra)
 // coincide con lo que se ve esa noche en el cielo.
 let iwMoonSceneGen=0,iwMoonSceneState=null,iwMoonTexCache=null,iwCurrentMoon=null;
-function iwMoonSurfaceTexture(THREE){
+// Genera dos texturas equirectangulares de alta resolución: color y RELIEVE
+// (bump). El relieve es la clave del realismo: hace que el terminador proyecte
+// sombras 3D reales en cada cráter, en vez de círculos planos.
+function iwMoonTextures(THREE){
   if(iwMoonTexCache)return iwMoonTexCache;
-  const w=1024,h=512,c=document.createElement('canvas');c.width=w;c.height=h;
-  const ctx=c.getContext('2d');
-  ctx.fillStyle='#b9b6ae';ctx.fillRect(0,0,w,h);
-  // Mares (las manchas oscuras que se ven a simple vista)
-  [[250,170,130,78],[335,118,84,52],[430,205,98,58],[205,265,74,48],[610,150,115,62],[705,235,84,52],[520,300,64,42],[150,120,62,42],[820,180,90,55]]
-    .forEach(([x,y,rx,ry])=>{
-      ctx.save();ctx.translate(x,y);ctx.scale(1,ry/rx);
-      const g=ctx.createRadialGradient(0,0,0,0,0,rx);
-      g.addColorStop(0,'rgba(104,101,96,.88)');g.addColorStop(.65,'rgba(122,119,112,.5)');g.addColorStop(1,'rgba(122,119,112,0)');
-      ctx.fillStyle=g;ctx.beginPath();ctx.arc(0,0,rx,0,Math.PI*2);ctx.fill();ctx.restore();
-    });
-  // Cráteres: piso oscuro + borde claro
-  for(let i=0;i<240;i++){
-    const x=Math.random()*w,y=Math.random()*h,r=2+Math.random()*17;
-    ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);
-    ctx.fillStyle='rgba(206,203,195,.45)';ctx.fill();
-    ctx.beginPath();ctx.arc(x+r*.16,y+r*.16,r*.8,0,Math.PI*2);
-    ctx.fillStyle='rgba(96,94,89,.4)';ctx.fill();
+  const W=2048,H=1024,PI2=Math.PI*2;
+  const col=document.createElement('canvas');col.width=W;col.height=H;
+  const bmp=document.createElement('canvas');bmp.width=W;bmp.height=H;
+  const cx=col.getContext('2d'),bx=bmp.getContext('2d');
+  cx.fillStyle='#8f8b82';cx.fillRect(0,0,W,H);
+  bx.fillStyle='#808080';bx.fillRect(0,0,W,H); // 128 = altura neutra
+  // Moteado regional del regolito (variación suave de luminosidad)
+  for(let i=0;i<160;i++){
+    const x=Math.random()*W,y=Math.random()*H,r=60+Math.random()*220,l=Math.random()<.5?0:255;
+    const g=cx.createRadialGradient(x,y,0,x,y,r);
+    g.addColorStop(0,`rgba(${l},${l},${l},${(0.03+Math.random()*0.05).toFixed(3)})`);g.addColorStop(1,`rgba(${l},${l},${l},0)`);
+    cx.fillStyle=g;cx.beginPath();cx.arc(x,y,r,0,PI2);cx.fill();
   }
-  for(let i=0;i<5000;i++){ctx.fillStyle=`rgba(255,255,255,${(Math.random()*.05).toFixed(3)})`;ctx.fillRect(Math.random()*w,Math.random()*h,1,1);}
-  const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;tex.needsUpdate=true;
-  iwMoonTexCache=tex;return tex;
+  // Mares (basalto oscuro) agrupados en una cara, como la Luna real. Bajos y lisos.
+  [[560,360,220,150],[760,300,150,110],[900,420,170,120],[1030,300,120,95],[1180,470,140,90],[640,560,150,100],[470,470,120,90],[820,540,110,80],[1120,600,120,80]]
+    .forEach(([x,y,rx,ry])=>{
+      [[cx,'rgba(74,72,70,',0.9],[bx,'rgba(105,105,105,',0.85]].forEach(([g2,base,a])=>{
+        g2.save();g2.translate(x,y);g2.scale(1,ry/rx);
+        const g=g2.createRadialGradient(0,0,0,0,0,rx);
+        g.addColorStop(0,base+a+')');g.addColorStop(.7,base+(a*0.6)+')');g.addColorStop(1,base+'0)');
+        g2.fillStyle=g;g2.beginPath();g2.arc(0,0,rx,0,PI2);g2.fill();g2.restore();
+      });
+    });
+  // Un cráter = cuenco: piso hundido, muralla y borde elevado. En el bump eso da
+  // el relieve; en el color, piso apenas oscuro y borde apenas claro.
+  const craterBump=(x,y,r,a)=>{
+    const g=bx.createRadialGradient(x,y,0,x,y,r*1.18);
+    g.addColorStop(0,`rgba(66,66,66,${a})`);g.addColorStop(.5,`rgba(92,92,92,${a})`);
+    g.addColorStop(.74,`rgba(150,150,150,${a})`);g.addColorStop(.9,`rgba(190,190,190,${a})`);g.addColorStop(1,'rgba(128,128,128,0)');
+    bx.fillStyle=g;bx.beginPath();bx.arc(x,y,r*1.18,0,PI2);bx.fill();
+    if(r>22){const p=bx.createRadialGradient(x,y,0,x,y,r*.22);p.addColorStop(0,`rgba(178,178,178,${a})`);p.addColorStop(1,'rgba(128,128,128,0)');bx.fillStyle=p;bx.beginPath();bx.arc(x,y,r*.22,0,PI2);bx.fill();} // pico central
+  };
+  const craterCol=(x,y,r)=>{
+    const g=cx.createRadialGradient(x,y,0,x,y,r*1.12);
+    g.addColorStop(0,'rgba(58,56,53,0.22)');g.addColorStop(.72,'rgba(120,117,110,0.08)');
+    g.addColorStop(.88,'rgba(206,203,196,0.2)');g.addColorStop(1,'rgba(150,147,140,0)');
+    cx.fillStyle=g;cx.beginPath();cx.arc(x,y,r*1.12,0,PI2);cx.fill();
+  };
+  const dibujarCrater=(x,y,r,wrapped)=>{
+    const a=Math.max(.3,Math.min(.7,0.85-r/90));
+    craterBump(x,y,r,a);craterCol(x,y,r);
+    // Copia en el otro borde si toca la costura (sin volver a envolver la copia).
+    if(!wrapped){if(x<r*1.3)dibujarCrater(x+W,y,r,true);else if(x>W-r*1.3)dibujarCrater(x-W,y,r,true);}
+  };
+  // Distribución tipo ley de potencias: muchos chicos, pocos grandes.
+  for(let i=0;i<820;i++){const r=1.5+Math.pow(Math.random(),3.2)*46;dibujarCrater(Math.random()*W,Math.random()*H,r);}
+  // Cráteres con sistema de rayos (tipo Tycho/Copérnico): epicos y reconocibles.
+  [[900,760,30],[1350,300,24],[430,250,20]].forEach(([x,y,r])=>{
+    const n=26+Math.floor(Math.random()*16);
+    for(let i=0;i<n;i++){
+      const ang=Math.random()*PI2,len=r*(4+Math.random()*9);
+      cx.save();cx.translate(x,y);cx.rotate(ang);
+      const g=cx.createLinearGradient(0,0,len,0);
+      g.addColorStop(0,'rgba(214,211,203,0.16)');g.addColorStop(1,'rgba(214,211,203,0)');
+      cx.strokeStyle=g;cx.lineWidth=1+Math.random()*2.2;cx.beginPath();cx.moveTo(r*.7,0);cx.lineTo(len,0);cx.stroke();cx.restore();
+    }
+    dibujarCrater(x,y,r);
+  });
+  // Micro-textura del regolito (grano fino) en color y relieve.
+  for(let i=0;i<26000;i++){const x=Math.random()*W,y=Math.random()*H,v=(Math.random()*40-20)|0;cx.fillStyle=`rgba(${128+v},${128+v},${124+v},0.05)`;cx.fillRect(x,y,1,1);}
+  for(let i=0;i<20000;i++){const x=Math.random()*W,y=Math.random()*H,v=(Math.random()*50-25)|0;bx.fillStyle=`rgba(${128+v},${128+v},${128+v},0.06)`;bx.fillRect(x,y,1,1);}
+  const map=new THREE.CanvasTexture(col);map.colorSpace=THREE.SRGBColorSpace;map.anisotropy=8;map.needsUpdate=true;
+  const bump=new THREE.CanvasTexture(bmp);bump.needsUpdate=true;
+  iwMoonTexCache={map,bump};return iwMoonTexCache;
 }
 // Los datos de la Luna viajan en el propio elemento: el widget principal y el
 // refresco periodico la dibujan por caminos distintos, asi el click funciona
@@ -7024,44 +7069,68 @@ async function iwOpenMoonScene(moon){
     camera.position.z=Math.max(radius/Math.sin(vFov/2),radius/Math.sin(hFov/2))*1.28;
   }
   encuadrar();
+  if('outputColorSpace' in renderer)renderer.outputColorSpace=THREE.SRGBColorSpace;
+  const texs=iwMoonTextures(THREE);
   const moonMesh=new THREE.Mesh(
-    new THREE.SphereGeometry(radius,64,48),
-    new THREE.MeshStandardMaterial({map:iwMoonSurfaceTexture(THREE),roughness:1,metalness:0})
+    new THREE.SphereGeometry(radius,160,120),
+    new THREE.MeshStandardMaterial({map:texs.map,bumpMap:texs.bump,bumpScale:innerWidth<640?1.1:1.5,roughness:.97,metalness:0})
   );
+  moonMesh.rotation.y=-0.5; // orientar una cara con mares hacia la cámara
   scene.add(moonMesh);
-  // Luz del Sol en el ángulo de la fase. En el hemisferio sur la Luna
-  // creciente se ve iluminada del lado izquierdo, de ahí el signo de x.
+  // Sol en el ángulo real de la fase. En el hemisferio sur la creciente se ve
+  // iluminada por la izquierda, de ahí el signo de x.
   const ang=(Number(moon.phase)||0)*Math.PI*2;
   const rot=(Number(moon.rotation)||0)*Math.PI/180;
   const lx=-Math.sin(ang),lz=-Math.cos(ang);
-  const sun=new THREE.DirectionalLight(0xfff6e0,3);
-  sun.position.set((lx*Math.cos(rot))*40,(lx*Math.sin(rot))*40,lz*40);
+  const sun=new THREE.DirectionalLight(0xfff4e2,3.1);
+  sun.position.set((lx*Math.cos(rot))*40,(lx*Math.sin(rot))*40+6,lz*40);
   scene.add(sun);
-  scene.add(new THREE.AmbientLight(0x3a4a6a,.16)); // luz cenicienta (reflejo de la Tierra)
+  // Luz cenicienta: la Tierra ilumina apenas el lado en sombra (tinte frío).
+  const earth=new THREE.DirectionalLight(0x8fb4ff,.12);
+  earth.position.set(0,0,60);scene.add(earth);
+  scene.add(new THREE.AmbientLight(0x0b1220,.06));
 
-  // Campo de estrellas de fondo
-  const starGeo=new THREE.BufferGeometry();
-  const starCount=innerWidth<640?400:750,starPos=new Float32Array(starCount*3);
-  for(let i=0;i<starCount;i++){
-    const r=60+Math.random()*90,t=Math.random()*Math.PI*2,p=Math.acos(2*Math.random()-1);
-    starPos[i*3]=r*Math.sin(p)*Math.cos(t);starPos[i*3+1]=r*Math.sin(p)*Math.sin(t);starPos[i*3+2]=-Math.abs(r*Math.cos(p))-20;
+  // Halo atmosférico suave detrás de la Luna (bloom de cámara).
+  const haloCan=document.createElement('canvas');haloCan.width=haloCan.height=256;
+  const hx=haloCan.getContext('2d'),hg=hx.createRadialGradient(128,128,40,128,128,128);
+  hg.addColorStop(0,'rgba(206,224,255,0.5)');hg.addColorStop(.5,'rgba(150,180,235,0.12)');hg.addColorStop(1,'rgba(150,180,235,0)');
+  hx.fillStyle=hg;hx.fillRect(0,0,256,256);
+  const haloTex=new THREE.CanvasTexture(haloCan);
+  const halo=new THREE.Sprite(new THREE.SpriteMaterial({map:haloTex,transparent:true,opacity:.38,depthWrite:false,blending:THREE.AdditiveBlending}));
+  halo.scale.set(radius*3,radius*3,1);halo.position.z=-radius*.6;scene.add(halo);
+
+  // Estrellas: dos capas (muchas tenues + pocas brillantes) con leve titileo.
+  function crearEstrellas(n,size,op,spread){
+    const g=new THREE.BufferGeometry(),pos=new Float32Array(n*3);
+    for(let i=0;i<n;i++){const r=70+Math.random()*110,t=Math.random()*Math.PI*2,p=Math.acos(2*Math.random()-1);
+      pos[i*3]=r*Math.sin(p)*Math.cos(t)*spread;pos[i*3+1]=r*Math.sin(p)*Math.sin(t)*spread;pos[i*3+2]=-Math.abs(r*Math.cos(p))-30;}
+    g.setAttribute('position',new THREE.BufferAttribute(pos,3));
+    const m=new THREE.PointsMaterial({color:0xffffff,size,sizeAttenuation:true,transparent:true,opacity:op});
+    const pts=new THREE.Points(g,m);scene.add(pts);return {pts,g,m};
   }
-  starGeo.setAttribute('position',new THREE.BufferAttribute(starPos,3));
-  const starMat=new THREE.PointsMaterial({color:0xffffff,size:.55,sizeAttenuation:true,transparent:true,opacity:.85});
-  const stars=new THREE.Points(starGeo,starMat);
-  scene.add(stars);
+  const mob=innerWidth<640;
+  const starA=crearEstrellas(mob?520:900,.5,.7,1),starB=crearEstrellas(mob?70:130,1.05,.95,1.1);
 
-  let raf=null,last=performance.now();
+  let zBase=camera.position.z;
+  let raf=null,last=performance.now(),t0=performance.now();
   function tick(now){
     const dt=Math.min(.05,(now-last)/1000);last=now;
-    moonMesh.rotation.y+=dt*.12;   // giro lento: se lee como esfera, no como foto
-    stars.rotation.y+=dt*.01;
+    const el=(now-t0)/1000;
+    moonMesh.rotation.y+=dt*.035;          // giro lento: relieve vivo, sin marear
+    starA.pts.rotation.y+=dt*.006;starB.pts.rotation.y+=dt*.006;
+    starB.m.opacity=.78+Math.sin(el*2.1)*.17; // titileo
+    // Entrada cinematográfica: leve zoom-in + parallax suave.
+    const intro=Math.min(1,el/1.6),ease=1-Math.pow(1-intro,3);
+    camera.position.z=zBase*(1.14-0.14*ease);
+    camera.position.x=Math.sin(el*.12)*radius*.06;
+    camera.position.y=Math.cos(el*.10)*radius*.04;
+    camera.lookAt(0,0,0);
     renderer.render(scene,camera);
     raf=requestAnimationFrame(tick);
   }
   raf=requestAnimationFrame(tick);
 
-  function onResize(){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;encuadrar();camera.updateProjectionMatrix();}
+  function onResize(){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;encuadrar();zBase=camera.position.z;camera.updateProjectionMatrix();}
   addEventListener('resize',onResize);
   const closeTimer=setTimeout(()=>{if(gen===iwMoonSceneGen)iwCloseMoonScene();},5000);
 
@@ -7069,7 +7138,8 @@ async function iwOpenMoonScene(moon){
     cancelAnimationFrame(raf);clearTimeout(closeTimer);
     removeEventListener('resize',onResize);
     moonMesh.geometry.dispose();moonMesh.material.dispose();
-    starGeo.dispose();starMat.dispose();
+    halo.material.map.dispose();halo.material.dispose();
+    starA.g.dispose();starA.m.dispose();starB.g.dispose();starB.m.dispose();
     renderer.dispose();canvas.remove();
   }};
 }
