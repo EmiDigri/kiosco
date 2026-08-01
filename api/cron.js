@@ -80,33 +80,48 @@ function parsearPago(pago, esDomingo) {
   };
 }
 
-async function fetchYGuardar(esDomingo) {
+// Inicio del día argentino (00:00 AR) en UTC. AR es UTC-3, así que 00:00 AR
+// del día D equivale a las 03:00 UTC de D.
+function inicioDiaAR(fecha) {
+  const [y, m, d] = fecha.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d, 3, 0, 0));
+}
+
+// Trae TODAS las páginas de MP para una ventana (MP devuelve de a 100).
+async function buscarPagosMP(extraParams) {
+  const todos = [];
+  for (let offset = 0; offset < 1000; offset += 100) {
+    const params = new URLSearchParams({
+      status: 'approved', sort: 'date_approved', criteria: 'asc',
+      limit: 100, offset, ...extraParams,
+    });
+    const res = await fetch(`https://api.mercadopago.com/v1/payments/search?${params}`, {
+      headers: { Authorization: `Bearer ${MP_TOKEN}` }
+    });
+    if (!res.ok) { console.error('MP error', res.status); break; }
+    const data = await res.json();
+    const pagos = data.results || [];
+    todos.push(...pagos);
+    if (pagos.length < 100) break;
+  }
+  return todos;
+}
+
+// Reconcilia un día entero contra MP. Idempotente (upsert por pago_id): re-correr
+// no duplica y de paso corrige la hora/fecha de filas que el webhook guardó mal.
+// Se reconcilia TODO el día (no las "últimas 2 horas") para que, aunque el cron
+// no haya corrido de madrugada, la primera corrida del día repesque lo de la
+// noche y la madrugada. Ver bug: transferencias fuera de horario no aparecían.
+async function fetchYGuardar(esDomingo, fecha) {
   const now = new Date();
+  const begin = inicioDiaAR(fecha);
+  const end = now;
 
-  // Ventana: últimas 2 horas → ahora (cubre demoras de MP)
-  const begin = new Date(now.getTime() - 2 * 60 * 60 * 1000);
-  const end   = now;
+  console.log(`Reconciliando día ${fecha}: ${begin.toISOString()} → ${end.toISOString()}`);
 
-  console.log(`Buscando: ${begin.toISOString()} → ${end.toISOString()}`);
-
-  const params = new URLSearchParams({
-    begin_date: begin.toISOString(),
-    end_date:   end.toISOString(),
-    status: 'approved',
-    sort: 'date_approved',
-    criteria: 'asc',
-    limit: 100,
-    offset: 0,
-  });
-
-  const res = await fetch(`https://api.mercadopago.com/v1/payments/search?${params}`, {
-    headers: { Authorization: `Bearer ${MP_TOKEN}` }
-  });
-  if (!res.ok) { console.error('MP error', res.status); return 0; }
-
-  const data = await res.json();
-  const pagos = data.results || [];
-  console.log(`MP devolvió ${pagos.length} (total: ${data.paging?.total})`);
+  const win = { begin_date: begin.toISOString(), end_date: end.toISOString() };
+  const pagos = await buscarPagosMP(win);
+  console.log(`MP devolvió ${pagos.length} pagos`);
 
   let count = 0;
   for (const pago of pagos) {
@@ -144,30 +159,12 @@ async function fetchYGuardar(esDomingo) {
     count++;
   }
 
-  // Buscar ventas Point específicamente (a veces no aparecen en search general)
-  const paramsPoint = new URLSearchParams({
-    begin_date: begin.toISOString(),
-    end_date:   end.toISOString(),
-    status: 'approved',
-    operation_type: 'pos_payment',
-    sort: 'date_approved',
-    criteria: 'asc',
-    limit: 100,
-    offset: 0,
-  });
-
-  const resPoint = await fetch(`https://api.mercadopago.com/v1/payments/search?${paramsPoint}`, {
-    headers: { Authorization: `Bearer ${MP_TOKEN}` }
-  });
-
-  if (resPoint.ok) {
-    const dataPoint = await resPoint.json();
-    const pagosPoint = dataPoint.results || [];
-    console.log(`Ventas Point específicas: ${pagosPoint.length}`);
-    for (const pago of pagosPoint) {
-      await guardarEnSupabase(parsearPago(pago, esDomingo));
-      count++;
-    }
+  // Ventas Point específicas (a veces no aparecen en el search general)
+  const pagosPoint = await buscarPagosMP({ ...win, operation_type: 'pos_payment' });
+  console.log(`Ventas Point específicas: ${pagosPoint.length}`);
+  for (const pago of pagosPoint) {
+    await guardarEnSupabase(parsearPago(pago, esDomingo));
+    count++;
   }
 
   return count;
@@ -176,22 +173,22 @@ async function fetchYGuardar(esDomingo) {
 export default async function handler(req, res) {
   try {
     const { hh, min, fecha, esDomingo } = ahoraAR();
-    console.log(`Cron - Hora AR: ${hh}:${String(min).padStart(2,'0')} fecha: ${fecha} domingo: ${esDomingo}`);
 
-    // Solo correr durante horario del kiosco (7am - 11pm hora AR)
-    const enHorario = esDomingo
-      ? (hh >= 9 && hh < 23)
-      : (hh >= 7 && hh < 23);
+    // Permite reconciliar un día puntual con ?date=YYYY-MM-DD (backfill manual).
+    // Sin parámetro, reconcilia el día argentino en curso.
+    const pedido = String(req.query.date || '').match(/^\d{4}-\d{2}-\d{2}$/) ? req.query.date : fecha;
+    const esDomingoPedido = new Date(`${pedido}T12:00:00-03:00`).getDay() === 0;
 
-    let procesados = 0;
-    if (enHorario) {
-      procesados = await fetchYGuardar(esDomingo);
-    } else {
-      console.log('Fuera de horario, no se busca');
-    }
+    console.log(`Cron - Hora AR: ${hh}:${String(min).padStart(2,'0')} · reconciliando ${pedido}`);
+
+    // Se corre a cualquier hora: las transferencias entran las 24 h y el webhook
+    // en tiempo real no es 100% confiable, así que el cron tiene que repescar
+    // también de madrugada y de noche (antes estaba limitado a 7-23 h y por eso
+    // los movimientos fuera de horario no aparecían).
+    const procesados = await fetchYGuardar(esDomingoPedido, pedido);
 
     console.log(`Cron ejecutado: ${procesados} pagos procesados`);
-    return res.status(200).json({ ok: true, procesados, hora: hh });
+    return res.status(200).json({ ok: true, procesados, fecha: pedido, hora: hh });
   } catch (err) {
     console.error('Cron error:', err.message);
     return res.status(200).json({ ok: true, error: err.message });
