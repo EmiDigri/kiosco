@@ -3777,7 +3777,7 @@ function showToast(msg){
   const reopenKey='kiosco_turn_game_reopen',setOpen=open=>{root.classList.toggle('is-open',open);els.title.setAttribute('aria-expanded',String(open));};
   let reopenRequested=false;
   try{reopenRequested=Boolean(sundaySelectionKey&&sessionStorage.getItem(reopenKey)===sundaySelectionKey);if(reopenRequested)sessionStorage.removeItem(reopenKey);}catch(e){}
-  els.title.addEventListener('click',()=>setOpen(!root.classList.contains('is-open')));
+  els.title.addEventListener('click',()=>{const open=!root.classList.contains('is-open');setOpen(open);if(open&&!kioskDesktop)desafioStalk(true);});
   const needsSundayOwner=Boolean(sundaySelectionKey&&!selectedSundayOwner);
   if(needsSundayOwner){
     root.classList.add('needs-owner');els.owner.textContent='Elegí tu nombre';els.owner.disabled=true;els.sundayPicker.hidden=false;els.gameContent.hidden=true;
@@ -3901,10 +3901,49 @@ function showToast(msg){
       navigator.vibrate?.([85,45,85]);
     },470);
   }
+  // ── Stalk del desafío: la compu del kiosco sube el resultado del día y desde
+  // el celu se lee, para chusmear si quien está en su turno ya lo hizo. ──
+  const TG_SB_URL='https://pilfeptwylgufhbmmday.supabase.co';
+  const TG_SB_KEY='sb_publishable_AE6T1LMQuY2T8mf0uD_ANA_Bh4nk_ej';
+  let tgStalkLoaded=false,tgStalkFetching=false;
+  function desafioSyncUp(g){
+    if(!kioskDesktop||!g||!g.completedAt||g.practice||!isOfficialRecord(g)||!g.owner)return;
+    fetch(`${TG_SB_URL}/rest/v1/desafios_dia?on_conflict=fecha,persona`,{
+      method:'POST',
+      headers:{apikey:TG_SB_KEY,Authorization:`Bearer ${TG_SB_KEY}`,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=minimal'},
+      body:JSON.stringify({fecha:g.puzzleDate||day,persona:g.owner,won:!!g.won,intentos:(g.guesses||[]).length,score:Number(g.score)||0,completed_at:g.completedAt})
+    }).catch(()=>{});
+  }
+  async function desafioStalk(force){
+    if(tgStalkFetching||(tgStalkLoaded&&!force))return;
+    tgStalkFetching=true;
+    try{
+      const res=await fetch(`${TG_SB_URL}/rest/v1/desafios_dia?fecha=eq.${day}&select=persona,won,intentos,completed_at`,{headers:{apikey:TG_SB_KEY,Authorization:`Bearer ${TG_SB_KEY}`},cache:'no-store'});
+      const rows=res.ok?await res.json():[];
+      const byName={};rows.forEach(r=>byName[r.persona]=r);
+      const head=document.querySelector('#turnGame .tg-ranking-head span');if(head)head.textContent='Desafío de hoy';
+      els.week.textContent='en vivo';els.ranking.innerHTML='';
+      ['Vale','Ani','Marta'].forEach(name=>{
+        const r=byName[name],li=document.createElement('li');
+        if(name===owner.nombre)li.className='is-current';
+        const pos=document.createElement('span');pos.className='tg-rank-pos';
+        const nm=document.createElement('span');nm.className='tg-rank-name';nm.textContent=name+(name===owner.nombre?' · en turno':'');
+        const sub=document.createElement('small');
+        const sc=document.createElement('strong');sc.className='tg-rank-score';
+        if(r&&r.won){pos.textContent='✅';sc.textContent='✔';const hora=r.completed_at?new Date(r.completed_at).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}):'';sub.textContent=`resuelta en ${r.intentos} intento${r.intentos===1?'':'s'}${hora?' · '+hora:''}`;}
+        else if(r){pos.textContent='❌';sub.textContent='jugó pero no la sacó';}
+        else{pos.textContent='⏳';sub.textContent=name===owner.nombre?'todavía no lo hizo':'sin jugar aún';}
+        nm.appendChild(sub);li.append(pos,nm,sc);els.ranking.appendChild(li);
+      });
+      tgStalkLoaded=true;
+    }catch(e){}
+    finally{tgStalkFetching=false;}
+  }
   function renderRanking(){
     const currentWeek=mondayKey(now),baseNames=['Vale','Ani','Marta'];if(!baseNames.includes(owner.nombre))baseNames.push(owner.nombre);
     if(!kioskDesktop){
-      els.ranking.innerHTML='';const note=document.createElement('li');note.className='tg-rank-note';note.textContent='La tabla oficial se actualiza en la computadora del kiosco.';els.ranking.appendChild(note);els.week.textContent='solo kiosco';return;
+      if(!tgStalkLoaded){els.ranking.innerHTML='<li class="tg-rank-note">Chusmeando quién hizo el desafío hoy…</li>';els.week.textContent='hoy';desafioStalk();}
+      return;
     }
     const completed=Object.values(state.games).filter(item=>item&&item.completedAt&&!item.practice&&isOfficialRecord(item));
     const rows=baseNames.map(name=>{
@@ -3954,6 +3993,7 @@ function showToast(msg){
     }
     else if(game.guesses.length>=6){game.lost=true;game.score=0;game.completedAt=new Date().toISOString();}
     state.games[puzzleId]=game;writeState(state);els.input.value='';paintRow(row,guess,true);draft=Array(wordLength).fill('');selectedCol=0;
+    if(game.completedAt)desafioSyncUp(game);
     if(won){
       const resultText=isPractice?`+${game.earnedScore.toLocaleString('es-AR')} puntos de práctica`:isOfficialRecord(game)?`+${game.score.toLocaleString('es-AR')} puntos`:'partida móvil: no suma a la tabla';
       els.status.textContent=`¡Correcto! ${resultText}`;els.status.className='tg-status is-win';potential();setActiveRow();renderRanking();winEffect(row);
@@ -4003,6 +4043,10 @@ function showToast(msg){
   });
   setOpen(reopenRequested);
   renderState();
+  // Al cargar en el kiosco, sube lo que ya se completó hoy (por si quedó de
+  // antes de esta función); en el celu, arranca el chusmeo.
+  if(kioskDesktop)Object.values(state.games).forEach(g=>{if(g&&g.completedAt&&g.puzzleDate===day&&!g.practice&&isOfficialRecord(g))desafioSyncUp(g);});
+  else desafioStalk();
 })();
 
 function springCount(el,end,prefix,dur){
