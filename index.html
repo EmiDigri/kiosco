@@ -68,6 +68,8 @@ html.overlay-scroll-lock{overflow-y:hidden!important}
 
 /* LAYOUT */
 .app{position:relative;z-index:2;padding:20px 20px 80px;max-width:100%;margin:0 auto}
+/* Todo un puntito más grande (se veía chico). Zoom parejo en el main y los overlays. */
+.app,.historial-panel,.cm-panel,.price-panel{zoom:1.05}
 .mp-badge{display:flex;align-items:center;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:999px;padding:4px 10px;margin-left:8px}
 .mp-logo{height:56px;width:auto;display:block}
 
@@ -151,9 +153,8 @@ html.overlay-scroll-lock{overflow-y:hidden!important}
 .iw-wind.is-cold{color:#74c0fc}.iw-wind.is-strong{color:#f6b84a}
 .iw-humidity{display:flex;align-items:center;gap:3px;min-height:16px;color:var(--text-mid);font-size:10px;font-weight:700;line-height:1;white-space:nowrap}
 .iw-humidity.is-humid{color:#74c0fc}.iw-humidity.is-dry{color:#f6b84a}
-.iw-humidity-icon{display:block;width:20px;height:20px;flex:0 0 20px;margin-right:1px;object-fit:contain;filter:drop-shadow(0 0 4px rgba(116,192,252,.3));pointer-events:none;transform-origin:50% 42%;animation:iw-humidity-drip 3s ease-in-out infinite}
-@keyframes iw-humidity-drip{0%,100%{transform:translateY(0) scale(1)}42%{transform:translateY(-1px) scale(1.1)}70%{transform:translateY(1.5px) scale(.97)}}
-@media(prefers-reduced-motion:reduce){.iw-humidity-icon{animation:none}}
+.iw-humidity-svg{display:block;width:21px;height:21px;flex:0 0 21px;margin-right:1px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.28))}
+@media(max-width:430px){.iw-humidity-svg{width:19px;height:19px;flex-basis:19px}}
 .iw-moon-slot{flex:0 0 auto}
 .iw-moon-slot:empty{display:none}
 .iw-moon{display:flex;align-items:center;gap:7px;flex:0 0 auto;min-width:0;padding-left:10px;border-left:1px solid var(--glass-border)}
@@ -6993,7 +6994,28 @@ function iwHumidityHtml(humidity){
   if(!Number.isFinite(h))return'';
   const cls=h>=75?' is-humid':h<40?' is-dry':'';
   const label=h>=90?'Muy húmedo':h>=75?'Húmedo':h>=55?'Algo húmedo':h>=40?'Agradable':h>=25?'Seco':'Muy seco';
-  return`<span class="iw-humidity${cls}" title="Humedad relativa en vivo"><img class="iw-humidity-icon egg-humidity" src="${mcUrl('humidity')}" alt="" aria-hidden="true"><span>${label}</span><span>·</span><span>${Math.round(h)}%</span></span>`;
+  // Gota con el agua adentro al nivel de la humedad: casi llena = muy húmedo,
+  // casi vacía = seco. Dos olas animadas (SMIL, sobreviven al reset global).
+  const hc=Math.max(0,Math.min(100,h));
+  const wy=(20.3-hc/100*15).toFixed(2);
+  const seco=h<40;
+  const c1=seco?'rgba(246,184,74,.42)':'rgba(116,192,252,.42)';
+  const c2=seco?'rgba(246,184,74,.9)':'rgba(96,180,252,.92)';
+  const ring=seco?'rgba(250,214,150,.9)':'rgba(196,224,255,.92)';
+  const drop='M12 2.1C12 2.1 5.3 9.8 5.3 14.7A6.7 6.7 0 1 0 18.7 14.7C18.7 9.8 12 2.1 12 2.1Z';
+  const ola=b=>`M-26 ${b} q3.25 -2.4 6.5 0 t6.5 0 t6.5 0 t6.5 0 t6.5 0 t6.5 0 t6.5 0 t6.5 0 t6.5 0 t6.5 0 L50 26 L-26 26 Z`;
+  const id='iwdrop'+Math.random().toString(36).slice(2,7);
+  const svg=`<svg class="iw-humidity-svg" viewBox="0 0 24 24" width="21" height="21" aria-hidden="true">`
+    +`<defs><clipPath id="${id}"><path d="${drop}"/></clipPath></defs>`
+    +`<path d="${drop}" fill="rgba(120,170,230,.12)"/>`
+    +`<g clip-path="url(#${id})">`
+    +`<path d="${ola(Number(wy)+0.6)}" fill="${c1}"><animateTransform attributeName="transform" type="translate" values="0 0;13 0" dur="3.1s" repeatCount="indefinite"/></path>`
+    +`<path d="${ola(wy)}" fill="${c2}"><animateTransform attributeName="transform" type="translate" values="0 0;-13 0" dur="2.15s" repeatCount="indefinite"/></path>`
+    +`</g>`
+    +`<path d="${drop}" fill="none" stroke="${ring}" stroke-width="1.15"/>`
+    +`<ellipse cx="9.6" cy="11.4" rx="1.25" ry="2.2" transform="rotate(-22 9.6 11.4)" fill="rgba(255,255,255,.5)"/>`
+    +`</svg>`;
+  return`<span class="iw-humidity${cls}" title="Humedad relativa en vivo · el nivel de agua de la gota marca la humedad">${svg}<span>${label}</span><span>·</span><span>${Math.round(h)}%</span></span>`;
 }
 function iwPronosticoDias(daily){
   const time=daily?.time||[],codes=daily?.weather_code||[],maxs=daily?.temperature_2m_max||[],mins=daily?.temperature_2m_min||[];
