@@ -4648,11 +4648,13 @@ function histRenderMetricas(y,m,last){
     </div>`).join('');
   // ── Tarjeta "Nuestro kiosco": resumen mensual cooperativo y autoaprendido ──
   const persNames=['Vale','Ani','Marta'],persRole={Vale:'mañana',Ani:'tarde',Marta:'noche'},persEmoji={Vale:'🌅',Ani:'☀️',Marta:'🌙'};
-  const persMes={Vale:0,Ani:0,Marta:0},byDowMP={0:[],1:[],2:[],3:[],4:[],5:[],6:[]};
-  let mpDelMes=0;
-  for(let d=1;d<=last;d++){const data=histResumenMes[histIso(y,m,d)];if(!data)continue;const mp=data.mpTotal||0;mpDelMes+=mp;if(mp>0)byDowMP[new Date(y,m-1,d).getDay()].push(mp);const tt=data.turnos||{};persNames.forEach(p=>{if(tt[p])persMes[p]+=tt[p].mp||0;});}
+  const persMes={Vale:0,Ani:0,Marta:0},persAyer={Vale:0,Ani:0,Marta:0},byDowMP={0:[],1:[],2:[],3:[],4:[],5:[],6:[]};
+  let mpDelMes=0,mpAyer=0;
   const hoyD=esMesActual?Math.min(hoyReal.getDate(),last):last;
-  const diasTrans=Math.max(1,diasConMP);
+  // Para comparar, solo días completos: este mes hasta AYER vs el mes pasado
+  // hasta el mismo día (así no arrastra el día de hoy que está a medias).
+  const cutoffCmp=esMesActual?hoyD-1:last;
+  for(let d=1;d<=last;d++){const data=histResumenMes[histIso(y,m,d)];if(!data)continue;const mp=data.mpTotal||0;mpDelMes+=mp;if(mp>0)byDowMP[new Date(y,m-1,d).getDay()].push(mp);const tt=data.turnos||{};persNames.forEach(p=>{if(tt[p])persMes[p]+=tt[p].mp||0;});if(d<=cutoffCmp){mpAyer+=mp;persNames.forEach(p=>{if(tt[p])persAyer[p]+=tt[p].mp||0;});}}
   let projMes=mpDelMes;
   if(esMesActual)for(let d=hoyD+1;d<=last;d++){const w=new Date(y,m-1,d).getDay();projMes+=histMediana(byDowMP[w])||promDiario;}
   const mesLearn=histMesLearnRead();
@@ -4695,24 +4697,29 @@ function histRenderMetricas(y,m,last){
     <div class="hist-met-chart-card" style="margin-top:12px"><div class="hist-met-chart-title">Totales por semana</div>${semanasHtml}</div>`;
   const chartCard=el.querySelector('#histChartCard');
   if(chartCard){histAnimarGraficoDias(chartCard);histTooltipGraficoDias(chartCard,y,m);}
-  histKioscoEnriquecer({y,m,last,esMesActual,mpDelMes,persMes,diasTrans,projMes});
+  histKioscoEnriquecer({y,m,last,esMesActual,mpDelMes,persMes,mpAyer,persAyer,cutoffCmp,projMes,hoyD});
   const prevM=m===1?12:m-1,prevY=m===1?y-1:y;
-  histFetchMPMes(prevY,prevM).then(prevTotal=>{
+  // Mismo tramo y solo días completos: este mes hasta ayer vs el mes pasado
+  // hasta el mismo día (cutoffCmp ya calculado arriba).
+  histFetchMPMes(prevY,prevM,cutoffCmp).then(prevTramo=>{
     const chip=document.getElementById('histVsMesAnt');
     if(!chip)return;
     const valEl=chip.querySelector('.hist-met-kpi-val');
     if(!valEl)return;
-    if(prevTotal==null||prevTotal===0){valEl.style.opacity='1';valEl.textContent='—';return;}
-    const pct=(totalMP-prevTotal)/prevTotal*100;
+    if(prevTramo==null||prevTramo===0||cutoffCmp<1){valEl.style.opacity='1';valEl.textContent='—';return;}
+    const pct=(mpAyer-prevTramo)/prevTramo*100;
     const col=pct>=0?'#5FD68A':'#f87171';
     valEl.style.opacity='1';
-    valEl.innerHTML=`<span style="color:${col};font-size:20px;font-weight:800">${pct>=0?'+':''}${pct.toFixed(1)}%</span><div style="font-size:9px;color:var(--text-soft);margin-top:3px;font-weight:600">${histMoneyCompact(prevTotal)} mes ant.</div>`;
+    valEl.innerHTML=`<span style="color:${col};font-size:20px;font-weight:800">${pct>=0?'+':''}${pct.toFixed(1)}%</span><div style="font-size:9px;color:var(--text-soft);margin-top:3px;font-weight:600">${histMoneyCompact(prevTramo)} a esta altura</div>`;
   });
 }
-async function histFetchMPMes(y,m){
-  const from=histIso(y,m,1),to=histIso(y,m,new Date(y,m,0).getDate());
+// Total MP de un mes, opcionalmente cortado hasta cierto día (para comparar el
+// MISMO tramo: p. ej. julio hasta el 2 vs agosto hasta el 2, no julio entero).
+async function histFetchMPMes(y,m,cutoffDay){
+  const lastDay=new Date(y,m,0).getDate();
+  const from=histIso(y,m,1),to=histIso(y,m,Math.min(cutoffDay||lastDay,lastDay));
   try{
-    const rows=await histSbSelect(`pagos?select=monto&fecha=gte.${from}&fecha=lte.${to}&es_enviada=neq.true&limit=10000`);
+    const rows=await histSbSelectAll(`pagos?select=id,monto&fecha=gte.${from}&fecha=lte.${to}&es_enviada=neq.true&order=id.asc`);
     return rows.reduce((a,r)=>a+(Number(r.monto)||0),0);
   }catch(e){return null;}
 }
@@ -4720,8 +4727,9 @@ async function histFetchMPMes(y,m){
 function histMediana(a){if(!a||!a.length)return 0;const s=[...a].sort((x,y)=>x-y),m=s.length>>1;return s.length%2?s[m]:(s[m-1]+s[m])/2;}
 // Total y desglose por persona (turno) de un mes. Pagina (histSbSelect corta
 // en 1000 filas y un mes tiene mas) para no undervaluar el total.
-async function histFetchMesPersonas(y,m){
-  const from=histIso(y,m,1),to=histIso(y,m,new Date(y,m,0).getDate());
+async function histFetchMesPersonas(y,m,cutoffDay){
+  const lastDay=new Date(y,m,0).getDate();
+  const from=histIso(y,m,1),to=histIso(y,m,Math.min(cutoffDay||lastDay,lastDay));
   try{
     const rows=await histSbSelectAll(`pagos?select=id,monto,turno,fecha&fecha=gte.${from}&fecha=lte.${to}&es_enviada=neq.true&order=id.asc`);
     const personas={Vale:0,Ani:0,Marta:0},dias={};let total=0;
@@ -4748,18 +4756,21 @@ function histMesLearnWrite(v){try{localStorage.setItem(HIST_MES_LEARN,JSON.strin
 // Enriquece la tarjeta con lo que necesita red: ritmo del mes, meta, chips por
 // persona (cada una vs si misma el mes pasado) y la calificacion del modelo.
 async function histKioscoEnriquecer(ctx){
-  const {y,m,last,esMesActual,mpDelMes,persMes,diasTrans,projMes}=ctx;
+  const {y,m,last,esMesActual,mpDelMes,persMes,mpAyer,persAyer,cutoffCmp,projMes,hoyD}=ctx;
   const prevM=m===1?12:m-1,prevY=m===1?y-1:y;
-  const [prev,mejor]=await Promise.all([histFetchMesPersonas(prevY,prevM),histMejorMesTotal(y,m)]);
-  // Ritmo del mes: promedio diario de este mes vs el mes anterior.
+  const prevMes=new Date(prevY,prevM-1,1).toLocaleDateString('es-AR',{month:'long'});
+  // Comparación siempre a igual tramo y solo días completos: este mes hasta ayer
+  // (cutoffCmp) vs el mes pasado hasta el mismo día.
+  const [prev,mejor]=await Promise.all([histFetchMesPersonas(prevY,prevM,cutoffCmp),histMejorMesTotal(y,m)]);
+  // Ritmo del mes: lo que va este mes (hasta ayer) vs el mes pasado a esa altura.
   const vs=document.getElementById('hkVsAnt');
   if(vs){
-    const prevTot=prev&&prev.total||0,prevDias=prev&&prev.diasActivos||0;
+    const prevTot=prev&&prev.total||0;
     const val=vs.querySelector('.hk-metric-val');
-    if(prevTot>0&&prevDias>0&&diasTrans>0){
-      const pct=((mpDelMes/diasTrans)-(prevTot/prevDias))/(prevTot/prevDias)*100;
+    if(prevTot>0&&cutoffCmp>=1){
+      const pct=(mpAyer-prevTot)/prevTot*100;
       const col=pct>=0?'#5fd68a':'var(--text-soft)';
-      if(val)val.innerHTML=`<span style="color:${col};font-weight:800">${pct>=0?'+':''}${pct.toFixed(0)}%</span><div style="font-size:9px;color:var(--text-soft);margin-top:2px;font-weight:600">vs el ritmo del mes pasado</div>`;
+      if(val)val.innerHTML=`<span style="color:${col};font-weight:800">${pct>=0?'+':''}${pct.toFixed(0)}%</span><div style="font-size:9px;color:var(--text-soft);margin-top:2px;font-weight:600">vs ${prevMes} a esta altura</div>`;
     }else if(val){val.style.opacity='1';val.innerHTML='<span style="font-size:12px;color:var(--text-soft)">todavía aprendiendo</span>';}
   }
   // Meta: superar el mejor mes.
@@ -4777,27 +4788,26 @@ async function histKioscoEnriquecer(ctx){
     }
   }
   // Chips por persona: cada una comparada con SU propio mes pasado (nunca entre ellas).
+  // Chips por persona: cada una vs SÍ MISMA en el mismo tramo del mes pasado.
   ['Vale','Ani','Marta'].forEach(p=>{
     const chip=document.querySelector(`[data-chip="${p}"]`);if(!chip)return;
-    const prevP=prev&&prev.personas[p]||0,prevDias=prev&&prev.diasActivos||0;
-    if(prevP>0&&prevDias>0&&diasTrans>0){
-      const pct=((persMes[p]/diasTrans)-(prevP/prevDias))/(prevP/prevDias)*100;
-      if(pct>=3){chip.textContent=`+${pct.toFixed(0)}% que su mes pasado`;chip.className='hk-persona-chip up';}
-      else if(pct<=-3){chip.textContent=`${pct.toFixed(0)}% que su mes pasado`;chip.className='hk-persona-chip down';}
-      else{chip.textContent='en su promedio';chip.className='hk-persona-chip flat';}
+    const prevP=prev&&prev.personas[p]||0;
+    if(prevP>0&&cutoffCmp>=1){
+      const pct=(persAyer[p]-prevP)/prevP*100;
+      if(pct>=3){chip.textContent=`+${pct.toFixed(0)}% que en ${prevMes}`;chip.className='hk-persona-chip up';}
+      else if(pct<=-3){chip.textContent=`${pct.toFixed(0)}% que en ${prevMes}`;chip.className='hk-persona-chip down';}
+      else{chip.textContent=`igual que en ${prevMes}`;chip.className='hk-persona-chip flat';}
     }else{chip.textContent='—';chip.className='hk-persona-chip flat';}
   });
-  // Autoaprendizaje: califica la proyeccion del mes pasado y registra la de hoy.
+  // Autoaprendizaje: califica la proyeccion del mes pasado (contra su total
+  // COMPLETO, no el tramo) y registra la de este mes.
   if(esMesActual){
     const learn=histMesLearnRead(),prevKey=`${prevY}-${prevM}`,curKey=`${y}-${m}`;
-    if(learn.log[prevKey]&&prev&&prev.total>0){
-      const e=learn.log[prevKey];
-      learn.errs=(learn.errs||[]).concat(Math.abs(prev.total-e.proj)/prev.total).slice(-24);
-      learn.bias=(learn.bias||[]).concat(prev.total/e.proj).slice(-24);
-      delete learn.log[prevKey];
+    if(learn.log[prevKey]){
+      const prevFull=await histFetchMPMes(prevY,prevM);
+      if(prevFull>0){const e=learn.log[prevKey];learn.errs=(learn.errs||[]).concat(Math.abs(prevFull-e.proj)/prevFull).slice(-24);learn.bias=(learn.bias||[]).concat(prevFull/e.proj).slice(-24);delete learn.log[prevKey];}
     }
-    // Registra solo pasada la mitad del mes, cuando la proyeccion ya es representativa.
-    if(!learn.log[curKey]&&diasTrans>=Math.floor(last*0.5)&&projMes>0){learn.log[curKey]={proj:projMes,dia:diasTrans};}
+    if(!learn.log[curKey]&&hoyD>=Math.floor(last*0.5)&&projMes>0){learn.log[curKey]={proj:projMes,dia:hoyD};}
     histMesLearnWrite(learn);
   }
 }
