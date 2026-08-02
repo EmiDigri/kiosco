@@ -151,6 +151,9 @@ html.overlay-scroll-lock{overflow-y:hidden!important}
 .iw-wind.is-cold{color:#74c0fc}.iw-wind.is-strong{color:#f6b84a}
 .iw-humidity{display:flex;align-items:center;gap:3px;min-height:16px;color:var(--text-mid);font-size:10px;font-weight:700;line-height:1;white-space:nowrap}
 .iw-humidity.is-humid{color:#74c0fc}.iw-humidity.is-dry{color:#f6b84a}
+.iw-humidity-icon{display:block;width:20px;height:20px;flex:0 0 20px;margin-right:1px;object-fit:contain;filter:drop-shadow(0 0 4px rgba(116,192,252,.3));pointer-events:none;transform-origin:50% 42%;animation:iw-humidity-drip 3s ease-in-out infinite}
+@keyframes iw-humidity-drip{0%,100%{transform:translateY(0) scale(1)}42%{transform:translateY(-1px) scale(1.1)}70%{transform:translateY(1.5px) scale(.97)}}
+@media(prefers-reduced-motion:reduce){.iw-humidity-icon{animation:none}}
 .iw-moon-slot{flex:0 0 auto}
 .iw-moon-slot:empty{display:none}
 .iw-moon{display:flex;align-items:center;gap:7px;flex:0 0 auto;min-width:0;padding-left:10px;border-left:1px solid var(--glass-border)}
@@ -6825,7 +6828,7 @@ function iwHumidityHtml(humidity){
   if(!Number.isFinite(h))return'';
   const cls=h>=75?' is-humid':h<=30?' is-dry':'';
   const label=h>=80?'Húmedo':h<=25?'Seco':'Humedad';
-  return`<span class="iw-humidity${cls}" title="Humedad relativa en vivo"><img class="iw-wind-icon" src="${mcUrl('humidity')}" alt="" aria-hidden="true"><span>${label}</span><span>·</span><span>${Math.round(h)}%</span></span>`;
+  return`<span class="iw-humidity${cls}" title="Humedad relativa en vivo"><img class="iw-humidity-icon egg-humidity" src="${mcUrl('humidity')}" alt="" aria-hidden="true"><span>${label}</span><span>·</span><span>${Math.round(h)}%</span></span>`;
 }
 function iwPronosticoDias(daily){
   const time=daily?.time||[],codes=daily?.weather_code||[],maxs=daily?.temperature_2m_max||[],mins=daily?.temperature_2m_min||[];
