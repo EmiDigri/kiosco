@@ -149,6 +149,8 @@ html.overlay-scroll-lock{overflow-y:hidden!important}
 .iw-wind-icon{display:block;width:20px;height:20px;flex:0 0 20px;margin-right:1px;object-fit:contain;filter:drop-shadow(0 0 4px rgba(116,192,252,.22));pointer-events:none}
 .iw-wind.is-strong .iw-wind-icon{filter:drop-shadow(0 0 5px rgba(246,184,74,.34))}
 .iw-wind.is-cold{color:#74c0fc}.iw-wind.is-strong{color:#f6b84a}
+.iw-humidity{display:flex;align-items:center;gap:3px;min-height:16px;color:var(--text-mid);font-size:10px;font-weight:700;line-height:1;white-space:nowrap}
+.iw-humidity.is-humid{color:#74c0fc}.iw-humidity.is-dry{color:#f6b84a}
 .iw-moon-slot{flex:0 0 auto}
 .iw-moon-slot:empty{display:none}
 .iw-moon{display:flex;align-items:center;gap:7px;flex:0 0 auto;min-width:0;padding-left:10px;border-left:1px solid var(--glass-border)}
@@ -6818,6 +6820,13 @@ function iwWindHtml(speed,direction,gust,temp,sens){
   const cls=(strong?' is-strong':'')+(cold?' is-cold':'');
   return`<span class="iw-wind${cls}" data-beaufort="${level.force}"><img class="iw-wind-icon" src="${mcUrl(`wind-beaufort-${level.force}`)}" alt="" aria-hidden="true"><span>${label}</span><span>·</span><span>${Math.round(wind)} km/h</span></span>`;
 }
+function iwHumidityHtml(humidity){
+  const h=Number(humidity);
+  if(!Number.isFinite(h))return'';
+  const cls=h>=75?' is-humid':h<=30?' is-dry':'';
+  const label=h>=80?'Húmedo':h<=25?'Seco':'Humedad';
+  return`<span class="iw-humidity${cls}" title="Humedad relativa en vivo"><img class="iw-wind-icon" src="${mcUrl('humidity')}" alt="" aria-hidden="true"><span>${label}</span><span>·</span><span>${Math.round(h)}%</span></span>`;
+}
 function iwPronosticoDias(daily){
   const time=daily?.time||[],codes=daily?.weather_code||[],maxs=daily?.temperature_2m_max||[],mins=daily?.temperature_2m_min||[];
   const labels=['DOM','LUN','MAR','MIÉ','JUE','VIE','SÁB'];
@@ -6941,7 +6950,7 @@ async function fetchInfoWidget(){
     <div class="iw-temp-row">
       <div class="iw-temp-main">
         <div class="iw-temp-val">${tempDisp}</div>
-        <div class="iw-temp-meta"><span class="iw-temp-city"${wxMeta?` title="${wxMeta}"`:''}>Buenos Aires</span><span class="iw-temp-label">ST ${sens!=null?sens+'°C':'—'}</span>${windHtml}</div>
+        <div class="iw-temp-meta"><span class="iw-temp-city"${wxMeta?` title="${wxMeta}"`:''}>Buenos Aires</span><span class="iw-temp-label">ST ${sens!=null?sens+'°C':'—'}</span>${windHtml}${iwHumidityHtml(wxHumidity)}</div>
       </div>
       <div class="iw-moon-slot">${iwMoonHtml(moon)}</div>
       ${forecastDesk?`<div class="iw-forecast iw-forecast-desktop">${forecastDesk}</div>`:''}
