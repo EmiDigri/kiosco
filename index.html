@@ -2703,10 +2703,19 @@ body.light .price-error{color:#991b1b}
 .tg-live{width:7px;height:7px;flex:0 0 7px;border-radius:50%;background:#5fd68a;box-shadow:0 0 0 4px rgba(95,214,138,.1),0 0 11px rgba(95,214,138,.4)}
 .tg-help{display:grid;place-items:center;width:17px;height:17px;min-height:17px;flex:0 0 17px;padding:0;border:1px solid var(--glass-border);border-radius:50%;background:var(--glass);color:var(--text-soft);font:800 9px/1 'Inter',sans-serif;letter-spacing:0;cursor:help}
 .tg-help:hover,.tg-help:focus-visible{border-color:rgba(124,144,255,.55);color:var(--text);outline:none}
-.tg-owner{max-width:92px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--accent);font-size:10px;font-weight:800;text-transform:uppercase}
+.tg-owner{max-width:108px;min-height:26px;padding:0;border:0;background:transparent;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--accent);font:800 10px/1 'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;text-transform:uppercase}
+.tg-owner:not(:disabled){cursor:pointer}.tg-owner:not(:disabled):hover,.tg-owner:not(:disabled):focus-visible{color:var(--text);outline:none;text-decoration:underline;text-underline-offset:3px}.tg-owner:disabled{opacity:1}
 .tg-body{display:none;padding-top:10px}
 .turn-game.is-open .tg-body{display:block}
 .turn-game.is-open .tg-title-chevron{transform:rotate(180deg)}
+.tg-sunday-picker{padding:6px 0 2px;text-align:center}
+.tg-sunday-picker[hidden],.tg-game-content[hidden]{display:none!important}
+.tg-sunday-kicker{display:block;margin-bottom:5px;color:var(--accent);font-size:9px;font-weight:850;letter-spacing:.08em;text-transform:uppercase}
+.tg-sunday-question{display:block;color:var(--text);font-size:14px;font-weight:850;line-height:1.25}
+.tg-sunday-options{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:13px 0 8px}
+.tg-sunday-option{min-width:0;min-height:38px;padding:8px 5px;border:1px solid var(--glass-border);border-radius:6px;background:var(--glass);color:var(--text-mid);font:800 11px/1 'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;cursor:pointer;transition:border-color .15s ease,background .15s ease,color .15s ease,transform .15s ease}
+.tg-sunday-option:hover,.tg-sunday-option:focus-visible{border-color:rgba(124,144,255,.65);background:rgba(124,144,255,.12);color:var(--text);outline:none;transform:translateY(-1px)}
+.tg-sunday-note{display:block;color:var(--text-soft);font-size:9px;font-weight:650;line-height:1.35}
 .tg-meta{margin-bottom:10px;color:var(--text-soft);font-size:9.5px;font-weight:700}
 .tg-meta strong{color:var(--text-mid);font-weight:800;font-variant-numeric:tabular-nums}
 .tg-board-wrap{--tg-active-row:0;--tg-selected-col:0;--tg-cols:5;--tg-tile-size:38px;--tg-gap:5px;position:relative;width:max-content;margin:0 auto 11px}
@@ -2914,25 +2923,37 @@ body.light .tg-lock{background:rgba(255,255,255,.96)}
             <button class="tg-help" type="button" aria-label="Cómo jugar" data-iw-tooltip="Adiviná una palabra de 5 a 8 letras en 6 intentos. Verde: letra y lugar correctos. Amarillo: letra correcta en otro lugar. Tocá cualquier casillero para cambiar sólo esa letra. En la computadora del kiosco, cada pista resta 1 punto; las partidas móviles no suman a la tabla.">?</button>
           </div>
           <div class="tg-head-actions">
-            <span class="tg-owner" id="tgOwner">—</span>
+            <button class="tg-owner" id="tgOwner" type="button" disabled>—</button>
           </div>
         </div>
         <div class="tg-body" id="tgBody">
-          <div class="tg-meta"><span id="tgLength">5–8 letras</span><strong id="tgPotential">10 pts posibles</strong></div>
-          <div class="tg-board-wrap" id="tgBoardWrap">
-            <div class="tg-board" id="tgBoard" role="grid" aria-label="Tablero de seis intentos"></div>
-            <input class="tg-board-input" id="tgInput" maxlength="8" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Escribir en el casillero seleccionado">
-            <div class="tg-lock" id="tgLock" hidden></div>
+          <div class="tg-sunday-picker" id="tgSundayPicker" hidden>
+            <span class="tg-sunday-kicker">Turno del domingo</span>
+            <strong class="tg-sunday-question">¿Quién está en este turno?</strong>
+            <div class="tg-sunday-options" role="group" aria-label="Elegir quién juega este turno">
+              <button class="tg-sunday-option" type="button" data-tg-player="Vale">Vale</button>
+              <button class="tg-sunday-option" type="button" data-tg-player="Ani">Ani</button>
+              <button class="tg-sunday-option" type="button" data-tg-player="Marta">Marta</button>
+            </div>
+            <small class="tg-sunday-note">Los puntos de esta partida quedarán a su nombre.</small>
           </div>
-          <div class="tg-controls">
-            <button class="tg-submit" id="tgSubmit" type="button">Probar</button>
-            <button class="tg-hint-btn" id="tgHint" type="button">Pista -1</button>
-            <button class="tg-reset" id="tgReset" type="button" aria-label="Reiniciar la partida de práctica" data-iw-tooltip="Reiniciar la práctica con una palabra nueva" hidden><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg></button>
-          </div>
-          <div class="tg-status" id="tgStatus" aria-live="polite">Quedan 6 intentos</div>
-          <div class="tg-ranking">
-            <div class="tg-ranking-head"><span>Tabla semanal</span><small id="tgWeek"></small></div>
-            <ol id="tgRanking"></ol>
+          <div class="tg-game-content" id="tgGameContent">
+            <div class="tg-meta"><span id="tgLength">5–8 letras</span><strong id="tgPotential">10 pts posibles</strong></div>
+            <div class="tg-board-wrap" id="tgBoardWrap">
+              <div class="tg-board" id="tgBoard" role="grid" aria-label="Tablero de seis intentos"></div>
+              <input class="tg-board-input" id="tgInput" maxlength="8" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Escribir en el casillero seleccionado">
+              <div class="tg-lock" id="tgLock" hidden></div>
+            </div>
+            <div class="tg-controls">
+              <button class="tg-submit" id="tgSubmit" type="button">Probar</button>
+              <button class="tg-hint-btn" id="tgHint" type="button">Pista -1</button>
+              <button class="tg-reset" id="tgReset" type="button" aria-label="Reiniciar la partida de práctica" data-iw-tooltip="Reiniciar la práctica con una palabra nueva" hidden><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg></button>
+            </div>
+            <div class="tg-status" id="tgStatus" aria-live="polite">Quedan 6 intentos</div>
+            <div class="tg-ranking">
+              <div class="tg-ranking-head"><span>Tabla semanal</span><small id="tgWeek"></small></div>
+              <ol id="tgRanking"></ol>
+            </div>
           </div>
         </div>
       </section>
@@ -3700,7 +3721,7 @@ function showToast(msg){
     ['ACARICIA','verbo','Una mano dice ternura sin necesitar palabras.'],
     ['FLOTANDO','verbo','Permanece sostenido sin tocar el fondo ni caer por completo.']
   ];
-  const scores=[10,8,6,4,2,1],storageKey='kiosco_turn_game_v2';
+  const scores=[10,8,6,4,3,2],storageKey='kiosco_turn_game_v2';
   const mobileDevice=navigator.userAgentData?.mobile===true||/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
   const kioskDesktop=window.innerWidth>=901&&matchMedia('(hover: hover) and (pointer: fine)').matches&&!mobileDevice;
   const normalize=value=>String(value??'').toLocaleUpperCase('es-AR').replace(/Ñ/g,'\uE000').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\uE000/g,'Ñ').replace(/[^A-ZÑ]/g,'');
@@ -3712,11 +3733,12 @@ function showToast(msg){
   const els={
     owner:document.getElementById('tgOwner'),potential:document.getElementById('tgPotential'),board:document.getElementById('tgBoard'),wrap:document.getElementById('tgBoardWrap'),
     input:document.getElementById('tgInput'),lock:document.getElementById('tgLock'),submit:document.getElementById('tgSubmit'),hint:document.getElementById('tgHint'),reset:document.getElementById('tgReset'),
-    status:document.getElementById('tgStatus'),ranking:document.getElementById('tgRanking'),week:document.getElementById('tgWeek'),title:document.getElementById('tgTitle'),length:document.getElementById('tgLength')
+    status:document.getElementById('tgStatus'),ranking:document.getElementById('tgRanking'),week:document.getElementById('tgWeek'),title:document.getElementById('tgTitle'),length:document.getElementById('tgLength'),
+    sundayPicker:document.getElementById('tgSundayPicker'),gameContent:document.getElementById('tgGameContent')
   };
   const readState=()=>{
-    try{const data=JSON.parse(localStorage.getItem(storageKey)||'{}');return{assignments:data.assignments||{},used:Array.isArray(data.used)?data.used:[],games:data.games||{}};}
-    catch(e){return{assignments:{},used:[],games:{}};}
+    try{const data=JSON.parse(localStorage.getItem(storageKey)||'{}');return{assignments:data.assignments||{},used:Array.isArray(data.used)?data.used:[],games:data.games||{},sundayOwners:data.sundayOwners||{}};}
+    catch(e){return{assignments:{},used:[],games:{},sundayOwners:{}};}
   };
   const writeState=state=>{try{localStorage.setItem(storageKey,JSON.stringify(state));}catch(e){console.warn('No pude guardar el desafío:',e);}};
   const dateKey=date=>`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
@@ -3731,10 +3753,13 @@ function showToast(msg){
   root.dataset.scoreMode=scoreSource;
   if(scoreSource==='mobile')els.hint.textContent='Pista';
   root.classList.toggle('is-practice',isPractice);els.reset.hidden=!isPractice;
-  let owner=turno||turnoReciente,locked=false;
-  if(isPractice)owner=first;
-  else if(!owner){if(mins<first.desdeH*60+first.desdeM){owner=first;locked=true;}else owner=last;}
-  const puzzleId=isPractice?`${day}|practica-unica-antes-vale`:`${day}|${owner.nombre}`,state=readState();
+  let scheduledOwner=turno||turnoReciente,locked=false;
+  if(isPractice)scheduledOwner=first;
+  else if(!scheduledOwner){if(mins<first.desdeH*60+first.desdeM){scheduledOwner=first;locked=true;}else scheduledOwner=last;}
+  const state=readState();
+  const sundaySelectionKey=esDomingo&&!isPractice&&!locked?`${day}|${scheduledOwner.nombre}`:'';
+  const selectedSundayOwner=sundaySelectionKey&&['Vale','Ani','Marta'].includes(state.sundayOwners[sundaySelectionKey])?state.sundayOwners[sundaySelectionKey]:'';
+  let owner=selectedSundayOwner?{...scheduledOwner,nombre:selectedSundayOwner}:scheduledOwner;
   let stateMigrated=false;
   Object.values(state.games).forEach(item=>{
     if(!item||item.scoreSource)return;
@@ -3743,7 +3768,29 @@ function showToast(msg){
     if(!kioskDesktop)item.score=0;
     stateMigrated=true;
   });
+  if(selectedSundayOwner){
+    const legacyId=`${day}|${scheduledOwner.nombre}`,selectedId=`${day}|${scheduledOwner.nombre}|${selectedSundayOwner}`;
+    if(state.assignments[legacyId]&&!state.assignments[selectedId]){state.assignments[selectedId]=state.assignments[legacyId];delete state.assignments[legacyId];stateMigrated=true;}
+    if(state.games[legacyId]&&!state.games[selectedId]){state.games[selectedId]={...state.games[legacyId],puzzleId:selectedId,owner:selectedSundayOwner};delete state.games[legacyId];stateMigrated=true;}
+  }
   if(stateMigrated)writeState(state);
+  const reopenKey='kiosco_turn_game_reopen',setOpen=open=>{root.classList.toggle('is-open',open);els.title.setAttribute('aria-expanded',String(open));};
+  let reopenRequested=false;
+  try{reopenRequested=Boolean(sundaySelectionKey&&sessionStorage.getItem(reopenKey)===sundaySelectionKey);if(reopenRequested)sessionStorage.removeItem(reopenKey);}catch(e){}
+  els.title.addEventListener('click',()=>setOpen(!root.classList.contains('is-open')));
+  const needsSundayOwner=Boolean(sundaySelectionKey&&!selectedSundayOwner);
+  if(needsSundayOwner){
+    root.classList.add('needs-owner');els.owner.textContent='Elegí tu nombre';els.owner.disabled=true;els.sundayPicker.hidden=false;els.gameContent.hidden=true;
+    els.sundayPicker.querySelectorAll('[data-tg-player]').forEach(button=>button.addEventListener('click',()=>{
+      const player=button.dataset.tgPlayer;if(!['Vale','Ani','Marta'].includes(player))return;
+      state.sundayOwners[sundaySelectionKey]=player;writeState(state);
+      try{sessionStorage.setItem(reopenKey,sundaySelectionKey);}catch(e){}
+      location.reload();
+    }));
+    setOpen(reopenRequested);return;
+  }
+  els.sundayPicker.hidden=true;els.gameContent.hidden=false;
+  const puzzleId=isPractice?`${day}|practica-unica-antes-vale`:esDomingo?`${day}|${scheduledOwner.nombre}|${owner.nombre}`:`${day}|${owner.nombre}`;
   function assignWord(){
     const saved=state.assignments[puzzleId];
     if(saved){const found=words.find(word=>word.key===normalize(saved));if(found)return found;}
@@ -3828,7 +3875,7 @@ function showToast(msg){
       return official?Number(game.score)||0:earned;
     }
     if(game.lost){els.potential.textContent=official?'0 pts':'Partida móvil · sin puntos';return 0;}
-    const index=Math.min(game.guesses.length,5),value=Math.max(0,scores[index]-(Number(game.penalty)||0));
+    const index=Math.min(game.guesses.length,5),value=Math.max(1,scores[index]-(Number(game.penalty)||0));
     if(isPractice)els.potential.textContent=`${value.toLocaleString('es-AR')} pts de práctica`;
     else if(official)els.potential.textContent=`${value.toLocaleString('es-AR')} pts posibles`;
     else els.potential.textContent='Partida móvil · sin puntos';
@@ -3876,8 +3923,14 @@ function showToast(msg){
     });
     const monday=new Date(`${currentWeek}T12:00:00`);els.week.textContent=`desde ${monday.toLocaleDateString('es-AR',{day:'numeric',month:'short'})}`;
   }
-  function renderState(){
+  function updateOwnerControl(){
     els.owner.textContent=isPractice?'Prueba única':owner.nombre;
+    const canChangeSunday=Boolean(sundaySelectionKey&&selectedSundayOwner&&!game.guesses.length&&!game.completedAt);
+    els.owner.disabled=!canChangeSunday;
+    els.owner.setAttribute('aria-label',canChangeSunday?`Cambiar persona: ahora juega ${owner.nombre}`:owner.nombre);
+  }
+  function renderState(){
+    updateOwnerControl();
     if(answer)game.guesses.forEach((guess,row)=>paintRow(row,guess,false));
     els.status.classList.remove('is-win','is-loss');root.classList.remove('is-win','is-loss');
     if(locked){
@@ -3894,9 +3947,9 @@ function showToast(msg){
     if(locked||game.won||game.lost)return;const guess=draft.join('');
     if(guess.length!==wordLength){els.status.textContent=`Completá las ${wordLength} letras`;return;}
     if(game.guesses.includes(guess)){els.status.textContent='Esa palabra ya la probaste';return;}
-    const row=game.guesses.length;game.guesses.push(guess);const won=guess===answer.key;
+    const row=game.guesses.length;game.guesses.push(guess);updateOwnerControl();const won=guess===answer.key;
     if(won){
-      game.won=true;game.earnedScore=Math.max(0,scores[row]-(Number(game.penalty)||0));
+      game.won=true;game.earnedScore=Math.max(1,scores[row]-(Number(game.penalty)||0));
       game.score=isOfficialRecord(game)?game.earnedScore:0;game.completedAt=new Date().toISOString();
     }
     else if(game.guesses.length>=6){game.lost=true;game.score=0;game.completedAt=new Date().toISOString();}
@@ -3935,12 +3988,20 @@ function showToast(msg){
   els.hint.addEventListener('click',()=>{
     if(locked||game.won||game.lost||game.hintUsed)return;game.hintUsed=true;game.penalty=1;game.hintText=answer.clue;state.games[puzzleId]=game;writeState(state);els.hint.disabled=true;potential();els.status.textContent=`Pista: ${game.hintText}`;els.input.focus();
   });
+  els.owner.addEventListener('click',()=>{
+    if(!sundaySelectionKey||!selectedSundayOwner||game.guesses.length||game.completedAt)return;
+    const neutralId=`${day}|${scheduledOwner.nombre}`;
+    if(state.assignments[puzzleId]){state.assignments[neutralId]=state.assignments[puzzleId];delete state.assignments[puzzleId];}
+    if(state.games[puzzleId]){state.games[neutralId]={...state.games[puzzleId],puzzleId:neutralId,owner:scheduledOwner.nombre};delete state.games[puzzleId];}
+    delete state.sundayOwners[sundaySelectionKey];writeState(state);
+    try{sessionStorage.setItem(reopenKey,sundaySelectionKey);}catch(e){}
+    location.reload();
+  });
   els.reset.addEventListener('click',()=>{
     if(!isPractice)return;delete state.games[puzzleId];delete state.assignments[puzzleId];writeState(state);
     const url=new URL(location.href);url.searchParams.set('prueba','vale');url.searchParams.set('reinicio',String(Date.now()));location.replace(url.toString());
   });
-  const setOpen=open=>{root.classList.toggle('is-open',open);els.title.setAttribute('aria-expanded',String(open));};
-  setOpen(false);els.title.addEventListener('click',()=>setOpen(!root.classList.contains('is-open')));
+  setOpen(reopenRequested);
   renderState();
 })();
 
