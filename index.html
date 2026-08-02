@@ -2741,6 +2741,7 @@ body.light .price-error{color:#991b1b}
 .tg-ranking ol{list-style:none;margin:6px 0 0;padding:0}
 .tg-ranking li{display:grid;grid-template-columns:18px minmax(0,1fr) auto;align-items:center;gap:7px;min-height:29px;border-bottom:1px solid rgba(255,255,255,.045);font-size:10px}
 .tg-ranking li:last-child{border-bottom:0}
+.tg-ranking li.tg-rank-note{display:block;min-height:0;padding:7px 0;border:0;color:var(--text-soft);font-size:9px;font-weight:700;line-height:1.4;text-align:center}
 .tg-rank-pos{color:var(--text-soft);font-weight:800;text-align:center}
 .tg-rank-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-mid);font-weight:750}
 .tg-rank-name small{margin-left:5px;color:var(--text-soft);font-size:8px;font-weight:650}
@@ -2910,7 +2911,7 @@ body.light .tg-lock{background:rgba(255,255,255,.96)}
               <span>Desafío del día</span>
               <svg class="tg-title-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
-            <button class="tg-help" type="button" aria-label="Cómo jugar" data-iw-tooltip="Adiviná una palabra de 5 a 8 letras en 6 intentos. Verde: letra y lugar correctos. Amarillo: letra correcta en otro lugar. Tocá cualquier casillero para cambiar sólo esa letra. Cada pista poética resta 1 punto.">?</button>
+            <button class="tg-help" type="button" aria-label="Cómo jugar" data-iw-tooltip="Adiviná una palabra de 5 a 8 letras en 6 intentos. Verde: letra y lugar correctos. Amarillo: letra correcta en otro lugar. Tocá cualquier casillero para cambiar sólo esa letra. En la computadora del kiosco, cada pista resta 1 punto; las partidas móviles no suman a la tabla.">?</button>
           </div>
           <div class="tg-head-actions">
             <span class="tg-owner" id="tgOwner">—</span>
@@ -3700,6 +3701,8 @@ function showToast(msg){
     ['FLOTANDO','verbo','Permanece sostenido sin tocar el fondo ni caer por completo.']
   ];
   const scores=[10,8,6,4,2,1],storageKey='kiosco_turn_game_v2';
+  const mobileDevice=navigator.userAgentData?.mobile===true||/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+  const kioskDesktop=window.innerWidth>=901&&matchMedia('(hover: hover) and (pointer: fine)').matches&&!mobileDevice;
   const normalize=value=>String(value??'').toLocaleUpperCase('es-AR').replace(/Ñ/g,'\uE000').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\uE000/g,'Ñ').replace(/[^A-ZÑ]/g,'');
   const challengePool=[...rawChallenges,...(Array.isArray(window.KIOSCO_WORD_BANK)?window.KIOSCO_WORD_BANK:[])];
   const words=[...new Map(challengePool.map(([display,category,clue])=>{
@@ -3723,11 +3726,24 @@ function showToast(msg){
   const now=new Date(),mins=now.getHours()*60+now.getMinutes(),first=TURNOS[0],last=TURNOS[TURNOS.length-1],day=dateKey(now);
   const practiceRequested=new URLSearchParams(location.search).get('prueba')==='vale';
   const isPractice=practiceRequested&&day==='2026-08-01'&&mins<first.desdeH*60+first.desdeM;
+  const scoreSource=isPractice?'practice':kioskDesktop?'kiosk':'mobile';
+  const isOfficialRecord=item=>item?.scoreSource==='kiosk'||item?.scoreSource==='kiosk-legacy';
+  root.dataset.scoreMode=scoreSource;
+  if(scoreSource==='mobile')els.hint.textContent='Pista';
   root.classList.toggle('is-practice',isPractice);els.reset.hidden=!isPractice;
   let owner=turno||turnoReciente,locked=false;
   if(isPractice)owner=first;
   else if(!owner){if(mins<first.desdeH*60+first.desdeM){owner=first;locked=true;}else owner=last;}
   const puzzleId=isPractice?`${day}|practica-unica-antes-vale`:`${day}|${owner.nombre}`,state=readState();
+  let stateMigrated=false;
+  Object.values(state.games).forEach(item=>{
+    if(!item||item.scoreSource)return;
+    item.earnedScore=Number(item.score)||0;
+    item.scoreSource=kioskDesktop?'kiosk-legacy':'mobile-legacy';
+    if(!kioskDesktop)item.score=0;
+    stateMigrated=true;
+  });
+  if(stateMigrated)writeState(state);
   function assignWord(){
     const saved=state.assignments[puzzleId];
     if(saved){const found=words.find(word=>word.key===normalize(saved));if(found)return found;}
@@ -3747,8 +3763,11 @@ function showToast(msg){
   const answer=locked?null:assignWord();
   if(!locked&&!answer)locked=true;
   const wordLength=answer?.length||5;
-  const game=state.games[puzzleId]||{puzzleId,puzzleDate:day,owner:owner.nombre,practice:isPractice,guesses:[],penalty:0,hintUsed:false,won:false,lost:false,score:0,completedAt:null};
+  const game=state.games[puzzleId]||{puzzleId,puzzleDate:day,owner:owner.nombre,practice:isPractice,scoreSource,guesses:[],penalty:0,hintUsed:false,won:false,lost:false,score:0,earnedScore:0,completedAt:null};
   if(!Array.isArray(game.guesses))game.guesses=[];
+  if(!game.scoreSource)game.scoreSource=scoreSource;
+  if(!Number.isFinite(Number(game.earnedScore)))game.earnedScore=Number(game.score)||0;
+  if(game.scoreSource==='mobile'||game.scoreSource==='mobile-legacy')game.score=0;
   state.games[puzzleId]=game;
   const tiles=[];
   els.length.textContent=answer?`${wordLength} letras`:'5–8 letras';
@@ -3801,10 +3820,19 @@ function showToast(msg){
     if(!finished)renderDraft();
   }
   function potential(){
-    if(game.won){els.potential.textContent=`${Number(game.score).toLocaleString('es-AR')} pts ${isPractice?'de práctica':'ganados'}`;return Number(game.score)||0;}
-    if(game.lost){els.potential.textContent='0 pts';return 0;}
+    const official=isOfficialRecord(game),earned=Number(game.earnedScore)||0;
+    if(game.won){
+      if(isPractice)els.potential.textContent=`${earned.toLocaleString('es-AR')} pts de práctica`;
+      else if(official)els.potential.textContent=`${Number(game.score).toLocaleString('es-AR')} pts ganados`;
+      else els.potential.textContent='Partida móvil · sin puntos';
+      return official?Number(game.score)||0:earned;
+    }
+    if(game.lost){els.potential.textContent=official?'0 pts':'Partida móvil · sin puntos';return 0;}
     const index=Math.min(game.guesses.length,5),value=Math.max(0,scores[index]-(Number(game.penalty)||0));
-    els.potential.textContent=`${value.toLocaleString('es-AR')} pts ${isPractice?'de práctica':'posibles'}`;return value;
+    if(isPractice)els.potential.textContent=`${value.toLocaleString('es-AR')} pts de práctica`;
+    else if(official)els.potential.textContent=`${value.toLocaleString('es-AR')} pts posibles`;
+    else els.potential.textContent='Partida móvil · sin puntos';
+    return value;
   }
   function motionOk(){return!matchMedia('(prefers-reduced-motion: reduce)').matches;}
   function winEffect(row){
@@ -3828,7 +3856,10 @@ function showToast(msg){
   }
   function renderRanking(){
     const currentWeek=mondayKey(now),baseNames=['Vale','Ani','Marta'];if(!baseNames.includes(owner.nombre))baseNames.push(owner.nombre);
-    const completed=Object.values(state.games).filter(item=>item&&item.completedAt&&!item.practice);
+    if(!kioskDesktop){
+      els.ranking.innerHTML='';const note=document.createElement('li');note.className='tg-rank-note';note.textContent='La tabla oficial se actualiza en la computadora del kiosco.';els.ranking.appendChild(note);els.week.textContent='solo kiosco';return;
+    }
+    const completed=Object.values(state.games).filter(item=>item&&item.completedAt&&!item.practice&&isOfficialRecord(item));
     const rows=baseNames.map(name=>{
       const weekly=completed.filter(item=>item.owner===name&&mondayKey(new Date(`${item.puzzleDate}T12:00:00`))===currentWeek);
       const recent=completed.filter(item=>item.owner===name).sort((a,b)=>String(b.completedAt).localeCompare(String(a.completedAt)));
@@ -3851,7 +3882,10 @@ function showToast(msg){
     els.status.classList.remove('is-win','is-loss');root.classList.remove('is-win','is-loss');
     if(locked){
       const agotado=!answer&&mins>=first.desdeH*60+first.desdeM;els.lock.hidden=false;els.lock.textContent=agotado?'Temporada completa: no se repetirá ninguna palabra.':'Disponible con '+owner.nombre+' · '+timeLabel(owner.desdeH,owner.desdeM);els.status.textContent=agotado?'Próximamente, nueva temporada de palabras':'Se habilita al comenzar el turno';
-    }else if(game.won){els.status.textContent=`Resuelta en ${game.guesses.length} intento${game.guesses.length===1?'':'s'} · +${Number(game.score).toLocaleString('es-AR')} pts${isPractice?' de práctica':''}`;els.status.classList.add('is-win');root.classList.add('is-win');}
+    }else if(game.won){
+      const resultText=isPractice?`+${Number(game.earnedScore).toLocaleString('es-AR')} pts de práctica`:isOfficialRecord(game)?`+${Number(game.score).toLocaleString('es-AR')} pts`:'partida móvil · no suma a la tabla';
+      els.status.textContent=`Resuelta en ${game.guesses.length} intento${game.guesses.length===1?'':'s'} · ${resultText}`;els.status.classList.add('is-win');root.classList.add('is-win');
+    }
     else if(game.lost){els.status.textContent=`Sin más intentos · era ${answer.display}`;els.status.classList.add('is-loss');root.classList.add('is-loss');}
     else els.status.textContent=game.hintUsed?`Quedan ${6-game.guesses.length} · ${game.hintText||answer.clue}`:`Quedan ${6-game.guesses.length} intentos`;
     potential();setActiveRow();renderRanking();
@@ -3861,10 +3895,16 @@ function showToast(msg){
     if(guess.length!==wordLength){els.status.textContent=`Completá las ${wordLength} letras`;return;}
     if(game.guesses.includes(guess)){els.status.textContent='Esa palabra ya la probaste';return;}
     const row=game.guesses.length;game.guesses.push(guess);const won=guess===answer.key;
-    if(won){game.won=true;game.score=Math.max(0,scores[row]-(Number(game.penalty)||0));game.completedAt=new Date().toISOString();}
+    if(won){
+      game.won=true;game.earnedScore=Math.max(0,scores[row]-(Number(game.penalty)||0));
+      game.score=isOfficialRecord(game)?game.earnedScore:0;game.completedAt=new Date().toISOString();
+    }
     else if(game.guesses.length>=6){game.lost=true;game.score=0;game.completedAt=new Date().toISOString();}
     state.games[puzzleId]=game;writeState(state);els.input.value='';paintRow(row,guess,true);draft=Array(wordLength).fill('');selectedCol=0;
-    if(won){els.status.textContent=`¡Correcto! +${game.score.toLocaleString('es-AR')} puntos${isPractice?' de práctica':''}`;els.status.className='tg-status is-win';potential();setActiveRow();renderRanking();winEffect(row);}
+    if(won){
+      const resultText=isPractice?`+${game.earnedScore.toLocaleString('es-AR')} puntos de práctica`:isOfficialRecord(game)?`+${game.score.toLocaleString('es-AR')} puntos`:'partida móvil: no suma a la tabla';
+      els.status.textContent=`¡Correcto! ${resultText}`;els.status.className='tg-status is-win';potential();setActiveRow();renderRanking();winEffect(row);
+    }
     else if(game.lost){els.status.textContent=`Sin más intentos · era ${answer.display}`;els.status.className='tg-status is-loss';potential();setActiveRow();renderRanking();lossEffect(row);}
     else{potential();setActiveRow();els.status.textContent=game.hintUsed?`Quedan ${6-game.guesses.length} · ${game.hintText||answer.clue}`:`Quedan ${6-game.guesses.length} intentos`;els.input.focus();}
   }
