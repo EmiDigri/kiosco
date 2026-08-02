@@ -6991,8 +6991,8 @@ function iwWindHtml(speed,direction,gust,temp,sens){
 function iwHumidityHtml(humidity){
   const h=Number(humidity);
   if(!Number.isFinite(h))return'';
-  const cls=h>=75?' is-humid':h<=30?' is-dry':'';
-  const label=h>=80?'Húmedo':h<=25?'Seco':'Humedad';
+  const cls=h>=75?' is-humid':h<40?' is-dry':'';
+  const label=h>=90?'Muy húmedo':h>=75?'Húmedo':h>=55?'Algo húmedo':h>=40?'Agradable':h>=25?'Seco':'Muy seco';
   return`<span class="iw-humidity${cls}" title="Humedad relativa en vivo"><img class="iw-humidity-icon egg-humidity" src="${mcUrl('humidity')}" alt="" aria-hidden="true"><span>${label}</span><span>·</span><span>${Math.round(h)}%</span></span>`;
 }
 function iwPronosticoDias(daily){
