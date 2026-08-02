@@ -3423,6 +3423,7 @@ body.light .tg-lock{background:rgba(255,255,255,.96)}
 
 <div class="toast" id="toast"></div>
 
+<script src="./assets/desafios-es.js"></script>
 <script>
 const TURNOS_DOMINGO = [
   {nombre:'Turno 1',desdeH:9,desdeM:0,hastaH:16,hastaM:0,capturaDesdeH:0,capturaDesdeM:0,label:'9:00 am → 4:00 pm',color:'#3D5AFE'},
@@ -3700,9 +3701,11 @@ function showToast(msg){
   ];
   const scores=[10,8,6,4,2,1],storageKey='kiosco_turn_game_v2';
   const normalize=value=>String(value??'').toLocaleUpperCase('es-AR').replace(/Ñ/g,'\uE000').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\uE000/g,'Ñ').replace(/[^A-ZÑ]/g,'');
-  const words=[...new Map(rawChallenges.map(([display,category,clue])=>{
+  const challengePool=[...rawChallenges,...(Array.isArray(window.KIOSCO_WORD_BANK)?window.KIOSCO_WORD_BANK:[])];
+  const words=[...new Map(challengePool.map(([display,category,clue])=>{
     const key=normalize(display);return[key,{display,category,clue,key,length:[...key].length}];
   }).filter(([key])=>key.length>=5&&key.length<=8)).values()];
+  root.dataset.wordCount=String(words.length);
   const els={
     owner:document.getElementById('tgOwner'),potential:document.getElementById('tgPotential'),board:document.getElementById('tgBoard'),wrap:document.getElementById('tgBoardWrap'),
     input:document.getElementById('tgInput'),lock:document.getElementById('tgLock'),submit:document.getElementById('tgSubmit'),hint:document.getElementById('tgHint'),reset:document.getElementById('tgReset'),
