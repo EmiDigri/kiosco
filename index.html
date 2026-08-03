@@ -68,8 +68,10 @@ html.overlay-scroll-lock{overflow-y:hidden!important}
 
 /* LAYOUT */
 .app{position:relative;z-index:2;padding:20px 20px 80px;max-width:100%;margin:0 auto}
-/* Todo un puntito más grande (se veía chico). Zoom parejo en el main y los overlays. */
-.app,.historial-panel,.cm-panel,.price-panel{zoom:1.05}
+/* Pantalla principal un puntito más grande (se veía chico). En los overlays
+   NO se puede usar zoom: su contenido va de borde a borde (grillas, tablas) y
+   al escalarlo se sale del margen. Ahí las fuentes se agrandan una por una. */
+.app{zoom:1.05}
 .mp-badge{display:flex;align-items:center;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:999px;padding:4px 10px;margin-left:8px}
 .mp-logo{height:56px;width:auto;display:block}
 
