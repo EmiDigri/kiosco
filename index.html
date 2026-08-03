@@ -4652,12 +4652,15 @@ function histRenderMetricas(y,m,last){
   // ── Tarjeta "Nuestro kiosco": resumen mensual cooperativo y autoaprendido ──
   const persNames=['Vale','Ani','Marta'],persRole={Vale:'mañana',Ani:'tarde',Marta:'noche'},persEmoji={Vale:'🌅',Ani:'☀️',Marta:'🌙'};
   const persMes={Vale:0,Ani:0,Marta:0},persAyer={Vale:0,Ani:0,Marta:0},byDowMP={0:[],1:[],2:[],3:[],4:[],5:[],6:[]};
-  let mpDelMes=0,mpAyer=0;
+  let mpDelMes=0,mpAyer=0,domMes=0,domAyer=0;
   const hoyD=esMesActual?Math.min(hoyReal.getDate(),last):last;
   // Para comparar, solo días completos: este mes hasta AYER vs el mes pasado
   // hasta el mismo día (así no arrastra el día de hoy que está a medias).
   const cutoffCmp=esMesActual?hoyD-1:last;
-  for(let d=1;d<=last;d++){const data=histResumenMes[histIso(y,m,d)];if(!data)continue;const mp=data.mpTotal||0;mpDelMes+=mp;if(mp>0)byDowMP[new Date(y,m-1,d).getDay()].push(mp);const tt=data.turnos||{};persNames.forEach(p=>{if(tt[p])persMes[p]+=tt[p].mp||0;});if(d<=cutoffCmp){mpAyer+=mp;persNames.forEach(p=>{if(tt[p])persAyer[p]+=tt[p].mp||0;});}}
+  for(let d=1;d<=last;d++){const data=histResumenMes[histIso(y,m,d)];if(!data)continue;const mp=data.mpTotal||0;mpDelMes+=mp;if(mp>0)byDowMP[new Date(y,m-1,d).getDay()].push(mp);const tt=data.turnos||{};persNames.forEach(p=>{if(tt[p])persMes[p]+=tt[p].mp||0;});
+    // Los domingos usan otros turnos (Turno 1 y Turno 2); los sumo aparte.
+    const dom=(tt['Turno 1']?tt['Turno 1'].mp:0)+(tt['Turno 2']?tt['Turno 2'].mp:0);domMes+=dom;
+    if(d<=cutoffCmp){mpAyer+=mp;persNames.forEach(p=>{if(tt[p])persAyer[p]+=tt[p].mp||0;});domAyer+=dom;}}
   let projMes=mpDelMes;
   if(esMesActual)for(let d=hoyD+1;d<=last;d++){const w=new Date(y,m-1,d).getDay();projMes+=histMediana(byDowMP[w])||promDiario;}
   const mesLearn=histMesLearnRead();
@@ -4682,8 +4685,9 @@ function histRenderMetricas(y,m,last){
       <div class="hk-meta-track"><div class="hk-meta-fill" id="hkMetaFill"></div></div>
     </div>
     <div class="hk-ritmo">
-      <div class="hk-ritmo-title">El ritmo del día · se pasan la posta</div>
+      <div class="hk-ritmo-title">El ritmo del día</div>
       ${persNames.map(p=>`<div class="hk-persona"><span class="hk-persona-emoji">${persEmoji[p]}</span><span class="hk-persona-main"><span class="hk-persona-name">${p} · ${persRole[p]}</span><span class="hk-persona-desc">${persMes[p]>0?histMoneyCompact(persMes[p])+' este mes':'sin datos aún'}</span></span><span class="hk-persona-chip flat" data-chip="${p}">···</span></div>`).join('')}
+      <div class="hk-persona"><span class="hk-persona-emoji">📅</span><span class="hk-persona-main"><span class="hk-persona-name">Domingos</span><span class="hk-persona-desc">${domMes>0?histMoneyCompact(domMes)+' este mes':'sin datos aún'}</span></span><span class="hk-persona-chip flat" data-chip="Domingos">···</span></div>
     </div>
     <div class="hk-foot"><span aria-hidden="true">🧠</span> Cada mes que cierra, afina la proyección y aprende mejor el ritmo de tu kiosco.</div>
   </div>`;
@@ -4700,7 +4704,7 @@ function histRenderMetricas(y,m,last){
     <div class="hist-met-chart-card" style="margin-top:12px"><div class="hist-met-chart-title">Totales por semana</div>${semanasHtml}</div>`;
   const chartCard=el.querySelector('#histChartCard');
   if(chartCard){histAnimarGraficoDias(chartCard);histTooltipGraficoDias(chartCard,y,m);}
-  histKioscoEnriquecer({y,m,last,esMesActual,mpDelMes,persMes,mpAyer,persAyer,cutoffCmp,projMes,hoyD});
+  histKioscoEnriquecer({y,m,last,esMesActual,mpDelMes,persMes,mpAyer,persAyer,domMes,domAyer,cutoffCmp,projMes,hoyD});
   const prevM=m===1?12:m-1,prevY=m===1?y-1:y;
   // Mismo tramo y solo días completos: este mes hasta ayer vs el mes pasado
   // hasta el mismo día (cutoffCmp ya calculado arriba).
@@ -4735,9 +4739,9 @@ async function histFetchMesPersonas(y,m,cutoffDay){
   const from=histIso(y,m,1),to=histIso(y,m,Math.min(cutoffDay||lastDay,lastDay));
   try{
     const rows=await histSbSelectAll(`pagos?select=id,monto,turno,fecha&fecha=gte.${from}&fecha=lte.${to}&es_enviada=neq.true&order=id.asc`);
-    const personas={Vale:0,Ani:0,Marta:0},dias={};let total=0;
-    rows.forEach(r=>{const mo=Number(r.monto)||0;total+=mo;if(personas[r.turno]!=null)personas[r.turno]+=mo;if(r.fecha)dias[r.fecha]=1;});
-    return{total,personas,diasActivos:Object.keys(dias).length};
+    const personas={Vale:0,Ani:0,Marta:0},dias={};let total=0,domingos=0;
+    rows.forEach(r=>{const mo=Number(r.monto)||0;total+=mo;if(personas[r.turno]!=null)personas[r.turno]+=mo;if(r.turno==='Turno 1'||r.turno==='Turno 2')domingos+=mo;if(r.fecha)dias[r.fecha]=1;});
+    return{total,personas,domingos,diasActivos:Object.keys(dias).length};
   }catch(e){return null;}
 }
 // Mejor mes de los ultimos 6 (meta "superar tu mejor mes"). Cacheado 12 h para
@@ -4759,7 +4763,7 @@ function histMesLearnWrite(v){try{localStorage.setItem(HIST_MES_LEARN,JSON.strin
 // Enriquece la tarjeta con lo que necesita red: ritmo del mes, meta, chips por
 // persona (cada una vs si misma el mes pasado) y la calificacion del modelo.
 async function histKioscoEnriquecer(ctx){
-  const {y,m,last,esMesActual,mpDelMes,persMes,mpAyer,persAyer,cutoffCmp,projMes,hoyD}=ctx;
+  const {y,m,last,esMesActual,mpDelMes,persMes,mpAyer,persAyer,domMes,domAyer,cutoffCmp,projMes,hoyD}=ctx;
   const prevM=m===1?12:m-1,prevY=m===1?y-1:y;
   const prevMes=new Date(prevY,prevM-1,1).toLocaleDateString('es-AR',{month:'long'});
   // Comparación siempre a igual tramo y solo días completos: este mes hasta ayer
@@ -4802,6 +4806,17 @@ async function histKioscoEnriquecer(ctx){
       else{chip.textContent=`igual que en ${prevMes}`;chip.className='hk-persona-chip flat';}
     }else{chip.textContent='—';chip.className='hk-persona-chip flat';}
   });
+  // Domingos: los dos turnos del domingo vs los domingos del mismo tramo del mes pasado.
+  const chipDom=document.querySelector('[data-chip="Domingos"]');
+  if(chipDom){
+    const prevDom=prev&&prev.domingos||0;
+    if(prevDom>0&&domAyer>0&&cutoffCmp>=1){
+      const pct=(domAyer-prevDom)/prevDom*100;
+      if(pct>=3){chipDom.textContent=`+${pct.toFixed(0)}% que en ${prevMes}`;chipDom.className='hk-persona-chip up';}
+      else if(pct<=-3){chipDom.textContent=`${pct.toFixed(0)}% que en ${prevMes}`;chipDom.className='hk-persona-chip down';}
+      else{chipDom.textContent=`igual que en ${prevMes}`;chipDom.className='hk-persona-chip flat';}
+    }else{chipDom.textContent=domMes>0?'aún sin domingo cerrado':'—';chipDom.className='hk-persona-chip flat';}
+  }
   // Autoaprendizaje: califica la proyeccion del mes pasado (contra su total
   // COMPLETO, no el tramo) y registra la de este mes.
   if(esMesActual){
