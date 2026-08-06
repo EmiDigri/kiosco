@@ -33,3 +33,13 @@ The dictionary is used only as a spelling-validation signal.
 Definitions are shortened and transformed into game clues by
 `scripts/build-word-bank.mjs`. The generated bank retains the applicable
 attribution and share-alike requirements of its source data.
+
+## Diccionario de intentos válidos (assets/palabras-validas.js)
+
+- Project: an-array-of-spanish-words
+- Source: https://github.com/words/an-array-of-spanish-words
+- License: MIT
+
+Se usa solo para validar que cada intento del Desafío del día sea una
+palabra española real (5 a 8 letras). La lista se normaliza a mayúsculas
+con Ñ y se filtra por longitud; no se muestra al usuario.
