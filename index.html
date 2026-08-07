@@ -870,6 +870,123 @@ body.egg-champion .logo-shop{filter:drop-shadow(0 0 8px rgba(255,79,123,.9)) dro
   box-shadow:0 2px 8px rgba(0,0,0,.35)!important;
 }
 .cm-save-btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(0,0,0,.40)!important}
+
+/* ---- Foto del cuaderno: botón + pantalla de revisión ---- */
+.cm-foto-btn{
+  width:100%;
+  display:flex;align-items:center;justify-content:center;gap:9px;
+  margin-bottom:16px;
+  padding:14px;
+  background:linear-gradient(135deg,var(--cm-accent-soft),var(--cm-surface));
+  color:var(--cm-ink)!important;
+  border:1px dashed var(--cm-accent)!important;
+  border-radius:var(--cm-radius-sm);
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  font-size:14px;font-weight:800;
+  cursor:pointer;
+  transition:transform .12s ease,box-shadow .12s ease;
+}
+.cm-foto-btn span{font-size:18px}
+.cm-foto-btn:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(124,144,255,.22)}
+.cm-foto-btn:disabled{opacity:.6;cursor:progress}
+.cm-foto-btn.cm-foto-loading{border-style:solid!important;animation:cmFotoPulse 1.1s ease-in-out infinite}
+@keyframes cmFotoPulse{0%,100%{opacity:.65}50%{opacity:1}}
+
+.cm-foto-review{
+  position:fixed;
+  inset:0;
+  z-index:60;
+  overflow-y:auto;
+  background:var(--cm-bg);
+  padding:22px 16px 90px;
+}
+.cm-foto-review > *{max-width:640px;margin-left:auto;margin-right:auto}
+.cm-foto-head{
+  display:flex;align-items:flex-start;justify-content:space-between;gap:12px;
+  margin-bottom:18px;
+}
+.cm-foto-title{font-size:19px;font-weight:800;color:var(--cm-ink)}
+.cm-foto-sub{font-size:13px;color:var(--cm-ink-mid);margin-top:3px}
+.cm-foto-review .btn-cerrar-hist{flex-shrink:0}
+.cm-foto-check{
+  display:flex;align-items:center;gap:9px;
+  padding:11px 14px;
+  border-radius:var(--cm-radius-sm);
+  font-size:13px;font-weight:700;
+  margin-bottom:16px;
+}
+.cm-foto-check.ok{background:rgba(95,214,138,.12);color:var(--cm-green);border:1px solid rgba(95,214,138,.30)}
+.cm-foto-check.warn{background:var(--cm-amber-soft);color:var(--cm-amber);border:1px solid rgba(240,184,96,.35)}
+.cm-foto-turno{
+  background:var(--cm-surface);
+  border:1px solid var(--cm-border);
+  border-radius:var(--cm-radius);
+  padding:16px;
+  margin-bottom:14px;
+}
+.cm-foto-turno-head{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:12px;
+}
+.cm-foto-turno-nombre{font-size:15px;font-weight:800;color:var(--cm-ink)}
+.cm-foto-turno-efectivo{font-size:13px;font-weight:700;color:var(--cm-teal)}
+.cm-foto-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cm-foto-f label{display:block;font-size:11px;font-weight:700;color:var(--cm-ink-soft);text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px}
+.cm-foto-f input{
+  width:100%;
+  background:var(--cm-surface-2);
+  border:1px solid var(--cm-border);
+  border-radius:10px;
+  padding:11px 12px;
+  color:var(--cm-ink);
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  font-size:15px;font-weight:700;
+}
+.cm-foto-f input:focus{outline:none;border-color:var(--cm-accent)}
+.cm-foto-f.readonly input{background:transparent;border-color:var(--cm-border-soft);color:var(--cm-ink-mid)}
+.cm-foto-gastos-head{font-size:13px;font-weight:800;color:var(--cm-ink-mid);text-transform:uppercase;letter-spacing:.5px;margin:18px 0 10px}
+.cm-foto-gasto{
+  display:grid;grid-template-columns:1fr 120px 34px;gap:8px;align-items:center;
+  margin-bottom:8px;
+}
+.cm-foto-gasto input{
+  background:var(--cm-surface);
+  border:1px solid var(--cm-border);
+  border-radius:10px;
+  padding:10px 11px;
+  color:var(--cm-ink);
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  font-size:14px;font-weight:600;
+}
+.cm-foto-gasto input:focus{outline:none;border-color:var(--cm-accent)}
+.cm-foto-gasto-del{
+  background:var(--cm-amber-soft);border:none;border-radius:9px;
+  color:var(--cm-red);font-size:16px;font-weight:800;cursor:pointer;
+  height:38px;
+}
+.cm-foto-addgasto{
+  width:100%;padding:11px;margin-top:4px;
+  background:transparent;border:1px dashed var(--cm-border);border-radius:10px;
+  color:var(--cm-ink-mid);font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer;
+}
+.cm-foto-addgasto:hover{border-color:var(--cm-accent);color:var(--cm-ink)}
+.cm-foto-actions{display:flex;gap:10px;margin-top:22px}
+.cm-foto-actions .cm-cancel-btn{
+  flex:0 0 auto;padding:14px 20px;
+  background:var(--cm-surface);border:1px solid var(--cm-border)!important;border-radius:999px;
+  color:var(--cm-ink-mid);font-family:'Inter',sans-serif;font-size:14px;font-weight:700;cursor:pointer;
+}
+.cm-foto-actions .btn-cargar{
+  flex:1;padding:14px;
+  background:var(--cm-ink);border:none;border-radius:999px;
+  color:var(--cm-bg);font-family:'Inter',sans-serif;font-size:14px;font-weight:800;cursor:pointer;
+  box-shadow:0 2px 8px rgba(0,0,0,.35);
+}
+.cm-foto-actions .btn-cargar:hover{transform:translateY(-1px)}
+@media(max-width:480px){
+  .cm-foto-grid{grid-template-columns:1fr 1fr}
+  .cm-foto-gasto{grid-template-columns:1fr 96px 34px}
+}
 .cm-gasto-form{
   display:grid;
   grid-template-columns:1fr 116px 46px;
@@ -3219,6 +3336,7 @@ body.light .tg-lock{background:rgba(255,255,255,.96)}
     </div>
 
     <div class="cm-view active" id="cm-view-turno">
+      <button class="cm-foto-btn" id="cmBtnFoto" type="button"><span aria-hidden="true">📷</span> Cargar del cuaderno</button>
       <div class="cm-turno-row" id="cmTurnoRow"></div>
 
       <div class="cm-card cm-mp-card">
@@ -3318,6 +3436,23 @@ body.light .tg-lock{background:rgba(255,255,255,.96)}
         <span>Gastos del día</span>
         <b id="cmResumenGastos">$0</b>
       </div>
+    </div>
+  </div>
+
+  <input type="file" id="cmFotoInput" accept="image/*" capture="environment" hidden>
+  <div class="cm-foto-review" id="cmFotoReview" hidden>
+    <div class="cm-foto-head">
+      <div><div class="cm-foto-title">Revisá lo que leí del cuaderno</div><div class="cm-foto-sub" id="cmFotoSub"></div></div>
+      <button class="btn-cerrar-hist" id="cmFotoCerrar" title="Cerrar">✕</button>
+    </div>
+    <div class="cm-foto-check" id="cmFotoCheck"></div>
+    <div id="cmFotoTurnos"></div>
+    <div class="cm-foto-gastos-head">Gastos leídos</div>
+    <div id="cmFotoGastos"></div>
+    <button class="cm-foto-addgasto" id="cmFotoAddGasto" type="button">+ Agregar gasto</button>
+    <div class="cm-foto-actions">
+      <button class="cm-cancel-btn" id="cmFotoCancelar" type="button">Cancelar</button>
+      <button class="btn-cargar" id="cmFotoConfirmar" type="button">Cargar todo al cierre</button>
     </div>
   </div>
 </div>
@@ -6122,6 +6257,158 @@ const cmBtnAddGasto=document.getElementById('cmBtnAddGasto');if(cmBtnAddGasto)cm
 const cmGastoMonto=document.getElementById('cmGastoMonto');if(cmGastoMonto)cmGastoMonto.addEventListener('keydown',e=>{if(e.key==='Enter')cmAgregarGasto();});
 const cmGastoNombre=document.getElementById('cmGastoNombre');if(cmGastoNombre)cmGastoNombre.addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('cmGastoMonto').focus();});
 document.querySelectorAll('.cm-caja-btn').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('.cm-caja-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');cmCajaSeleccionada=btn.dataset.caja||'';}));
+
+// ─── Foto del cuaderno → autocompletar el cierre del día ───
+// El kiosquero saca UNA foto a la planilla escrita a mano y la IA (api/cierre-foto.js)
+// devuelve los cierres por turno + gastos. Acá se muestran editables para revisar y,
+// al confirmar, se cargan igual que si se hubieran tipeado a mano.
+let cmFotoData=null; // {fecha,total_dia,turnos:[{turno,cierre,apertura,once,mpo}],gastos:[{nombre,monto}]}
+const cmFotoNum=v=>Math.max(0,Math.round(Number(String(v==null?'':v).replace(/[^\d]/g,''))||0));
+function cmComprimirFoto(file){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onerror=()=>reject(new Error('No pude leer la foto'));
+    reader.onload=()=>{
+      const img=new Image();
+      img.onerror=()=>reject(new Error('La foto está dañada, probá otra'));
+      img.onload=()=>{
+        const MAX=1600;let w=img.naturalWidth||img.width,h=img.naturalHeight||img.height;
+        if(w>MAX||h>MAX){const r=Math.min(MAX/w,MAX/h);w=Math.round(w*r);h=Math.round(h*r);}
+        const c=document.createElement('canvas');c.width=w;c.height=h;
+        c.getContext('2d').drawImage(img,0,0,w,h);
+        const url=c.toDataURL('image/jpeg',0.85);
+        resolve({image:url.split(',')[1]||'',mime:'image/jpeg'});
+      };
+      img.src=reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+async function cmLeerCuaderno(file){
+  if(!file)return;
+  if(!/^image\//.test(file.type||'')){showToast('Elegí una foto del cuaderno');return;}
+  const btn=document.getElementById('cmBtnFoto');
+  if(btn){btn.disabled=true;btn.classList.add('cm-foto-loading');btn.innerHTML='<span aria-hidden="true">⏳</span> Leyendo el cuaderno…';}
+  try{
+    const{image,mime}=await cmComprimirFoto(file);
+    if(!image)throw new Error('No pude procesar la foto');
+    const res=await fetch('/api/cierre-foto',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image,mime})});
+    const data=await res.json().catch(()=>null);
+    if(!res.ok||!data)throw new Error((data&&data.error)||'No pude leer el cuaderno');
+    if(!Array.isArray(data.turnos)||!data.turnos.length)throw new Error('No encontré los turnos: sacá la foto más derecha y con buena luz');
+    cmFotoData={
+      fecha:data.fecha||null,
+      total_dia:cmFotoNum(data.total_dia),
+      turnos:data.turnos.slice(0,CM_TURNOS.length).map((t,i)=>({
+        turno:CM_TURNOS[i],
+        cierre:cmFotoNum(t&&t.cierre),
+        apertura:cmFotoNum(t&&t.apertura)||10000,
+        once:cmFotoNum(t&&t.once),
+        mpo:cmFotoNum(t&&t.mpo)
+      })),
+      gastos:(Array.isArray(data.gastos)?data.gastos:[]).map(g=>({nombre:String((g&&g.nombre)||''),monto:cmFotoNum(g&&g.monto)}))
+    };
+    cmRenderFotoReview();
+  }catch(e){
+    showToast(e.message||'No pude leer el cuaderno');
+  }finally{
+    if(btn){btn.disabled=false;btn.classList.remove('cm-foto-loading');btn.innerHTML='<span aria-hidden="true">📷</span> Cargar del cuaderno';}
+    const inp=document.getElementById('cmFotoInput');if(inp)inp.value='';
+  }
+}
+function cmFotoEfectivo(t){return (Number(t.cierre)||0)-cmMpTurno(t.turno)-(Number(t.once)||0);}
+function cmRenderFotoReview(){
+  if(!cmFotoData)return;
+  const sub=document.getElementById('cmFotoSub');
+  if(sub)sub.textContent=(cmFotoData.fecha?('Cuaderno del '+cmFotoData.fecha+' · '):'')+'revisá y corregí lo que haga falta.';
+  const cont=document.getElementById('cmFotoTurnos');
+  cont.innerHTML=cmFotoData.turnos.map((t,i)=>`<div class="cm-foto-turno" data-i="${i}">
+    <div class="cm-foto-turno-head">
+      <div class="cm-foto-turno-nombre"><span class="cm-resumen-dot" style="background:${CM_COLORS[t.turno]||'#7C90FF'}"></span> ${cmEsc(t.turno)}</div>
+      <div class="cm-foto-turno-efectivo">Efectivo ${cmFmt(cmFotoEfectivo(t))}</div>
+    </div>
+    <div class="cm-foto-grid">
+      <div class="cm-foto-f"><label>Cierre (total)</label><input type="text" inputmode="numeric" data-f="cierre" value="${t.cierre||''}"></div>
+      <div class="cm-foto-f readonly"><label>MP (automático)</label><input type="text" value="${cmFmt(cmMpTurno(t.turno))}" readonly tabindex="-1"></div>
+      <div class="cm-foto-f"><label>Once (O)</label><input type="text" inputmode="numeric" data-f="once" value="${t.once||''}"></div>
+      <div class="cm-foto-f"><label>MPO juguetería</label><input type="text" inputmode="numeric" data-f="mpo" value="${t.mpo||''}"></div>
+      <div class="cm-foto-f"><label>Apertura</label><input type="text" inputmode="numeric" data-f="apertura" value="${t.apertura||''}"></div>
+    </div>
+  </div>`).join('');
+  cont.querySelectorAll('.cm-foto-turno').forEach(card=>{
+    const i=Number(card.dataset.i);
+    card.querySelectorAll('input[data-f]').forEach(inp=>inp.addEventListener('input',()=>{
+      cmFotoData.turnos[i][inp.dataset.f]=cmFotoNum(inp.value);
+      card.querySelector('.cm-foto-turno-efectivo').textContent='Efectivo '+cmFmt(cmFotoEfectivo(cmFotoData.turnos[i]));
+      cmRenderFotoCheck();
+    }));
+  });
+  cmRenderFotoGastos();
+  cmRenderFotoCheck();
+  document.getElementById('cmFotoReview').hidden=false;
+}
+function cmRenderFotoCheck(){
+  const el=document.getElementById('cmFotoCheck');if(!el||!cmFotoData)return;
+  const suma=cmFotoData.turnos.reduce((a,t)=>a+(Number(t.cierre)||0),0),total=Number(cmFotoData.total_dia)||0;
+  if(total>0&&Math.abs(suma-total)>1){
+    el.className='cm-foto-check warn';
+    el.innerHTML='⚠️ Los cierres suman '+cmFmt(suma)+' pero el total del cuaderno dice '+cmFmt(total)+'. Revisá los números.';
+  }else{
+    el.className='cm-foto-check ok';
+    el.innerHTML='✓ Los cierres suman '+cmFmt(suma)+(total>0?', igual que el total del cuaderno.':'.');
+  }
+}
+function cmRenderFotoGastos(){
+  const cont=document.getElementById('cmFotoGastos');if(!cont||!cmFotoData)return;
+  if(!cmFotoData.gastos.length){cont.innerHTML='<div class="empty" style="color:var(--cm-ink-soft);font-size:13px;padding:4px 2px">No leí ningún gasto. Podés agregarlos abajo.</div>';return;}
+  cont.innerHTML=cmFotoData.gastos.map((g,i)=>`<div class="cm-foto-gasto" data-i="${i}">
+    <input type="text" data-g="nombre" value="${cmEsc(g.nombre)}" placeholder="Concepto">
+    <input type="text" inputmode="numeric" data-g="monto" value="${g.monto||''}" placeholder="Monto">
+    <button class="cm-foto-gasto-del" data-del="${i}" title="Quitar">✕</button>
+  </div>`).join('');
+  cont.querySelectorAll('.cm-foto-gasto').forEach(row=>{
+    const i=Number(row.dataset.i);
+    row.querySelector('input[data-g="nombre"]').addEventListener('input',e=>{cmFotoData.gastos[i].nombre=e.target.value;});
+    row.querySelector('input[data-g="monto"]').addEventListener('input',e=>{cmFotoData.gastos[i].monto=cmFotoNum(e.target.value);});
+    row.querySelector('[data-del]').addEventListener('click',()=>{cmFotoData.gastos.splice(i,1);cmRenderFotoGastos();});
+  });
+}
+function cmFotoAgregarGastoFila(){if(!cmFotoData)return;cmFotoData.gastos.push({nombre:'',monto:0});cmRenderFotoGastos();}
+function cmCerrarFotoReview(){const r=document.getElementById('cmFotoReview');if(r)r.hidden=true;cmFotoData=null;}
+async function cmConfirmarCuaderno(){
+  if(!cmFotoData)return;
+  const btn=document.getElementById('cmFotoConfirmar');if(btn)btn.disabled=true;
+  // 1) Gastos: agregar los del cuaderno que no existan ya (evita duplicar si se escanea dos veces).
+  const nuevosGastos=[];
+  cmFotoData.gastos.filter(g=>g.nombre.trim()&&Number(g.monto)>0).forEach(g=>{
+    const ya=cmGastos.some(x=>x.nombre.trim().toLowerCase()===g.nombre.trim().toLowerCase()&&Number(x.monto)===Number(g.monto));
+    if(ya)return;
+    const nuevo={uid:cmUid(),nombre:g.nombre.trim(),monto:Number(g.monto)||0,caja:'',turno:'',creadoEn:new Date().toISOString()};
+    cmGastos.push(nuevo);nuevosGastos.push(nuevo);
+  });
+  // 2) Cierres por turno. Misma fórmula que a mano: efectivo = cierre − MP − Once − gastos de esa caja.
+  const cierresGuardados=[];
+  cmFotoData.turnos.forEach(t=>{
+    const mp=cmMpTurno(t.turno),gCaja=cmGastosDeCaja(t.turno),total=Number(t.cierre)||0,once=Number(t.once)||0;
+    cmCierres[t.turno]={apertura:Number(t.apertura)||10000,efectivo:total-mp-once-gCaja,once,mpo:Number(t.mpo)||0,mp,total_turno:total,guardadoEn:new Date().toISOString()};
+    cierresGuardados.push(t.turno);
+  });
+  cmGuardarData();
+  cmCerrarFotoReview();
+  cmCargarFormularioTurno();cmRenderGastos();cmRenderResumen();cmRenderSyncStatus();
+  showToast('Cargado del cuaderno ✓');
+  // 3) Sincronizar a Supabase (si falla, queda local y se reintenta al reabrir).
+  for(const g of nuevosGastos){try{await cmGuardarGastoRemoto(g);g.synced=true;}catch(e){}}
+  for(const turno of cierresGuardados){try{await cmGuardarCierreRemoto(turno,cmCierres[turno]);if(cmCierres[turno])cmCierres[turno].synced=true;}catch(e){}}
+  cmGuardarData();cmRenderSyncStatus();
+  if(btn)btn.disabled=false;
+}
+const cmBtnFoto=document.getElementById('cmBtnFoto');if(cmBtnFoto)cmBtnFoto.addEventListener('click',()=>{const i=document.getElementById('cmFotoInput');if(i)i.click();});
+const cmFotoInput=document.getElementById('cmFotoInput');if(cmFotoInput)cmFotoInput.addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];if(f)cmLeerCuaderno(f);});
+const cmFotoCerrarBtn=document.getElementById('cmFotoCerrar');if(cmFotoCerrarBtn)cmFotoCerrarBtn.addEventListener('click',cmCerrarFotoReview);
+const cmFotoCancelarBtn=document.getElementById('cmFotoCancelar');if(cmFotoCancelarBtn)cmFotoCancelarBtn.addEventListener('click',cmCerrarFotoReview);
+const cmFotoConfirmarBtn=document.getElementById('cmFotoConfirmar');if(cmFotoConfirmarBtn)cmFotoConfirmarBtn.addEventListener('click',cmConfirmarCuaderno);
+const cmFotoAddGastoBtn=document.getElementById('cmFotoAddGasto');if(cmFotoAddGastoBtn)cmFotoAddGastoBtn.addEventListener('click',cmFotoAgregarGastoFila);
 
 
 
