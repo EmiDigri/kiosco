@@ -343,6 +343,13 @@ body.egg-champion .logo-shop{filter:drop-shadow(0 0 8px rgba(255,79,123,.9)) dro
 .btn-cargar:hover .btn-icon{transform:rotate(180deg) scale(1.1)}
 .btn-cargar-wrap{position:relative;display:inline-block}
 .btn-particle{position:absolute;width:7px;height:7px;border-radius:50%;pointer-events:none;animation:btn-particle-fly .7s cubic-bezier(.2,.8,.3,1) forwards}
+.kfx-load-orbit{position:absolute;inset:-15px;z-index:20;pointer-events:none;animation:kfx-load-spin 1.8s linear infinite}
+.kfx-load-orbit img{position:absolute;width:19px;height:19px;object-fit:contain;filter:drop-shadow(0 2px 4px rgba(0,0,0,.32))}
+.kfx-load-orbit img:nth-child(1){left:0;top:50%;transform:translate(-50%,-50%) rotate(-18deg)}
+.kfx-load-orbit img:nth-child(2){right:0;top:50%;transform:translate(50%,-50%) rotate(14deg)}
+.kfx-load-orbit img:nth-child(3){left:50%;top:0;transform:translate(-50%,-50%) rotate(8deg)}
+.kfx-load-orbit img:nth-child(4){left:50%;bottom:0;transform:translate(-50%,50%) rotate(-10deg)}
+@keyframes kfx-load-spin{to{rotate:360deg}}
 .pacman-eat-runner{position:absolute;width:30px;height:30px;z-index:30;pointer-events:none;transform:translate(-50%,-50%)}
 .pacman-eat-shape{display:block;width:100%;height:100%;border-radius:50%;background:#ffff2d;filter:drop-shadow(0 0 5px rgba(255,255,45,.42));animation:pacman-app-chomp .22s infinite steps(2) alternate}
 @keyframes pacman-app-chomp{
@@ -2939,6 +2946,8 @@ body.light .tg-lock{background:rgba(255,255,255,.96)}
 </style>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flipclock@1.0.1/dist/themes/flipclock.min.css">
 <script src="https://cdn.jsdelivr.net/npm/tsparticles-slim@2/tsparticles.slim.bundle.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.4/dist/confetti.browser.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@mojs/core@1.7.1/dist/mo.umd.js" defer></script>
 </head>
 <body>
 <!-- Fondo liviano: sin blobs, grano ni emojis flotantes -->
@@ -6599,6 +6608,173 @@ function _particlePresetEffect(btn,name){
   frameId=requestAnimationFrame(animate);
 }
 
+// Efectos premium: assets variados de Kiosco + Fluent Emoji, canvas-confetti y mo.js.
+const KFX_CANDY_SOURCES=[
+  './assets/bonobon-kawaii.png','./assets/kinder-egg-kawaii.png','./assets/cola-bottle-kawaii.png','./assets/lollipop-pop.png',
+  './assets/effects/candy.svg','./assets/effects/lollipop.svg','./assets/effects/chocolate_bar.svg','./assets/effects/cookie.svg',
+  './assets/effects/doughnut.svg','./assets/effects/cupcake.svg','./assets/effects/ice_cream.svg','./assets/effects/soft_ice_cream.svg',
+  './assets/effects/shortcake.svg','./assets/effects/popcorn.svg','./assets/effects/bubble_tea.svg','./assets/effects/beverage_box.svg',
+  './assets/effects/custard.svg','./assets/effects/pie.svg','./assets/effects/waffle.svg','./assets/effects/fortune_cookie.svg',
+  './assets/effects/dango.svg','./assets/effects/shaved_ice.svg','./assets/effects/birthday_cake.svg','./assets/effects/moon_cake.svg'
+];
+let kfxCandyPromise=null;
+function _kfxReduced(){return !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;}
+function _kfxRnd(a,b){return a+Math.random()*(b-a);}
+function _kfxPick(items){return items[Math.floor(Math.random()*items.length)];}
+function _kfxLoadCandies(){
+  if(kfxCandyPromise)return kfxCandyPromise;
+  kfxCandyPromise=Promise.all(KFX_CANDY_SOURCES.map(src=>new Promise(resolve=>{
+    const img=new Image();img.decoding='async';img.onload=()=>resolve({img,src});img.onerror=()=>resolve(null);img.src=src;
+  }))).then(items=>items.filter(Boolean));
+  return kfxCandyPromise;
+}
+function _kfxCanvas(){
+  const c=document.createElement('canvas'),dpr=Math.min(2,window.devicePixelRatio||1),w=innerWidth,h=innerHeight;
+  c.width=Math.round(w*dpr);c.height=Math.round(h*dpr);
+  c.style.cssText='position:fixed;inset:0;width:100%;height:100%;z-index:99999;pointer-events:none';
+  document.body.appendChild(c);const ctx=c.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);
+  return{c,ctx,w,h};
+}
+function _kfxLoadStart(btn,family){
+  _particleLoadStart(btn,family);
+  if(family==='candy'){
+    const wrap=btn.closest('.btn-cargar-wrap')||btn.parentElement;
+    if(wrap){
+      const orbit=document.createElement('span');orbit.className='kfx-load-orbit';orbit.innerHTML=[
+        './assets/effects/candy.svg','./assets/effects/cookie.svg','./assets/effects/lollipop.svg','./assets/effects/chocolate_bar.svg'
+      ].map(src=>`<img src="${src}" alt="">`).join('');wrap.appendChild(orbit);btn._kfxLoadOrbit=orbit;
+    }
+  }else if(family==='electric'){
+    btn._kfxElectricTimer=setInterval(()=>{
+      const glow=_kfxRnd(10,23);btn.style.filter=`brightness(${_kfxRnd(1.02,1.18)})`;
+      btn.style.boxShadow=`0 0 ${glow}px rgba(96,165,250,.55),0 0 ${glow*1.8}px rgba(167,139,250,.28)`;
+    },95);
+  }
+}
+function _kfxLoadEnd(btn){
+  _particleLoadEnd(btn);btn._kfxLoadOrbit?.remove();btn._kfxLoadOrbit=null;
+  clearInterval(btn._kfxElectricTimer);btn._kfxElectricTimer=null;btn.style.filter='';btn.style.boxShadow='';
+}
+function _kfxCandyEffect(btn,mode,finish=true){
+  if(finish)_btnExito(btn);if(_kfxReduced())return;
+  _kfxLoadCandies().then(assets=>{
+    if(!assets.length)return;
+    const {cx,cy}=_rc(btn),{c,ctx,w:W,h:H}=_kfxCanvas(),mobile=W<600,ps=[];
+    const branded=needle=>assets.filter(a=>a.src.includes(needle));
+    const any=()=>_kfxPick(assets),only=needle=>_kfxPick(branded(needle).length?branded(needle):assets);
+    const add=(o={})=>ps.push({type:o.type||'sprite',asset:o.asset||any(),x:o.x??cx,y:o.y??cy,vx:o.vx??0,vy:o.vy??0,
+      g:o.g??0,drag:o.drag??.996,size:(o.size??_kfxRnd(24,40))*(mobile ? .82 : 1),rot:o.rot??_kfxRnd(-Math.PI,Math.PI),
+      vr:o.vr??_kfxRnd(-.07,.07),life:o.life??_kfxRnd(3.5,5.5),maxLife:o.life??5,wobble:o.wobble??0,
+      phase:o.phase??_kfxRnd(0,Math.PI*2),orbit:o.orbit||false,angle:o.angle??0,radius:o.radius??0,
+      angular:o.angular??0,radial:o.radial??0,lift:o.lift??0,bounce:o.bounce||false,hero:o.hero||false,color:o.color||'#7dd3fc'});
+    const radial=(count,assetPicker=any,opts={})=>{for(let i=0;i<count;i++){const a=i/count*Math.PI*2+_kfxRnd(-.12,.12),sp=_kfxRnd(opts.min??3,opts.max??10);add({asset:assetPicker(),vx:Math.cos(a)*sp,vy:Math.sin(a)*sp+(opts.up??-1),g:opts.g??.08,size:_kfxRnd(opts.sizeMin??22,opts.sizeMax??38),life:_kfxRnd(3.3,5),bounce:opts.bounce});}};
+    if(mode==='Lluvia de golosinas'){
+      for(let i=0;i<(mobile?44:76);i++)add({x:_kfxRnd(15,W-15),y:_kfxRnd(-H*.95,-25),vx:_kfxRnd(-.6,.6),vy:_kfxRnd(2.2,4.4),g:.006,size:_kfxRnd(24,43),life:_kfxRnd(5.5,7.2),wobble:_kfxRnd(.5,1.4)});
+    }else if(mode==='Cañón de caramelos'){
+      for(let i=0;i<(mobile?40:66);i++)add({vx:_kfxRnd(-8.5,8.5),vy:_kfxRnd(-13,-5),g:.23,size:_kfxRnd(22,39),life:_kfxRnd(3.6,5)});
+    }else if(mode==='Torbellino candy'){
+      for(let i=0;i<(mobile?34:54);i++)add({orbit:true,angle:i/54*Math.PI*2,radius:_kfxRnd(8,34),angular:_kfxRnd(.025,.065)*(i%2?1:-1),radial:_kfxRnd(.75,1.8),lift:_kfxRnd(-.25,.25),size:_kfxRnd(20,36),life:_kfxRnd(3.4,5)});
+    }else if(mode==='Explosión Bon o Bon'){
+      radial(mobile?34:54,()=>only('bonobon'),{min:3,max:11,g:.11,sizeMin:22,sizeMax:42});
+    }else if(mode==='Órbita de chupetines'){
+      for(let i=0;i<(mobile?16:24);i++)add({asset:only('lollipop'),orbit:true,angle:i/24*Math.PI*2,radius:_kfxRnd(32,76),angular:_kfxRnd(.035,.075),radial:_kfxRnd(.55,1.15),lift:-.15,size:_kfxRnd(27,46),life:_kfxRnd(3.8,5.2)});
+    }else if(mode==='Sorpresa Kinder'){
+      radial(mobile?22:34,()=>only('kinder'),{min:2.5,max:8.5,g:.1,sizeMin:19,sizeMax:34});
+      add({asset:only('kinder'),vy:-3.8,g:.08,size:mobile?76:98,life:3.2,hero:true,vr:.025});
+    }else if(mode==='Burbujas de cola'){
+      for(let i=0;i<(mobile?9:14);i++)add({asset:only('cola-bottle'),x:_kfxRnd(20,W-20),y:H+_kfxRnd(10,160),vx:_kfxRnd(-.4,.4),vy:_kfxRnd(-4.6,-2.3),g:-.004,size:_kfxRnd(34,54),life:_kfxRnd(4.2,6),wobble:1.2});
+      for(let i=0;i<(mobile?42:72);i++)add({type:'bubble',x:_kfxRnd(0,W),y:H+_kfxRnd(0,H*.55),vx:_kfxRnd(-.3,.3),vy:_kfxRnd(-4.2,-1.5),size:_kfxRnd(3,11),life:_kfxRnd(4,6),wobble:1.6,color:_kfxPick(['#7dd3fc','#fca5a5','#fde68a','#fff'])});
+    }else if(mode==='Cascada de envoltorios'){
+      for(let i=0;i<(mobile?42:70);i++)add({x:_kfxRnd(-W*.15,W),y:_kfxRnd(-H*.8,-20),vx:_kfxRnd(1.2,2.8),vy:_kfxRnd(2.1,4.5),g:.012,size:_kfxRnd(22,40),life:_kfxRnd(5.4,7),wobble:1.8});
+    }else if(mode==='Dulce espiral'){
+      for(let i=0;i<(mobile?38:60);i++)add({orbit:true,angle:i/60*Math.PI*5,radius:i*.55,angular:.045+(i%5)*.004,radial:1.65,lift:-.28,size:_kfxRnd(18,34),life:_kfxRnd(3.2,4.8)});
+    }else{
+      radial(mobile?28:46,any,{min:3,max:9,g:.16,sizeMin:21,sizeMax:38,bounce:true});
+    }
+    ps.forEach(p=>p.maxLife=p.life);const started=performance.now();let last=started,raf=0;
+    function frame(now){
+      const dt=Math.min(.05,(now-last)/1000||1/60),step=dt*60,elapsed=(now-started)/1000;last=now;ctx.clearRect(0,0,W,H);
+      for(const p of ps){
+        p.life-=dt;if(p.life<=0)continue;
+        if(p.orbit){p.angle+=p.angular*step;p.radius+=p.radial*step;p.x=cx+Math.cos(p.angle)*p.radius;p.y=cy+Math.sin(p.angle)*p.radius*.65+p.lift*elapsed*60;}
+        else{if(p.wobble)p.vx+=Math.sin(elapsed*5+p.phase)*p.wobble*.008*step;const drag=Math.pow(p.drag,step);p.vx*=drag;p.vy=p.vy*drag+p.g*step;p.x+=p.vx*step;p.y+=p.vy*step;}
+        if(p.bounce){if(p.x<12||p.x>W-12)p.vx*=-.85;if(p.y<12||p.y>H-12)p.vy*=-.82;p.x=Math.max(12,Math.min(W-12,p.x));p.y=Math.max(12,Math.min(H-12,p.y));}
+        p.rot+=p.vr*step;const alpha=Math.min(1,p.life/.7);ctx.globalAlpha=alpha;
+        if(p.type==='bubble'){ctx.strokeStyle=p.color;ctx.lineWidth=1.6;ctx.beginPath();ctx.arc(p.x,p.y,p.size,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=alpha*.32;ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x-p.size*.28,p.y-p.size*.3,p.size*.24,0,Math.PI*2);ctx.fill();continue;}
+        const img=p.asset.img,ratio=Math.max(.55,Math.min(2.1,img.naturalWidth/img.naturalHeight||1)),pulse=p.hero?1+Math.sin(elapsed*7)*.08:1,h=p.size*pulse,w=h*ratio;
+        ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.rot);ctx.drawImage(img,-w/2,-h/2,w,h);ctx.restore();
+      }
+      ctx.globalAlpha=1;const alive=ps.some(p=>p.life>0);
+      if(alive&&elapsed<7.2)raf=requestAnimationFrame(frame);else{cancelAnimationFrame(raf);c.remove();}
+    }
+    raf=requestAnimationFrame(frame);
+  });
+}
+function _kfxConfettiEffect(btn,mode){
+  _btnExito(btn);if(_kfxReduced())return;
+  if(typeof window.confetti!=='function'){_kfxCandyEffect(btn,'Cañón de caramelos',false);return;}
+  const {cx,cy}=_rc(btn),canvas=_cvs(),fire=window.confetti.create(canvas,{resize:true,useWorker:false}),origin={x:cx/innerWidth,y:cy/innerHeight};
+  const colors=['#ff5b9a','#63d7e8','#ffb84d','#ff4d4d','#7c83ff','#5ee0bd','#fff4cf'];
+  const shoot=o=>fire({disableForReducedMotion:true,colors,ticks:230,scalar:1.05,zIndex:99999,...o});
+  if(mode==='Cañones dobles'){
+    shoot({particleCount:90,angle:58,spread:48,startVelocity:58,origin:{x:0,y:.78}});shoot({particleCount:90,angle:122,spread:48,startVelocity:58,origin:{x:1,y:.78}});
+  }else if(mode==='Estrellas candy'){
+    shoot({particleCount:135,spread:360,startVelocity:38,gravity:.7,shapes:['star'],origin});
+  }else if(mode==='Serpentinas'){
+    shoot({particleCount:155,angle:70,spread:92,startVelocity:50,gravity:.48,drift:.6,scalar:1.3,origin:{x:.08,y:.75}});
+    shoot({particleCount:155,angle:110,spread:92,startVelocity:50,gravity:.48,drift:-.6,scalar:1.3,origin:{x:.92,y:.75}});
+  }else if(mode==='Fuegos artificiales'){
+    for(let i=0;i<6;i++)setTimeout(()=>shoot({particleCount:70,spread:360,startVelocity:32,gravity:.45,scalar:.82,origin:{x:_kfxRnd(.12,.88),y:_kfxRnd(.1,.5)}}),i*230);
+  }else{
+    let shapes;
+    try{shapes=['🍬','🍭','🍫','⭐'].map(text=>window.confetti.shapeFromText({text,scalar:1.45}));}catch(e){shapes=['circle','star'];}
+    shoot({particleCount:105,spread:125,startVelocity:48,gravity:.85,scalar:1.35,shapes,origin});
+  }
+  setTimeout(()=>{try{fire.reset();}catch(e){}canvas.remove();},6200);
+}
+function _kfxBolt(ctx,x1,y1,x2,y2,rough,depth){
+  if(depth<=0){ctx.lineTo(x2,y2);return;}
+  const mx=(x1+x2)/2+_kfxRnd(-rough,rough),my=(y1+y2)/2+_kfxRnd(-rough,rough);
+  _kfxBolt(ctx,x1,y1,mx,my,rough*.52,depth-1);_kfxBolt(ctx,mx,my,x2,y2,rough*.52,depth-1);
+}
+function _kfxElectricEffect(btn,mode,finish=true){
+  if(finish)_btnExito(btn);if(_kfxReduced())return;
+  const {cx,cy}=_rc(btn),{c,ctx,w:W,h:H}=_kfxCanvas(),started=performance.now();let raf=0;
+  function frame(now){
+    const elapsed=(now-started)/1000,beat=Math.floor(elapsed*8);ctx.clearRect(0,0,W,H);
+    if(mode==='Tormenta'){
+      ctx.strokeStyle='rgba(125,211,252,.24)';ctx.lineWidth=1;
+      for(let i=0;i<85;i++){const x=(i*83+elapsed*470)%W,y=(i*47+elapsed*920)%H;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-8,y+24);ctx.stroke();}
+      if([1,5,10].includes(beat)){ctx.fillStyle='rgba(203,213,255,.12)';ctx.fillRect(0,0,W,H);}
+    }
+    if(beat<15&&(elapsed*8)%1<.62){
+      const starts=mode==='Rayos cruzados'?[[0,0],[W,0],[0,H],[W,H]]:[[_kfxRnd(0,W),-10],[_kfxRnd(0,W),-10]];
+      ctx.save();ctx.lineCap='round';ctx.shadowColor='#93c5fd';ctx.shadowBlur=18;
+      for(const [sx,sy] of starts){ctx.strokeStyle='rgba(224,231,255,.96)';ctx.lineWidth=2.4;ctx.beginPath();ctx.moveTo(sx,sy);_kfxBolt(ctx,sx,sy,cx,cy,Math.min(W,H)*.065,5);ctx.stroke();}
+      ctx.restore();
+    }
+    if(elapsed<2.15)raf=requestAnimationFrame(frame);else{cancelAnimationFrame(raf);c.remove();}
+  }
+  raf=requestAnimationFrame(frame);
+}
+function _kfxMojsEffect(btn,mode){
+  _btnExito(btn);if(_kfxReduced())return;
+  if(!window.mojs){_kfxElectricEffect(btn,'Rayos cruzados',false);return;}
+  const {cx,cy}=_rc(btn),root=document.createElement('div');root.style.cssText='position:fixed;inset:0;z-index:99999;pointer-events:none';document.body.appendChild(root);
+  const palette=['#60a5fa','#a78bfa','#f0f9ff','#f472b6','#fde047','#5eead4'];
+  const ring=(delay,color,radius,duration=900)=>new mojs.Shape({parent:root,left:cx,top:cy,shape:'circle',fill:'none',stroke:color,radius:{8:radius},strokeWidth:{8:0},opacity:{1:0},delay,duration,easing:'cubic.out'}).play();
+  const burst=(count,radius,delay=0,shape='line')=>new mojs.Burst({parent:root,left:cx,top:cy,radius:{0:radius},count,delay,children:{shape,fill:palette,stroke:palette,strokeWidth:shape==='line'?{5:0}:0,radius:shape==='line'?{10:3}:{7:0},scale:{1:0},duration:_kfxRnd(850,1250),easing:'cubic.out'}}).play();
+  if(mode==='Anillo de plasma'){ring(0,'#60a5fa',150,1050);ring(100,'#c4b5fd',230,1250);burst(18,170,80);}
+  else if(mode==='Pulso Tesla'){ring(0,'#f0f9ff',110);ring(160,'#60a5fa',190);ring(320,'#a78bfa',270);burst(24,220,110);}
+  else if(mode==='Chispas eléctricas'){burst(32,190,0);burst(20,110,190,'circle');ring(80,'#fde047',145);}
+  else{
+    burst(22,175,0);ring(0,'#ff5b9a',150);
+    const pow=document.createElement('strong');pow.textContent='¡POW!';pow.style.cssText=`position:fixed;left:${cx}px;top:${cy}px;transform:translate(-50%,-50%) rotate(-8deg);font:900 ${innerWidth<600?42:62}px/1 Arial,sans-serif;color:#fff04d;-webkit-text-stroke:3px #171717;text-shadow:6px 6px 0 #ff4d76;letter-spacing:0;white-space:nowrap`;
+    root.appendChild(pow);pow.animate([{opacity:0,transform:'translate(-50%,-50%) rotate(-16deg) scale(.2)'},{opacity:1,offset:.35,transform:'translate(-50%,-50%) rotate(-8deg) scale(1.15)'},{opacity:0,transform:'translate(-50%,-50%) rotate(3deg) scale(1.55)'}],{duration:1450,easing:'cubic-bezier(.2,.8,.2,1)',fill:'forwards'});
+  }
+  setTimeout(()=>root.remove(),3300);
+}
+
 const EFECTOS=[
 
 // 0 ── Partículas
@@ -6807,6 +6983,53 @@ const PARTICLE_PRESET_EFFECTS=[
   x(btn){_particlePresetEffect(btn,name);}
 }));
 EFECTOS.push(...PARTICLE_PRESET_EFFECTS);
+
+const KIOSK_PREMIUM_EFFECTS=[
+  {name:'Kiosco · Lluvia de golosinas',family:'candy',run:b=>_kfxCandyEffect(b,'Lluvia de golosinas')},
+  {name:'Kiosco · Cañón de caramelos',family:'candy',run:b=>_kfxCandyEffect(b,'Cañón de caramelos')},
+  {name:'Kiosco · Torbellino candy',family:'candy',run:b=>_kfxCandyEffect(b,'Torbellino candy')},
+  {name:'Kiosco · Explosión Bon o Bon',family:'candy',run:b=>_kfxCandyEffect(b,'Explosión Bon o Bon')},
+  {name:'Kiosco · Órbita de chupetines',family:'candy',run:b=>_kfxCandyEffect(b,'Órbita de chupetines')},
+  {name:'Kiosco · Sorpresa Kinder',family:'candy',run:b=>_kfxCandyEffect(b,'Sorpresa Kinder')},
+  {name:'Kiosco · Burbujas de cola',family:'candy',run:b=>_kfxCandyEffect(b,'Burbujas de cola')},
+  {name:'Kiosco · Cascada de envoltorios',family:'candy',run:b=>_kfxCandyEffect(b,'Cascada de envoltorios')},
+  {name:'Kiosco · Dulce espiral',family:'candy',run:b=>_kfxCandyEffect(b,'Dulce espiral')},
+  {name:'Kiosco · Rebote de golosinas',family:'candy',run:b=>_kfxCandyEffect(b,'Rebote de golosinas')},
+  {name:'Fiesta · Cañones dobles',family:'party',run:b=>_kfxConfettiEffect(b,'Cañones dobles')},
+  {name:'Fiesta · Estrellas candy',family:'party',run:b=>_kfxConfettiEffect(b,'Estrellas candy')},
+  {name:'Fiesta · Serpentinas',family:'party',run:b=>_kfxConfettiEffect(b,'Serpentinas')},
+  {name:'Fiesta · Fuegos artificiales',family:'party',run:b=>_kfxConfettiEffect(b,'Fuegos artificiales')},
+  {name:'Fiesta · Caramelos pop',family:'party',run:b=>_kfxConfettiEffect(b,'Caramelos pop')},
+  {name:'Eléctrico · Tormenta',family:'electric',run:b=>_kfxElectricEffect(b,'Tormenta')},
+  {name:'Eléctrico · Rayos cruzados',family:'electric',run:b=>_kfxElectricEffect(b,'Rayos cruzados')},
+  {name:'Eléctrico · Anillo de plasma',family:'electric',run:b=>_kfxMojsEffect(b,'Anillo de plasma')},
+  {name:'Eléctrico · Pulso Tesla',family:'electric',run:b=>_kfxMojsEffect(b,'Pulso Tesla')},
+  {name:'Eléctrico · Chispas',family:'electric',run:b=>_kfxMojsEffect(b,'Chispas eléctricas')},
+  {name:'Cómic · POW',family:'party',run:b=>_kfxMojsEffect(b,'Comic POW')}
+].map(effect=>({
+  n:effect.name,
+  l:{s(btn){_kfxLoadStart(btn,effect.family);},e(btn){_kfxLoadEnd(btn);}},
+  x:effect.run
+}));
+EFECTOS.push(...KIOSK_PREMIUM_EFFECTS);
+
+if(EFECTOS[efectoDelDia()]?.n.startsWith('Kiosco ·')){
+  const preloadCandies=()=>_kfxLoadCandies();
+  if('requestIdleCallback'in window)requestIdleCallback(preloadCandies,{timeout:2500});else setTimeout(preloadCandies,900);
+}
+
+// Consola de prueba para QA visual, sin agregar controles a la interfaz.
+window.kioscoProbarEfecto=function(nombre){
+  const effect=EFECTOS.find(e=>e.n===nombre)||EFECTOS.find(e=>e.n.toLowerCase().includes(String(nombre||'').toLowerCase()));
+  const btn=document.getElementById('btnCargar');if(!effect||!btn)return null;effect.x(btn);return effect.n;
+};
+if(new URLSearchParams(location.search).has('efectos')){
+  const tester=document.createElement('div');tester.id='kfxTester';tester.style.cssText='position:fixed;right:12px;bottom:12px;z-index:100000;display:flex;gap:7px;padding:8px;background:#17181c;border:1px solid #3c3e45;border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,.45)';
+  const select=document.createElement('select');select.setAttribute('aria-label','Elegir efecto');select.style.cssText='max-width:260px;background:#24262c;color:#f5f5f5;border:1px solid #454851;border-radius:6px;padding:7px;font:600 12px Inter,sans-serif';
+  KIOSK_PREMIUM_EFFECTS.forEach(effect=>select.add(new Option(effect.n,effect.n)));
+  const play=document.createElement('button');play.type='button';play.textContent='Probar';play.style.cssText='border:0;border-radius:6px;padding:7px 12px;background:#7488ff;color:#101116;font:800 12px Inter,sans-serif;cursor:pointer';
+  play.addEventListener('click',()=>window.kioscoProbarEfecto(select.value));tester.append(select,play);document.body.appendChild(tester);
+}
 
 function actualizarHeroSide(movs){
   const miniTurno=document.getElementById('heroMiniTurno');

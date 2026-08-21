@@ -1,4 +1,23 @@
-# Third-party data notices
+# Third-party notices
+
+## Interface effects
+
+- Project: Fluent Emoji
+- Source: https://github.com/microsoft/fluentui-emoji
+- License: MIT
+
+The candy particle collection includes selected Color assets from Fluent Emoji.
+A copy of its license is stored in `assets/effects/LICENSE-FLUENT-EMOJI.txt`.
+
+- Project: canvas-confetti
+- Source: https://github.com/catdad/canvas-confetti
+- License: ISC
+
+- Project: mo.js
+- Source: https://github.com/mojs/mojs
+- License: MIT
+
+These libraries power the additional button celebrations and motion effects.
 
 The generated challenge bank in `assets/desafios-es.js` combines and transforms
 the following public linguistic datasets. The 201 original hand-written entries
