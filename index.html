@@ -7026,7 +7026,7 @@ window.kioscoProbarEfecto=function(nombre){
 if(new URLSearchParams(location.search).has('efectos')){
   const tester=document.createElement('div');tester.id='kfxTester';tester.style.cssText='position:fixed;right:12px;bottom:12px;z-index:100000;display:flex;gap:7px;padding:8px;background:#17181c;border:1px solid #3c3e45;border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,.45)';
   const select=document.createElement('select');select.setAttribute('aria-label','Elegir efecto');select.style.cssText='max-width:260px;background:#24262c;color:#f5f5f5;border:1px solid #454851;border-radius:6px;padding:7px;font:600 12px Inter,sans-serif';
-  KIOSK_PREMIUM_EFFECTS.forEach(effect=>select.add(new Option(effect.n,effect.n)));
+  EFECTOS.forEach(effect=>select.add(new Option(effect.n,effect.n)));
   const play=document.createElement('button');play.type='button';play.textContent='Probar';play.style.cssText='border:0;border-radius:6px;padding:7px 12px;background:#7488ff;color:#101116;font:800 12px Inter,sans-serif;cursor:pointer';
   play.addEventListener('click',()=>window.kioscoProbarEfecto(select.value));tester.append(select,play);document.body.appendChild(tester);
 }
