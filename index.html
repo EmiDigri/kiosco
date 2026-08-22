@@ -7724,6 +7724,7 @@ async function iwFetchDolarDirecto(){
 async function fetchInfoWidget(){
   const el=document.getElementById('infoWidgetContent');
   if(!el)return;
+  iwLastFetch=Date.now();
   const moonPromise=iwEsHorarioLunar()?iwMoonData(new Date()):Promise.resolve(null);
   // Cada fuente con su propio try/catch para que una falla no rompa el widget
   let temp=null,sens=null,wxCode=null,wxWind=null,wxWindDir=null,wxWindGust=null,wxCloud=null,wxHumidity=null,wxPrecip=0,wxIsDay=1,wxForecast=[],wxObservedAt=null,wxSource='';
@@ -7806,8 +7807,17 @@ async function fetchInfoWidget(){
   el.innerHTML=html;
   if(elM)elM.innerHTML=html;
 }
+let iwLastFetch=0;
 fetchInfoWidget();
-setInterval(fetchInfoWidget,15*60*1000);
+setInterval(()=>{if(!document.hidden)fetchInfoWidget();},15*60*1000);
+// Los celulares congelan los timers cuando la pantalla se bloquea o la app queda
+// en segundo plano, asi que el clima se quedaba viejo y desktop/mobile mostraban
+// temperaturas distintas. Al volver a la app (o reconectar), si pasaron mas de
+// 5', re-consultamos para que ambos muestren siempre la misma temperatura actual.
+function iwRefrescarSiViejo(){if(!document.hidden&&Date.now()-iwLastFetch>=5*60*1000)fetchInfoWidget();}
+document.addEventListener('visibilitychange',iwRefrescarSiViejo);
+window.addEventListener('focus',iwRefrescarSiViejo);
+window.addEventListener('online',iwRefrescarSiViejo);
 setInterval(iwMoonRefreshSlots,60*1000);
 document.addEventListener('click',event=>{
   const jumpButton=event.target.closest('.iw-calendar-jump');
