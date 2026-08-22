@@ -4553,13 +4553,20 @@ function renderTurnosHoy(turnoActualNombre,containerId){
 const STORAGE_KEY='kiosco_historial';
 function fechaHoy(){const d=new Date();return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
 function esMadrugada(hora){return typeof hora==='string'&&hora<'07:00';}
+// Margen de tolerancia después del cierre visible: recién marcamos una
+// transferencia como "fuera de horario" (🌙) si entra pasados 30' del cierre.
+// El kiosco no cierra a las 22:00 en punto, así que 22:00–22:30 es operatoria
+// normal (igual suma al total del turno; solo no queremos la lunita por 1'). De
+// 22:31 en adelante sí se considera tardío. El margen aplica solo al cierre; la
+// madrugada (antes de la apertura) sigue marcándose de una.
+const GRACIA_FUERA_HORARIO_MIN=30;
 function esFueraDeHorario(hora,turnos){
   if(typeof hora!=='string'||!/^\d{2}:\d{2}/.test(hora))return false;
   turnos=turnos?.length?turnos:TURNOS;
   const [h,m]=hora.slice(0,5).split(':').map(Number),mins=h*60+m;
   const inicio=Math.min(...turnos.map(t=>t.desdeH*60+t.desdeM));
   const fin=Math.max(...turnos.map(visFin));
-  return mins<inicio||mins>fin;
+  return mins<inicio||mins>fin+GRACIA_FUERA_HORARIO_MIN;
 }
 function esTransferenciaFueraHorario(m,turnos){return m?.tipo==='Transferencia recibida'&&esFueraDeHorario(m.hora,turnos);}
 function trcFueraHorarioHtml(movs,turnos){
@@ -5259,7 +5266,7 @@ function renderCalendarioMes(){
     if(dia===today)cls.push('today');
     if(data.cierres.length)cls.push('has-cierre');
     if(dia===topDia&&topVal>0)cls.push('best-day');
-    const emoji=(dia===topDia&&topVal>0?'<span class="hist-day-marker" tabindex="0" role="img" aria-label="Mayor recaudación del mes" data-tooltip="Mayor recaudación del mes"><span class="hist-day-emoji hist-day-flame" aria-hidden="true">🔥</span></span>':dia===botDia&&botVal<Infinity?'<span class="hist-day-marker" tabindex="0" role="img" aria-label="Menor recaudación del mes" data-tooltip="Menor recaudación del mes"><span class="hist-day-emoji hist-day-skull" aria-hidden="true">💀</span></span>':'')+(data.fueraHorario?'<span class="hist-day-marker" tabindex="0" role="img" aria-label="Transferencias fuera de horario: antes de las 7 o después de las 22" data-tooltip="Transferencias fuera de horario · antes de las 7 o después de las 22"><span class="hist-day-emoji hist-day-moon" aria-hidden="true">🌙</span></span>':'');
+    const emoji=(dia===topDia&&topVal>0?'<span class="hist-day-marker" tabindex="0" role="img" aria-label="Mayor recaudación del mes" data-tooltip="Mayor recaudación del mes"><span class="hist-day-emoji hist-day-flame" aria-hidden="true">🔥</span></span>':dia===botDia&&botVal<Infinity?'<span class="hist-day-marker" tabindex="0" role="img" aria-label="Menor recaudación del mes" data-tooltip="Menor recaudación del mes"><span class="hist-day-emoji hist-day-skull" aria-hidden="true">💀</span></span>':'')+(data.fueraHorario?'<span class="hist-day-marker" tabindex="0" role="img" aria-label="Transferencias fuera de horario: antes de las 7 o después de las 22:30" data-tooltip="Transferencias fuera de horario · antes de las 7 o después de las 22:30"><span class="hist-day-emoji hist-day-moon" aria-hidden="true">🌙</span></span>':'');
     const compact=histMoneyCompact(principal);
     html+=`<div class="${cls.join(' ')}" data-dia="${dia}">
       <div><div class="hist-day-num">${d}${emoji}</div>${badges.length?`<div class="hist-day-badges">${badges.map(b=>`<span class="hist-day-badge badge-${b.toLowerCase()}">${b}</span>`).join('')}</div>`:''}</div>
@@ -5419,7 +5426,7 @@ async function mostrarDetalleDia(dia){
   if(cell){
     const principal=totalCaja>0?totalCaja:totalMP;const mainEl=cell.querySelector('.hist-day-main');if(mainEl)mainEl.textContent=principal?histMoney(principal):'—';const subEl=cell.querySelector('.hist-day-sub');if(subEl)subEl.textContent=totalMovs?`${totalMovs} movs · MP ${histMoney(totalMP)}`:'sin movimientos';const compactEl=cell.querySelector('.hist-day-compact');if(compactEl)compactEl.textContent=histMoneyCompact(principal);
     const numEl=cell.querySelector('.hist-day-num');
-    if(numEl&&tieneFueraHorario&&!numEl.querySelector('.hist-day-moon'))numEl.insertAdjacentHTML('beforeend','<span class="hist-day-marker" tabindex="0" role="img" aria-label="Transferencias fuera de horario: antes de las 7 o después de las 22" data-tooltip="Transferencias fuera de horario · antes de las 7 o después de las 22"><span class="hist-day-emoji hist-day-moon" aria-hidden="true">🌙</span></span>');
+    if(numEl&&tieneFueraHorario&&!numEl.querySelector('.hist-day-moon'))numEl.insertAdjacentHTML('beforeend','<span class="hist-day-marker" tabindex="0" role="img" aria-label="Transferencias fuera de horario: antes de las 7 o después de las 22:30" data-tooltip="Transferencias fuera de horario · antes de las 7 o después de las 22:30"><span class="hist-day-emoji hist-day-moon" aria-hidden="true">🌙</span></span>');
   }
   document.getElementById('histTotalGlobal').textContent=histMoney(totalCaja>0?totalCaja:totalMP);
   document.getElementById('histTotalSub').textContent=`Caja ${histMoney(totalCaja)} · MercadoPago ${histMoney(totalMP)} · ${totalMovs} movimientos`;
