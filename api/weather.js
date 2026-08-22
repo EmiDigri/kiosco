@@ -36,14 +36,30 @@ function hourAR(iso) {
   return Number(new Intl.DateTimeFormat('en-GB', { timeZone: TZ, hour: '2-digit', hour12: false }).format(new Date(iso)));
 }
 
-function feelsLike(details) {
-  if (!details || details.air_temperature == null) return null;
-  const t = details.air_temperature, windKmh = (details.wind_speed || 0) * 3.6;
-  if (t <= 12 && windKmh > 4.8) {
-    const v = Math.pow(windKmh, 0.16);
-    return Math.round(13.12 + 0.6215 * t - 11.37 * v + 0.3965 * t * v);
-  }
-  return Math.round(t);
+// Presión de vapor de agua (hPa) a una temperatura dada (fórmula de Magnus).
+function vaporPressure(tempC) {
+  return 6.105 * Math.exp((17.27 * tempC) / (237.7 + tempC));
+}
+
+// Humedad relativa (%) a partir de la temperatura y el punto de rocío. Es lo que
+// mide de verdad el METAR: no dependemos de la humedad del modelo (que responde a
+// otra temperatura y quedaba inconsistente con el termómetro del Aeroparque).
+function humidityFromDewpoint(tempC, dewpC) {
+  if (!Number.isFinite(tempC) || !Number.isFinite(dewpC)) return null;
+  const rh = (100 * vaporPressure(dewpC)) / vaporPressure(tempC);
+  return Math.max(0, Math.min(100, Math.round(rh)));
+}
+
+// Sensación térmica: Apparent Temperature de Steadman (la que usan Open-Meteo y
+// la mayoría de las apps del celular). Combina temperatura, viento Y humedad, a
+// diferencia del wind-chill anterior, que ignoraba la humedad y quedaba siempre
+// más "calentito". ws en m/s, e = presión de vapor.
+function feelsLike(tempC, windKmh, rhPercent) {
+  if (!Number.isFinite(tempC)) return null;
+  const rh = Number.isFinite(rhPercent) ? rhPercent : 50;
+  const ws = Math.max(0, windKmh || 0) / 3.6;
+  const e = (rh / 100) * vaporPressure(tempC);
+  return Math.round(tempC + 0.33 * e - 0.70 * ws - 4.0);
 }
 
 function metarWeatherCode(row, fallback) {
@@ -75,6 +91,7 @@ async function aeroparqueObservation() {
     const observedAt = String(row?.reportTime || '');
     const observedMs = Date.parse(observedAt);
     const temperature = Number(row?.temp);
+    const dewpoint = Number(row?.dewp);
     const windKmh = Number(row?.wspd) * 1.852;
     const windDirection = row?.wdir === '' || row?.wdir == null ? NaN : Number(row.wdir);
     const windGustKmh = Number(row?.wgst) * 1.852;
@@ -82,6 +99,7 @@ async function aeroparqueObservation() {
     if (!Number.isFinite(temperature) || !Number.isFinite(observedMs) || age < -30 * 60 * 1000 || age > MAX_OBSERVATION_AGE_MS) return null;
     return {
       temperature,
+      dewpoint: Number.isFinite(dewpoint) ? dewpoint : null,
       windKmh: Number.isFinite(windKmh) ? windKmh : 0,
       windDirection: Number.isFinite(windDirection) ? windDirection : null,
       windGustKmh: Number.isFinite(windGustKmh) && windGustKmh > 0 ? windGustKmh : null,
@@ -119,15 +137,19 @@ export default async function handler(req, res) {
     const metNoGustKmh = Number(nowDetails.wind_speed_of_gust) * 3.6;
     const windGustKmh = observation?.windGustKmh ?? (!observation && Number.isFinite(metNoGustKmh) && metNoGustKmh > 0 ? metNoGustKmh : null);
     const weatherCode = observation ? metarWeatherCode(observation.row, symbolToWmoCode(nowSymbol)) : symbolToWmoCode(nowSymbol);
+    // Humedad coherente con la fuente de la temperatura: si la temp viene del
+    // METAR, la humedad se deriva de su punto de rocío; si no, la del modelo.
+    const metNoHumidity = Number.isFinite(Number(nowDetails.relative_humidity)) ? Math.round(Number(nowDetails.relative_humidity)) : null;
+    const humidity = (observation && humidityFromDewpoint(observation.temperature, observation.dewpoint)) ?? metNoHumidity;
     const current = {
       temperature_2m: Math.round(temperature),
-      apparent_temperature: feelsLike({ air_temperature: temperature, wind_speed: windKmh / 3.6 }),
+      apparent_temperature: feelsLike(temperature, windKmh, humidity),
       weather_code: weatherCode,
       wind_speed_10m: Math.round(windKmh),
       wind_direction_10m: Number.isFinite(windDirection) ? Math.round(windDirection) : null,
       wind_gusts_10m: Number.isFinite(windGustKmh) ? Math.round(windGustKmh) : null,
       cloud_cover: Number.isFinite(Number(nowDetails.cloud_area_fraction)) ? Math.round(Number(nowDetails.cloud_area_fraction)) : null,
-      relative_humidity_2m: Number.isFinite(Number(nowDetails.relative_humidity)) ? Math.round(Number(nowDetails.relative_humidity)) : null,
+      relative_humidity_2m: Number.isFinite(humidity) ? humidity : null,
       precipitation: Number.isFinite(Number(nextHourDetails.precipitation_amount)) ? Number(nextHourDetails.precipitation_amount) : 0,
       is_day: isDayFromSymbol(nowSymbol, hourAR(observation?.observedAt || now.time)),
       observed_at: observation?.observedAt || now.time,
