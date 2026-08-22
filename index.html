@@ -5123,7 +5123,7 @@ function histDeduplicarGastos(arr){
 }
 function histAgruparPorDia(pagos,cierres,gastos){
   const out={};
-  const ensure=dia=>out[dia]||(out[dia]={pagos:[],cierres:[],gastos:[],mpTotal:0,cajaTotal:0,movs:0,enviadas:0,turnos:{},madrugada:false});
+  const ensure=dia=>out[dia]||(out[dia]={pagos:[],cierres:[],gastos:[],mpTotal:0,cajaTotal:0,movs:0,enviadas:0,turnos:{},fueraHorario:false});
   pagos.forEach(r=>{
     const dia=r.fecha;if(!dia)return;
     const d=ensure(dia);
@@ -5132,7 +5132,7 @@ function histAgruparPorDia(pagos,cierres,gastos){
     if(r.es_enviada){d.enviadas+=monto;return;}
     if(r.excluido)return;
     d.mpTotal+=monto;d.movs++;
-    if(esMadrugada(r.hora))d.madrugada=true;
+    if(esTransferenciaFueraHorario(r,turnosDelDia(dia)))d.fueraHorario=true;
     const t=r.turno||'Sin turno';
     if(!d.turnos[t])d.turnos[t]={mp:0,movs:0};
     d.turnos[t].mp+=monto;d.turnos[t].movs++;
@@ -5259,7 +5259,7 @@ function renderCalendarioMes(){
     if(dia===today)cls.push('today');
     if(data.cierres.length)cls.push('has-cierre');
     if(dia===topDia&&topVal>0)cls.push('best-day');
-    const emoji=(dia===topDia&&topVal>0?'<span class="hist-day-marker" tabindex="0" role="img" aria-label="Mayor recaudación del mes" data-tooltip="Mayor recaudación del mes"><span class="hist-day-emoji hist-day-flame" aria-hidden="true">🔥</span></span>':dia===botDia&&botVal<Infinity?'<span class="hist-day-marker" tabindex="0" role="img" aria-label="Menor recaudación del mes" data-tooltip="Menor recaudación del mes"><span class="hist-day-emoji hist-day-skull" aria-hidden="true">💀</span></span>':'')+(data.madrugada?'<span class="hist-day-marker" tabindex="0" role="img" aria-label="Transferencias de madrugada, entre las 00:00 y las 06:59" data-tooltip="Transferencias de madrugada · 00:00 a 06:59"><span class="hist-day-emoji hist-day-moon" aria-hidden="true">🌙</span></span>':'');
+    const emoji=(dia===topDia&&topVal>0?'<span class="hist-day-marker" tabindex="0" role="img" aria-label="Mayor recaudación del mes" data-tooltip="Mayor recaudación del mes"><span class="hist-day-emoji hist-day-flame" aria-hidden="true">🔥</span></span>':dia===botDia&&botVal<Infinity?'<span class="hist-day-marker" tabindex="0" role="img" aria-label="Menor recaudación del mes" data-tooltip="Menor recaudación del mes"><span class="hist-day-emoji hist-day-skull" aria-hidden="true">💀</span></span>':'')+(data.fueraHorario?'<span class="hist-day-marker" tabindex="0" role="img" aria-label="Transferencias fuera de horario: antes de las 7 o después de las 22" data-tooltip="Transferencias fuera de horario · antes de las 7 o después de las 22"><span class="hist-day-emoji hist-day-moon" aria-hidden="true">🌙</span></span>':'');
     const compact=histMoneyCompact(principal);
     html+=`<div class="${cls.join(' ')}" data-dia="${dia}">
       <div><div class="hist-day-num">${d}${emoji}</div>${badges.length?`<div class="hist-day-badges">${badges.map(b=>`<span class="hist-day-badge badge-${b.toLowerCase()}">${b}</span>`).join('')}</div>`:''}</div>
@@ -5413,13 +5413,13 @@ async function mostrarDetalleDia(dia){
   const totalMP=pagosValidos.reduce((a,p)=>a+(Number(p.monto)||0),0);
   const totalCaja=cierres.reduce((a,c)=>a+(Number(c.total_turno)||0),0);
   const totalMovs=pagosValidos.length;
-  const tieneMadrugada=pagosValidos.some(p=>esMadrugada(p.hora));
-  if(histResumenMes[dia]){histResumenMes[dia].mpTotal=totalMP;histResumenMes[dia].cajaTotal=totalCaja;histResumenMes[dia].movs=totalMovs;histResumenMes[dia].madrugada=tieneMadrugada;}
+  const tieneFueraHorario=pagosValidos.some(p=>esTransferenciaFueraHorario(p,turnosDelDia(dia)));
+  if(histResumenMes[dia]){histResumenMes[dia].mpTotal=totalMP;histResumenMes[dia].cajaTotal=totalCaja;histResumenMes[dia].movs=totalMovs;histResumenMes[dia].fueraHorario=tieneFueraHorario;}
   const cell=document.querySelector(`.hist-day-cell[data-dia="${dia}"]`);
   if(cell){
     const principal=totalCaja>0?totalCaja:totalMP;const mainEl=cell.querySelector('.hist-day-main');if(mainEl)mainEl.textContent=principal?histMoney(principal):'—';const subEl=cell.querySelector('.hist-day-sub');if(subEl)subEl.textContent=totalMovs?`${totalMovs} movs · MP ${histMoney(totalMP)}`:'sin movimientos';const compactEl=cell.querySelector('.hist-day-compact');if(compactEl)compactEl.textContent=histMoneyCompact(principal);
     const numEl=cell.querySelector('.hist-day-num');
-    if(numEl&&tieneMadrugada&&!numEl.querySelector('.hist-day-moon'))numEl.insertAdjacentHTML('beforeend','<span class="hist-day-marker" tabindex="0" role="img" aria-label="Transferencias de madrugada, entre las 00:00 y las 06:59" data-tooltip="Transferencias de madrugada · 00:00 a 06:59"><span class="hist-day-emoji hist-day-moon" aria-hidden="true">🌙</span></span>');
+    if(numEl&&tieneFueraHorario&&!numEl.querySelector('.hist-day-moon'))numEl.insertAdjacentHTML('beforeend','<span class="hist-day-marker" tabindex="0" role="img" aria-label="Transferencias fuera de horario: antes de las 7 o después de las 22" data-tooltip="Transferencias fuera de horario · antes de las 7 o después de las 22"><span class="hist-day-emoji hist-day-moon" aria-hidden="true">🌙</span></span>');
   }
   document.getElementById('histTotalGlobal').textContent=histMoney(totalCaja>0?totalCaja:totalMP);
   document.getElementById('histTotalSub').textContent=`Caja ${histMoney(totalCaja)} · MercadoPago ${histMoney(totalMP)} · ${totalMovs} movimientos`;
@@ -5928,7 +5928,13 @@ function autoTurnoBuscar(state){return state&&TURNOS.find(t=>t.nombre===state.tu
 function autoTurnoHora(ts){return new Date(ts).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',hour12:false});}
 function autoTurnoMovKey(m){return`${m.hora}|${Number(m.monto)||0}|${m.tipo||''}|${m.nombre||''}`;}
 function autoTurnoMinutosAhora(){const now=new Date();return now.getHours()*60+now.getMinutes();}
-function autoTurnoLimite(t){return visFin(t)+2;}
+// Hasta cuándo sigue reconciliando la actualización automática. Los turnos
+// normales cortan 2' después de su cierre visible. Pero el último turno (Marta /
+// Turno 2) cierra a la vista a las 22:00 y, sin embargo, todavía le entran
+// transferencias hasta pasada esa hora (son suyas igual). Para esos turnos
+// seguimos revisando hasta 1 h después del cierre (23:00) así se suman en vivo
+// mientras la app esté abierta, en vez de quedar afuera del total del turno.
+function autoTurnoLimite(t){return t.cierreH!==undefined?Math.min(t.hastaH*60+t.hastaM,visFin(t)+60):visFin(t)+2;}
 function autoTurnoDemasiadoTarde(state,t){return state.fecha!==fechaHoy();}
 function autoTurnoAplicarUI(message){
   const state=autoTurnoLeer(),t=autoTurnoBuscar(state);if(!state||!t||autoTurnoDemasiadoTarde(state,t))return false;
