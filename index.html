@@ -217,9 +217,12 @@ body.light .iw-tooltip{background:#fff;color:#172033;border-color:#c7d2e0;box-sh
 .iw-calendar-nav-btn:disabled{cursor:default;opacity:.28}
 .iw-calendar-month{font-size:13px;font-weight:800;letter-spacing:.06em;color:var(--text);text-transform:uppercase;line-height:1.1}
 .iw-calendar-year{font-size:9px;font-weight:700;color:var(--text-soft);margin-top:2px}
+.iw-calendar-head-actions{display:flex;align-items:center;justify-content:flex-end;gap:7px;min-width:0}
 .iw-calendar-status{display:inline-flex;align-items:center;gap:5px;font-size:8px;font-weight:800;letter-spacing:.07em;color:var(--text-soft);text-transform:uppercase;white-space:nowrap}
 .iw-calendar-status::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--amber);box-shadow:0 0 0 3px var(--amber-dim)}
 .iw-calendar-status.is-empty::before{background:var(--text-soft);box-shadow:none;opacity:.5}
+.iw-calendar-jump{display:inline-flex;align-items:center;justify-content:center;min-height:24px;border:1px solid rgba(124,144,255,.3);border-radius:6px;background:rgba(124,144,255,.09);color:var(--accent);padding:5px 7px;font:800 8px/1 'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;letter-spacing:.03em;text-transform:uppercase;white-space:nowrap;cursor:pointer;transition:color .15s,border-color .15s,background .15s}
+.iw-calendar-jump:hover,.iw-calendar-jump:focus-visible{color:var(--text);border-color:rgba(124,144,255,.58);background:rgba(124,144,255,.17);outline:none}
 .iw-calendar-weekdays,.iw-calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));text-align:center}
 .iw-calendar-weekdays{margin-bottom:3px;color:var(--text-soft);font-size:8.5px;font-weight:800}
 .iw-calendar-grid{gap:2px;font-size:9px;font-weight:700;font-variant-numeric:tabular-nums}
@@ -228,7 +231,14 @@ body.light .iw-tooltip{background:#fff;color:#172033;border-color:#c7d2e0;box-sh
 .iw-calendar-day.is-long-weekend{background:rgba(79,204,190,.13);color:var(--text)}
 .iw-calendar-day.is-holiday{background:var(--accent);color:#fff;box-shadow:0 5px 14px rgba(61,90,254,.24);cursor:help;outline:none}
 .iw-calendar-day.is-holiday:focus-visible{box-shadow:0 0 0 2px var(--text),0 5px 14px rgba(61,90,254,.24)}
+.iw-calendar-day.is-today{z-index:2;isolation:isolate;opacity:1;color:#fff;font-weight:900;background:rgba(124,144,255,.2);box-shadow:inset 0 0 0 1px rgba(181,226,255,.42),0 0 12px rgba(96,165,250,.24)}
+.iw-calendar-day.is-today::before{content:'';position:absolute;inset:-2px;z-index:-1;border:1px solid rgba(165,243,252,.95);border-radius:7px;pointer-events:none;animation:iw-calendar-today-pulse 1.7s cubic-bezier(.22,1,.36,1) infinite}
+.iw-calendar-day.is-today::after{content:'';position:absolute;right:2px;top:2px;width:4px;height:4px;border-radius:50%;background:#fff;box-shadow:0 0 4px 1px #7dd3fc,0 0 9px 3px rgba(167,139,250,.65);pointer-events:none;animation:iw-calendar-today-spark 1.7s ease-in-out infinite}
+.iw-calendar-day.is-holiday.is-today{background:var(--accent);box-shadow:inset 0 0 0 1px rgba(255,255,255,.55),0 0 16px rgba(96,165,250,.4),0 5px 14px rgba(61,90,254,.24)}
 .iw-calendar-day small{position:absolute;bottom:1px;font-size:5.5px;font-weight:800;line-height:1;letter-spacing:0}
+.iw-calendar-day small.is-today-label{color:#bff8ff;text-shadow:0 0 5px rgba(125,211,252,.9)}
+@keyframes iw-calendar-today-pulse{0%,100%{opacity:.38;transform:scale(.82);box-shadow:0 0 0 0 rgba(96,165,250,0)}48%{opacity:1;transform:scale(1.09);box-shadow:0 0 11px 3px rgba(96,165,250,.5)}}
+@keyframes iw-calendar-today-spark{0%,100%{opacity:.3;transform:scale(.55)}48%{opacity:1;transform:scale(1.45)}}
 .iw-calendar-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px;padding-top:9px;border-top:1px solid var(--glass-border)}
 .iw-calendar-summary-item{display:flex;align-items:center;gap:7px;min-width:0}
 .iw-calendar-summary-line{width:3px;height:30px;flex:0 0 3px;border-radius:3px;background:#4fccbe}
@@ -239,15 +249,17 @@ body.light .iw-tooltip{background:#fff;color:#172033;border-color:#c7d2e0;box-sh
 .iw-calendar-empty{grid-column:1/-1;color:var(--text-soft);font-size:10px;padding:3px 0}
 body.light .iw-calendar-toggle{background:#f7f9fc}
 body.light .iw-calendar-nav-btn{background:#f7f9fc}
+body.light .iw-calendar-jump{background:#f2f5ff}
 body.light .iw-calendar-day.is-long-weekend{background:rgba(14,116,107,.12)}
+body.light .iw-calendar-day.is-today{color:#172033;background:rgba(79,106,232,.13);box-shadow:inset 0 0 0 1px rgba(79,106,232,.36),0 0 12px rgba(79,106,232,.18)}
 @container (min-width:620px){
   .iw-feriado.is-calendar-open .iw-feriado-layout{grid-template-columns:minmax(0,1fr) minmax(270px,320px);gap:20px}
   .iw-feriado.is-calendar-open .iw-calendar-panel{margin-top:0}
   .iw-calendar-inner{border-top:0;border-left:1px solid var(--glass-border);padding-top:0;padding-left:18px}
 }
 @container (max-width:520px){.iw-feriado-date-row{grid-template-columns:1fr}.iw-calendar-toggle{justify-self:start}}
-@media(max-width:430px){.iw-calendar-summary{grid-template-columns:1fr}.iw-calendar-day small{display:none}.iw-calendar-status{font-size:7.5px}}
-@media(prefers-reduced-motion:reduce){.iw-calendar-panel{transition:none}}
+@media(max-width:430px){.iw-calendar-summary{grid-template-columns:1fr}.iw-calendar-day small{display:none}.iw-calendar-status{font-size:7.5px}.iw-calendar-head-actions{gap:5px}.iw-calendar-jump{padding:5px 6px}}
+@media(prefers-reduced-motion:reduce){.iw-calendar-panel{transition:none}.iw-calendar-day.is-today::before,.iw-calendar-day.is-today::after{animation:none}.iw-calendar-day.is-today::before{opacity:1;transform:none}}
 .info-widget-loading{font-size:12px;color:var(--text-soft)}
 .iw-weather-emoji{position:relative;vertical-align:middle;line-height:1;display:inline-flex;align-items:center;justify-content:center;margin-left:4px;cursor:pointer;border-radius:50%;transition:filter .18s}
 .iw-weather-emoji img{width:40px;height:40px;display:block}
@@ -3937,8 +3949,8 @@ function showToast(msg){
     sundayPicker:document.getElementById('tgSundayPicker'),gameContent:document.getElementById('tgGameContent')
   };
   const readState=()=>{
-    try{const data=JSON.parse(localStorage.getItem(storageKey)||'{}');return{assignments:data.assignments||{},used:Array.isArray(data.used)?data.used:[],games:data.games||{},sundayOwners:data.sundayOwners||{}};}
-    catch(e){return{assignments:{},used:[],games:{},sundayOwners:{}};}
+    try{const data=JSON.parse(localStorage.getItem(storageKey)||'{}');return{assignments:data.assignments||{},used:Array.isArray(data.used)?data.used:[],games:data.games||{},sundayOwners:data.sundayOwners||{},activeChallenge:data.activeChallenge||null};}
+    catch(e){return{assignments:{},used:[],games:{},sundayOwners:{},activeChallenge:null};}
   };
   const writeState=state=>{try{localStorage.setItem(storageKey,JSON.stringify(state));}catch(e){console.warn('No pude guardar el desafío:',e);}};
   const dateKey=date=>`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
@@ -3961,6 +3973,10 @@ function showToast(msg){
   const selectedSundayOwner=sundaySelectionKey&&['Vale','Ani','Marta'].includes(state.sundayOwners[sundaySelectionKey])?state.sundayOwners[sundaySelectionKey]:'';
   let owner=selectedSundayOwner?{...scheduledOwner,nombre:selectedSundayOwner}:scheduledOwner;
   let stateMigrated=false;
+  const playedAssignmentWords=new Set(Object.entries(state.assignments).filter(([id])=>Array.isArray(state.games[id]?.guesses)&&state.games[id].guesses.length).map(([,value])=>normalize(value)));
+  const unplayedAssignmentWords=new Set(Object.entries(state.assignments).filter(([id])=>!Array.isArray(state.games[id]?.guesses)||!state.games[id].guesses.length).map(([,value])=>normalize(value)));
+  const reclaimedUsed=state.used.filter(value=>{const key=normalize(value);return!unplayedAssignmentWords.has(key)||playedAssignmentWords.has(key);});
+  if(reclaimedUsed.length!==state.used.length){state.used=reclaimedUsed;stateMigrated=true;}
   Object.values(state.games).forEach(item=>{
     if(!item||item.scoreSource)return;
     item.earnedScore=Number(item.score)||0;
@@ -3991,9 +4007,32 @@ function showToast(msg){
   }
   els.sundayPicker.hidden=true;els.gameContent.hidden=false;
   const puzzleId=isPractice?`${day}|practica-unica-antes-vale`:esDomingo?`${day}|${scheduledOwner.nombre}|${owner.nombre}`:`${day}|${owner.nombre}`;
+  const gameHasStarted=id=>Boolean(id&&Array.isArray(state.games[id]?.guesses)&&state.games[id].guesses.length);
+  const rememberUsed=wordKey=>{if(!state.used.some(item=>normalize(item)===wordKey))state.used.push(wordKey);};
   function assignWord(){
     const saved=state.assignments[puzzleId];
-    if(saved){const found=words.find(word=>word.key===normalize(saved));if(found)return found;}
+    if(saved){
+      const found=words.find(word=>word.key===normalize(saved));
+      if(found&&!isPractice){
+        const played=gameHasStarted(puzzleId),playedElsewhere=Object.entries(state.assignments).some(([id,value])=>id!==puzzleId&&normalize(value)===found.key&&gameHasStarted(id));
+        if(played)rememberUsed(found.key);
+        else if(!playedElsewhere)state.used=state.used.filter(item=>normalize(item)!==found.key);
+        state.activeChallenge={word:found.display,puzzleId,played,playedAt:played?(state.activeChallenge?.playedAt||state.games[puzzleId]?.completedAt||null):null};
+        writeState(state);
+      }
+      if(found)return found;
+    }
+    if(!isPractice&&state.activeChallenge){
+      const pending=state.activeChallenge,pendingWord=words.find(word=>word.key===normalize(pending.word));
+      const pendingPlayed=Boolean(pending.played||gameHasStarted(pending.puzzleId));
+      if(pendingWord&&!pendingPlayed){
+        state.assignments[puzzleId]=pendingWord.display;
+        state.activeChallenge={...pending,word:pendingWord.display,puzzleId,played:false,playedAt:null};
+        state.used=state.used.filter(item=>normalize(item)!==pendingWord.key);
+        writeState(state);return pendingWord;
+      }
+      if(pendingWord&&pendingPlayed)rememberUsed(pendingWord.key);
+    }
     const used=new Set(state.used.map(normalize));
     if(used.size>=words.length)return null;
     const available=words.filter(word=>!used.has(word.key));
@@ -4005,7 +4044,9 @@ function showToast(msg){
     const candidates=lengthPool.filter(word=>word.category===category);
     const word=candidates[hash(`${puzzleId}|palabra`)%candidates.length];
     if(!word)return null;
-    state.assignments[puzzleId]=word.display;state.used.push(word.key);writeState(state);return word;
+    state.assignments[puzzleId]=word.display;
+    if(!isPractice)state.activeChallenge={word:word.display,puzzleId,played:false,playedAt:null};
+    writeState(state);return word;
   }
   const answer=locked?null:assignWord();
   if(!locked&&!answer)locked=true;
@@ -4194,6 +4235,10 @@ function showToast(msg){
     }
     if(game.guesses.includes(guess)){els.status.textContent='Esa palabra ya la probaste';return;}
     const row=game.guesses.length;game.guesses.push(guess);updateOwnerControl();const won=guess===answer.key;
+    if(!isPractice){
+      rememberUsed(answer.key);
+      state.activeChallenge={word:answer.display,puzzleId,played:true,playedAt:state.activeChallenge?.playedAt||new Date().toISOString()};
+    }
     if(won){
       game.won=true;game.earnedScore=Math.max(1,scores[row]-(Number(game.penalty)||0));
       game.score=isOfficialRecord(game)?game.earnedScore:0;game.completedAt=new Date().toISOString();
@@ -7270,6 +7315,7 @@ function iwCalendarRangeLabel(range){
 function iwCalendarioMesHtml(year,month,data=iwCalendarData){
   const monthDate=new Date(year,month-1,1);
   const monthName=monthDate.toLocaleDateString('es-AR',{month:'long'});
+  const now=new Date(),todayKey=iwDateKey(now),todayYear=now.getFullYear(),todayMonth=now.getMonth()+1;
   const firstOffset=(monthDate.getDay()+6)%7;
   const previousMonthDays=new Date(year,month-1,0).getDate();
   const daysInMonth=new Date(year,month,0).getDate();
@@ -7284,19 +7330,27 @@ function iwCalendarioMesHtml(year,month,data=iwCalendarData){
     const date=new Date(year,month-1,dayNumber);
     const key=iwDateKey(date);
     const outside=date.getMonth()!==month-1;
+    const today=key===todayKey;
     const holiday=outside?null:holidayMap.get(key);
     const longWeekend=outside?null:longWeekends.find(range=>key>=range.startKey&&key<=range.endKey);
     const display=dayNumber<1?previousMonthDays+dayNumber:dayNumber>daysInMonth?dayNumber-daysInMonth:dayNumber;
-    const classes=['iw-calendar-day',outside?'is-outside':'',longWeekend?'is-long-weekend':'',holiday?'is-holiday':''].filter(Boolean).join(' ');
-    const small=holiday?'<small>FERIADO</small>':longWeekend&&key===longWeekend.startKey?'<small>INICIO</small>':'';
+    const classes=['iw-calendar-day',outside?'is-outside':'',longWeekend?'is-long-weekend':'',holiday?'is-holiday':'',today?'is-today':''].filter(Boolean).join(' ');
+    const small=holiday?'<small>FERIADO</small>':today?'<small class="is-today-label">HOY</small>':longWeekend&&key===longWeekend.startKey?'<small>INICIO</small>':'';
     const tooltip=holiday?` tabindex="0" aria-label="${iwEscapeHtml(holiday.nombre)}, ${display} de ${monthName}" data-iw-tooltip="${iwEscapeHtml(holiday.nombre)}"`:'';
-    cells.push(`<span class="${classes}"${tooltip}>${display}${small}</span>`);
+    cells.push(`<span class="${classes}"${today?' aria-current="date"':''}${tooltip}>${display}${small}</span>`);
   }
   const summary=[
     ...longWeekends.map(range=>`<div class="iw-calendar-summary-item"><span class="iw-calendar-summary-line"></span><span class="iw-calendar-summary-copy"><strong>${iwCalendarRangeLabel(range)}</strong><span>Finde largo</span></span></div>`),
     ...holidays.map(item=>`<div class="iw-calendar-summary-item is-holiday"><span class="iw-calendar-summary-line"></span><span class="iw-calendar-summary-copy"><strong>${Number(item.fecha.slice(-2))}</strong><span title="${iwEscapeHtml(item.nombre)}">${iwEscapeHtml(iwFeriadoNombreCorto(item.nombre))}</span></span></div>`)
   ];
   const eventText=holidays.length?`${holidays.length} feriado${holidays.length===1?'':'s'}`:'Sin feriados';
+  const viewingToday=year===todayYear&&month===todayMonth;
+  const nextHoliday=data.holidays.find(item=>item.fecha>=todayKey);
+  const nextHolidayParts=nextHoliday?.fecha.split('-').map(Number)||[];
+  const nextHolidayOutside=nextHoliday&&!(year===nextHolidayParts[0]&&month===nextHolidayParts[1]);
+  const jump=viewingToday&&nextHolidayOutside
+    ?{year:nextHolidayParts[0],month:nextHolidayParts[1],label:'Feriado ›',title:`Ir al próximo feriado: ${nextHoliday.nombre}`}
+    :!viewingToday?{year:todayYear,month:todayMonth,label:'Hoy',title:'Volver al mes actual'}:null;
   const atMin=year===data.minYear&&month===1,atMax=year===data.maxYear&&month===12;
   return`
     <div class="iw-calendar-head">
@@ -7305,7 +7359,7 @@ function iwCalendarioMesHtml(year,month,data=iwCalendarData){
         <div class="iw-calendar-nav-title"><div class="iw-calendar-month">${iwEscapeHtml(monthName)}</div><div class="iw-calendar-year">${year}</div></div>
         <button class="iw-calendar-nav-btn" type="button" data-calendar-step="1" aria-label="Mes siguiente" title="Mes siguiente"${atMax?' disabled':''}>›</button>
       </div>
-      <div class="iw-calendar-status${holidays.length?'':' is-empty'}">${eventText}</div>
+      <div class="iw-calendar-head-actions"><div class="iw-calendar-status${holidays.length?'':' is-empty'}">${eventText}</div>${jump?`<button class="iw-calendar-jump" type="button" data-calendar-target-year="${jump.year}" data-calendar-target-month="${jump.month}" title="${iwEscapeHtml(jump.title)}" aria-label="${iwEscapeHtml(jump.title)}">${jump.label}</button>`:''}</div>
     </div>
     <div class="iw-calendar-weekdays" aria-hidden="true"><span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
     <div class="iw-calendar-grid" role="grid" aria-label="Calendario de ${iwEscapeHtml(monthName)} de ${year}; ${eventText}">${cells.join('')}</div>
@@ -7313,7 +7367,7 @@ function iwCalendarioMesHtml(year,month,data=iwCalendarData){
 }
 function iwCalendarioFeriadoHtml(feriadoData,data=iwCalendarData){
   if(!feriadoData?.fecha)return'';
-  const [year,month]=feriadoData.fecha.split('-').map(Number);
+  const today=new Date(),year=today.getFullYear(),month=today.getMonth()+1;
   return`<div class="iw-calendar-panel" aria-hidden="true" data-year="${year}" data-month="${month}"><div class="iw-calendar-inner">${iwCalendarioMesHtml(year,month,data)}</div></div>`;
 }
 const MC_BASE='https://cdn.jsdelivr.net/npm/@meteocons/svg/fill/';
@@ -7740,6 +7794,16 @@ fetchInfoWidget();
 setInterval(fetchInfoWidget,15*60*1000);
 setInterval(iwMoonRefreshSlots,60*1000);
 document.addEventListener('click',event=>{
+  const jumpButton=event.target.closest('.iw-calendar-jump');
+  if(jumpButton){
+    const panel=jumpButton.closest('.iw-calendar-panel');
+    const inner=panel?.querySelector('.iw-calendar-inner');
+    const year=Number(jumpButton.dataset.calendarTargetYear),month=Number(jumpButton.dataset.calendarTargetMonth);
+    if(!panel||!inner||!year||!month)return;
+    panel.dataset.year=String(year);panel.dataset.month=String(month);
+    inner.innerHTML=iwCalendarioMesHtml(year,month,iwCalendarData);
+    return;
+  }
   const navButton=event.target.closest('.iw-calendar-nav-btn');
   if(navButton){
     if(navButton.disabled)return;
