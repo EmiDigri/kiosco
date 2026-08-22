@@ -5448,6 +5448,9 @@ async function mostrarDetalleDia(dia){
     const transf=movs.filter(m=>m.tipo==='Transferencia recibida').reduce((a,m)=>a+(Number(m.monto)||0),0);
     const point=movs.filter(m=>m.tipo==='Venta Point').reduce((a,m)=>a+(Number(m.monto)||0),0);
     const totalTurno=cierre?(Number(cierre.total_turno)||0):mpTot;
+    const fueraMovs=movs.filter(m=>esTransferenciaFueraHorario(m,turnosDelDia(dia)));
+    const fueraTotal=fueraMovs.reduce((a,m)=>a+(Number(m.monto)||0),0);
+    const fueraBadge=fueraMovs.length?`<span class="hist-day-marker" tabindex="0" role="img" aria-label="${fueraMovs.length} transferencia${fueraMovs.length===1?'':'s'} fuera de horario por ${histMoney(fueraTotal)}" data-tooltip="${fueraMovs.length} fuera de horario · ${histMoney(fueraTotal)}"><span class="hist-day-emoji hist-day-moon" aria-hidden="true">🌙</span></span>`:'';
     const cardId='hist-dia-'+t.nombre.replace(/\s/g,'');
     let cierreHTML='';
     const btnEditarCierre=`<button class="hist-btn-cierre-manual" data-dia="${dia}" data-turno="${t.nombre}" style="margin-top:10px;padding:7px 12px;background:rgba(240,184,96,.13);color:#F0B860;border:1px solid rgba(240,184,96,.28);border-radius:8px;font-weight:600;font-size:11.5px;cursor:pointer">Editar cierre manual</button>`;
@@ -5489,7 +5492,7 @@ async function mostrarDetalleDia(dia){
     }
     html+=`<div class="hist-turno-card" id="${cardId}">
       <div class="hist-turno-header">
-        <div class="hist-turno-left"><span class="hist-turno-dot" style="background:${t.color}"></span><div><div class="hist-turno-nombre">${t.nombre}</div><div class="hist-turno-horario">${t.label||''}</div></div></div>
+        <div class="hist-turno-left"><span class="hist-turno-dot" style="background:${t.color}"></span><div><div class="hist-turno-nombre">${t.nombre}${fueraBadge}</div><div class="hist-turno-horario">${t.label||''}</div></div></div>
         <div style="display:flex;align-items:center;gap:8px">${cierreEstadoHeader}<div class="hist-turno-right"><div class="hist-turno-total">${histMoney(totalTurno)}</div></div><svg class="hist-turno-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
       </div>
       <div class="hist-turno-body"><div class="hist-turno-body-inner">${cierreHTML}${movsHTML}</div></div>
