@@ -1208,6 +1208,13 @@
   const CATALOG_STORAGE_KEY = 'kiosco_catalogo_v1';
   const SB_URL = 'https://pilfeptwylgufhbmmday.supabase.co';
   const SB_KEY = 'sb_publishable_AE6T1LMQuY2T8mf0uD_ANA_Bh4nk_ej';
+  // Cada request a Supabase va firmada con el token del usuario logueado, que
+  // provee index.html vía window.kioscoAuth. Sin sesión cae a la clave pública
+  // (solo útil mientras RLS esté apagado; con RLS activo, sin token, deniega).
+  async function catHeaders(extra) {
+    if (window.kioscoAuth && window.kioscoAuth.headers) return await window.kioscoAuth.headers(extra);
+    return Object.assign({ apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` }, extra || {});
+  }
   const cat = {
     tabSearch: document.getElementById('priceTabSearch'),
     tabCatalog: document.getElementById('priceTabCatalog'),
@@ -1252,7 +1259,7 @@
   function marginText(margin) { return Number.isFinite(margin) ? `${margin.toLocaleString('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%` : '—'; }
 
   async function catSbWrite(path, method, body, prefer) {
-    const headers = { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' };
+    const headers = await catHeaders({ 'Content-Type': 'application/json' });
     if (prefer) headers.Prefer = prefer;
     const response = await fetch(`${SB_URL}/rest/v1/${path}`, { method, headers, body: body !== undefined ? JSON.stringify(body) : undefined });
     if (!response.ok) throw new Error(await response.text());
@@ -1323,7 +1330,7 @@
   async function catLoadRemote() {
     try {
       const response = await fetch(`${SB_URL}/rest/v1/catalogo?select=*&order=categoria.asc,nombre.asc`, {
-        cache: 'no-store', headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` },
+        cache: 'no-store', headers: await catHeaders(),
       });
       if (!response.ok) throw new Error(await response.text());
       const rows = await response.json();
