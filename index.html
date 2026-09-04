@@ -2957,7 +2957,8 @@ body.light .tg-lock{background:rgba(255,255,255,.96)}
 #loginOverlay{position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;padding:24px;background:var(--bg1,#0a0e17)}
 #loginOverlay.oculto{display:none}
 .login-card{width:100%;max-width:340px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.10);border-radius:18px;padding:26px 22px;box-shadow:0 20px 60px rgba(0,0,0,.45);text-align:center}
-.login-logo{font-size:34px;margin-bottom:8px;line-height:1}
+.login-logo{margin-bottom:10px;line-height:1}
+.login-logo img{width:48px;height:48px;vertical-align:middle}
 .login-title{font-size:19px;font-weight:800;color:var(--text,#eef);margin-bottom:20px}
 .login-sub{font-size:12.5px;color:var(--text-soft,#9aa4bb);margin-bottom:20px;line-height:1.4}
 .login-field{text-align:left;margin-bottom:12px}
@@ -2978,7 +2979,7 @@ body.light .tg-lock{background:rgba(255,255,255,.96)}
 <!-- Pantalla de acceso: visible por defecto (tapa la app) hasta confirmar sesión -->
 <div id="loginOverlay">
   <form class="login-card" id="loginForm" autocomplete="on">
-    <div class="login-logo" aria-hidden="true">🏪</div>
+    <div class="login-logo"><img src="https://cdn.jsdelivr.net/npm/@twemoji/svg@15.0.0/1f3ea.svg" alt="" aria-hidden="true" width="48" height="48"></div>
     <div class="login-title">Kiosco</div>
     <div class="login-field">
       <label for="loginEmail">Usuario (email)</label>
