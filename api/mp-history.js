@@ -1,6 +1,23 @@
 const MP_TOKEN = process.env.MP_ACCESS_TOKEN || '';
 const MAX_RESULTS = 500;
 
+// Este endpoint devuelve el historial de pagos de MP: solo para usuarios logueados.
+// Verificamos el token de sesión del usuario contra Supabase (no alcanza con la
+// clave pública). Sin sesión válida, 401.
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://pilfeptwylgufhbmmday.supabase.co';
+const SUPABASE_ANON = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_AE6T1LMQuY2T8mf0uD_ANA_Bh4nk_ej';
+async function usuarioValido(req) {
+  const authz = req.headers.authorization || '';
+  const token = authz.startsWith('Bearer ') ? authz.slice(7) : '';
+  if (!token || token === SUPABASE_ANON) return false; // exige token de usuario, no la clave pública
+  try {
+    const r = await fetch(`${SUPABASE_URL}/auth/v1/user`, { headers: { apikey: SUPABASE_ANON, Authorization: `Bearer ${token}` } });
+    if (!r.ok) return false;
+    const u = await r.json().catch(() => null);
+    return Boolean(u && u.id);
+  } catch { return false; }
+}
+
 function validDate(value) {
   return /^\d{4}-\d{2}-\d{2}$/.test(String(value || ''));
 }
@@ -38,6 +55,7 @@ function publicPayment(payment) {
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Método no permitido' });
+  if (!(await usuarioValido(req))) return res.status(401).json({ error: 'Necesitás iniciar sesión' });
   if (!MP_TOKEN) return res.status(503).json({ error: 'Mercado Pago no está configurado' });
 
   const date = String(req.query.date || '');

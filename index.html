@@ -2970,7 +2970,7 @@ body.light .tg-lock{background:rgba(255,255,255,.96)}
 .login-foot{margin-top:16px;font-size:11px;color:var(--text-soft,#8892a6);line-height:1.4}
 </style>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flipclock@1.0.1/dist/themes/flipclock.min.css">
-<script src="https://cdn.jsdelivr.net/npm/tsparticles-slim@2/tsparticles.slim.bundle.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/tsparticles-slim@2.12.0/tsparticles.slim.bundle.min.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.4/dist/confetti.browser.min.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@mojs/core@1.7.1/dist/mo.umd.js" defer></script>
 </head>
@@ -4488,18 +4488,18 @@ function renderTurno(movs,excluidos,enviadas){
   setTimeout(()=>{document.getElementById('horasCard').classList.add('visible');renderHorasChart(movs);},560);
   const tablaBody=document.getElementById('tablaBody');
   document.getElementById('countPill').textContent=movs.length;tablaBody.innerHTML='';
-  movs.forEach((m,i)=>{const fuera=esTransferenciaFueraHorario(m,TURNOS),row=document.createElement('div');row.className='t-row';row.style.animationDelay=(i*45)+'ms';const pill=m.tipo==='Venta Point'?'<span class="tipo-pill tp-p">Point Smart</span>':'<span class="tipo-pill tp-t">Transferencia</span>';row.innerHTML=`<span class="t-hora">${fuera?'🌙 ':''}${m.hora}</span><span class="t-nombre"><span class="t-n"${fuera?' style="color:#a78bfa;font-weight:700"':''}>${fuera?'Transferencia fuera de horario':m.nombre}</span>${cardLogoHtml(m)}</span>${pill}<span class="t-monto">$${m.monto.toLocaleString('es-AR')}</span>`;tablaBody.appendChild(row);});
+  movs.forEach((m,i)=>{const fuera=esTransferenciaFueraHorario(m,TURNOS),row=document.createElement('div');row.className='t-row';row.style.animationDelay=(i*45)+'ms';const pill=m.tipo==='Venta Point'?'<span class="tipo-pill tp-p">Point Smart</span>':'<span class="tipo-pill tp-t">Transferencia</span>';row.innerHTML=`<span class="t-hora">${fuera?'🌙 ':''}${m.hora}</span><span class="t-nombre"><span class="t-n"${fuera?' style="color:#a78bfa;font-weight:700"':''}>${fuera?'Transferencia fuera de horario':cmEsc(m.nombre)}</span>${cardLogoHtml(m)}</span>${pill}<span class="t-monto">$${m.monto.toLocaleString('es-AR')}</span>`;tablaBody.appendChild(row);});
   setTimeout(()=>document.getElementById('tableCard').classList.add('visible'),560);
   const excBody=document.getElementById('excBody');document.getElementById('excPill').textContent=excluidos.length;excBody.innerHTML='';
   if(!excluidos.length){excBody.innerHTML='<div class="empty">Sin movimientos excluidos ✓</div>';}
-  else{excluidos.forEach((m,i)=>{const row=document.createElement('div');row.className='t-row';row.style.animationDelay=(i*45)+'ms';row.innerHTML=`<span class="t-hora">${m.hora}</span><span class="t-nombre">${m.nombre}</span><span class="tipo-pill" style="background:rgba(244,85,85,.12);color:#f45555;border:1px solid rgba(244,85,85,.25)">${motivoExclusionTexto(m.motivo)}</span><span class="t-monto" style="color:#f45555">$${m.monto.toLocaleString('es-AR')}</span>`;excBody.appendChild(row);});}
+  else{excluidos.forEach((m,i)=>{const row=document.createElement('div');row.className='t-row';row.style.animationDelay=(i*45)+'ms';row.innerHTML=`<span class="t-hora">${m.hora}</span><span class="t-nombre">${cmEsc(m.nombre)}</span><span class="tipo-pill" style="background:rgba(244,85,85,.12);color:#f45555;border:1px solid rgba(244,85,85,.25)">${motivoExclusionTexto(m.motivo)}</span><span class="t-monto" style="color:#f45555">$${m.monto.toLocaleString('es-AR')}</span>`;excBody.appendChild(row);});}
   setTimeout(()=>document.getElementById('excCard').classList.add('visible'),640);
   const envCard=document.getElementById('envCard'),envBody=document.getElementById('envBody');
   if(enviadas.length>0){
     envCard.style.display='block';document.getElementById('envPill').textContent=enviadas.length;
     const totalEnviado=enviadas.reduce((a,m)=>a+m.monto,0);document.getElementById('envTotal').textContent='$'+totalEnviado.toLocaleString('es-AR');
     envBody.innerHTML='';
-    enviadas.forEach((m,i)=>{const row=document.createElement('div');row.className='t-row';row.style.animationDelay=(i*45)+'ms';row.innerHTML=`<span class="t-hora">${m.hora}</span><span class="t-nombre">${m.nombre}</span><span class="tipo-pill" style="background:var(--amber-dim);color:var(--amber);border:1px solid rgba(244,164,53,.25)">Enviada</span><span class="t-monto" style="color:var(--amber)">$${m.monto.toLocaleString('es-AR')}</span>`;envBody.appendChild(row);});
+    enviadas.forEach((m,i)=>{const row=document.createElement('div');row.className='t-row';row.style.animationDelay=(i*45)+'ms';row.innerHTML=`<span class="t-hora">${m.hora}</span><span class="t-nombre">${cmEsc(m.nombre)}</span><span class="tipo-pill" style="background:var(--amber-dim);color:var(--amber);border:1px solid rgba(244,164,53,.25)">Enviada</span><span class="t-monto" style="color:var(--amber)">$${m.monto.toLocaleString('es-AR')}</span>`;envBody.appendChild(row);});
     setTimeout(()=>envCard.classList.add('visible'),700);
   }else{envCard.style.display='none';}
   const portada=document.getElementById('turnosHoyPortada');
@@ -4529,7 +4529,7 @@ function renderCierre(){
     const point=movsOrd.filter(m=>m.tipo==='Venta Point').reduce((a,m)=>a+m.monto,0);
     const fueraHorario=trcFueraHorarioHtml(movsOrd,TURNOS);
     let filas='';
-    movsOrd.forEach(m=>{const fuera=esTransferenciaFueraHorario(m,TURNOS),pill=m.tipo==='Venta Point'?'<span class="tipo-pill tp-p">Point Smart</span>':'<span class="tipo-pill tp-t">Transferencia</span>';filas+=`<div class="t-row"><span class="t-hora">${fuera?'🌙 ':''}${m.hora}</span><span class="t-nombre"><span class="t-n"${fuera?' style="color:#a78bfa;font-weight:700"':''}>${fuera?'Transferencia fuera de horario':m.nombre}</span>${cardLogoHtml(m)}</span>${pill}<span class="t-monto">$${m.monto.toLocaleString('es-AR')}</span></div>`;});
+    movsOrd.forEach(m=>{const fuera=esTransferenciaFueraHorario(m,TURNOS),pill=m.tipo==='Venta Point'?'<span class="tipo-pill tp-p">Point Smart</span>':'<span class="tipo-pill tp-t">Transferencia</span>';filas+=`<div class="t-row"><span class="t-hora">${fuera?'🌙 ':''}${m.hora}</span><span class="t-nombre"><span class="t-n"${fuera?' style="color:#a78bfa;font-weight:700"':''}>${fuera?'Transferencia fuera de horario':cmEsc(m.nombre)}</span>${cardLogoHtml(m)}</span>${pill}<span class="t-monto">$${m.monto.toLocaleString('es-AR')}</span></div>`;});
     const card=document.createElement('div');card.className='turno-resumen-card';
     card.innerHTML=`<div class="trc-clickable" data-idx="${i}"><div class="trc-head"><div class="trc-name"><span class="trc-dot" style="background:${t.color}"></span>${t.nombre}</div><div class="trc-right"><svg class="trc-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div></div><div class="trc-total" id="trcTotal${i}">$0</div><div class="trc-detail"><span><span class="trc-mini-dot" style="background:#3D5AFE"></span>Transf. $${transf.toLocaleString('es-AR')}</span><span><span class="trc-mini-dot" style="background:#f4a435"></span>Point $${point.toLocaleString('es-AR')}</span>${fueraHorario}<span class="trc-tap">Ver detalle</span></div></div><div class="trc-detalle" id="trcDetalle${i}"><div class="trc-detalle-head">${movsOrd.length} pagos · de ${movsOrd[0]?.hora||'—'} a ${movsOrd[movsOrd.length-1]?.hora||'—'}</div>${filas}</div>`;
     cont.appendChild(card);
@@ -4555,8 +4555,8 @@ function renderTurnosCards(anteriores,datosDia,contId){
     horas.forEach(h=>{const pctT=horaMap[h].t/maxM*100,pctP=horaMap[h].p/maxM*100;filasHoras+=`<div class="hora-row"><span class="hora-lbl">${h}:00</span><div class="hora-track"><div class="hora-bar-t" style="width:${pctT}%"></div><div class="hora-bar-p" style="left:${pctT}%;width:${pctP}%"></div></div><span class="hora-monto">$${((horaMap[h].t+horaMap[h].p)/1000).toFixed(1)}k</span></div>`;});
     const enviadas=(datos.enviadas||[]).sort((a,b)=>(a.hora||'').localeCompare(b.hora||''));
     const totalEnviado=enviadas.reduce((a,m)=>a+m.monto,0);
-    let filasMov='';movs.forEach(m=>{const fuera=esTransferenciaFueraHorario(m,TURNOS),pill=m.tipo==='Venta Point'?'<span class="tipo-pill tp-p">Point Smart</span>':'<span class="tipo-pill tp-t">Transferencia</span>';filasMov+=`<div class="t-row"><span class="t-hora">${fuera?'🌙 ':''}${m.hora}</span><span class="t-nombre"><span class="t-n"${fuera?' style="color:#a78bfa;font-weight:700"':''}>${fuera?'Transferencia fuera de horario':m.nombre}</span>${cardLogoHtml(m)}</span>${pill}<span class="t-monto">$${m.monto.toLocaleString('es-AR')}</span></div>`;});
-    let filasEnv='';if(enviadas.length){filasEnv+=`<div class="trc-detalle-head" style="margin-top:12px">↗ Transferencias enviadas</div>`;enviadas.forEach(m=>{filasEnv+=`<div class="t-row"><span class="t-hora">${m.hora}</span><span class="t-nombre">${m.nombre}</span><span class="tipo-pill" style="background:var(--amber-dim);color:var(--amber);border:1px solid rgba(244,164,53,.25)">Enviada</span><span class="t-monto" style="color:var(--amber)">$${m.monto.toLocaleString('es-AR')}</span></div>`;});}
+    let filasMov='';movs.forEach(m=>{const fuera=esTransferenciaFueraHorario(m,TURNOS),pill=m.tipo==='Venta Point'?'<span class="tipo-pill tp-p">Point Smart</span>':'<span class="tipo-pill tp-t">Transferencia</span>';filasMov+=`<div class="t-row"><span class="t-hora">${fuera?'🌙 ':''}${m.hora}</span><span class="t-nombre"><span class="t-n"${fuera?' style="color:#a78bfa;font-weight:700"':''}>${fuera?'Transferencia fuera de horario':cmEsc(m.nombre)}</span>${cardLogoHtml(m)}</span>${pill}<span class="t-monto">$${m.monto.toLocaleString('es-AR')}</span></div>`;});
+    let filasEnv='';if(enviadas.length){filasEnv+=`<div class="trc-detalle-head" style="margin-top:12px">↗ Transferencias enviadas</div>`;enviadas.forEach(m=>{filasEnv+=`<div class="t-row"><span class="t-hora">${m.hora}</span><span class="t-nombre">${cmEsc(m.nombre)}</span><span class="tipo-pill" style="background:var(--amber-dim);color:var(--amber);border:1px solid rgba(244,164,53,.25)">Enviada</span><span class="t-monto" style="color:var(--amber)">$${m.monto.toLocaleString('es-AR')}</span></div>`;});}
     const uid=contId+i;
     const card=document.createElement('div');card.className='turno-resumen-card';card.setAttribute('data-turno',t.nombre);card.style.cssText='opacity:0;transform:translateY(16px)';
     card.innerHTML=`<div class="trc-clickable" data-uid="${uid}"><div class="trc-head"><div class="trc-name"><span class="trc-dot" style="background:${t.color}"></span>${t.nombre}</div><svg class="trc-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div><div class="trc-total">$${tot.toLocaleString('es-AR')}</div><div class="trc-detail"><span><span class="trc-mini-dot" style="background:#3D5AFE"></span>Transf. $${transfT.toLocaleString('es-AR')}</span><span><span class="trc-mini-dot" style="background:#f4a435"></span>Point $${pointT.toLocaleString('es-AR')}</span>${enviadas.length?`<span style="color:var(--amber)">↗ $${totalEnviado.toLocaleString('es-AR')}</span>`:''}${fueraHorario}<span class="trc-tap">Ver detalle</span></div></div><div class="trc-detalle" id="det-${uid}"><div class="trc-detalle-head">${movs.length} pagos · de ${movs[0]?.hora||'—'} a ${movs[movs.length-1]?.hora||'—'}</div><div style="margin-bottom:12px">${filasHoras}</div>${filasMov}${filasEnv}</div>`;
@@ -5649,7 +5649,7 @@ async function authBoot(){
 })();
 
 async function fetchMPDia(isoDate){
-  const res=await fetch(`/api/mp-history?date=${encodeURIComponent(isoDate)}`,{cache:'no-store'});
+  const res=await fetch(`/api/mp-history?date=${encodeURIComponent(isoDate)}`,{cache:'no-store',headers:await sbAuthHeaders()});
   const data=await res.json().catch(()=>null);
   if(!res.ok)throw new Error(data?.error||('Error MP: '+res.status));
   return Array.isArray(data?.results)?data.results:[];
@@ -7517,7 +7517,7 @@ function iwCalendarioFeriadoHtml(feriadoData,data=iwCalendarData){
   const today=new Date(),year=today.getFullYear(),month=today.getMonth()+1;
   return`<div class="iw-calendar-panel" aria-hidden="true" data-year="${year}" data-month="${month}"><div class="iw-calendar-inner">${iwCalendarioMesHtml(year,month,data)}</div></div>`;
 }
-const MC_BASE='https://cdn.jsdelivr.net/npm/@meteocons/svg/fill/';
+const MC_BASE='https://cdn.jsdelivr.net/npm/@meteocons/svg@0.1.0/fill/';
 function mcUrl(slug){return MC_BASE+slug+'.svg';}
 const IW_CABA_LAT=-34.6037;
 const IW_CABA_LON=-58.3816;
