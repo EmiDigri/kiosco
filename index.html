@@ -2954,8 +2954,8 @@ body.light .tg-lock{background:rgba(255,255,255,.96)}
 @media(prefers-reduced-motion:reduce){.tg-title-chevron,.tg-tile{transition:none}}
 
 </style>
-<link rel="stylesheet" href="./login.css?v=20260904">
-<script src="./login.js?v=20260904" defer></script>
+<link rel="stylesheet" href="./login.css?v=20260905-welcome">
+<script src="./login.js?v=20260905-welcome" defer></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flipclock@1.0.1/dist/themes/flipclock.min.css">
 <script src="https://cdn.jsdelivr.net/npm/tsparticles-slim@2.12.0/tsparticles.slim.bundle.min.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.4/dist/confetti.browser.min.js" defer></script>
@@ -5642,7 +5642,7 @@ async function sbAuthHeaders(extra){
 }
 // Lo exponemos para catalogo-ui.js (que también habla con Supabase).
 window.kioscoAuth={token:sbToken,headers:sbAuthHeaders,signOut(){authClear();location.reload();}};
-function loginMostrar(){const o=document.getElementById('loginOverlay');if(o)o.classList.remove('oculto');}
+function loginMostrar(){const o=document.getElementById('loginOverlay');if(o){o.classList.remove('oculto','is-leaving');}}
 function loginOcultar(){const o=document.getElementById('loginOverlay');if(o)o.classList.add('oculto');}
 // Portón: al abrir la app, si hay sesión válida se oculta el login; si no, se
 // muestra. La app detrás igual carga (con fallback a la clave pública mientras
@@ -5661,8 +5661,15 @@ async function authBoot(){
     const label=document.getElementById('loginBtnLabel');
     if(btn.disabled)return;
     err.textContent='';btn.disabled=true;label.textContent='Entrando…';window.kioscoLogin?.setBusy(true);
-    try{await sbSignIn(email,pass);await Promise.resolve().then(()=>window.kioscoLogin?.success()).catch(()=>{});location.reload();}
-    catch(ex){err.textContent=ex.message||'No pude entrar';btn.disabled=false;label.textContent='Entrar al kiosco';window.kioscoLogin?.showError(err.textContent);}
+    try{await sbSignIn(email,pass);}
+    catch(ex){err.textContent=ex.message||'No pude entrar';btn.disabled=false;label.textContent='Entrar al kiosco';window.kioscoLogin?.showError(err.textContent);return;}
+    // Retry the dashboard reads with the new session without restarting the page.
+    Promise.allSettled([renderOtrosTurnos(),learnSbLoad(true)]).catch(()=>{});
+    programarPulso();
+    autoTurnoReanudarSiCorresponde();
+    await Promise.resolve().then(()=>window.kioscoLogin?.success()).catch(()=>{});
+    loginOcultar();
+    requestAnimationFrame(()=>document.getElementById('btnCargar')?.focus({preventScroll:true}));
   });
   const outBtn=document.getElementById('btnLogout');
   if(outBtn)outBtn.addEventListener('click',()=>{if(confirm('¿Cerrar sesión? Vas a tener que volver a entrar con usuario y contraseña.'))window.kioscoAuth.signOut();});

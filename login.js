@@ -128,7 +128,7 @@
     button.setAttribute('aria-busy','false');password.value='';gaze(0,-3);
     if(reduced.matches||!visible())return;
     const palette=['#7952ed','#ff936c','#e6d95b','#319c88'];
-    for(let i=0;i<26;i++){
+    for(let i=0;i<36;i++){
       const piece=document.createElement('i');piece.className='login-confetti';
       piece.style.setProperty('--x',`${20+Math.random()*60}%`);
       piece.style.setProperty('--dx',`${(Math.random()-.5)*270}px`);
@@ -137,8 +137,10 @@
       piece.style.setProperty('--color',palette[i%palette.length]);
       piece.addEventListener('animationend',()=>piece.remove(),{once:true});stage.appendChild(piece);
     }
-    await new Promise(resolve=>setTimeout(resolve,950));
+    await new Promise(resolve=>setTimeout(resolve,1400));
     stage.querySelectorAll('.login-confetti').forEach(piece=>piece.remove());
+    overlay.classList.add('is-leaving');
+    await new Promise(resolve=>setTimeout(resolve,400));
   }
   window.kioscoLogin={setBusy,showError,success};
 })();
