@@ -1,22 +1,9 @@
+import { settlementOutflows } from './_mp-settlement.js';
+
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://pilfeptwylgufhbmmday.supabase.co';
 const SUPABASE_KEY = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const MP_TOKEN = process.env.MP_ACCESS_TOKEN || '';
-const FALLBACK_MP_USER_ID = Number(process.env.MP_USER_ID) || 443581160;
-let cachedMpUserId = 0;
-
-async function mpUserId() {
-  if (cachedMpUserId) return cachedMpUserId;
-  try {
-    const res = await fetch('https://api.mercadopago.com/users/me', {
-      headers: { Authorization: `Bearer ${MP_TOKEN}` }
-    });
-    const user = await res.json().catch(() => null);
-    if (res.ok && Number(user?.id)) cachedMpUserId = Number(user.id);
-  } catch {}
-  return cachedMpUserId || FALLBACK_MP_USER_ID;
-}
-
-function pagoEsEnviado(pago, ownerId = FALLBACK_MP_USER_ID) {
+function pagoEsEnviado(pago) {
   return Number(pago.transaction_amount) < 0
     || pago.operation_type === 'money_transfer_send';
 }
@@ -135,26 +122,24 @@ async function fetchYGuardar(esDomingo, fecha) {
 
   console.log(`Reconciliando día ${fecha}: ${begin.toISOString()} → ${end.toISOString()}`);
 
-  const ownerId = await mpUserId();
   const win = { begin_date: begin.toISOString(), end_date: end.toISOString() };
-  const [pagosGenerales, pagosEnviados, pagosComoPagador] = await Promise.all([
+  const [pagosGenerales, pagosEnviados] = await Promise.all([
     buscarPagosMP(win),
     buscarPagosMP({ ...win, operation_type: 'money_transfer_send' }),
-    buscarPagosMP({ ...win, 'payer.id': String(ownerId) }),
   ]);
   const pagosUnicos = new Map();
-  [...pagosGenerales, ...pagosEnviados, ...pagosComoPagador].forEach(pago => {
+  [...pagosGenerales, ...pagosEnviados].forEach(pago => {
     const key = pago.id != null
       ? `id:${pago.id}`
       : `${pago.date_approved || pago.date_created}|${pago.transaction_amount}|${pago.operation_type}`;
     pagosUnicos.set(key, pago);
   });
   const pagos = [...pagosUnicos.values()];
-  console.log(`MP devolvió ${pagos.length} operaciones (${pagosEnviados.length} salidas explícitas, ${pagosComoPagador.length} como pagador)`);
+  console.log(`MP devolvió ${pagos.length} operaciones (${pagosEnviados.length} salidas explícitas)`);
 
   let count = 0, salidas = 0;
   for (const pago of pagos) {
-    const esEnviada = pagoEsEnviado(pago, ownerId);
+    const esEnviada = pagoEsEnviado(pago);
 
     if (esEnviada) {
       const d = new Date(pago.date_approved || pago.date_created);
@@ -194,22 +179,26 @@ async function fetchYGuardar(esDomingo, fecha) {
     count++;
   }
 
-  const importesDiagnostico = new Set([217557.5, 385600]);
-  const diagnostico = pagos.filter(p => importesDiagnostico.has(Math.abs(Number(p.transaction_amount))))
-    .map(p => ({
-      amount: Number(p.transaction_amount),
-      operationType: p.operation_type || '',
-      subUnit: p.point_of_interaction?.business_info?.sub_unit || '',
-      payerOwner: Number(p.payer_id ?? p.payer?.id) === ownerId,
-      collectorOwner: Number(p.collector_id ?? p.collector?.id) === ownerId,
-      payerRoot: p.payer_id != null,
-      payerNested: p.payer?.id != null,
-      collectorRoot: p.collector_id != null,
-      collectorNested: p.collector?.id != null,
-      paymentType: p.payment_type_id || '',
-      status: p.status || '',
-    }));
-  return { procesados: count, salidas, diagnostico };
+  const report = await settlementOutflows(fecha, MP_TOKEN).catch(error => ({ status: 'unavailable', outflows: [], error: error.message }));
+  for (const pago of report.outflows) {
+    const d = new Date(pago.date_approved || pago.date_created);
+    const dAR = new Date(d.getTime() - 3 * 60 * 60 * 1000);
+    const hora = `${String(dAR.getUTCHours()).padStart(2,'0')}:${String(dAR.getUTCMinutes()).padStart(2,'0')}`;
+    await guardarEnSupabase({
+      pago_id: pago.id,
+      fecha,
+      hora,
+      nombre: 'Transferencia enviada',
+      tipo: 'Transferencia enviada',
+      monto: Math.abs(Number(pago.transaction_amount)),
+      turno: turnoDeHora(dAR.getUTCHours(), dAR.getUTCMinutes(), esDomingo),
+      status: 'approved',
+      operation_type: 'money_transfer_send',
+      es_enviada: true,
+    });
+    salidas++;
+  }
+  return { procesados: count + report.outflows.length, salidas, reporte: report.status, reporteError: report.error || null };
 }
 
 export default async function handler(req, res) {
@@ -230,8 +219,7 @@ export default async function handler(req, res) {
     const resultado = await fetchYGuardar(esDomingoPedido, pedido);
 
     console.log(`Cron ejecutado: ${resultado.procesados} pagos procesados, ${resultado.salidas} salidas`);
-    const { diagnostico, ...publico } = resultado;
-    return res.status(200).json({ ok: true, ...publico, fecha: pedido, hora: hh, ...(req.query.debug === 'outflows' ? { diagnostico } : {}) });
+    return res.status(200).json({ ok: true, ...resultado, fecha: pedido, hora: hh });
   } catch (err) {
     console.error('Cron error:', err.message);
     return res.status(200).json({ ok: true, error: err.message });

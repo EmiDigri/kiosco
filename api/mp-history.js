@@ -1,7 +1,7 @@
+import { settlementOutflows } from './_mp-settlement.js';
+
 const MP_TOKEN = process.env.MP_ACCESS_TOKEN || '';
 const MAX_RESULTS = 500;
-const FALLBACK_MP_USER_ID = Number(process.env.MP_USER_ID) || 443581160;
-let cachedMpUserId = 0;
 
 // Este endpoint devuelve el historial de pagos de MP: solo para usuarios logueados.
 // Verificamos el token de sesión del usuario contra Supabase (no alcanza con la
@@ -32,24 +32,12 @@ function dayWindow(date) {
   return { begin, end };
 }
 
-async function mpUserId() {
-  if (cachedMpUserId) return cachedMpUserId;
-  try {
-    const response = await fetch('https://api.mercadopago.com/users/me', {
-      headers: { Authorization: `Bearer ${MP_TOKEN}`, accept: 'application/json' },
-    });
-    const user = await response.json().catch(() => null);
-    if (response.ok && Number(user?.id)) cachedMpUserId = Number(user.id);
-  } catch {}
-  return cachedMpUserId || FALLBACK_MP_USER_ID;
-}
-
-function paymentIsOutgoing(payment, ownerId = FALLBACK_MP_USER_ID) {
+function paymentIsOutgoing(payment) {
   return Number(payment.transaction_amount) < 0
     || payment.operation_type === 'money_transfer_send';
 }
 
-function publicPayment(payment, ownerId) {
+function publicPayment(payment) {
   return {
     id: payment.id ?? null,
     date_approved: payment.date_approved || null,
@@ -57,7 +45,7 @@ function publicPayment(payment, ownerId) {
     transaction_amount: Number(payment.transaction_amount) || 0,
     operation_type: payment.operation_type || '',
     status: payment.status || '',
-    es_enviada: paymentIsOutgoing(payment, ownerId),
+    es_enviada: paymentIsOutgoing(payment),
     description: payment.description || '',
     payer: {
       first_name: payment.payer?.first_name || '',
@@ -109,13 +97,11 @@ export default async function handler(req, res) {
   if (!window) return res.status(400).json({ error: 'Fecha inválida' });
 
   try {
-    const ownerId = await mpUserId();
     // La búsqueda general de MP no siempre incluye salidas. La segunda consulta
     // las pide explícitamente y luego se deduplica por el id de la operación.
     const searches = await Promise.allSettled([
       searchPayments(window),
       searchPayments(window, { operation_type: 'money_transfer_send' }),
-      searchPayments(window, { 'payer.id': String(ownerId) }),
     ]);
     const successful = searches.filter(result => result.status === 'fulfilled');
     if (!successful.length) throw searches[0].reason;
@@ -126,7 +112,9 @@ export default async function handler(req, res) {
         : `${payment.date_approved || payment.date_created}|${payment.transaction_amount}|${payment.operation_type}`;
       unique.set(key, payment);
     });
-    const all = [...unique.values()].map(payment => publicPayment(payment, ownerId));
+    const report = await settlementOutflows(date, MP_TOKEN).catch(() => ({ status: 'unavailable', outflows: [] }));
+    report.outflows.forEach(payment => unique.set(`report:${payment.id}`, payment));
+    const all = [...unique.values()].map(publicPayment);
     res.setHeader('Cache-Control', 'no-store');
     return res.status(200).json({ results: all });
   } catch (error) {

@@ -8,6 +8,7 @@ function jsonResponse(body, ok = true, status = ok ? 200 : 500) {
 
 function loadApi(fetchImpl) {
   let source = fs.readFileSync('api/mp-history.js', 'utf8');
+  source = source.replace(/^import .*_mp-settlement\.js';\r?\n/m, "const settlementOutflows=async()=>({status:'processed',outflows:[]});\n");
   source = source.replace('export default async function handler', 'async function handler');
   source += '\nmodule.exports={handler,paymentIsOutgoing,publicPayment};';
   const module = { exports: {} };
@@ -29,6 +30,7 @@ function loadApi(fetchImpl) {
 
 function loadHandler(file, fetchImpl) {
   let source = fs.readFileSync(file, 'utf8');
+  source = source.replace(/^import .*_mp-settlement\.js';\r?\n/m, "const settlementOutflows=async()=>({status:'processed',outflows:[]});\n");
   source = source.replace('export default async function handler', 'async function handler');
   source += '\nmodule.exports={handler,turnoDeHora,pagoEsEnviado};';
   const module = { exports: {} };
@@ -61,15 +63,14 @@ async function main() {
     if (String(url).includes('/users/me')) return jsonResponse({ id: 443581160 });
     if (String(url).includes('/auth/v1/user')) return jsonResponse({ id: 'user-test' });
     const query = new URL(url).searchParams;
-    if (query.get('payer.id')) return jsonResponse({ results: [byPayer, ownerOnly] });
     if (query.get('operation_type') === 'money_transfer_send') return jsonResponse({ results: [byType, byFlow] });
     return jsonResponse({ results: [incoming, byType] });
   });
   const res = responseCapture();
   await api.handler({ method: 'GET', query: { date: '2026-09-04' }, headers: { authorization: 'Bearer user-token' } }, res);
   assert.equal(res.statusCode, 200);
-  assert.equal(res.body.results.length, 5, 'deduplicates all outgoing searches');
-  assert.deepEqual(Array.from(res.body.results, row => [row.id, row.es_enviada]), [[1, false], [2, true], [3, true], [4, true], [5, false]]);
+  assert.equal(res.body.results.length, 3, 'deduplicates the explicit outgoing search');
+  assert.deepEqual(Array.from(res.body.results, row => [row.id, row.es_enviada]), [[1, false], [2, true], [3, true]]);
 
   const html = fs.readFileSync('index.html', 'utf8');
   const fnStart = html.indexOf('function parsearMovimientos(results)');
@@ -77,9 +78,9 @@ async function main() {
   const front = { exports: {} };
   vm.runInNewContext(`${html.slice(fnStart, fnEnd)}\nmodule.exports=parsearMovimientos;`, { module: front, Number, Math, Date, String });
   const parsed = front.exports(res.body.results);
-  assert.equal(parsed.movs.length, 2);
-  assert.equal(parsed.enviadas.length, 3);
-  assert.deepEqual(Array.from(parsed.enviadas, row => row.monto).sort((a, b) => a - b), [8000, 12000, 217557.5]);
+  assert.equal(parsed.movs.length, 1);
+  assert.equal(parsed.enviadas.length, 2);
+  assert.deepEqual(Array.from(parsed.enviadas, row => row.monto).sort((a, b) => a - b), [8000, 12000]);
 
   const cronWrites = [];
   const cron = loadHandler('api/cron.js', async (url, options = {}) => {
@@ -89,13 +90,12 @@ async function main() {
       return { ok: true, async text() { return ''; } };
     }
     const query = new URL(url).searchParams;
-    if (query.get('payer.id')) return jsonResponse({ results: [byPayer, ownerOnly] });
     if (query.get('operation_type') === 'money_transfer_send') return jsonResponse({ results: [byType] });
     if (query.get('operation_type') === 'pos_payment') return jsonResponse({ results: [] });
     return jsonResponse({ results: [incoming, byType] });
   });
   await cron.handler({ query: { date: '2026-09-04' } }, responseCapture());
-  assert.equal(cronWrites.filter(row => row.es_enviada).length, 2, 'cron saves outgoing transfers found by type and payer');
+  assert.equal(cronWrites.filter(row => row.es_enviada).length, 1, 'cron saves an explicitly outgoing transfer');
   assert.equal(cron.turnoDeHora(12, 0, false), 'Vale');
   assert.equal(cron.turnoDeHora(12, 1, false), 'Ani');
   assert.equal(cron.turnoDeHora(17, 0, false), 'Ani');
@@ -120,6 +120,10 @@ async function main() {
   assert.equal(webhook.turnoDeHora('17:01', false), 'Marta');
   assert.equal(webhook.turnoDeHora('16:00', true), 'Turno 1');
   assert.equal(webhook.turnoDeHora('16:01', true), 'Turno 2');
+  const { settlementInternals } = await import('../api/_mp-settlement.js');
+  const reportRows = settlementInternals.reportOutflows('SOURCE_ID;TRANSACTION_TYPE;TRANSACTION_DATE;SETTLEMENT_NET_AMOUNT\n10;SETTLEMENT;2026-09-04T15:30:00-03:00;-217557.50\n11;SETTLEMENT;2026-09-04T15:40:00-03:00;3500');
+  assert.equal(reportRows.length, 1);
+  assert.equal(reportRows[0].transaction_amount, -217557.5);
   console.log('PASS: explicit outgoing search, money-outflow detection, deduplication and frontend classification.');
 }
 
