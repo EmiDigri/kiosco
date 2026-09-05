@@ -45,16 +45,9 @@ async function mpUserId() {
 }
 
 function paymentIsOutgoing(payment, ownerId = FALLBACK_MP_USER_ID) {
-  const payerId = Number(payment.payer_id ?? payment.payer?.id) || 0;
-  const collectorId = Number(payment.collector_id ?? payment.collector?.id) || 0;
-  const ownerSentTransfer = payment.operation_type === 'money_transfer'
-    && payerId === ownerId
-    && collectorId > 0
-    && collectorId !== ownerId;
   return Number(payment.transaction_amount) < 0
     || payment.operation_type === 'money_transfer_send'
-    || payment.point_of_interaction?.business_info?.sub_unit === 'money_outflows'
-    || ownerSentTransfer;
+    || payment.point_of_interaction?.business_info?.sub_unit === 'money_outflows';
 }
 
 function publicPayment(payment, ownerId) {

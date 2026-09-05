@@ -17,16 +17,9 @@ async function mpUserId() {
 }
 
 function pagoEsEnviado(pago, ownerId = FALLBACK_MP_USER_ID) {
-  const payerId = Number(pago.payer_id ?? pago.payer?.id) || 0;
-  const collectorId = Number(pago.collector_id ?? pago.collector?.id) || 0;
-  const ownerSentTransfer = pago.operation_type === 'money_transfer'
-    && payerId === ownerId
-    && collectorId > 0
-    && collectorId !== ownerId;
   return Number(pago.transaction_amount) < 0
     || pago.operation_type === 'money_transfer_send'
-    || pago.point_of_interaction?.business_info?.sub_unit === 'money_outflows'
-    || ownerSentTransfer;
+    || pago.point_of_interaction?.business_info?.sub_unit === 'money_outflows';
 }
 
 function turnoDeHora(hora, esDomingo) {
