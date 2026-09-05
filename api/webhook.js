@@ -1,15 +1,28 @@
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://pilfeptwylgufhbmmday.supabase.co';
 const SUPABASE_KEY = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const MP_TOKEN = process.env.MP_ACCESS_TOKEN || '';
-const TOKEN_USER_ID = Number(String(MP_TOKEN).match(/^APP_USR-(\d+)-/)?.[1]) || 0;
-const MP_USER_ID = Number(process.env.MP_USER_ID) || TOKEN_USER_ID || 443581160;
+const FALLBACK_MP_USER_ID = Number(process.env.MP_USER_ID) || 443581160;
+let cachedMpUserId = 0;
 
-function pagoEsEnviado(pago) {
+async function mpUserId() {
+  if (cachedMpUserId) return cachedMpUserId;
+  try {
+    const res = await fetch('https://api.mercadopago.com/users/me', {
+      headers: { Authorization: `Bearer ${MP_TOKEN}` }
+    });
+    const user = await res.json().catch(() => null);
+    if (res.ok && Number(user?.id)) cachedMpUserId = Number(user.id);
+  } catch {}
+  return cachedMpUserId || FALLBACK_MP_USER_ID;
+}
+
+function pagoEsEnviado(pago, ownerId = FALLBACK_MP_USER_ID) {
   const payerId = Number(pago.payer_id ?? pago.payer?.id) || 0;
   const collectorId = Number(pago.collector_id ?? pago.collector?.id) || 0;
   const ownerSentTransfer = pago.operation_type === 'money_transfer'
-    && payerId === MP_USER_ID
-    && collectorId !== MP_USER_ID;
+    && payerId === ownerId
+    && collectorId > 0
+    && collectorId !== ownerId;
   return Number(pago.transaction_amount) < 0
     || pago.operation_type === 'money_transfer_send'
     || pago.point_of_interaction?.business_info?.sub_unit === 'money_outflows'
@@ -39,7 +52,7 @@ async function procesarPago(pagoId) {
   const pago = await mpRes.json();
 
   if (!ESTADOS_TERMINALES.includes(pago.status)) return;
-  const esEnviada = pagoEsEnviado(pago);
+  const esEnviada = pagoEsEnviado(pago, await mpUserId());
   if (!pago.transaction_amount) return;
 
   // date_approved es null en pagos rechazados/cancelados: usamos date_created como respaldo.

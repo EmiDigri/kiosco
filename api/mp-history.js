@@ -1,7 +1,7 @@
 const MP_TOKEN = process.env.MP_ACCESS_TOKEN || '';
 const MAX_RESULTS = 500;
-const TOKEN_USER_ID = Number(String(MP_TOKEN).match(/^APP_USR-(\d+)-/)?.[1]) || 0;
-const MP_USER_ID = Number(process.env.MP_USER_ID) || TOKEN_USER_ID || 443581160;
+const FALLBACK_MP_USER_ID = Number(process.env.MP_USER_ID) || 443581160;
+let cachedMpUserId = 0;
 
 // Este endpoint devuelve el historial de pagos de MP: solo para usuarios logueados.
 // Verificamos el token de sesión del usuario contra Supabase (no alcanza con la
@@ -32,19 +32,32 @@ function dayWindow(date) {
   return { begin, end };
 }
 
-function paymentIsOutgoing(payment) {
+async function mpUserId() {
+  if (cachedMpUserId) return cachedMpUserId;
+  try {
+    const response = await fetch('https://api.mercadopago.com/users/me', {
+      headers: { Authorization: `Bearer ${MP_TOKEN}`, accept: 'application/json' },
+    });
+    const user = await response.json().catch(() => null);
+    if (response.ok && Number(user?.id)) cachedMpUserId = Number(user.id);
+  } catch {}
+  return cachedMpUserId || FALLBACK_MP_USER_ID;
+}
+
+function paymentIsOutgoing(payment, ownerId = FALLBACK_MP_USER_ID) {
   const payerId = Number(payment.payer_id ?? payment.payer?.id) || 0;
   const collectorId = Number(payment.collector_id ?? payment.collector?.id) || 0;
   const ownerSentTransfer = payment.operation_type === 'money_transfer'
-    && payerId === MP_USER_ID
-    && collectorId !== MP_USER_ID;
+    && payerId === ownerId
+    && collectorId > 0
+    && collectorId !== ownerId;
   return Number(payment.transaction_amount) < 0
     || payment.operation_type === 'money_transfer_send'
     || payment.point_of_interaction?.business_info?.sub_unit === 'money_outflows'
     || ownerSentTransfer;
 }
 
-function publicPayment(payment) {
+function publicPayment(payment, ownerId) {
   return {
     id: payment.id ?? null,
     date_approved: payment.date_approved || null,
@@ -52,7 +65,7 @@ function publicPayment(payment) {
     transaction_amount: Number(payment.transaction_amount) || 0,
     operation_type: payment.operation_type || '',
     status: payment.status || '',
-    es_enviada: paymentIsOutgoing(payment),
+    es_enviada: paymentIsOutgoing(payment, ownerId),
     description: payment.description || '',
     payer: {
       first_name: payment.payer?.first_name || '',
@@ -104,12 +117,13 @@ export default async function handler(req, res) {
   if (!window) return res.status(400).json({ error: 'Fecha inválida' });
 
   try {
+    const ownerId = await mpUserId();
     // La búsqueda general de MP no siempre incluye salidas. La segunda consulta
     // las pide explícitamente y luego se deduplica por el id de la operación.
     const searches = await Promise.allSettled([
       searchPayments(window),
       searchPayments(window, { operation_type: 'money_transfer_send' }),
-      searchPayments(window, { 'payer.id': String(MP_USER_ID) }),
+      searchPayments(window, { 'payer.id': String(ownerId) }),
     ]);
     const successful = searches.filter(result => result.status === 'fulfilled');
     if (!successful.length) throw searches[0].reason;
@@ -120,7 +134,7 @@ export default async function handler(req, res) {
         : `${payment.date_approved || payment.date_created}|${payment.transaction_amount}|${payment.operation_type}`;
       unique.set(key, payment);
     });
-    const all = [...unique.values()].map(publicPayment);
+    const all = [...unique.values()].map(payment => publicPayment(payment, ownerId));
     res.setHeader('Cache-Control', 'no-store');
     return res.status(200).json({ results: all });
   } catch (error) {

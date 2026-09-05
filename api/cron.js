@@ -1,15 +1,28 @@
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://pilfeptwylgufhbmmday.supabase.co';
 const SUPABASE_KEY = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const MP_TOKEN = process.env.MP_ACCESS_TOKEN || '';
-const TOKEN_USER_ID = Number(String(MP_TOKEN).match(/^APP_USR-(\d+)-/)?.[1]) || 0;
-const MP_USER_ID = Number(process.env.MP_USER_ID) || TOKEN_USER_ID || 443581160;
+const FALLBACK_MP_USER_ID = Number(process.env.MP_USER_ID) || 443581160;
+let cachedMpUserId = 0;
 
-function pagoEsEnviado(pago) {
+async function mpUserId() {
+  if (cachedMpUserId) return cachedMpUserId;
+  try {
+    const res = await fetch('https://api.mercadopago.com/users/me', {
+      headers: { Authorization: `Bearer ${MP_TOKEN}` }
+    });
+    const user = await res.json().catch(() => null);
+    if (res.ok && Number(user?.id)) cachedMpUserId = Number(user.id);
+  } catch {}
+  return cachedMpUserId || FALLBACK_MP_USER_ID;
+}
+
+function pagoEsEnviado(pago, ownerId = FALLBACK_MP_USER_ID) {
   const payerId = Number(pago.payer_id ?? pago.payer?.id) || 0;
   const collectorId = Number(pago.collector_id ?? pago.collector?.id) || 0;
   const ownerSentTransfer = pago.operation_type === 'money_transfer'
-    && payerId === MP_USER_ID
-    && collectorId !== MP_USER_ID;
+    && payerId === ownerId
+    && collectorId > 0
+    && collectorId !== ownerId;
   return Number(pago.transaction_amount) < 0
     || pago.operation_type === 'money_transfer_send'
     || pago.point_of_interaction?.business_info?.sub_unit === 'money_outflows'
@@ -130,11 +143,12 @@ async function fetchYGuardar(esDomingo, fecha) {
 
   console.log(`Reconciliando día ${fecha}: ${begin.toISOString()} → ${end.toISOString()}`);
 
+  const ownerId = await mpUserId();
   const win = { begin_date: begin.toISOString(), end_date: end.toISOString() };
   const [pagosGenerales, pagosEnviados, pagosComoPagador] = await Promise.all([
     buscarPagosMP(win),
     buscarPagosMP({ ...win, operation_type: 'money_transfer_send' }),
-    buscarPagosMP({ ...win, 'payer.id': String(MP_USER_ID) }),
+    buscarPagosMP({ ...win, 'payer.id': String(ownerId) }),
   ]);
   const pagosUnicos = new Map();
   [...pagosGenerales, ...pagosEnviados, ...pagosComoPagador].forEach(pago => {
@@ -148,7 +162,7 @@ async function fetchYGuardar(esDomingo, fecha) {
 
   let count = 0, salidas = 0;
   for (const pago of pagos) {
-    const esEnviada = pagoEsEnviado(pago);
+    const esEnviada = pagoEsEnviado(pago, ownerId);
 
     if (esEnviada) {
       const d = new Date(pago.date_approved || pago.date_created);
