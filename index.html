@@ -2609,6 +2609,13 @@ body.light .cat-fact-badge.upd{color:#b45309;background:rgba(180,83,9,.09)}
 .cat-manual-form .price-field{min-width:0}
 .cat-manual-form label{display:block;margin-bottom:6px;color:var(--text-soft);font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:0}
 .cat-form-actions{grid-column:1/-1;display:flex;gap:9px;justify-content:flex-end;margin-top:2px}
+.cat-scan-modes{display:flex;gap:8px;margin:12px 0 0;flex-wrap:wrap}
+.cat-mode-btn{flex:1;min-width:150px;background:var(--glass);border:1px solid var(--glass-border);border-radius:8px;padding:9px 12px;font-size:12.5px;font-weight:700;color:var(--text-mid);cursor:pointer;font-family:'Inter',-apple-system,sans-serif}
+.cat-mode-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.cat-scan-bar{display:flex;align-items:center;gap:9px;margin:10px 0 0;padding:9px 12px;background:rgba(61,90,254,.1);border:1px solid rgba(61,90,254,.28);border-radius:8px}
+.cat-scan-bar input{flex:1;margin:0}
+.cat-scan-hint{font-size:11px;color:var(--text-soft);white-space:nowrap}
+.cat-stock-badge{font-weight:800}
 .cat-form-title{grid-column:1/-1;font-size:13px;font-weight:800;color:var(--text);margin-bottom:2px}
 .cat-cancel-btn{height:40px;border:1px solid var(--glass-border);border-radius:8px;background:var(--glass);color:var(--text-mid);font:750 12px/1 'Inter',sans-serif;padding:0 15px;cursor:pointer}
 .cat-cancel-btn:hover{background:var(--glass-hover);color:var(--text)}
@@ -3619,6 +3626,15 @@ body.light .tg-lock{background:rgba(255,255,255,.96)}
       </div>
       <input type="file" id="catFacturaInput" accept="image/*" capture="environment" hidden>
       <div class="cat-factura" id="catFacturaReview" hidden></div>
+      <div class="cat-scan-modes">
+        <button class="cat-mode-btn" id="catModeCargar" type="button" aria-pressed="false">🔖 Escanear para cargar</button>
+        <button class="cat-mode-btn" id="catModeVender" type="button" aria-pressed="false">🛒 Escanear para vender</button>
+      </div>
+      <div class="cat-scan-bar" id="catScanBar" hidden>
+        <span aria-hidden="true">🔫</span>
+        <input class="price-input" id="catScanInput" placeholder="Escaneá un producto…" autocomplete="off" inputmode="numeric">
+        <span class="cat-scan-hint" id="catScanHint"></span>
+      </div>
 
       <div class="cat-filters">
         <div class="cat-search-box">
@@ -3664,6 +3680,10 @@ body.light .tg-lock{background:rgba(255,255,255,.96)}
         <div class="price-field">
           <label for="catUnidades">Unid. por bulto</label>
           <input class="price-input" id="catUnidades" type="number" min="1" step="1" inputmode="numeric" placeholder="Opc.">
+        </div>
+        <div class="price-field">
+          <label for="catStock">Stock (unidades)</label>
+          <input class="price-input" id="catStock" type="number" min="0" step="1" inputmode="numeric" placeholder="Opc.">
         </div>
         <div class="cat-form-actions">
           <button type="button" class="cat-cancel-btn" id="catCancelBtn">Cancelar</button>

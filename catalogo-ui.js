@@ -1236,6 +1236,12 @@
     fCosto: document.getElementById('catCosto'),
     fPrecio: document.getElementById('catPrecio'),
     fUnidades: document.getElementById('catUnidades'),
+    fStock: document.getElementById('catStock'),
+    modeCargar: document.getElementById('catModeCargar'),
+    modeVender: document.getElementById('catModeVender'),
+    scanBar: document.getElementById('catScanBar'),
+    scanInput: document.getElementById('catScanInput'),
+    scanHint: document.getElementById('catScanHint'),
     cancelBtn: document.getElementById('catCancelBtn'),
     list: document.getElementById('catList'),
     search: document.getElementById('catSearch'),
@@ -1273,6 +1279,7 @@
       categoria: record.categoria || 'Kiosco varios',
       costo: Number(record.costo) || 0, precio: Number(record.precio) || 0,
       unidades_bulto: record.unidades ? Number(record.unidades) : null,
+      stock: record.stock != null ? Number(record.stock) : null,
       imagen: record.imagen || null,
       origen: record.origen || 'manual', updated_at: record.savedAt || new Date().toISOString(),
     };
@@ -1345,6 +1352,7 @@
           categoria: row.categoria || 'Kiosco varios',
           costo: Number(row.costo) || 0, precio: Number(row.precio) || 0,
           unidades: row.unidades_bulto ? Number(row.unidades_bulto) : null,
+          stock: row.stock != null ? Number(row.stock) : null,
           imagen: row.imagen || null,
           origen: row.origen || 'manual', savedAt: row.updated_at || new Date().toISOString(), synced: true,
         };
@@ -1606,7 +1614,7 @@
           ${catThumbHtml(record)}
           <div class="cat-row-main">
             <div class="cat-row-name">${escapeHtml(record.nombre)}</div>
-            <div class="cat-row-brand">${sub ? escapeHtml(sub) + ' · ' : ''}${origen}</div>
+            <div class="cat-row-brand">${sub ? escapeHtml(sub) + ' · ' : ''}${origen}${record.stock != null ? ` · <span class="cat-stock-badge" style="color:${Number(record.stock) <= 0 ? '#f87171' : Number(record.stock) <= 3 ? '#f0b860' : 'var(--text-mid)'}">stock ${Number(record.stock)}</span>` : ''}</div>
           </div>
           <div class="cat-cell cat-cell-costo"><div class="cat-cell-label">Costo</div><div class="cat-cell-value">${record.costo ? money(record.costo) : '—'}</div></div>
           <div class="cat-cell"><div class="cat-cell-label">Venta</div><div class="cat-cell-value">${record.precio ? money(record.precio) : '—'}</div></div>
@@ -1634,6 +1642,7 @@
     cat.fCosto.value = record && record.costo ? record.costo : '';
     cat.fPrecio.value = record && record.precio ? record.precio : '';
     cat.fUnidades.value = record && record.unidades ? record.unidades : '';
+    if (cat.fStock) cat.fStock.value = record && record.stock != null ? record.stock : '';
     // En un alta nueva enfocamos el código: el lector USB "tipea" el código ahí solo.
     setTimeout(() => { (record ? cat.fNombre : (cat.fEan || cat.fNombre)).focus(); }, 40);
   }
@@ -1674,6 +1683,40 @@
       if (event.target.closest('#catFactConfirmar')) catConfirmarFactura();
     });
     cat.cancelBtn.addEventListener('click', closeManualForm);
+    // ── Lector de códigos: modos Cargar / Vender ──
+    let scanMode = null;
+    function setScanMode(mode) {
+      scanMode = scanMode === mode ? null : mode;
+      cat.modeCargar?.classList.toggle('active', scanMode === 'cargar');
+      cat.modeVender?.classList.toggle('active', scanMode === 'vender');
+      cat.modeCargar?.setAttribute('aria-pressed', String(scanMode === 'cargar'));
+      cat.modeVender?.setAttribute('aria-pressed', String(scanMode === 'vender'));
+      if (cat.scanBar) cat.scanBar.hidden = !scanMode;
+      if (cat.scanHint) cat.scanHint.textContent = scanMode === 'vender' ? 'Cada escaneo resta 1 del stock' : scanMode === 'cargar' ? 'Escaneá para dar de alta o editar' : '';
+      if (scanMode && cat.scanInput) { cat.scanInput.value = ''; setTimeout(() => cat.scanInput.focus(), 30); }
+    }
+    function manejarEscaneo(code) {
+      const rec = catByEan(code);
+      if (scanMode === 'vender') {
+        if (!rec) { notify('Ese código no está en el catálogo. Cambiá a “Cargar” para darlo de alta.'); return; }
+        const actual = Number(rec.stock) || 0;
+        const nuevo = Math.max(0, actual - 1);
+        catUpsert({ ...rec, stock: nuevo }, { toast: actual <= 0 ? `⚠️ ${rec.nombre}: sin stock cargado` : `Vendido: ${rec.nombre} · quedan ${nuevo}` });
+        setTimeout(() => cat.scanInput?.focus(), 30);
+        return;
+      }
+      if (rec) { openManualForm(rec); }
+      else { openManualForm(null); if (cat.fEan) cat.fEan.value = code; setTimeout(() => cat.fNombre?.focus(), 60); }
+    }
+    cat.modeCargar?.addEventListener('click', () => setScanMode('cargar'));
+    cat.modeVender?.addEventListener('click', () => setScanMode('vender'));
+    cat.scanInput?.addEventListener('keydown', event => {
+      if (event.key !== 'Enter') return;
+      event.preventDefault();
+      const code = cat.scanInput.value.trim();
+      cat.scanInput.value = '';
+      if (code) manejarEscaneo(code);
+    });
     cat.fNombre.addEventListener('blur', () => {
       if (!cat.fCategoria.value.trim() && cat.fNombre.value.trim()) {
         cat.fCategoria.value = inferCategory(cat.fNombre.value, '');
@@ -1689,6 +1732,8 @@
       const costo = catNum(cat.fCosto.value);
       const unitsRaw = Number(cat.fUnidades.value);
       const unidades = Number.isFinite(unitsRaw) && unitsRaw > 0 ? Math.round(unitsRaw) : null;
+      const stockRaw = cat.fStock ? String(cat.fStock.value).trim() : '';
+      const stock = stockRaw === '' ? (existing && existing.stock != null ? existing.stock : null) : Math.max(0, Math.round(Number(stockRaw) || 0));
       if (!nombre) { cat.fNombre.focus(); notify('Poné el nombre del producto'); return; }
       if (!precio) { cat.fPrecio.focus(); notify('Poné el precio de venta'); return; }
       const saved = catUpsert({
@@ -1697,7 +1742,7 @@
         nombre,
         marca: existing ? existing.marca : '',
         presentacion: existing ? existing.presentacion : '',
-        categoria, costo: costo || 0, precio, unidades,
+        categoria, costo: costo || 0, precio, unidades, stock,
         imagen: existing ? existing.imagen : null,
         origen: existing ? existing.origen : 'manual',
       }, { toast: editUid ? 'Producto actualizado ✓' : 'Producto agregado ✓' });
