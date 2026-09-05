@@ -2953,36 +2953,9 @@ body.light .tg-lock{background:rgba(255,255,255,.96)}
 }
 @media(prefers-reduced-motion:reduce){.tg-title-chevron,.tg-tile{transition:none}}
 
-/* ── Pantalla de acceso (login) — Aurora + glass, siempre oscuro ── */
-#loginOverlay{position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;padding:24px;overflow:hidden;background:radial-gradient(125% 125% at 50% 0%,#0b1030 0%,#070a18 55%,#04060f 100%)}
-#loginOverlay.oculto{display:none}
-.login-aurora{position:absolute;inset:0;pointer-events:none;overflow:hidden}
-.login-blob{position:absolute;border-radius:50%;filter:blur(70px);opacity:.55;will-change:transform}
-.login-blob.b1{width:420px;height:420px;top:-120px;left:-80px;background:#3D5AFE;animation:loginFloat1 14s ease-in-out infinite alternate}
-.login-blob.b2{width:380px;height:380px;bottom:-140px;right:-90px;background:#7C5CFF;animation:loginFloat2 16s ease-in-out infinite alternate}
-.login-blob.b3{width:300px;height:300px;top:42%;left:52%;background:#FF5D8F;opacity:.36;animation:loginFloat3 18s ease-in-out infinite alternate}
-@keyframes loginFloat1{to{transform:translate(60px,50px) scale(1.15)}}
-@keyframes loginFloat2{to{transform:translate(-50px,-40px) scale(1.1)}}
-@keyframes loginFloat3{to{transform:translate(-40px,30px) scale(1.2)}}
-.login-card{position:relative;z-index:1;width:100%;max-width:360px;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.12);border-radius:24px;padding:34px 28px 24px;text-align:center;backdrop-filter:blur(26px);-webkit-backdrop-filter:blur(26px);box-shadow:0 30px 80px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.12)}
-.login-badge{width:74px;height:74px;margin:0 auto 16px;border-radius:20px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);box-shadow:inset 0 1px 0 rgba(255,255,255,.15),0 10px 26px rgba(124,92,255,.28)}
-.login-badge img{width:42px;height:42px;filter:drop-shadow(0 3px 8px rgba(0,0,0,.4))}
-.login-title{font-size:24px;font-weight:800;letter-spacing:-.02em;color:#EAF0FF;margin:0 0 4px}
-.login-sub{font-size:12.5px;color:#8b93b8;margin:0 0 24px;font-weight:500}
-.login-field{position:relative;text-align:left;margin-bottom:12px}
-.login-ico{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:#6f79a3;display:flex;pointer-events:none}
-.login-field input{width:100%;box-sizing:border-box;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.11);border-radius:13px;padding:14px 14px 14px 42px;color:#EAF0FF;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:15px;transition:border-color .15s ease,box-shadow .15s ease,background .15s ease}
-.login-field input::placeholder{color:#5c6690}
-.login-field input:focus{outline:none;background:rgba(255,255,255,.07);border-color:#7C90FF;box-shadow:0 0 0 3px rgba(124,144,255,.18)}
-.login-btn{width:100%;margin-top:8px;padding:14px;background:linear-gradient(135deg,#4A6BFF 0%,#7C5CFF 100%);border:none;border-radius:13px;color:#fff;font-family:'Inter',-apple-system,sans-serif;font-size:15px;font-weight:800;letter-spacing:.01em;cursor:pointer;box-shadow:0 10px 26px rgba(74,107,255,.38);transition:transform .12s ease,box-shadow .12s ease,filter .12s ease}
-.login-btn:hover{transform:translateY(-1px);box-shadow:0 14px 32px rgba(124,92,255,.45);filter:brightness(1.06)}
-.login-btn:active{transform:translateY(0)}
-.login-btn:disabled{opacity:.7;cursor:progress;filter:saturate(.7)}
-.login-err{min-height:16px;margin-top:12px;font-size:12.5px;color:#ff9b9b;font-weight:600}
-.login-foot{margin-top:18px;font-size:11px;color:#6f79a3;line-height:1.5}
-@media(prefers-reduced-motion:reduce){.login-blob{animation:none!important}}
-@media(max-width:430px){.login-card{padding:28px 22px 20px}.login-title{font-size:22px}}
 </style>
+<link rel="stylesheet" href="./login.css?v=20260904">
+<script src="./login.js?v=20260904" defer></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flipclock@1.0.1/dist/themes/flipclock.min.css">
 <script src="https://cdn.jsdelivr.net/npm/tsparticles-slim@2.12.0/tsparticles.slim.bundle.min.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.4/dist/confetti.browser.min.js" defer></script>
@@ -2990,24 +2963,50 @@ body.light .tg-lock{background:rgba(255,255,255,.96)}
 </head>
 <body>
 <!-- Pantalla de acceso: visible por defecto (tapa la app) hasta confirmar sesión -->
-<div id="loginOverlay">
-  <div class="login-aurora" aria-hidden="true"><span class="login-blob b1"></span><span class="login-blob b2"></span><span class="login-blob b3"></span></div>
-  <form class="login-card" id="loginForm" autocomplete="on">
-    <div class="login-badge"><img src="https://cdn.jsdelivr.net/npm/@twemoji/svg@15.0.0/1f36c.svg" alt="" aria-hidden="true"></div>
-    <div class="login-title">Kiosco</div>
-    <div class="login-sub">Panel del negocio</div>
-    <div class="login-field">
-      <span class="login-ico" aria-hidden="true"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
-      <input type="email" id="loginEmail" name="email" autocomplete="username" required inputmode="email" autocapitalize="none" spellcheck="false" placeholder="Usuario" aria-label="Usuario (email)">
+<div id="loginOverlay" role="dialog" aria-modal="true" aria-labelledby="loginTitle" data-mood="idle">
+  <div class="login-layout">
+    <section class="login-scene" aria-label="El equipo del kiosco">
+      <div class="login-brand"><img src="./assets/candy-shop.png" alt="" width="40" height="40">Kiosco</div>
+      <div class="login-scene-center">
+        <p class="login-welcome">Un pequeño<span>gran equipo.</span></p>
+        <div class="login-stage" id="loginStage">
+          <button type="button" class="login-character login-character--violet" aria-label="Saludar al personaje violeta">
+            <span class="login-character-body" aria-hidden="true"><span class="login-face"><span class="login-eyes"><span class="login-eye"><i class="login-pupil"></i></span><span class="login-eye"><i class="login-pupil"></i></span></span><span class="login-mouth"></span></span><span class="login-hand login-hand--left"></span><span class="login-hand login-hand--right"></span></span>
+          </button>
+          <button type="button" class="login-character login-character--ink" aria-label="Saludar al personaje gris">
+            <span class="login-character-body" aria-hidden="true"><span class="login-face"><span class="login-eyes"><span class="login-eye"><i class="login-pupil"></i></span><span class="login-eye"><i class="login-pupil"></i></span></span><span class="login-mouth"></span></span><span class="login-hand login-hand--left"></span><span class="login-hand login-hand--right"></span></span>
+          </button>
+          <button type="button" class="login-character login-character--coral" aria-label="Saludar al personaje coral">
+            <span class="login-character-body" aria-hidden="true"><span class="login-face"><span class="login-eyes"><span class="login-eye"><i class="login-pupil"></i></span><span class="login-eye"><i class="login-pupil"></i></span></span><span class="login-mouth"></span></span><span class="login-hand login-hand--left"></span><span class="login-hand login-hand--right"></span></span>
+          </button>
+          <button type="button" class="login-character login-character--lime" aria-label="Saludar al personaje amarillo">
+            <span class="login-character-body" aria-hidden="true"><span class="login-face"><span class="login-eyes"><span class="login-eye"><i class="login-pupil"></i></span><span class="login-eye"><i class="login-pupil"></i></span></span><span class="login-mouth"></span></span><span class="login-hand login-hand--left"></span><span class="login-hand login-hand--right"></span></span>
+          </button>
+        </div>
+      </div>
+      <div class="login-scene-footer"><span>El lado dulce de tu día.</span><span class="login-color-dots" aria-hidden="true"><i></i><i></i><i></i><i></i></span></div>
+    </section>
+    <div class="login-form-panel">
+      <form class="login-form" id="loginForm" autocomplete="on">
+        <h1 class="login-title" id="loginTitle">Hola de nuevo.</h1>
+        <p class="login-sub">Tu kiosco, tu equipo, tu día.</p>
+        <div class="login-field">
+          <label for="loginEmail">Tu email</label>
+          <input type="email" id="loginEmail" name="email" autocomplete="username" required inputmode="email" autocapitalize="none" spellcheck="false" placeholder="nombre@email.com" aria-describedby="loginErr">
+        </div>
+        <div class="login-field">
+          <label for="loginPass">Contraseña</label>
+          <div class="login-password-wrap">
+            <input type="password" id="loginPass" name="password" autocomplete="current-password" required placeholder="Tu contraseña" aria-describedby="loginErr">
+            <button class="login-password-toggle" id="loginPasswordToggle" type="button" aria-label="Mostrar contraseña" title="Mostrar contraseña" aria-pressed="false" aria-controls="loginPass"><img src="./assets/login/eye.svg" width="20" height="20" alt=""></button>
+          </div>
+        </div>
+        <button class="login-btn" id="loginBtn" type="submit"><span class="login-btn-spinner" aria-hidden="true"></span><span id="loginBtnLabel">Entrar al kiosco</span><img src="./assets/login/arrow-right.svg" width="18" height="18" alt=""></button>
+        <div class="login-err" id="loginErr" role="alert"></div>
+        <p class="login-foot"><img src="./assets/login/lock-keyhole.svg" width="13" height="13" alt="">Acceso privado del equipo</p>
+      </form>
     </div>
-    <div class="login-field">
-      <span class="login-ico" aria-hidden="true"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
-      <input type="password" id="loginPass" name="password" autocomplete="current-password" required placeholder="Contraseña" aria-label="Contraseña">
-    </div>
-    <button class="login-btn" id="loginBtn" type="submit">Entrar</button>
-    <div class="login-err" id="loginErr" role="alert"></div>
-    <div class="login-foot">Acceso privado · solo el equipo del kiosco</div>
-  </form>
+  </div>
 </div>
 <script>try{var _s=JSON.parse(localStorage.getItem('kiosco_auth_v1')||'null');if(_s&&_s.access_token){var _o=document.getElementById('loginOverlay');if(_o)_o.classList.add('oculto');}}catch(e){}</script>
 <!-- Fondo liviano: sin blobs, grano ni emojis flotantes -->
@@ -5659,9 +5658,11 @@ async function authBoot(){
     e.preventDefault();
     const email=document.getElementById('loginEmail').value,pass=document.getElementById('loginPass').value;
     const btn=document.getElementById('loginBtn'),err=document.getElementById('loginErr');
-    err.textContent='';btn.disabled=true;btn.textContent='Entrando…';
-    try{await sbSignIn(email,pass);location.reload();}
-    catch(ex){err.textContent=ex.message||'No pude entrar';btn.disabled=false;btn.textContent='Entrar';}
+    const label=document.getElementById('loginBtnLabel');
+    if(btn.disabled)return;
+    err.textContent='';btn.disabled=true;label.textContent='Entrando…';window.kioscoLogin?.setBusy(true);
+    try{await sbSignIn(email,pass);await Promise.resolve().then(()=>window.kioscoLogin?.success()).catch(()=>{});location.reload();}
+    catch(ex){err.textContent=ex.message||'No pude entrar';btn.disabled=false;label.textContent='Entrar al kiosco';window.kioscoLogin?.showError(err.textContent);}
   });
   const outBtn=document.getElementById('btnLogout');
   if(outBtn)outBtn.addEventListener('click',()=>{if(confirm('¿Cerrar sesión? Vas a tener que volver a entrar con usuario y contraseña.'))window.kioscoAuth.signOut();});
