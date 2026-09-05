@@ -6230,22 +6230,24 @@ async function cargarTurnoEspecifico(t){
   },300);
   showToast((t.nombre.startsWith('Turno')?t.nombre:'Turno de '+t.nombre)+' cargado ✓');
 }
-function renderOtrosTurnos(){
-  const row=document.getElementById('otrosTurnosRow');if(!row)return;
+// Los turnos anteriores del día se cargan SOLOS (antes había que tocar un botón
+// "Ver turno de X" para que recién ahí se buscaran). Traemos en paralelo los que
+// ya arrancaron hoy y renderizamos sus tarjetas apenas están listas.
+async function renderOtrosTurnos(){
+  const row=document.getElementById('otrosTurnosRow');if(row)row.innerHTML='';
   const turnoActualNombre=(turno||turnoReciente||{nombre:''}).nombre;
-  const otros=TURNOS.filter(t=>t.nombre!==turnoActualNombre);
-  row.innerHTML='';
-  otros.forEach(t=>{
-    const btn=document.createElement('button');btn.className='btn-ver-turno';
-    btn.innerHTML=`<span class="t-dot" style="background:${t.color}"></span>Ver turno de ${t.nombre}`;
-    btn.addEventListener('click',async()=>{
-      btn.disabled=true;btn.innerHTML=`<span class="t-dot" style="background:${t.color}"></span>Cargando...`;
-      try{await cargarTurnoEspecifico(t);}
-      catch(err){showToast('No se pudo conectar con MercadoPago');console.error(err);}
-      btn.disabled=false;btn.innerHTML=`<span class="t-dot" style="background:${t.color}"></span>Ver turno de ${t.nombre}`;
-    });
-    row.appendChild(btn);
-  });
+  const now=new Date(),mins=now.getHours()*60+now.getMinutes();
+  const otros=TURNOS.filter(t=>t.nombre!==turnoActualNombre&&mins>=t.desdeH*60+t.desdeM);
+  if(!otros.length)return;
+  await Promise.all(otros.map(async t=>{
+    try{
+      const results=await fetchMovimientos(t.capturaDesdeH??t.desdeH,t.capturaDesdeM??t.desdeM,t.hastaH,t.hastaM);
+      const parsed=parsearMovimientos(results);
+      guardarTurno(t.nombre,parsed.movs,parsed.excluidos,parsed.enviadas);
+    }catch(e){/* sin conexión: se reintenta al recargar */}
+  }));
+  renderTurnosHoy((turnoActual()||turnoAnterior()||{nombre:''}).nombre);
+  actualizarHeroSide();
 }
 renderOtrosTurnos();
 
