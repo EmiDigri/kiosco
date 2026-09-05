@@ -1,20 +1,31 @@
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://pilfeptwylgufhbmmday.supabase.co';
 const SUPABASE_KEY = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const MP_TOKEN = process.env.MP_ACCESS_TOKEN || '';
-const MP_USER_ID = 443581160; // ID de cuenta del kiosco (último segmento del token)
+const TOKEN_USER_ID = Number(String(MP_TOKEN).match(/^APP_USR-(\d+)-/)?.[1]) || 0;
+const MP_USER_ID = Number(process.env.MP_USER_ID) || TOKEN_USER_ID || 443581160;
 
-function turnoDeHora(h, esDomingo) {
+function pagoEsEnviado(pago) {
+  const payerId = Number(pago.payer_id ?? pago.payer?.id) || 0;
+  const collectorId = Number(pago.collector_id ?? pago.collector?.id) || 0;
+  const ownerSentTransfer = pago.operation_type === 'money_transfer'
+    && payerId === MP_USER_ID
+    && collectorId !== MP_USER_ID;
+  return Number(pago.transaction_amount) < 0
+    || pago.operation_type === 'money_transfer_send'
+    || pago.point_of_interaction?.business_info?.sub_unit === 'money_outflows'
+    || ownerSentTransfer;
+}
+
+function turnoDeHora(h, m, esDomingo) {
+  const mins = h * 60 + m;
   if (esDomingo) {
-    if (h >= 9 && h < 16) return 'Turno 1';
-    if (h >= 16 && h < 23) return 'Turno 2';
-    return 'Fuera de horario';
+    return mins <= 16 * 60 ? 'Turno 1' : 'Turno 2';
   }
   // Las transferencias de madrugada (00-06:59) se asignan a Vale, que arranca
   // el dia y las ve en pantalla apenas abre. Ver TURNOS_SEMANA.capturaDesdeH en index.html.
-  if (h < 12) return 'Vale';
-  if (h >= 12 && h < 17) return 'Ani';
-  if (h >= 17 && h < 23) return 'Marta';
-  return 'Fuera de horario';
+  if (mins <= 12 * 60) return 'Vale';
+  if (mins <= 17 * 60) return 'Ani';
+  return 'Marta';
 }
 
 function ahoraAR() {
@@ -73,7 +84,7 @@ function parsearPago(pago, esDomingo) {
     nombre,
     tipo: pago.operation_type === 'pos_payment' ? 'Venta Point' : 'Transferencia recibida',
     monto: pago.transaction_amount,
-    turno: turnoDeHora(hNum, esDomingo),
+    turno: turnoDeHora(hNum, dAR.getUTCMinutes(), esDomingo),
     status: pago.status,
     operation_type: pago.operation_type,
     es_enviada: false
@@ -120,25 +131,24 @@ async function fetchYGuardar(esDomingo, fecha) {
   console.log(`Reconciliando día ${fecha}: ${begin.toISOString()} → ${end.toISOString()}`);
 
   const win = { begin_date: begin.toISOString(), end_date: end.toISOString() };
-  const [pagosGenerales, pagosEnviados] = await Promise.all([
+  const [pagosGenerales, pagosEnviados, pagosComoPagador] = await Promise.all([
     buscarPagosMP(win),
     buscarPagosMP({ ...win, operation_type: 'money_transfer_send' }),
+    buscarPagosMP({ ...win, 'payer.id': String(MP_USER_ID) }),
   ]);
   const pagosUnicos = new Map();
-  [...pagosGenerales, ...pagosEnviados].forEach(pago => {
+  [...pagosGenerales, ...pagosEnviados, ...pagosComoPagador].forEach(pago => {
     const key = pago.id != null
       ? `id:${pago.id}`
       : `${pago.date_approved || pago.date_created}|${pago.transaction_amount}|${pago.operation_type}`;
     pagosUnicos.set(key, pago);
   });
   const pagos = [...pagosUnicos.values()];
-  console.log(`MP devolvió ${pagos.length} operaciones (${pagosEnviados.length} salidas explícitas)`);
+  console.log(`MP devolvió ${pagos.length} operaciones (${pagosEnviados.length} salidas explícitas, ${pagosComoPagador.length} como pagador)`);
 
-  let count = 0;
+  let count = 0, salidas = 0;
   for (const pago of pagos) {
-    const esEnviada = pago.transaction_amount < 0
-      || pago.operation_type === 'money_transfer_send'
-      || (pago.point_of_interaction?.business_info?.sub_unit === 'money_outflows' && pago.payer_id === MP_USER_ID);
+    const esEnviada = pagoEsEnviado(pago);
 
     if (esEnviada) {
       const d = new Date(pago.date_approved || pago.date_created);
@@ -151,12 +161,12 @@ async function fetchYGuardar(esDomingo, fecha) {
         nombre: 'Transferencia enviada',
         tipo: 'Transferencia enviada',
         monto: Math.abs(pago.transaction_amount),
-        turno: turnoDeHora(hNum, esDomingo),
+        turno: turnoDeHora(hNum, dAR.getUTCMinutes(), esDomingo),
         status: pago.status || 'approved',
         operation_type: pago.operation_type,
         es_enviada: true
       });
-      count++;
+      count++;salidas++;
       continue;
     }
 
@@ -178,7 +188,7 @@ async function fetchYGuardar(esDomingo, fecha) {
     count++;
   }
 
-  return count;
+  return { procesados: count, salidas };
 }
 
 export default async function handler(req, res) {
@@ -196,10 +206,10 @@ export default async function handler(req, res) {
     // en tiempo real no es 100% confiable, así que el cron tiene que repescar
     // también de madrugada y de noche (antes estaba limitado a 7-23 h y por eso
     // los movimientos fuera de horario no aparecían).
-    const procesados = await fetchYGuardar(esDomingoPedido, pedido);
+    const resultado = await fetchYGuardar(esDomingoPedido, pedido);
 
-    console.log(`Cron ejecutado: ${procesados} pagos procesados`);
-    return res.status(200).json({ ok: true, procesados, fecha: pedido, hora: hh });
+    console.log(`Cron ejecutado: ${resultado.procesados} pagos procesados, ${resultado.salidas} salidas`);
+    return res.status(200).json({ ok: true, ...resultado, fecha: pedido, hora: hh });
   } catch (err) {
     console.error('Cron error:', err.message);
     return res.status(200).json({ ok: true, error: err.message });

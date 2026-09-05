@@ -4538,9 +4538,9 @@ function renderTurno(movs,excluidos,enviadas){
   const envCard=document.getElementById('envCard'),envBody=document.getElementById('envBody');
   if(enviadas.length>0){
     envCard.style.display='block';document.getElementById('envPill').textContent=enviadas.length;
-    const totalEnviado=enviadas.reduce((a,m)=>a+m.monto,0);document.getElementById('envTotal').textContent='$'+totalEnviado.toLocaleString('es-AR');
+    const totalEnviado=enviadas.reduce((a,m)=>a+m.monto,0);document.getElementById('envTotal').textContent='-$'+totalEnviado.toLocaleString('es-AR');
     envBody.innerHTML='';
-    enviadas.forEach((m,i)=>{const row=document.createElement('div');row.className='t-row';row.style.animationDelay=(i*45)+'ms';row.innerHTML=`<span class="t-hora">${m.hora}</span><span class="t-nombre">${cmEsc(m.nombre)}</span><span class="tipo-pill" style="background:var(--amber-dim);color:var(--amber);border:1px solid rgba(244,164,53,.25)">Enviada</span><span class="t-monto" style="color:var(--amber)">$${m.monto.toLocaleString('es-AR')}</span>`;envBody.appendChild(row);});
+    enviadas.forEach((m,i)=>{const row=document.createElement('div');row.className='t-row';row.style.animationDelay=(i*45)+'ms';row.innerHTML=`<span class="t-hora">${m.hora}</span><span class="t-nombre">${cmEsc(m.nombre)}</span><span class="tipo-pill" style="background:var(--amber-dim);color:var(--amber);border:1px solid rgba(244,164,53,.25)">Enviada</span><span class="t-monto" style="color:var(--amber)">-$${m.monto.toLocaleString('es-AR')}</span>`;envBody.appendChild(row);});
     setTimeout(()=>envCard.classList.add('visible'),700);
   }else{envCard.style.display='none';}
   const portada=document.getElementById('turnosHoyPortada');
@@ -4568,11 +4568,14 @@ function renderCierre(){
     const tot=movsOrd.reduce((a,m)=>a+m.monto,0);
     const transf=movsOrd.filter(m=>m.tipo==='Transferencia recibida').reduce((a,m)=>a+m.monto,0);
     const point=movsOrd.filter(m=>m.tipo==='Venta Point').reduce((a,m)=>a+m.monto,0);
+    const enviadas=(datos.enviadas||[]).sort((a,b)=>(a.hora||'').localeCompare(b.hora||''));
+    const totalEnviado=enviadas.reduce((a,m)=>a+m.monto,0);
     const fueraHorario=trcFueraHorarioHtml(movsOrd,TURNOS);
     let filas='';
     movsOrd.forEach(m=>{const fuera=esTransferenciaFueraHorario(m,TURNOS),pill=m.tipo==='Venta Point'?'<span class="tipo-pill tp-p">Point Smart</span>':'<span class="tipo-pill tp-t">Transferencia</span>';filas+=`<div class="t-row"><span class="t-hora">${fuera?'🌙 ':''}${m.hora}</span><span class="t-nombre"><span class="t-n"${fuera?' style="color:#a78bfa;font-weight:700"':''}>${fuera?'Transferencia fuera de horario':cmEsc(m.nombre)}</span>${cardLogoHtml(m)}</span>${pill}<span class="t-monto">$${m.monto.toLocaleString('es-AR')}</span></div>`;});
+    if(enviadas.length){filas+=`<div class="trc-detalle-head" style="margin-top:12px">↗ Transferencias enviadas</div>`;enviadas.forEach(m=>{filas+=`<div class="t-row"><span class="t-hora">${m.hora}</span><span class="t-nombre">${cmEsc(m.nombre)}</span><span class="tipo-pill" style="background:var(--amber-dim);color:var(--amber);border:1px solid rgba(244,164,53,.25)">Enviada</span><span class="t-monto" style="color:var(--amber)">-$${m.monto.toLocaleString('es-AR')}</span></div>`;});}
     const card=document.createElement('div');card.className='turno-resumen-card';
-    card.innerHTML=`<div class="trc-clickable" data-idx="${i}"><div class="trc-head"><div class="trc-name"><span class="trc-dot" style="background:${t.color}"></span>${t.nombre}</div><div class="trc-right"><svg class="trc-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div></div><div class="trc-total" id="trcTotal${i}">$0</div><div class="trc-detail"><span><span class="trc-mini-dot" style="background:#3D5AFE"></span>Transf. $${transf.toLocaleString('es-AR')}</span><span><span class="trc-mini-dot" style="background:#f4a435"></span>Point $${point.toLocaleString('es-AR')}</span>${fueraHorario}<span class="trc-tap">Ver detalle</span></div></div><div class="trc-detalle" id="trcDetalle${i}"><div class="trc-detalle-head">${movsOrd.length} pagos · de ${movsOrd[0]?.hora||'—'} a ${movsOrd[movsOrd.length-1]?.hora||'—'}</div>${filas}</div>`;
+    card.innerHTML=`<div class="trc-clickable" data-idx="${i}"><div class="trc-head"><div class="trc-name"><span class="trc-dot" style="background:${t.color}"></span>${t.nombre}</div><div class="trc-right"><svg class="trc-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div></div><div class="trc-total" id="trcTotal${i}">$0</div><div class="trc-detail"><span><span class="trc-mini-dot" style="background:#3D5AFE"></span>Transf. $${transf.toLocaleString('es-AR')}</span><span><span class="trc-mini-dot" style="background:#f4a435"></span>Point $${point.toLocaleString('es-AR')}</span>${enviadas.length?`<span style="color:var(--amber)">Salidas MP -$${totalEnviado.toLocaleString('es-AR')}</span>`:''}${fueraHorario}<span class="trc-tap">Ver detalle</span></div></div><div class="trc-detalle" id="trcDetalle${i}"><div class="trc-detalle-head">${movsOrd.length} pagos · de ${movsOrd[0]?.hora||'—'} a ${movsOrd[movsOrd.length-1]?.hora||'—'}</div>${filas}</div>`;
     cont.appendChild(card);
     setTimeout(()=>{card.classList.add('visible');springCount(document.getElementById('trcTotal'+i),tot,'$',900);},200+i*120);
   });
@@ -4597,10 +4600,10 @@ function renderTurnosCards(anteriores,datosDia,contId){
     const enviadas=(datos.enviadas||[]).sort((a,b)=>(a.hora||'').localeCompare(b.hora||''));
     const totalEnviado=enviadas.reduce((a,m)=>a+m.monto,0);
     let filasMov='';movs.forEach(m=>{const fuera=esTransferenciaFueraHorario(m,TURNOS),pill=m.tipo==='Venta Point'?'<span class="tipo-pill tp-p">Point Smart</span>':'<span class="tipo-pill tp-t">Transferencia</span>';filasMov+=`<div class="t-row"><span class="t-hora">${fuera?'🌙 ':''}${m.hora}</span><span class="t-nombre"><span class="t-n"${fuera?' style="color:#a78bfa;font-weight:700"':''}>${fuera?'Transferencia fuera de horario':cmEsc(m.nombre)}</span>${cardLogoHtml(m)}</span>${pill}<span class="t-monto">$${m.monto.toLocaleString('es-AR')}</span></div>`;});
-    let filasEnv='';if(enviadas.length){filasEnv+=`<div class="trc-detalle-head" style="margin-top:12px">↗ Transferencias enviadas</div>`;enviadas.forEach(m=>{filasEnv+=`<div class="t-row"><span class="t-hora">${m.hora}</span><span class="t-nombre">${cmEsc(m.nombre)}</span><span class="tipo-pill" style="background:var(--amber-dim);color:var(--amber);border:1px solid rgba(244,164,53,.25)">Enviada</span><span class="t-monto" style="color:var(--amber)">$${m.monto.toLocaleString('es-AR')}</span></div>`;});}
+    let filasEnv='';if(enviadas.length){filasEnv+=`<div class="trc-detalle-head" style="margin-top:12px">↗ Transferencias enviadas</div>`;enviadas.forEach(m=>{filasEnv+=`<div class="t-row"><span class="t-hora">${m.hora}</span><span class="t-nombre">${cmEsc(m.nombre)}</span><span class="tipo-pill" style="background:var(--amber-dim);color:var(--amber);border:1px solid rgba(244,164,53,.25)">Enviada</span><span class="t-monto" style="color:var(--amber)">-$${m.monto.toLocaleString('es-AR')}</span></div>`;});}
     const uid=contId+i;
     const card=document.createElement('div');card.className='turno-resumen-card';card.setAttribute('data-turno',t.nombre);card.style.cssText='opacity:0;transform:translateY(16px)';
-    card.innerHTML=`<div class="trc-clickable" data-uid="${uid}"><div class="trc-head"><div class="trc-name"><span class="trc-dot" style="background:${t.color}"></span>${t.nombre}</div><svg class="trc-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div><div class="trc-total">$${tot.toLocaleString('es-AR')}</div><div class="trc-detail"><span><span class="trc-mini-dot" style="background:#3D5AFE"></span>Transf. $${transfT.toLocaleString('es-AR')}</span><span><span class="trc-mini-dot" style="background:#f4a435"></span>Point $${pointT.toLocaleString('es-AR')}</span>${enviadas.length?`<span style="color:var(--amber)">↗ $${totalEnviado.toLocaleString('es-AR')}</span>`:''}${fueraHorario}<span class="trc-tap">Ver detalle</span></div></div><div class="trc-detalle" id="det-${uid}"><div class="trc-detalle-head">${movs.length} pagos · de ${movs[0]?.hora||'—'} a ${movs[movs.length-1]?.hora||'—'}</div><div style="margin-bottom:12px">${filasHoras}</div>${filasMov}${filasEnv}</div>`;
+    card.innerHTML=`<div class="trc-clickable" data-uid="${uid}"><div class="trc-head"><div class="trc-name"><span class="trc-dot" style="background:${t.color}"></span>${t.nombre}</div><svg class="trc-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div><div class="trc-total">$${tot.toLocaleString('es-AR')}</div><div class="trc-detail"><span><span class="trc-mini-dot" style="background:#3D5AFE"></span>Transf. $${transfT.toLocaleString('es-AR')}</span><span><span class="trc-mini-dot" style="background:#f4a435"></span>Point $${pointT.toLocaleString('es-AR')}</span>${enviadas.length?`<span style="color:var(--amber)">Salidas MP -$${totalEnviado.toLocaleString('es-AR')}</span>`:''}${fueraHorario}<span class="trc-tap">Ver detalle</span></div></div><div class="trc-detalle" id="det-${uid}"><div class="trc-detalle-head">${movs.length} pagos · de ${movs[0]?.hora||'—'} a ${movs[movs.length-1]?.hora||'—'}</div><div style="margin-bottom:12px">${filasHoras}</div>${filasMov}${filasEnv}</div>`;
     cont.appendChild(card);
     setTimeout(()=>{card.style.transition='opacity .4s ease,transform .5s cubic-bezier(.34,1.56,.64,1)';card.style.opacity='1';card.style.transform='translateY(0)';},80+i*100);
     card.querySelector('.trc-clickable').addEventListener('click',()=>{card.classList.toggle('open');const det=document.getElementById('det-'+uid);det.style.maxHeight=card.classList.contains('open')?det.scrollHeight+'px':'0';});
@@ -5555,7 +5558,7 @@ async function mostrarDetalleDia(dia){
       <div class="hist-stat-chip"><span style="color:#7C90FF">●</span> Transf. ${histMoney(transf)}</div>
       <div class="hist-stat-chip"><span style="color:#F0B860">●</span> Point ${histMoney(point)}</div>
       <div class="hist-stat-chip">🎯 Ticket ${histMoney(ticket)}</div>
-      ${enviados.length?`<div class="hist-stat-chip" style="color:var(--amber)">↗ Enviadas ${histMoney(enviados.reduce((a,e)=>a+(Number(e.monto)||0),0))}</div>`:''}
+      ${enviados.length?`<div class="hist-stat-chip" style="color:var(--amber)">Salidas MP -${histMoney(enviados.reduce((a,e)=>a+(Number(e.monto)||0),0))}</div>`:''}
       ${excluidos.length?`<div class="hist-stat-chip" style="color:#f45555">✕ Excluidos ${histMoney(excluidos.reduce((a,e)=>a+(Number(e.monto)||0),0))}</div>`:''}
     </div><div class="hist-movs-title">${movs.length} movimientos MercadoPago</div>`;
     if(movs.length){
@@ -6191,7 +6194,8 @@ function autoTurnoDesactivar(message){
 function autoTurnoActivar(t,parsed){
   const state={fecha:fechaHoy(),turno:t.nombre,lastCount:parsed.movs.length,lastSync:Date.now(),nextAt:Date.now()+AUTO_TURNO_INTERVAL};
   autoTurnoGuardar(state);autoTurnoProgramar(autoTurnoSiguienteDelay(t));
-  autoTurnoAplicarUI(`Automático activo · ${parsed.movs.length} movimientos · próxima ${autoTurnoHora(autoTurnoLeer().nextAt)}`);
+  const salidas=parsed.enviadas?.length||0;
+  autoTurnoAplicarUI(`Automático activo · ${parsed.movs.length} cobros${salidas?` · ${salidas} salida${salidas===1?'':'s'} MP`:''} · próxima ${autoTurnoHora(autoTurnoLeer().nextAt)}`);
 }
 async function autoTurnoActualizar(){
   const state=autoTurnoLeer(),t=autoTurnoBuscar(state);if(!state||!t||autoTurnoBusy)return;
@@ -6200,23 +6204,27 @@ async function autoTurnoActualizar(){
   autoTurnoBusy=true;
   autoTurnoAplicarUI('Revisando movimientos…');
   try{
-    const hist=leerHistorial(),before=hist[state.fecha]?.[t.nombre],beforeMovs=Array.isArray(before?.movs)?before.movs:[],beforeKeys=new Set(beforeMovs.map(autoTurnoMovKey));
+    const hist=leerHistorial(),before=hist[state.fecha]?.[t.nombre],beforeMovs=Array.isArray(before?.movs)?before.movs:[],beforeKeys=new Set(beforeMovs.map(autoTurnoMovKey)),beforeEnviadas=Array.isArray(before?.enviadas)?before.enviadas:[],beforeEnvKeys=new Set(beforeEnviadas.map(autoTurnoMovKey));
     const results=await fetchMovimientos(t.capturaDesdeH??t.desdeH,t.capturaDesdeM??t.desdeM,t.hastaH,t.hastaM),parsed=parsearMovimientos(results);
     const nuevos=parsed.movs.filter(m=>!beforeKeys.has(autoTurnoMovKey(m))).length;
+    const nuevasSalidas=parsed.enviadas.filter(m=>!beforeEnvKeys.has(autoTurnoMovKey(m))).length;
     guardarTurno(t.nombre,parsed.movs,parsed.excluidos,parsed.enviadas);
     document.getElementById('resultados').style.display='block';renderTurno(parsed.movs,parsed.excluidos,parsed.enviadas);
     state.lastCount=parsed.movs.length;state.lastSync=Date.now();autoTurnoGuardar(state);
     if(finalSync){
-      autoTurnoDesactivar(`Turno completo · ${parsed.movs.length} movimientos actualizados`);
+      autoTurnoDesactivar(`Turno completo · ${parsed.movs.length} cobros${parsed.enviadas.length?` · ${parsed.enviadas.length} salida${parsed.enviadas.length===1?'':'s'} MP`:''}`);
       autoTurnoDestello();
       showToast('Turno completo y actualizado ✓');
     }else{
       autoTurnoProgramar();
       const hora=autoTurnoHora(Date.now()),nextAt=autoTurnoLeer()?.nextAt;
-      const resultado=nuevos?`${nuevos} movimiento${nuevos===1?' nuevo':'s nuevos'}`:'sin movimientos nuevos';
+      const partes=[];
+      if(nuevos)partes.push(`${nuevos} cobro${nuevos===1?' nuevo':'s nuevos'}`);
+      if(nuevasSalidas)partes.push(`${nuevasSalidas} salida${nuevasSalidas===1?' nueva':'s nuevas'}`);
+      const resultado=partes.length?partes.join(' y '):'sin movimientos nuevos';
       autoTurnoAplicarUI(`Revisión ${hora} ✓ · ${resultado} · próxima ${autoTurnoHora(nextAt)}`);
       autoTurnoDestello();
-      if(nuevos)showToast(`${nuevos} movimiento${nuevos===1?' nuevo':'s nuevos'} agregado${nuevos===1?'':'s'} ✓`);
+      if(nuevos||nuevasSalidas)showToast(`${resultado} ✓`);
     }
   }catch(e){
     const retry=60*1000,stateNow=autoTurnoLeer();

@@ -1,16 +1,30 @@
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://pilfeptwylgufhbmmday.supabase.co';
 const SUPABASE_KEY = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const MP_TOKEN = process.env.MP_ACCESS_TOKEN || '';
-const MP_USER_ID = Number(process.env.MP_USER_ID) || 443581160;
+const TOKEN_USER_ID = Number(String(MP_TOKEN).match(/^APP_USR-(\d+)-/)?.[1]) || 0;
+const MP_USER_ID = Number(process.env.MP_USER_ID) || TOKEN_USER_ID || 443581160;
 
-function turnoDeHora(hora) {
-  const h = parseInt(hora.split(':')[0]);
+function pagoEsEnviado(pago) {
+  const payerId = Number(pago.payer_id ?? pago.payer?.id) || 0;
+  const collectorId = Number(pago.collector_id ?? pago.collector?.id) || 0;
+  const ownerSentTransfer = pago.operation_type === 'money_transfer'
+    && payerId === MP_USER_ID
+    && collectorId !== MP_USER_ID;
+  return Number(pago.transaction_amount) < 0
+    || pago.operation_type === 'money_transfer_send'
+    || pago.point_of_interaction?.business_info?.sub_unit === 'money_outflows'
+    || ownerSentTransfer;
+}
+
+function turnoDeHora(hora, esDomingo) {
+  const [h, m] = hora.split(':').map(Number);
+  const mins = h * 60 + m;
+  if (esDomingo) return mins <= 16 * 60 ? 'Turno 1' : 'Turno 2';
   // Las transferencias de madrugada (00-06:59) se asignan a Vale, que arranca
   // el dia y las ve en pantalla apenas abre. Ver TURNOS_SEMANA.capturaDesdeH en index.html.
-  if (h < 12) return 'Vale';
-  if (h >= 12 && h < 17) return 'Ani';
-  if (h >= 17 && h < 23) return 'Marta';
-  return 'Fuera de horario';
+  if (mins <= 12 * 60) return 'Vale';
+  if (mins <= 17 * 60) return 'Ani';
+  return 'Marta';
 }
 
 // Estados terminales que vale la pena guardar. Se ignoran los intermedios
@@ -25,16 +39,15 @@ async function procesarPago(pagoId) {
   const pago = await mpRes.json();
 
   if (!ESTADOS_TERMINALES.includes(pago.status)) return;
-  const esEnviada = Number(pago.transaction_amount) < 0
-    || pago.operation_type === 'money_transfer_send'
-    || (pago.point_of_interaction?.business_info?.sub_unit === 'money_outflows'
-      && Number(pago.payer_id) === MP_USER_ID);
+  const esEnviada = pagoEsEnviado(pago);
   if (!pago.transaction_amount) return;
 
   // date_approved es null en pagos rechazados/cancelados: usamos date_created como respaldo.
   const d = new Date(pago.date_approved || pago.date_created);
-  const fecha = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-  const hora = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  const dAR = new Date(d.getTime() - 3 * 60 * 60 * 1000);
+  const fecha = `${dAR.getUTCFullYear()}-${String(dAR.getUTCMonth()+1).padStart(2,'0')}-${String(dAR.getUTCDate()).padStart(2,'0')}`;
+  const hora = `${String(dAR.getUTCHours()).padStart(2,'0')}:${String(dAR.getUTCMinutes()).padStart(2,'0')}`;
+  const esDomingo = dAR.getUTCDay() === 0;
 
   let nombre = '';
   if (esEnviada) {
@@ -69,7 +82,7 @@ async function procesarPago(pagoId) {
       nombre,
       tipo,
       monto: Math.abs(Number(pago.transaction_amount)),
-      turno: turnoDeHora(hora),
+      turno: turnoDeHora(hora, esDomingo),
       status: pago.status,
       operation_type: pago.operation_type,
       es_enviada: esEnviada

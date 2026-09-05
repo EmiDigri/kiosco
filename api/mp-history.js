@@ -1,6 +1,7 @@
 const MP_TOKEN = process.env.MP_ACCESS_TOKEN || '';
 const MAX_RESULTS = 500;
-const MP_USER_ID = Number(process.env.MP_USER_ID) || 443581160;
+const TOKEN_USER_ID = Number(String(MP_TOKEN).match(/^APP_USR-(\d+)-/)?.[1]) || 0;
+const MP_USER_ID = Number(process.env.MP_USER_ID) || TOKEN_USER_ID || 443581160;
 
 // Este endpoint devuelve el historial de pagos de MP: solo para usuarios logueados.
 // Verificamos el token de sesión del usuario contra Supabase (no alcanza con la
@@ -32,10 +33,15 @@ function dayWindow(date) {
 }
 
 function paymentIsOutgoing(payment) {
+  const payerId = Number(payment.payer_id ?? payment.payer?.id) || 0;
+  const collectorId = Number(payment.collector_id ?? payment.collector?.id) || 0;
+  const ownerSentTransfer = payment.operation_type === 'money_transfer'
+    && payerId === MP_USER_ID
+    && collectorId !== MP_USER_ID;
   return Number(payment.transaction_amount) < 0
     || payment.operation_type === 'money_transfer_send'
-    || (payment.point_of_interaction?.business_info?.sub_unit === 'money_outflows'
-      && Number(payment.payer_id) === MP_USER_ID);
+    || payment.point_of_interaction?.business_info?.sub_unit === 'money_outflows'
+    || ownerSentTransfer;
 }
 
 function publicPayment(payment) {
@@ -103,6 +109,7 @@ export default async function handler(req, res) {
     const searches = await Promise.allSettled([
       searchPayments(window),
       searchPayments(window, { operation_type: 'money_transfer_send' }),
+      searchPayments(window, { 'payer.id': String(MP_USER_ID) }),
     ]);
     const successful = searches.filter(result => result.status === 'fulfilled');
     if (!successful.length) throw searches[0].reason;
