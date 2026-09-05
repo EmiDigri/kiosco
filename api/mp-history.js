@@ -1,5 +1,6 @@
 const MP_TOKEN = process.env.MP_ACCESS_TOKEN || '';
 const MAX_RESULTS = 500;
+const MP_USER_ID = Number(process.env.MP_USER_ID) || 443581160;
 
 // Este endpoint devuelve el historial de pagos de MP: solo para usuarios logueados.
 // Verificamos el token de sesión del usuario contra Supabase (no alcanza con la
@@ -30,13 +31,22 @@ function dayWindow(date) {
   return { begin, end };
 }
 
+function paymentIsOutgoing(payment) {
+  return Number(payment.transaction_amount) < 0
+    || payment.operation_type === 'money_transfer_send'
+    || (payment.point_of_interaction?.business_info?.sub_unit === 'money_outflows'
+      && Number(payment.payer_id) === MP_USER_ID);
+}
+
 function publicPayment(payment) {
   return {
+    id: payment.id ?? null,
     date_approved: payment.date_approved || null,
     date_created: payment.date_created || null,
     transaction_amount: Number(payment.transaction_amount) || 0,
     operation_type: payment.operation_type || '',
     status: payment.status || '',
+    es_enviada: paymentIsOutgoing(payment),
     description: payment.description || '',
     payer: {
       first_name: payment.payer?.first_name || '',
@@ -53,6 +63,31 @@ function publicPayment(payment) {
   };
 }
 
+async function searchPayments(window, extraParams = {}) {
+  const all = [];
+  for (let offset = 0; offset < MAX_RESULTS; offset += 100) {
+    const params = new URLSearchParams({
+      begin_date: window.begin.toISOString(),
+      end_date: window.end.toISOString(),
+      status: 'approved',
+      sort: 'date_approved',
+      criteria: 'asc',
+      limit: '100',
+      offset: String(offset),
+      ...extraParams,
+    });
+    const response = await fetch(`https://api.mercadopago.com/v1/payments/search?${params}`, {
+      headers: { Authorization: `Bearer ${MP_TOKEN}`, accept: 'application/json' },
+    });
+    const data = await response.json().catch(() => null);
+    if (!response.ok) throw new Error(data?.message || 'Mercado Pago rechazó la consulta');
+    const results = Array.isArray(data?.results) ? data.results : [];
+    all.push(...results);
+    if (results.length < 100) break;
+  }
+  return all;
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Método no permitido' });
   if (!(await usuarioValido(req))) return res.status(401).json({ error: 'Necesitás iniciar sesión' });
@@ -63,26 +98,22 @@ export default async function handler(req, res) {
   if (!window) return res.status(400).json({ error: 'Fecha inválida' });
 
   try {
-    const all = [];
-    for (let offset = 0; offset < MAX_RESULTS; offset += 100) {
-      const params = new URLSearchParams({
-        begin_date: window.begin.toISOString(),
-        end_date: window.end.toISOString(),
-        status: 'approved',
-        sort: 'date_approved',
-        criteria: 'asc',
-        limit: '100',
-        offset: String(offset),
-      });
-      const response = await fetch(`https://api.mercadopago.com/v1/payments/search?${params}`, {
-        headers: { Authorization: `Bearer ${MP_TOKEN}`, accept: 'application/json' },
-      });
-      const data = await response.json().catch(() => null);
-      if (!response.ok) return res.status(response.status).json({ error: data?.message || 'Mercado Pago rechazó la consulta' });
-      const results = Array.isArray(data?.results) ? data.results : [];
-      all.push(...results.map(publicPayment));
-      if (results.length < 100) break;
-    }
+    // La búsqueda general de MP no siempre incluye salidas. La segunda consulta
+    // las pide explícitamente y luego se deduplica por el id de la operación.
+    const searches = await Promise.allSettled([
+      searchPayments(window),
+      searchPayments(window, { operation_type: 'money_transfer_send' }),
+    ]);
+    const successful = searches.filter(result => result.status === 'fulfilled');
+    if (!successful.length) throw searches[0].reason;
+    const unique = new Map();
+    successful.flatMap(result => result.value).forEach(payment => {
+      const key = payment.id != null
+        ? `id:${payment.id}`
+        : `${payment.date_approved || payment.date_created}|${payment.transaction_amount}|${payment.operation_type}`;
+      unique.set(key, payment);
+    });
+    const all = [...unique.values()].map(publicPayment);
     res.setHeader('Cache-Control', 'no-store');
     return res.status(200).json({ results: all });
   } catch (error) {

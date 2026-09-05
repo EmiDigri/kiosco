@@ -1,6 +1,7 @@
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://pilfeptwylgufhbmmday.supabase.co';
 const SUPABASE_KEY = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const MP_TOKEN = process.env.MP_ACCESS_TOKEN || '';
+const MP_USER_ID = Number(process.env.MP_USER_ID) || 443581160;
 
 function turnoDeHora(hora) {
   const h = parseInt(hora.split(':')[0]);
@@ -24,7 +25,11 @@ async function procesarPago(pagoId) {
   const pago = await mpRes.json();
 
   if (!ESTADOS_TERMINALES.includes(pago.status)) return;
-  if (!pago.transaction_amount || pago.transaction_amount <= 0) return;
+  const esEnviada = Number(pago.transaction_amount) < 0
+    || pago.operation_type === 'money_transfer_send'
+    || (pago.point_of_interaction?.business_info?.sub_unit === 'money_outflows'
+      && Number(pago.payer_id) === MP_USER_ID);
+  if (!pago.transaction_amount) return;
 
   // date_approved es null en pagos rechazados/cancelados: usamos date_created como respaldo.
   const d = new Date(pago.date_approved || pago.date_created);
@@ -32,7 +37,9 @@ async function procesarPago(pagoId) {
   const hora = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
 
   let nombre = '';
-  if (pago.operation_type === 'pos_payment') {
+  if (esEnviada) {
+    nombre = 'Transferencia enviada';
+  } else if (pago.operation_type === 'pos_payment') {
     const cardholder = pago.card?.cardholder?.name || '';
     const tarjeta = pago.payment_method?.id || '';
     const tipo = tarjeta.includes('visa') ? 'Visa' : tarjeta.includes('master') ? 'Mastercard' : 'Débito';
@@ -45,7 +52,7 @@ async function procesarPago(pagoId) {
       : 'Transferencia recibida';
   }
 
-  const tipo = pago.operation_type === 'pos_payment' ? 'Venta Point' : 'Transferencia recibida';
+  const tipo = esEnviada ? 'Transferencia enviada' : pago.operation_type === 'pos_payment' ? 'Venta Point' : 'Transferencia recibida';
 
   await fetch(`${SUPABASE_URL}/rest/v1/pagos`, {
     method: 'POST',
@@ -61,10 +68,11 @@ async function procesarPago(pagoId) {
       hora,
       nombre,
       tipo,
-      monto: pago.transaction_amount,
+      monto: Math.abs(Number(pago.transaction_amount)),
       turno: turnoDeHora(hora),
       status: pago.status,
-      operation_type: pago.operation_type
+      operation_type: pago.operation_type,
+      es_enviada: esEnviada
     })
   });
 }

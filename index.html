@@ -5700,11 +5700,24 @@ async function authBoot(){
   authBoot();
 })();
 
+const mpDiaRequestCache=new Map();
 async function fetchMPDia(isoDate){
-  const res=await fetch(`/api/mp-history?date=${encodeURIComponent(isoDate)}`,{cache:'no-store',headers:await sbAuthHeaders()});
-  const data=await res.json().catch(()=>null);
-  if(!res.ok)throw new Error(data?.error||('Error MP: '+res.status));
-  return Array.isArray(data?.results)?data.results:[];
+  const cached=mpDiaRequestCache.get(isoDate);
+  if(cached&&Date.now()-cached.createdAt<45*1000)return cached.promise;
+  const promise=(async()=>{
+    const res=await fetch(`/api/mp-history?date=${encodeURIComponent(isoDate)}`,{cache:'no-store',headers:await sbAuthHeaders()});
+    const data=await res.json().catch(()=>null);
+    if(!res.ok)throw new Error(data?.error||('Error MP: '+res.status));
+    return Array.isArray(data?.results)?data.results:[];
+  })();
+  mpDiaRequestCache.set(isoDate,{createdAt:Date.now(),promise});
+  promise.catch(()=>{if(mpDiaRequestCache.get(isoDate)?.promise===promise)mpDiaRequestCache.delete(isoDate);});
+  return promise;
+}
+function movimientoFuenteKey(p){
+  const id=p._id??p.id;
+  if(id!==undefined&&id!==null&&id!=='')return'id:'+id;
+  return`${p.date_approved||p.date_created||''}|${Math.abs(Number(p.transaction_amount)||0)}|${p.operation_type||p._tipo||''}|${p.es_enviada||p._es_enviada?'out':'in'}`;
 }
 
 async function fetchMovimientos(desdeH,desdeM,hastaH,hastaM){
@@ -5712,20 +5725,27 @@ async function fetchMovimientos(desdeH,desdeM,hastaH,hastaM){
   const fecha=`${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}-${String(hoy.getDate()).padStart(2,'0')}`;
   const desdeHora=`${String(desdeH).padStart(2,'0')}:${String(desdeM).padStart(2,'0')}`;
   const hastaHora=`${String(hastaH).padStart(2,'0')}:${String(hastaM).padStart(2,'0')}`;
-  try{
-    const res=await fetch(`${SUPABASE_URL}/rest/v1/pagos?fecha=eq.${fecha}&hora=gte.${desdeHora}&hora=lte.${hastaHora}&order=hora.asc&limit=500`,{headers:await sbAuthHeaders()});
-    if(res.ok){
-      const rows=await res.json();
-      if(rows.length>0){
-        console.log('Datos desde Supabase:',rows.length,'registros');
-        return rows.map(r=>({date_approved:`${r.fecha}T${r.hora}:00`,transaction_amount:r.monto,operation_type:r.operation_type,status:r.status,payer:{first_name:r.nombre},card:{cardholder:{name:r.nombre}},payment_method:{id:''},_nombre:r.nombre,_tipo:r.tipo}));
-      }
-    }
-  }catch(e){console.log('Supabase no disponible, usando API MP');}
   const desde=new Date(hoy.getFullYear(),hoy.getMonth(),hoy.getDate(),desdeH,desdeM,0);
   const hasta=new Date(hoy.getFullYear(),hoy.getMonth(),hoy.getDate(),hastaH,hastaM,59);
-  const results=await fetchMPDia(fecha);
-  return results.filter(p=>{const aprobado=new Date(p.date_approved);return aprobado>=desde&&aprobado<=hasta;});
+  const supabasePromise=(async()=>{
+    const res=await fetch(`${SUPABASE_URL}/rest/v1/pagos?fecha=eq.${fecha}&hora=gte.${desdeHora}&hora=lte.${hastaHora}&order=hora.asc&limit=500`,{headers:await sbAuthHeaders()});
+    if(!res.ok)throw new Error('Supabase: '+res.status);
+    const rows=await res.json();
+    if(rows.length)console.log('Datos desde Supabase:',rows.length,'registros');
+    return rows.map(r=>({id:r.pago_id,_id:r.pago_id,date_approved:`${r.fecha}T${r.hora}:00`,transaction_amount:r.es_enviada?-Math.abs(Number(r.monto)||0):r.monto,operation_type:r.operation_type,status:r.status,es_enviada:r.es_enviada===true||String(r.es_enviada)==='true',payer:{first_name:r.nombre},card:{cardholder:{name:r.nombre}},payment_method:{id:''},_nombre:r.nombre,_tipo:r.tipo}));
+  })();
+  const mpPromise=(async()=>{
+    const results=await fetchMPDia(fecha);
+    return results.filter(p=>{const aprobado=new Date(p.date_approved||p.date_created);return aprobado>=desde&&aprobado<=hasta;});
+  })();
+  const respuestas=await Promise.allSettled([mpPromise,supabasePromise]);
+  const fuentes=respuestas.filter(r=>r.status==='fulfilled').map(r=>r.value);
+  if(!fuentes.length)throw respuestas[0].reason||respuestas[1].reason||new Error('No se pudieron cargar los movimientos');
+  if(respuestas[0].status==='rejected')console.log('API MP no disponible, usando datos de Supabase');
+  if(respuestas[1].status==='rejected')console.log('Supabase no disponible, usando API MP');
+  const merged=new Map();
+  fuentes.flat().forEach(p=>{const key=movimientoFuenteKey(p);if(!merged.has(key))merged.set(key,p);});
+  return[...merged.values()];
 }
 
 async function fetchHistoricoMP(isoDate){
@@ -5744,10 +5764,11 @@ async function fetchHistoricoMP(isoDate){
   turnos.forEach(t=>{byTurno[t.nombre]={movs:[],excluidos:[],enviadas:[]};});
   parsed.movs.forEach(m=>{byTurno[asignarTurno(m.hora)].movs.push(m);});
   parsed.excluidos.forEach(m=>{byTurno[asignarTurno(m.hora)].excluidos.push(m);});
+  parsed.enviadas.forEach(m=>{byTurno[asignarTurno(m.hora)].enviadas.push(m);});
   // Guardar cada turno en localStorage bajo la fecha histórica
   turnos.forEach(t=>{
     const d=byTurno[t.nombre];
-    if(d.movs.length||d.excluidos.length)guardarTurno(t.nombre,d.movs,d.excluidos,d.enviadas,isoDate);
+    if(d.movs.length||d.excluidos.length||d.enviadas.length)guardarTurno(t.nombre,d.movs,d.excluidos,d.enviadas,isoDate);
   });
   return all.length;
 }
@@ -5763,9 +5784,10 @@ function parsearMovimientos(results){
     else if(p.payer?.first_name){nombre=(p.payer.first_name+' '+(p.payer.last_name||'')).trim();}
     else if(p.additional_info?.payer?.first_name){nombre=(p.additional_info.payer.first_name+' '+(p.additional_info.payer.last_name||'')).trim();}
     else{nombre=p.description||'Transferencia recibida';}
-    const tipo=p._tipo||(p.operation_type==='pos_payment'?'Venta Point':'Transferencia recibida');
     const monto=p.transaction_amount;
-    if(p.operation_type==='money_transfer_send'||p._tipo==='Transferencia enviada'){enviadas.push({hora,nombre,tipo:'Enviada',monto:Math.abs(monto)});return;}
+    const esEnviada=p.es_enviada===true||p._es_enviada===true||p.operation_type==='money_transfer_send'||p._tipo==='Transferencia enviada'||Number(monto)<0;
+    if(esEnviada){enviadas.push({hora,nombre:p._nombre||'Transferencia enviada',tipo:'Enviada',monto:Math.abs(Number(monto)||0)});return;}
+    const tipo=p._tipo||(p.operation_type==='pos_payment'?'Venta Point':'Transferencia recibida');
     if(p.status!=='approved'){excluidos.push({hora,nombre,tipo,monto,motivo:p.status});return;}
     movs.push({hora,nombre,tipo,monto,marca});
   });

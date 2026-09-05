@@ -120,8 +120,19 @@ async function fetchYGuardar(esDomingo, fecha) {
   console.log(`Reconciliando día ${fecha}: ${begin.toISOString()} → ${end.toISOString()}`);
 
   const win = { begin_date: begin.toISOString(), end_date: end.toISOString() };
-  const pagos = await buscarPagosMP(win);
-  console.log(`MP devolvió ${pagos.length} pagos`);
+  const [pagosGenerales, pagosEnviados] = await Promise.all([
+    buscarPagosMP(win),
+    buscarPagosMP({ ...win, operation_type: 'money_transfer_send' }),
+  ]);
+  const pagosUnicos = new Map();
+  [...pagosGenerales, ...pagosEnviados].forEach(pago => {
+    const key = pago.id != null
+      ? `id:${pago.id}`
+      : `${pago.date_approved || pago.date_created}|${pago.transaction_amount}|${pago.operation_type}`;
+    pagosUnicos.set(key, pago);
+  });
+  const pagos = [...pagosUnicos.values()];
+  console.log(`MP devolvió ${pagos.length} operaciones (${pagosEnviados.length} salidas explícitas)`);
 
   let count = 0;
   for (const pago of pagos) {
