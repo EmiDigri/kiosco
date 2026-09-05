@@ -27,7 +27,7 @@ html:has(#loginOverlay:not(.oculto)){overflow:hidden}
 .login-eye{position:relative;display:block;width:20px;height:22px;background:#fff;border-radius:50%;overflow:hidden;transform-origin:center;animation:login-blink 6.7s var(--blink-delay) infinite;transition:height .2s,background .2s,transform .2s}
 .login-pupil{position:absolute;left:calc(50% - 4px);top:calc(50% - 4px);width:8px;height:8px;border-radius:50%;background:#26272c;transform:translate(var(--gaze-x),var(--gaze-y));transition:transform .17s ease-out}
 .login-character--coral .login-eye,.login-character--lime .login-eye{width:10px;height:12px;background:#303037}
-.login-character--coral .login-eyes,.login-character--lime .login-eyes{transform:translate(var(--gaze-x),var(--gaze-y));transition:transform .17s ease-out}
+.login-character--coral .login-eyes,.login-character--lime .login-eyes{transform:translate(calc(var(--gaze-x) * 2),calc(var(--gaze-y) * 1.5));transition:transform .17s ease-out}
 .login-character--coral .login-pupil,.login-character--lime .login-pupil{width:4px;height:4px;left:3px;top:3px;background:#fff;opacity:0}
 .login-mouth{display:block;width:12px;height:5px;margin:16px auto 0;border-radius:0 0 14px 14px;background:#25262d;transition:width .2s,height .2s,transform .2s,border-radius .2s}
 .login-character--ink .login-mouth{background:#fff;width:10px;height:4px;margin-top:18px}

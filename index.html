@@ -1315,9 +1315,9 @@ body.light .t-row{
   border-bottom-color:var(--border-soft)!important;
 }
 
-*:not(#fcMount):not(#fcMount *):not([class*="egg-"]),
-*:not(#fcMount):not(#fcMount *):not([class*="egg-"])::before,
-*:not(#fcMount):not(#fcMount *):not([class*="egg-"])::after{
+*:not(#fcMount):not(#fcMount *):not([class*="egg-"]):not(#loginOverlay):not(#loginOverlay *),
+*:not(#fcMount):not(#fcMount *):not([class*="egg-"]):not(#loginOverlay):not(#loginOverlay *)::before,
+*:not(#fcMount):not(#fcMount *):not([class*="egg-"]):not(#loginOverlay):not(#loginOverlay *)::after{
   animation:none!important;
   transition:none!important;
   scroll-behavior:auto!important;
@@ -2954,8 +2954,8 @@ body.light .tg-lock{background:rgba(255,255,255,.96)}
 @media(prefers-reduced-motion:reduce){.tg-title-chevron,.tg-tile{transition:none}}
 
 </style>
-<link rel="stylesheet" href="./login.css?v=20260905-welcome">
-<script src="./login.js?v=20260905-welcome" defer></script>
+<link rel="stylesheet" href="./login.css?v=20260905-motion">
+<script src="./login.js?v=20260905-motion" defer></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flipclock@1.0.1/dist/themes/flipclock.min.css">
 <script src="https://cdn.jsdelivr.net/npm/tsparticles-slim@2.12.0/tsparticles.slim.bundle.min.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.4/dist/confetti.browser.min.js" defer></script>
