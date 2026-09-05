@@ -54,8 +54,8 @@ function responseCapture() {
 async function main() {
   const incoming = { id: 1, date_approved: '2026-09-04T15:00:00-03:00', transaction_amount: 3500, operation_type: 'money_transfer', status: 'approved' };
   const byType = { id: 2, date_approved: '2026-09-04T15:10:00-03:00', transaction_amount: 12000, operation_type: 'money_transfer_send', status: 'approved' };
-  const byFlow = { id: 3, date_approved: '2026-09-04T15:20:00-03:00', transaction_amount: 8000, operation_type: 'account_fund', status: 'approved', payer_id: 443581160, point_of_interaction: { business_info: { sub_unit: 'money_outflows' } } };
-  const byPayer = { id: 4, date_approved: '2026-09-04T15:30:00-03:00', transaction_amount: 217557.5, operation_type: 'money_transfer', status: 'approved', payer: { id: 443581160 }, collector_id: 9001, point_of_interaction: { business_info: { sub_unit: 'money_outflows' } } };
+  const byFlow = { id: 3, date_approved: '2026-09-04T15:20:00-03:00', transaction_amount: -8000, operation_type: 'account_fund', status: 'approved', payer_id: 443581160, point_of_interaction: { business_info: { sub_unit: 'money_outflows' } } };
+  const byPayer = { id: 4, date_approved: '2026-09-04T15:30:00-03:00', transaction_amount: -217557.5, operation_type: 'money_transfer', status: 'approved', payer: { id: 443581160 }, collector_id: 9001, point_of_interaction: { business_info: { sub_unit: 'money_outflows' } } };
   const ownerOnly = { id: 5, date_approved: '2026-09-04T15:40:00-03:00', transaction_amount: 4200, operation_type: 'money_transfer', status: 'approved', payer: { id: 443581160 }, collector_id: 9002 };
   const api = loadApi(async url => {
     if (String(url).includes('/users/me')) return jsonResponse({ id: 443581160 });

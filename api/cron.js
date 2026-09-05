@@ -18,8 +18,7 @@ async function mpUserId() {
 
 function pagoEsEnviado(pago, ownerId = FALLBACK_MP_USER_ID) {
   return Number(pago.transaction_amount) < 0
-    || pago.operation_type === 'money_transfer_send'
-    || pago.point_of_interaction?.business_info?.sub_unit === 'money_outflows';
+    || pago.operation_type === 'money_transfer_send';
 }
 
 function turnoDeHora(h, m, esDomingo) {
@@ -195,7 +194,22 @@ async function fetchYGuardar(esDomingo, fecha) {
     count++;
   }
 
-  return { procesados: count, salidas };
+  const importesDiagnostico = new Set([217557.5, 385600]);
+  const diagnostico = pagos.filter(p => importesDiagnostico.has(Math.abs(Number(p.transaction_amount))))
+    .map(p => ({
+      amount: Number(p.transaction_amount),
+      operationType: p.operation_type || '',
+      subUnit: p.point_of_interaction?.business_info?.sub_unit || '',
+      payerOwner: Number(p.payer_id ?? p.payer?.id) === ownerId,
+      collectorOwner: Number(p.collector_id ?? p.collector?.id) === ownerId,
+      payerRoot: p.payer_id != null,
+      payerNested: p.payer?.id != null,
+      collectorRoot: p.collector_id != null,
+      collectorNested: p.collector?.id != null,
+      paymentType: p.payment_type_id || '',
+      status: p.status || '',
+    }));
+  return { procesados: count, salidas, diagnostico };
 }
 
 export default async function handler(req, res) {
@@ -216,7 +230,8 @@ export default async function handler(req, res) {
     const resultado = await fetchYGuardar(esDomingoPedido, pedido);
 
     console.log(`Cron ejecutado: ${resultado.procesados} pagos procesados, ${resultado.salidas} salidas`);
-    return res.status(200).json({ ok: true, ...resultado, fecha: pedido, hora: hh });
+    const { diagnostico, ...publico } = resultado;
+    return res.status(200).json({ ok: true, ...publico, fecha: pedido, hora: hh, ...(req.query.debug === 'outflows' ? { diagnostico } : {}) });
   } catch (err) {
     console.error('Cron error:', err.message);
     return res.status(200).json({ ok: true, error: err.message });

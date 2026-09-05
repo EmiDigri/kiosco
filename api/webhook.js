@@ -18,8 +18,7 @@ async function mpUserId() {
 
 function pagoEsEnviado(pago, ownerId = FALLBACK_MP_USER_ID) {
   return Number(pago.transaction_amount) < 0
-    || pago.operation_type === 'money_transfer_send'
-    || pago.point_of_interaction?.business_info?.sub_unit === 'money_outflows';
+    || pago.operation_type === 'money_transfer_send';
 }
 
 function turnoDeHora(hora, esDomingo) {
