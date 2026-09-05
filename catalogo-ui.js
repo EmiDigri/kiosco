@@ -1230,6 +1230,7 @@
     form: document.getElementById('catManualForm'),
     formTitle: document.getElementById('catFormTitle'),
     editUid: document.getElementById('catEditUid'),
+    fEan: document.getElementById('catEan'),
     fNombre: document.getElementById('catNombre'),
     fCategoria: document.getElementById('catCategoria'),
     fCosto: document.getElementById('catCosto'),
@@ -1627,12 +1628,14 @@
     cat.addBtn.classList.add('close');
     cat.editUid.value = record?.uid || '';
     cat.formTitle.textContent = record ? 'Editar producto' : 'Nuevo producto';
+    if (cat.fEan) cat.fEan.value = record?.ean || '';
     cat.fNombre.value = record?.nombre || '';
     cat.fCategoria.value = record?.categoria || '';
     cat.fCosto.value = record && record.costo ? record.costo : '';
     cat.fPrecio.value = record && record.precio ? record.precio : '';
     cat.fUnidades.value = record && record.unidades ? record.unidades : '';
-    setTimeout(() => cat.fNombre.focus(), 40);
+    // En un alta nueva enfocamos el código: el lector USB "tipea" el código ahí solo.
+    setTimeout(() => { (record ? cat.fNombre : (cat.fEan || cat.fNombre)).focus(); }, 40);
   }
   function closeManualForm() {
     if (!cat.form) return;
@@ -1690,7 +1693,7 @@
       if (!precio) { cat.fPrecio.focus(); notify('Poné el precio de venta'); return; }
       const saved = catUpsert({
         uid: editUid,
-        ean: existing ? existing.ean : null,
+        ean: (cat.fEan && cat.fEan.value.trim()) || (existing ? existing.ean : null),
         nombre,
         marca: existing ? existing.marca : '',
         presentacion: existing ? existing.presentacion : '',
