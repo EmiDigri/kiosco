@@ -5742,12 +5742,14 @@ async function fetchMovimientos(desdeH,desdeM,hastaH,hastaM){
     return results.filter(p=>{const aprobado=new Date(p.date_approved||p.date_created);return aprobado>=desde&&aprobado<=hasta;});
   })();
   const respuestas=await Promise.allSettled([mpPromise,supabasePromise]);
-  const fuentes=respuestas.filter(r=>r.status==='fulfilled').map(r=>r.value);
-  if(!fuentes.length)throw respuestas[0].reason||respuestas[1].reason||new Error('No se pudieron cargar los movimientos');
+  if(respuestas.every(r=>r.status==='rejected'))throw respuestas[1].reason||respuestas[0].reason||new Error('No se pudieron cargar los movimientos');
   if(respuestas[0].status==='rejected')console.log('API MP no disponible, usando datos de Supabase');
   if(respuestas[1].status==='rejected')console.log('Supabase no disponible, usando API MP');
+  // Supabase PRIMERO: sus movimientos ya tienen nombre/tipo en castellano. La API
+  // de MP (que trae "description" en inglés) solo rellena lo que Supabase no tenga.
   const merged=new Map();
-  fuentes.flat().forEach(p=>{const key=movimientoFuenteKey(p);if(!merged.has(key))merged.set(key,p);});
+  if(respuestas[1].status==='fulfilled')respuestas[1].value.forEach(p=>merged.set(movimientoFuenteKey(p),p));
+  if(respuestas[0].status==='fulfilled')respuestas[0].value.forEach(p=>{const key=movimientoFuenteKey(p);if(!merged.has(key))merged.set(key,p);});
   return[...merged.values()];
 }
 
