@@ -5492,15 +5492,10 @@ async function histFetchDia(dia){
       (d.enviadas||[]).forEach(m=>pagos.push({fecha:dia,hora:m.hora,nombre:m.nombre,tipo:'Transferencia enviada',monto:m.monto,turno,es_enviada:true}));
     });
   }
-  // Siempre mezclar enviadas de localStorage (no se sincronizan a Supabase)
-  const histLocal=leerHistorial();
-  const datosDia=histLocal[dia]||{};
-  Object.entries(datosDia).forEach(([turno,d])=>{
-    (d.enviadas||[]).forEach(e=>{
-      const existe=pagos.some(p=>p.es_enviada&&p.hora===e.hora&&p.monto===e.monto&&p.nombre===e.nombre);
-      if(!existe)pagos.push({fecha:dia,hora:e.hora,nombre:e.nombre,tipo:'Transferencia enviada',monto:e.monto,turno,es_enviada:true});
-    });
-  });
+  // Las salidas ahora SÍ se guardan en Supabase (webhook + cron), así que la base
+  // es la única fuente de verdad. No mezclamos las enviadas del localStorage: eran
+  // capturas viejas que aparecían como "transferencias enviadas" fantasma aunque
+  // la base estuviera limpia.
   const loc=histNormalizarCierreLocal(dia);
   if(!cierres.length&&loc.cierres.length)cierres=loc.cierres;
   if(!gastos.length&&loc.gastos.length)gastos=loc.gastos;
