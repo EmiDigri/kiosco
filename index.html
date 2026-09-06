@@ -4626,7 +4626,7 @@ function renderTurnosCards(anteriores,datosDia,contId){
     horas.forEach(h=>{const pctT=horaMap[h].t/maxM*100,pctP=horaMap[h].p/maxM*100;filasHoras+=`<div class="hora-row"><span class="hora-lbl">${h}:00</span><div class="hora-track"><div class="hora-bar-t" style="width:${pctT}%"></div><div class="hora-bar-p" style="left:${pctT}%;width:${pctP}%"></div></div><span class="hora-monto">$${((horaMap[h].t+horaMap[h].p)/1000).toFixed(1)}k</span></div>`;});
     const enviadas=(datos.enviadas||[]).sort((a,b)=>(a.hora||'').localeCompare(b.hora||''));
     const totalEnviado=enviadas.reduce((a,m)=>a+m.monto,0);
-    let filasMov='';movs.forEach(m=>{const fuera=esTransferenciaFueraHorario(m,TURNOS),pill=m.tipo==='Venta Point'?'<span class="tipo-pill tp-p">Point Smart</span>':'<span class="tipo-pill tp-t">Transferencia</span>';filasMov+=`<div class="t-row"><span class="t-hora">${fuera?'🌙 ':''}${m.hora}</span><span class="t-nombre"><span class="t-n"${fuera?' style="color:#a78bfa;font-weight:700"':''}>${fuera?'Transferencia fuera de horario':cmEsc(m.nombre)}</span>${cardLogoHtml(m)}</span>${pill}<span class="t-monto">$${m.monto.toLocaleString('es-AR')}</span></div>`;});
+    let filasMov='';movs.forEach(m=>{const fuera=esTransferenciaFueraHorario(m,TURNOS),pill=m.tipo==='Venta Point'?'<span class="tipo-pill tp-p">Point Smart</span>':'<span class="tipo-pill tp-t">Transferencia</span>';const devBtn=m.pago_id&&m.tipo!=='Venta Point'?`<button class="hist-dev-btn" data-devolver="${m.pago_id}" title="Devolver — no cuenta en ningún total" aria-label="Devolver esta transferencia">↩</button>`:'';filasMov+=`<div class="t-row"><span class="t-hora">${fuera?'🌙 ':''}${m.hora}</span><span class="t-nombre"><span class="t-n"${fuera?' style="color:#a78bfa;font-weight:700"':''}>${fuera?'Transferencia fuera de horario':cmEsc(m.nombre)}</span>${cardLogoHtml(m)}</span>${pill}<span class="t-monto">$${m.monto.toLocaleString('es-AR')}</span>${devBtn}</div>`;});
     let filasEnv='';if(enviadas.length){filasEnv+=`<div class="trc-detalle-head" style="margin-top:12px">↗ Transferencias enviadas</div>`;enviadas.forEach(m=>{filasEnv+=`<div class="t-row"><span class="t-hora">${m.hora}</span><span class="t-nombre">${cmEsc(m.nombre)}</span><span class="tipo-pill" style="background:var(--amber-dim);color:var(--amber);border:1px solid rgba(244,164,53,.25)">Enviada</span><span class="t-monto" style="color:var(--amber)">-$${m.monto.toLocaleString('es-AR')}</span></div>`;});}
     const uid=contId+i;
     const card=document.createElement('div');card.className='turno-resumen-card';card.setAttribute('data-turno',t.nombre);card.style.cssText='opacity:0;transform:translateY(16px)';
@@ -4634,6 +4634,24 @@ function renderTurnosCards(anteriores,datosDia,contId){
     cont.appendChild(card);
     setTimeout(()=>{card.style.transition='opacity .4s ease,transform .5s cubic-bezier(.34,1.56,.64,1)';card.style.opacity='1';card.style.transform='translateY(0)';},80+i*100);
     card.querySelector('.trc-clickable').addEventListener('click',()=>{card.classList.toggle('open');const det=document.getElementById('det-'+uid);det.style.maxHeight=card.classList.contains('open')?det.scrollHeight+'px':'0';});
+    card.querySelectorAll('[data-devolver]').forEach(btn=>btn.addEventListener('click',async e=>{
+      e.stopPropagation();
+      if(!confirm('¿Marcar esta transferencia como DEVUELTA?\n\nNo va a contar en el total del turno ni en ningún total. Podés deshacerla desde el Historial.'))return;
+      btn.disabled=true;
+      const ok=await marcarDevuelta(btn.dataset.devolver,true);
+      if(!ok){btn.disabled=false;return;}
+      try{
+        const results=await fetchMovimientos(t.capturaDesdeH??t.desdeH,t.capturaDesdeM??t.desdeM,t.hastaH,t.hastaM);
+        const parsed=parsearMovimientos(results);
+        guardarTurno(t.nombre,parsed.movs,parsed.excluidos,parsed.enviadas);
+        renderTurnosHoy((turno||turnoReciente||{nombre:''}).nombre);
+        document.querySelectorAll(`[data-turno="${t.nombre}"]`).forEach(nextCard=>nextCard.querySelector('.trc-clickable')?.click());
+        actualizarHeroSide();
+      }catch(err){
+        btn.disabled=false;
+        showToast('La devolución se guardó. Actualizá para verla reflejada.');
+      }
+    }));
   });
 }
 
