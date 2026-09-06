@@ -537,6 +537,9 @@ body.egg-champion .logo-shop{filter:drop-shadow(0 0 8px rgba(255,79,123,.9)) dro
 .hist-horas-section{margin-bottom:14px}
 .hist-horas-title{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text-soft);margin-bottom:10px}
 .hist-movs-title{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text-soft);margin-bottom:8px;padding-top:12px;border-top:1px solid var(--glass-border)}
+.hist-dev-btn{flex:0 0 auto;margin-left:8px;width:26px;height:26px;padding:0;border:1px solid var(--glass-border);border-radius:7px;background:var(--glass);color:var(--text-soft);font-size:13px;line-height:1;cursor:pointer;opacity:.5;transition:opacity .15s,color .15s,background .15s}
+.hist-dev-btn:hover{opacity:1;color:var(--accent);background:var(--glass-hover)}
+.hist-dev-btn:disabled{opacity:.3;cursor:progress}
 
 /* TOAST */
 .toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(90px);background:rgba(10,20,14,.95);border:1px solid var(--glass-border);color:var(--text);font-size:13px;padding:13px 22px;border-radius:var(--radius-sm);backdrop-filter:blur(20px);transition:transform .4s cubic-bezier(.34,1.56,.64,1);z-index:9999;white-space:nowrap;max-width:90vw;text-align:center}
@@ -4653,7 +4656,7 @@ function trcFueraHorarioHtml(movs,turnos){
   return`<span class="trc-outside" title="${label} · ${horas}">🌙 ${label} · $${total.toLocaleString('es-AR')}</span>`;
 }
 function motivoExclusionTexto(motivo){
-  return({rejected:'Rechazado',cancelled:'Cancelado',refunded:'Reembolsado',in_process:'En proceso',pending:'Pendiente'})[motivo]||'Excluido';
+  return({rejected:'Rechazado',cancelled:'Cancelado',refunded:'Reembolsado',in_process:'En proceso',pending:'Pendiente',devuelta:'Devuelta'})[motivo]||'Excluido';
 }
 function guardarTurno(nombreTurno,movs,excluidos,enviadas,fecha){
   const hoyK=fecha||fechaHoy();let hist={};
@@ -5011,20 +5014,20 @@ async function histFetchMPMes(y,m,cutoffDay){
   const lastDay=new Date(y,m,0).getDate();
   const from=histIso(y,m,1),to=histIso(y,m,Math.min(cutoffDay||lastDay,lastDay));
   try{
-    const rows=await histSbSelectAll(`pagos?select=id,monto,status,es_enviada&fecha=gte.${from}&fecha=lte.${to}&order=id.asc`);
+    const rows=await histSbSelectAll(`pagos?select=id,monto,status,es_enviada,devuelta&fecha=gte.${from}&fecha=lte.${to}&order=id.asc`);
     return rows.filter(histPagoValidoComparacion).reduce((a,r)=>a+(Number(r.monto)||0),0);
   }catch(e){return null;}
 }
 // ── "Nuestro kiosco": resumen mensual cooperativo y autoaprendido ──
 function histMediana(a){if(!a||!a.length)return 0;const s=[...a].sort((x,y)=>x-y),m=s.length>>1;return s.length%2?s[m]:(s[m-1]+s[m])/2;}
-function histPagoValidoComparacion(row){return row&&row.es_enviada!==true&&(!row.status||row.status==='approved');}
+function histPagoValidoComparacion(row){return row&&row.es_enviada!==true&&row.devuelta!==true&&String(row.devuelta)!=='true'&&(!row.status||row.status==='approved');}
 // Total y desglose por persona (turno) de un mes. Pagina (histSbSelect corta
 // en 1000 filas y un mes tiene mas) para no undervaluar el total.
 async function histFetchMesPersonas(y,m,cutoffDay){
   const lastDay=new Date(y,m,0).getDate();
   const from=histIso(y,m,1),to=histIso(y,m,Math.min(cutoffDay||lastDay,lastDay));
   try{
-    const rows=await histSbSelectAll(`pagos?select=id,monto,turno,fecha,status,es_enviada&fecha=gte.${from}&fecha=lte.${to}&order=id.asc`);
+    const rows=await histSbSelectAll(`pagos?select=id,monto,turno,fecha,status,es_enviada,devuelta&fecha=gte.${from}&fecha=lte.${to}&order=id.asc`);
     const personas={Vale:0,Ani:0,Marta:0},dias={};let total=0,domingos=0;
     rows.filter(histPagoValidoComparacion).forEach(r=>{const mo=Number(r.monto)||0;total+=mo;if(personas[r.turno]!=null)personas[r.turno]+=mo;if(r.turno==='Turno 1'||r.turno==='Turno 2')domingos+=mo;if(r.fecha)dias[r.fecha]=1;});
     return{total,personas,domingos,diasActivos:Object.keys(dias).length};
@@ -5044,7 +5047,7 @@ async function histFetchMesProporcional(y,m,comparacion){
   const totalLast=totalDays.length?histIso(y,m,totalDays[totalDays.length-1]):'',regularLast=regularDays.length?histIso(y,m,regularDays[regularDays.length-1]):'',sundayLast=sundayDays.length?histIso(y,m,sundayDays[sundayDays.length-1]):'';
   const hastaHora=(row,lastKey,partial)=>!partial||!cutoff||row.fecha!==lastKey||!row.hora||String(row.hora).slice(0,5)<=cutoff;
   try{
-    const rows=await histSbSelectAll(`pagos?select=id,monto,turno,fecha,hora,status,es_enviada&fecha=gte.${from}&fecha=lte.${to}&order=fecha.asc,hora.asc`);
+    const rows=await histSbSelectAll(`pagos?select=id,monto,turno,fecha,hora,status,es_enviada,devuelta&fecha=gte.${from}&fecha=lte.${to}&order=fecha.asc,hora.asc`);
     const personas={Vale:0,Ani:0,Marta:0},dias={};let total=0,domingos=0;
     rows.filter(histPagoValidoComparacion).forEach(row=>{
       const monto=Number(row.monto)||0;
@@ -5213,6 +5216,7 @@ function histAgruparPorDia(pagos,cierres,gastos){
     const monto=Number(r.monto)||0;
     if(r.es_enviada){d.enviadas+=monto;return;}
     if(r.excluido)return;
+    if(r.devuelta===true||r.devuelta==='true')return;
     d.mpTotal+=monto;d.movs++;
     if(esTransferenciaFueraHorario(r,turnosDelDia(dia)))d.fueraHorario=true;
     const t=r.turno||'Sin turno';
@@ -5284,7 +5288,7 @@ async function histCargarMes(){
   gastos=histDeduplicarGastos(gastos);
   // Igual que en histFetchDia: las filas de Supabase no traen excluido seteado,
   // lo derivamos del status real para no sumar rechazados/cancelados al mes.
-  pagos.forEach(p=>{if(p.excluido===undefined)p.excluido=!p.es_enviada&&!!p.status&&p.status!=='approved';});
+  pagos.forEach(p=>{if(p.excluido===undefined)p.excluido=!p.es_enviada&&!!p.status&&p.status!=='approved';if(p.devuelta===true||p.devuelta==='true')p.excluido=true;});
   histRowsPagosMes=pagos;histRowsCierresMes=cierres;histRowsGastosMes=gastos;
   histResumenMes=histAgruparPorDia(pagos,cierres,gastos);
   renderCalendarioMes();
@@ -5480,8 +5484,19 @@ async function histFetchDia(dia){
   // Las filas que vienen directo de Supabase no traen el flag excluido seteado
   // (eso solo pasa en el camino de respaldo por localStorage): lo derivamos del
   // status real del pago para no contar rechazados/cancelados como validos.
-  pagos.forEach(p=>{if(p.excluido===undefined)p.excluido=!p.es_enviada&&!!p.status&&p.status!=='approved';});
+  pagos.forEach(p=>{if(p.excluido===undefined)p.excluido=!p.es_enviada&&!!p.status&&p.status!=='approved';if(p.devuelta===true||p.devuelta==='true')p.excluido=true;});
   return {pagos,cierres,gastos};
+}
+// Marca (o desmarca) una transferencia como "devuelta" en Supabase. Una vez
+// devuelta, queda excluida de TODOS los totales (turno, día, mes, pulse, cierre).
+async function marcarDevuelta(pagoId,valor){
+  try{
+    const res=await fetch(`${SUPABASE_URL}/rest/v1/pagos?pago_id=eq.${encodeURIComponent(pagoId)}`,{method:'PATCH',headers:await sbAuthHeaders({'Content-Type':'application/json','Prefer':'return=minimal'}),body:JSON.stringify({devuelta:valor})});
+    if(!res.ok)throw new Error(await res.text());
+    if(typeof programarPulso==='function')programarPulso(200);
+    showToast(valor?'Transferencia marcada como devuelta ✓':'Devolución deshecha ✓');
+    return true;
+  }catch(e){showToast('No se pudo actualizar. Probá de nuevo.');return false;}
 }
 async function mostrarDetalleDia(dia){
   document.getElementById('histVistaLista').style.display='none';
@@ -5562,7 +5577,7 @@ async function mostrarDetalleDia(dia){
       ${excluidos.length?`<div class="hist-stat-chip" style="color:#f45555">✕ Excluidos ${histMoney(excluidos.reduce((a,e)=>a+(Number(e.monto)||0),0))}</div>`:''}
     </div><div class="hist-movs-title">${movs.length} movimientos MercadoPago</div>`;
     if(movs.length){
-      movs.forEach(m=>{const fuera=esTransferenciaFueraHorario(m,turnosDelDia(dia)),pill=m.tipo==='Venta Point'?'<span class="tipo-pill tp-p">Point Smart</span>':'<span class="tipo-pill tp-t">Transferencia</span>';movsHTML+=`<div class="t-row"><span class="t-hora">${fuera?'🌙 ':''}${m.hora||'--:--'}</span><span class="t-nombre"><span class="t-n"${fuera?' style="color:#a78bfa;font-weight:700"':''}>${fuera?'Transferencia fuera de horario':(cmEsc?cmEsc(m.nombre):m.nombre)}</span>${cardLogoHtml(m)}</span>${pill}<span class="t-monto">${histMoney(m.monto)}</span></div>`;});
+      movs.forEach(m=>{const fuera=esTransferenciaFueraHorario(m,turnosDelDia(dia)),pill=m.tipo==='Venta Point'?'<span class="tipo-pill tp-p">Point Smart</span>':'<span class="tipo-pill tp-t">Transferencia</span>';const devBtn=m.pago_id&&m.tipo!=='Venta Point'?`<button class="hist-dev-btn" data-devolver="${m.pago_id}" title="Devolver — no cuenta en ningún total" aria-label="Devolver esta transferencia">↩</button>`:'';movsHTML+=`<div class="t-row"><span class="t-hora">${fuera?'🌙 ':''}${m.hora||'--:--'}</span><span class="t-nombre"><span class="t-n"${fuera?' style="color:#a78bfa;font-weight:700"':''}>${fuera?'Transferencia fuera de horario':(cmEsc?cmEsc(m.nombre):m.nombre)}</span>${cardLogoHtml(m)}</span>${pill}<span class="t-monto">${histMoney(m.monto)}</span>${devBtn}</div>`;});
     }else{movsHTML+='<div class="empty">Sin movimientos de MercadoPago en este turno.</div>';}
     if(enviados.length){
       movsHTML+=`<div class="hist-movs-title" style="margin-top:10px;color:var(--amber)">↗ Transferencias enviadas</div>`;
@@ -5570,7 +5585,7 @@ async function mostrarDetalleDia(dia){
     }
     if(excluidos.length){
       movsHTML+=`<div class="hist-movs-title" style="margin-top:10px;color:#f45555">✕ Movimientos excluidos</div>`;
-      excluidos.forEach(e=>{movsHTML+=`<div class="t-row"><span class="t-hora">${e.hora||'--:--'}</span><span class="t-nombre">${cmEsc?cmEsc(e.nombre):e.nombre}</span><span class="tipo-pill" style="background:rgba(244,85,85,.12);color:#f45555;border:1px solid rgba(244,85,85,.25)">${motivoExclusionTexto(e.status||e.motivo)}</span><span class="t-monto" style="color:#f45555">${histMoney(e.monto)}</span></div>`;});
+      excluidos.forEach(e=>{const esDev=e.devuelta===true||e.devuelta==='true'||e.motivo==='devuelta';const pillTxt=esDev?'Devuelta':motivoExclusionTexto(e.status||e.motivo);const desBtn=esDev&&e.pago_id?`<button class="hist-dev-btn" data-deshacer="${e.pago_id}" title="Deshacer la devolución" aria-label="Deshacer devolución">↺</button>`:'';movsHTML+=`<div class="t-row"><span class="t-hora">${e.hora||'--:--'}</span><span class="t-nombre">${cmEsc?cmEsc(e.nombre):e.nombre}</span><span class="tipo-pill" style="background:rgba(244,85,85,.12);color:#f45555;border:1px solid rgba(244,85,85,.25)">${pillTxt}</span><span class="t-monto" style="color:#f45555">${histMoney(e.monto)}</span>${desBtn}</div>`;});
     }
     html+=`<div class="hist-turno-card" id="${cardId}">
       <div class="hist-turno-header">
@@ -5591,6 +5606,20 @@ async function mostrarDetalleDia(dia){
   cont.querySelectorAll('.hist-btn-cierre-manual').forEach(btn=>{
     btn.addEventListener('click',e=>{e.stopPropagation();cmAbrir(btn.dataset.dia,btn.dataset.turno);});
   });
+  cont.querySelectorAll('[data-devolver]').forEach(btn=>btn.addEventListener('click',async e=>{
+    e.stopPropagation();
+    if(!confirm('¿Marcar esta transferencia como DEVUELTA?\n\nNo va a contar en el total del turno ni en ningún total de la app. Podés deshacerlo después.'))return;
+    btn.disabled=true;
+    const ok=await marcarDevuelta(btn.dataset.devolver,true);
+    if(ok)mostrarDetalleDia(dia);else btn.disabled=false;
+  }));
+  cont.querySelectorAll('[data-deshacer]').forEach(btn=>btn.addEventListener('click',async e=>{
+    e.stopPropagation();
+    if(!confirm('¿Deshacer la devolución? Va a volver a contar como ingreso.'))return;
+    btn.disabled=true;
+    const ok=await marcarDevuelta(btn.dataset.deshacer,false);
+    if(ok)mostrarDetalleDia(dia);else btn.disabled=false;
+  }));
   document.getElementById('historialOverlay').scrollTop=0;
   const btnRec=document.getElementById('btnRecuperarMP');
   if(btnRec){
@@ -5735,7 +5764,7 @@ async function fetchMovimientos(desdeH,desdeM,hastaH,hastaM){
     if(!res.ok)throw new Error('Supabase: '+res.status);
     const rows=await res.json();
     if(rows.length)console.log('Datos desde Supabase:',rows.length,'registros');
-    return rows.map(r=>({id:r.pago_id,_id:r.pago_id,date_approved:`${r.fecha}T${r.hora}:00`,transaction_amount:r.es_enviada?-Math.abs(Number(r.monto)||0):r.monto,operation_type:r.operation_type,status:r.status,es_enviada:r.es_enviada===true||String(r.es_enviada)==='true',payer:{first_name:r.nombre},card:{cardholder:{name:r.nombre}},payment_method:{id:''},_nombre:r.nombre,_tipo:r.tipo}));
+    return rows.map(r=>({id:r.pago_id,_id:r.pago_id,date_approved:`${r.fecha}T${r.hora}:00`,transaction_amount:r.es_enviada?-Math.abs(Number(r.monto)||0):r.monto,operation_type:r.operation_type,status:r.status,es_enviada:r.es_enviada===true||String(r.es_enviada)==='true',_devuelta:r.devuelta===true||String(r.devuelta)==='true',payer:{first_name:r.nombre},card:{cardholder:{name:r.nombre}},payment_method:{id:''},_nombre:r.nombre,_tipo:r.tipo}));
   })();
   const mpPromise=(async()=>{
     const results=await fetchMPDia(fecha);
@@ -5790,6 +5819,7 @@ function parsearMovimientos(results){
     else if(p.additional_info?.payer?.first_name){nombre=(p.additional_info.payer.first_name+' '+(p.additional_info.payer.last_name||'')).trim();}
     else{nombre=p.description||'Transferencia recibida';}
     const monto=p.transaction_amount;
+    if(p._devuelta){excluidos.push({hora,nombre:p._nombre||nombre,tipo:'Devuelta',monto:Math.abs(Number(monto)||0),motivo:'devuelta',pago_id:p.id});return;}
     const esEnviada=p.es_enviada===true||p._es_enviada===true||p.operation_type==='money_transfer_send'||p._tipo==='Transferencia enviada'||Number(monto)<0;
     if(p.status!=='approved'){excluidos.push({hora,nombre,tipo:esEnviada?'Enviada':(p._tipo||'Transferencia recibida'),monto,motivo:p.status});return;}
     if(esEnviada){enviadas.push({hora,nombre:p._nombre||'Transferencia enviada',tipo:'Enviada',monto:Math.abs(Number(monto)||0)});return;}
@@ -5815,7 +5845,7 @@ function pulseMoneyShort(n){
   return pulseMoney(n);
 }
 function pulseRowKey(r){return`${r.fecha}|${String(r.hora||'').slice(0,5)}|${Math.round((Number(r.monto)||0)*100)}|${String(r.nombre||'').trim().toLowerCase()}`;}
-function pulseValidRow(r){return r&&r.fecha&&r.hora&&(Number(r.monto)||0)>0&&r.es_enviada!==true&&String(r.es_enviada)!=='true'&&(!r.status||r.status==='approved');}
+function pulseValidRow(r){return r&&r.fecha&&r.hora&&(Number(r.monto)||0)>0&&r.es_enviada!==true&&String(r.es_enviada)!=='true'&&r.devuelta!==true&&String(r.devuelta)!=='true'&&(!r.status||r.status==='approved');}
 function pulseLocalRows(desde){
   const rows=[],hist=leerHistorial();
   Object.entries(hist).forEach(([fecha,turnos])=>{
@@ -5829,7 +5859,7 @@ function pulseLocalRows(desde){
 async function pulseFetchRows(){
   const now=new Date(),fromDate=new Date(now.getFullYear(),now.getMonth(),now.getDate()-63),desde=pulseIso(fromDate),hasta=pulseIso(now);
   let remote=[],remoteOk=false;
-  try{remote=await histSbSelectAll(`pagos?select=id,fecha,hora,monto,nombre,tipo,status,es_enviada&fecha=gte.${desde}&fecha=lte.${hasta}&order=fecha.asc,hora.asc`);remoteOk=true;}catch(e){console.log('Pulso: usando respaldo local');}
+  try{remote=await histSbSelectAll(`pagos?select=id,fecha,hora,monto,nombre,tipo,status,es_enviada,devuelta&fecha=gte.${desde}&fecha=lte.${hasta}&order=fecha.asc,hora.asc`);remoteOk=true;}catch(e){console.log('Pulso: usando respaldo local');}
   // Solo se usa el historial local (distinto en cada dispositivo) si Supabase
   // realmente fallo; si no, mezclarlo siempre generaba totales distintos
   // segun que quedo cacheado en el localStorage de cada aparato.
