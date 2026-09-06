@@ -11,4 +11,4 @@ jobs:
     steps:
       - name: Llamar al cron
         run: |
-          curl -s https://kiosco-lac.vercel.app/api/cron
+          curl --fail-with-body --silent --show-error https://kiosco-lac.vercel.app/api/cron

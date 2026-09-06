@@ -5789,9 +5789,9 @@ function parsearMovimientos(results){
     else{nombre=p.description||'Transferencia recibida';}
     const monto=p.transaction_amount;
     const esEnviada=p.es_enviada===true||p._es_enviada===true||p.operation_type==='money_transfer_send'||p._tipo==='Transferencia enviada'||Number(monto)<0;
+    if(p.status!=='approved'){excluidos.push({hora,nombre,tipo:esEnviada?'Enviada':(p._tipo||'Transferencia recibida'),monto,motivo:p.status});return;}
     if(esEnviada){enviadas.push({hora,nombre:p._nombre||'Transferencia enviada',tipo:'Enviada',monto:Math.abs(Number(monto)||0)});return;}
     const tipo=p._tipo||(p.operation_type==='pos_payment'?'Venta Point':'Transferencia recibida');
-    if(p.status!=='approved'){excluidos.push({hora,nombre,tipo,monto,motivo:p.status});return;}
     movs.push({hora,nombre,tipo,monto,marca});
   });
   const sortFn=(a,b)=>{const pa=a.hora.split(':').map(Number),pb=b.hora.split(':').map(Number);return(pb[0]*60+pb[1])-(pa[0]*60+pa[1]);};

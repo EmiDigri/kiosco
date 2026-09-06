@@ -27,7 +27,7 @@ function validDate(value) {
 function dayWindow(date) {
   const [year, month, day] = date.split('-').map(Number);
   const begin = new Date(Date.UTC(year, month - 1, day, 3, 0, 0));
-  const end = new Date(Date.UTC(year, month - 1, day + 1, 2, 59, 59));
+  const end = new Date(Date.UTC(year, month - 1, day + 1, 2, 59, 59, 999));
   if (Number.isNaN(begin.getTime()) || begin.toISOString().slice(0, 10) !== date) return null;
   return { begin, end };
 }
@@ -69,6 +69,7 @@ async function searchPayments(window, extraParams = {}) {
       begin_date: window.begin.toISOString(),
       end_date: window.end.toISOString(),
       status: 'approved',
+      range: 'date_approved',
       sort: 'date_approved',
       criteria: 'asc',
       limit: '100',
@@ -103,20 +104,22 @@ export default async function handler(req, res) {
       searchPayments(window),
       searchPayments(window, { operation_type: 'money_transfer_send' }),
     ]);
+    if (searches[0].status === 'rejected') throw searches[0].reason;
     const successful = searches.filter(result => result.status === 'fulfilled');
-    if (!successful.length) throw searches[0].reason;
     const unique = new Map();
     successful.flatMap(result => result.value).forEach(payment => {
+      const time = new Date(payment.date_approved || payment.date_created).getTime();
+      if (payment.status !== 'approved' || !(time >= window.begin.getTime() && time <= window.end.getTime())) return;
       const key = payment.id != null
         ? `id:${payment.id}`
         : `${payment.date_approved || payment.date_created}|${payment.transaction_amount}|${payment.operation_type}`;
       unique.set(key, payment);
     });
     const report = await settlementOutflows(date, MP_TOKEN).catch(() => ({ status: 'unavailable', outflows: [] }));
-    report.outflows.forEach(payment => unique.set(`report:${payment.id}`, payment));
+    report.outflows.forEach(payment => unique.set(`id:${payment.id}`, payment));
     const all = [...unique.values()].map(publicPayment);
     res.setHeader('Cache-Control', 'no-store');
-    return res.status(200).json({ results: all });
+    return res.status(200).json({ results: all, outflowReportStatus: report.status });
   } catch (error) {
     return res.status(502).json({ error: error.message || 'No se pudo consultar Mercado Pago' });
   }

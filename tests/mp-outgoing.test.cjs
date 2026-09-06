@@ -6,9 +6,9 @@ function jsonResponse(body, ok = true, status = ok ? 200 : 500) {
   return { ok, status, async json() { return body; } };
 }
 
-function loadApi(fetchImpl) {
+function loadApi(fetchImpl, report = { status: 'processed', outflows: [] }) {
   let source = fs.readFileSync('api/mp-history.js', 'utf8');
-  source = source.replace(/^import .*_mp-settlement\.js';\r?\n/m, "const settlementOutflows=async()=>({status:'processed',outflows:[]});\n");
+  source = source.replace(/^import .*_mp-settlement\.js';\r?\n/m, `const settlementOutflows=async()=>(${JSON.stringify(report)});\n`);
   source = source.replace('export default async function handler', 'async function handler');
   source += '\nmodule.exports={handler,paymentIsOutgoing,publicPayment};';
   const module = { exports: {} };
@@ -81,6 +81,9 @@ async function main() {
   assert.equal(parsed.movs.length, 1);
   assert.equal(parsed.enviadas.length, 2);
   assert.deepEqual(Array.from(parsed.enviadas, row => row.monto).sort((a, b) => a - b), [8000, 12000]);
+  const failedOutflows = front.exports(['rejected', 'cancelled', 'pending'].map(status => ({ ...byType, status })));
+  assert.equal(failedOutflows.enviadas.length, 0, 'failed or pending transfers never count as money sent');
+  assert.equal(failedOutflows.excluidos.length, 3);
 
   const cronWrites = [];
   const cron = loadHandler('api/cron.js', async (url, options = {}) => {
@@ -90,12 +93,15 @@ async function main() {
       return { ok: true, async text() { return ''; } };
     }
     const query = new URL(url).searchParams;
+    assert.equal(query.get('range'), 'date_approved');
+    assert.equal(query.get('end_date'), '2026-09-05T02:59:59.999Z', 'historical reconciliation ends on the requested day');
     if (query.get('operation_type') === 'money_transfer_send') return jsonResponse({ results: [byType] });
     if (query.get('operation_type') === 'pos_payment') return jsonResponse({ results: [] });
-    return jsonResponse({ results: [incoming, byType] });
+    return jsonResponse({ results: [incoming, byType, { ...byType, id: 99, date_approved: '2026-09-05T15:00:00-03:00' }] });
   });
   await cron.handler({ query: { date: '2026-09-04' } }, responseCapture());
   assert.equal(cronWrites.filter(row => row.es_enviada).length, 1, 'cron saves an explicitly outgoing transfer');
+  assert.equal(cronWrites.length, 2, 'does not import movements from later days');
   assert.equal(cron.turnoDeHora(12, 0, false), 'Vale');
   assert.equal(cron.turnoDeHora(12, 1, false), 'Ani');
   assert.equal(cron.turnoDeHora(17, 0, false), 'Ani');
@@ -121,10 +127,34 @@ async function main() {
   assert.equal(webhook.turnoDeHora('16:00', true), 'Turno 1');
   assert.equal(webhook.turnoDeHora('16:01', true), 'Turno 2');
   const { settlementInternals } = await import('../api/_mp-settlement.js');
-  const reportRows = settlementInternals.reportOutflows('SOURCE_ID;TRANSACTION_TYPE;TRANSACTION_DATE;SETTLEMENT_NET_AMOUNT\n10;SETTLEMENT;2026-09-04T15:30:00-03:00;-217557.50\n11;SETTLEMENT;2026-09-04T15:40:00-03:00;3500');
+  const header = 'SOURCE_ID;TRANSACTION_TYPE;TRANSACTION_DATE;SETTLEMENT_NET_AMOUNT\n';
+  const reportRows = settlementInternals.reportOutflows(header + '10;WITHDRAWAL;2026-09-04T15:30:00-03:00;-12000\n11;SETTLEMENT;2026-09-04T15:40:00-03:00;3500\n11;REFUND;2026-09-04T15:50:00-03:00;-3500\n12;PAYOUT;2026-09-05T15:00:00-03:00;-5000', '2026-09-04');
   assert.equal(reportRows.length, 1);
-  assert.equal(reportRows[0].transaction_amount, -217557.5);
-  console.log('PASS: explicit outgoing search, money-outflow detection, deduplication and frontend classification.');
+  assert.equal(reportRows[0].transaction_amount, -12000);
+  assert.throws(() => settlementInternals.reportOutflows('FOO;BAR\n1;2'), /columnas/);
+  assert.throws(() => settlementInternals.reportOutflows(header + '10;SETTLEMENT;2026-09-04T15:00:00-03:00;-12000'), /verificar/, 'unverified debit types must not silently become outgoing transfers');
+  assert.throws(() => settlementInternals.reportOutflows(header + ';WITHDRAWAL;2026-09-04T15:00:00-03:00;-12000'), /identificador/);
+  assert.throws(() => settlementInternals.reportOutflows(header + '10;WITHDRAWAL;2026-09-04T15:00:00-03:00;no-number'), /Importe/);
+  assert.throws(() => settlementInternals.reportOutflows(header + '10;WITHDRAWAL;2026-09-04T15:00:00;-12000'), /zona horaria/);
+  assert.equal(settlementInternals.reportOutflows(header.replaceAll(';', ',') + '10,WITHDRAWAL,2026-09-04T15:00:00-03:00,-12000').length, 1);
+
+  const reportedApi = loadApi(async url => {
+    if (String(url).includes('/auth/v1/user')) return jsonResponse({ id: 'user-test' });
+    return jsonResponse({ results: [byType] });
+  }, { status: 'processed', outflows: [{ ...byType, id: String(byType.id), transaction_amount: -12000 }] });
+  const reportedResponse = responseCapture();
+  await reportedApi.handler({ method: 'GET', query: { date: '2026-09-04' }, headers: { authorization: 'Bearer user-token' } }, reportedResponse);
+  assert.equal(reportedResponse.body.results.length, 1, 'same operation from Payments and report counts once');
+
+  const failedCron = loadHandler('api/cron.js', async url => {
+    if (String(url).includes('/rest/v1/pagos')) return jsonResponse({}, false, 403);
+    return jsonResponse({ results: [incoming] });
+  });
+  const failedResponse = responseCapture();
+  await failedCron.handler({ query: { date: '2026-09-04' } }, failedResponse);
+  assert.equal(failedResponse.statusCode, 502, 'database failures cannot report success');
+  assert.equal(failedResponse.body.ok, false);
+  console.log('PASS: outgoing classification, date boundaries, report validation, deduplication and failed writes. These are fixture tests, not a reconciliation of real MP outflows.');
 }
 
 main().catch(error => { console.error(error); process.exit(1); });

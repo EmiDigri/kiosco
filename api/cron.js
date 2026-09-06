@@ -44,8 +44,7 @@ async function guardarEnSupabase(registro) {
     body: JSON.stringify(registro)
   });
   if (!res.ok) {
-    const txt = await res.text();
-    if (!txt.includes('23505')) console.error('Supabase error:', txt);
+    throw new Error(`No se pudo guardar un movimiento en Supabase (${res.status})`);
   }
 }
 
@@ -95,13 +94,13 @@ async function buscarPagosMP(extraParams) {
   const todos = [];
   for (let offset = 0; offset < 1000; offset += 100) {
     const params = new URLSearchParams({
-      status: 'approved', sort: 'date_approved', criteria: 'asc',
+      status: 'approved', range: 'date_approved', sort: 'date_approved', criteria: 'asc',
       limit: 100, offset, ...extraParams,
     });
     const res = await fetch(`https://api.mercadopago.com/v1/payments/search?${params}`, {
       headers: { Authorization: `Bearer ${MP_TOKEN}` }
     });
-    if (!res.ok) { console.error('MP error', res.status); break; }
+    if (!res.ok) throw new Error(`No se pudo consultar Mercado Pago (${res.status})`);
     const data = await res.json();
     const pagos = data.results || [];
     todos.push(...pagos);
@@ -118,7 +117,7 @@ async function buscarPagosMP(extraParams) {
 async function fetchYGuardar(esDomingo, fecha) {
   const now = new Date();
   const begin = inicioDiaAR(fecha);
-  const end = now;
+  const end = new Date(Math.min(begin.getTime() + 24 * 60 * 60 * 1000 - 1, now.getTime()));
 
   console.log(`Reconciliando día ${fecha}: ${begin.toISOString()} → ${end.toISOString()}`);
 
@@ -129,6 +128,8 @@ async function fetchYGuardar(esDomingo, fecha) {
   ]);
   const pagosUnicos = new Map();
   [...pagosGenerales, ...pagosEnviados].forEach(pago => {
+    const time = new Date(pago.date_approved || pago.date_created).getTime();
+    if (pago.status !== 'approved' || !(time >= begin.getTime() && time <= end.getTime())) return;
     const key = pago.id != null
       ? `id:${pago.id}`
       : `${pago.date_approved || pago.date_created}|${pago.transaction_amount}|${pago.operation_type}`;
@@ -137,7 +138,7 @@ async function fetchYGuardar(esDomingo, fecha) {
   const pagos = [...pagosUnicos.values()];
   console.log(`MP devolvió ${pagos.length} operaciones (${pagosEnviados.length} salidas explícitas)`);
 
-  let count = 0, salidas = 0;
+  const guardados = new Set(), salidasGuardadas = new Set();
   for (const pago of pagos) {
     const esEnviada = pagoEsEnviado(pago);
 
@@ -157,7 +158,8 @@ async function fetchYGuardar(esDomingo, fecha) {
         operation_type: pago.operation_type,
         es_enviada: true
       });
-      count++;salidas++;
+      guardados.add(String(pago.id));
+      salidasGuardadas.add(String(pago.id));
       continue;
     }
 
@@ -168,15 +170,18 @@ async function fetchYGuardar(esDomingo, fecha) {
     }
 
     await guardarEnSupabase(parsearPago(pago, esDomingo));
-    count++;
+    guardados.add(String(pago.id));
   }
 
   // Ventas Point específicas (a veces no aparecen en el search general)
   const pagosPoint = await buscarPagosMP({ ...win, operation_type: 'pos_payment' });
   console.log(`Ventas Point específicas: ${pagosPoint.length}`);
   for (const pago of pagosPoint) {
+    const time = new Date(pago.date_approved || pago.date_created).getTime();
+    if (pago.status !== 'approved' || !(time >= begin.getTime() && time <= end.getTime())) continue;
+    if (guardados.has(String(pago.id))) continue;
     await guardarEnSupabase(parsearPago(pago, esDomingo));
-    count++;
+    guardados.add(String(pago.id));
   }
 
   const report = await settlementOutflows(fecha, MP_TOKEN).catch(error => ({ status: 'unavailable', outflows: [], error: error.message }));
@@ -188,17 +193,18 @@ async function fetchYGuardar(esDomingo, fecha) {
       pago_id: pago.id,
       fecha,
       hora,
-      nombre: 'Transferencia enviada',
-      tipo: 'Transferencia enviada',
+      nombre: pago.description || 'Salida MP',
+      tipo: pago.description || 'Salida MP',
       monto: Math.abs(Number(pago.transaction_amount)),
       turno: turnoDeHora(dAR.getUTCHours(), dAR.getUTCMinutes(), esDomingo),
       status: 'approved',
       operation_type: 'money_transfer_send',
       es_enviada: true,
     });
-    salidas++;
+    guardados.add(String(pago.id));
+    salidasGuardadas.add(String(pago.id));
   }
-  return { procesados: count + report.outflows.length, salidas, reporte: report.status, reporteError: report.error || null };
+  return { procesados: guardados.size, salidas: salidasGuardadas.size, reporte: report.status, reporteError: report.error || null };
 }
 
 export default async function handler(req, res) {
@@ -219,9 +225,11 @@ export default async function handler(req, res) {
     const resultado = await fetchYGuardar(esDomingoPedido, pedido);
 
     console.log(`Cron ejecutado: ${resultado.procesados} pagos procesados, ${resultado.salidas} salidas`);
-    return res.status(200).json({ ok: true, ...resultado, fecha: pedido, hora: hh });
+    const completo = resultado.reporte === 'processed';
+    const pendiente = ['pending', 'processing'].includes(resultado.reporte);
+    return res.status(completo ? 200 : pendiente ? 202 : 502).json({ ok: completo || pendiente, completo, ...resultado, fecha: pedido, hora: hh });
   } catch (err) {
     console.error('Cron error:', err.message);
-    return res.status(200).json({ ok: true, error: err.message });
+    return res.status(502).json({ ok: false, error: err.message });
   }
 }
