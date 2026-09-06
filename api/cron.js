@@ -188,7 +188,31 @@ async function fetchYGuardar(esDomingo, fecha) {
     guardados.add(String(pago.id));
   }
 
-  return { procesados: guardados.size, salidas: salidasGuardadas.size };
+  // Limpieza de salidas FANTASMA: borra cualquier fila del día marcada como
+  // enviada que NO se confirmó como salida real de MP esta corrida. Cubre la
+  // basura que dejó el reporte de settlement (ids inventados que no son pagos
+  // reales, por eso el cron nunca los repisaba). Una salida real siempre vuelve
+  // a aparecer en la búsqueda de MP, así que no se borra por error.
+  let fantasmas = 0;
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/pagos?fecha=eq.${fecha}&es_enviada=eq.true&select=pago_id`, {
+      headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` },
+    });
+    if (res.ok) {
+      const filas = await res.json();
+      for (const fila of filas) {
+        if (salidasGuardadas.has(String(fila.pago_id))) continue;
+        await fetch(`${SUPABASE_URL}/rest/v1/pagos?pago_id=eq.${encodeURIComponent(fila.pago_id)}`, {
+          method: 'DELETE',
+          headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, Prefer: 'return=minimal' },
+        });
+        fantasmas++;
+      }
+      if (fantasmas) console.log(`Limpieza: ${fantasmas} salidas fantasma borradas`);
+    }
+  } catch (e) { console.error('Limpieza salidas fantasma:', e.message); }
+
+  return { procesados: guardados.size, salidas: salidasGuardadas.size, fantasmas };
 }
 
 export default async function handler(req, res) {
