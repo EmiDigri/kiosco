@@ -1,4 +1,5 @@
 const MP_TOKEN = process.env.MP_ACCESS_TOKEN || '';
+const MP_USER_ID = Number(process.env.MP_USER_ID) || 443581160; // dueño de la cuenta del kiosco
 const MAX_RESULTS = 500;
 
 // Este endpoint devuelve el historial de pagos de MP: solo para usuarios logueados.
@@ -31,9 +32,9 @@ function dayWindow(date) {
 }
 
 function paymentIsOutgoing(payment) {
-  if (Number(payment.transaction_amount) < 0) return true;
-  if (payment.operation_type === 'money_transfer_send' || payment.operation_type === 'withdrawal') return true;
-  return payment.point_of_interaction?.business_info?.sub_unit === 'money_outflows';
+  return Number(payment.transaction_amount) < 0
+    || payment.operation_type === 'money_transfer_send'
+    || (payment.point_of_interaction?.business_info?.sub_unit === 'money_outflows' && Number(payment.payer_id) === MP_USER_ID);
 }
 
 function publicPayment(payment) {

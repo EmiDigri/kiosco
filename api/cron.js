@@ -1,14 +1,15 @@
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://pilfeptwylgufhbmmday.supabase.co';
 const SUPABASE_KEY = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const MP_TOKEN = process.env.MP_ACCESS_TOKEN || '';
-// Una operación es una SALIDA (plata que se va: transferencia enviada o retiro
-// al banco) si el monto es negativo, o el tipo es de envío/retiro, o MP la marca
-// con sub_unit "money_outflows". Esta última señal es la que hacía que "anduviera
-// perfecto"; sin ella, un retiro grande entra mal como ingreso e infla el turno.
+const MP_USER_ID = Number(process.env.MP_USER_ID) || 443581160; // dueño de la cuenta del kiosco
+// Una operación es SALIDA (plata que se va) si el monto es negativo, o el tipo es
+// money_transfer_send, o MP la marca con sub_unit "money_outflows" Y el que paga
+// es el dueño de la cuenta. El filtro del dueño es CLAVE: sin él, sub_unit matchea
+// también ingresos y marca todo como salida.
 function pagoEsEnviado(pago) {
-  if (Number(pago.transaction_amount) < 0) return true;
-  if (pago.operation_type === 'money_transfer_send' || pago.operation_type === 'withdrawal') return true;
-  return pago.point_of_interaction?.business_info?.sub_unit === 'money_outflows';
+  return Number(pago.transaction_amount) < 0
+    || pago.operation_type === 'money_transfer_send'
+    || (pago.point_of_interaction?.business_info?.sub_unit === 'money_outflows' && Number(pago.payer_id) === MP_USER_ID);
 }
 
 function turnoDeHora(h, m, esDomingo) {
