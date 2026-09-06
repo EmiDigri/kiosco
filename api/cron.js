@@ -1,11 +1,14 @@
-import { settlementOutflows } from './_mp-settlement.js';
-
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://pilfeptwylgufhbmmday.supabase.co';
 const SUPABASE_KEY = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const MP_TOKEN = process.env.MP_ACCESS_TOKEN || '';
+// Una operación es una SALIDA (plata que se va: transferencia enviada o retiro
+// al banco) si el monto es negativo, o el tipo es de envío/retiro, o MP la marca
+// con sub_unit "money_outflows". Esta última señal es la que hacía que "anduviera
+// perfecto"; sin ella, un retiro grande entra mal como ingreso e infla el turno.
 function pagoEsEnviado(pago) {
-  return Number(pago.transaction_amount) < 0
-    || pago.operation_type === 'money_transfer_send';
+  if (Number(pago.transaction_amount) < 0) return true;
+  if (pago.operation_type === 'money_transfer_send' || pago.operation_type === 'withdrawal') return true;
+  return pago.point_of_interaction?.business_info?.sub_unit === 'money_outflows';
 }
 
 function turnoDeHora(h, m, esDomingo) {
@@ -184,27 +187,7 @@ async function fetchYGuardar(esDomingo, fecha) {
     guardados.add(String(pago.id));
   }
 
-  const report = await settlementOutflows(fecha, MP_TOKEN).catch(error => ({ status: 'unavailable', outflows: [], error: error.message }));
-  for (const pago of report.outflows) {
-    const d = new Date(pago.date_approved || pago.date_created);
-    const dAR = new Date(d.getTime() - 3 * 60 * 60 * 1000);
-    const hora = `${String(dAR.getUTCHours()).padStart(2,'0')}:${String(dAR.getUTCMinutes()).padStart(2,'0')}`;
-    await guardarEnSupabase({
-      pago_id: pago.id,
-      fecha,
-      hora,
-      nombre: pago.description || 'Salida MP',
-      tipo: pago.description || 'Salida MP',
-      monto: Math.abs(Number(pago.transaction_amount)),
-      turno: turnoDeHora(dAR.getUTCHours(), dAR.getUTCMinutes(), esDomingo),
-      status: 'approved',
-      operation_type: 'money_transfer_send',
-      es_enviada: true,
-    });
-    guardados.add(String(pago.id));
-    salidasGuardadas.add(String(pago.id));
-  }
-  return { procesados: guardados.size, salidas: salidasGuardadas.size, reporte: report.status, reporteError: report.error || null };
+  return { procesados: guardados.size, salidas: salidasGuardadas.size };
 }
 
 export default async function handler(req, res) {
@@ -225,9 +208,7 @@ export default async function handler(req, res) {
     const resultado = await fetchYGuardar(esDomingoPedido, pedido);
 
     console.log(`Cron ejecutado: ${resultado.procesados} pagos procesados, ${resultado.salidas} salidas`);
-    const completo = resultado.reporte === 'processed';
-    const pendiente = ['pending', 'processing'].includes(resultado.reporte);
-    return res.status(completo ? 200 : pendiente ? 202 : 502).json({ ok: completo || pendiente, completo, ...resultado, fecha: pedido, hora: hh });
+    return res.status(200).json({ ok: true, ...resultado, fecha: pedido, hora: hh });
   } catch (err) {
     console.error('Cron error:', err.message);
     return res.status(502).json({ ok: false, error: err.message });

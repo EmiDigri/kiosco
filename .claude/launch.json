@@ -1,0 +1,23 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "kiosco",
+      "runtimeExecutable": "C:\\Users\\digra\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\node\\bin\\node.exe",
+      "runtimeArgs": [".claude/serve.js"],
+      "port": 5500
+    },
+    {
+      "name": "journal",
+      "runtimeExecutable": "C:\\Program Files\\nodejs\\node.exe",
+      "runtimeArgs": [
+        "Usersdigratrading-journal/node_modules/vite/bin/vite.js",
+        "Usersdigratrading-journal",
+        "--port",
+        "5173",
+        "--strictPort"
+      ],
+      "port": 5173
+    }
+  ]
+}

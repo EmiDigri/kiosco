@@ -1,5 +1,3 @@
-import { settlementOutflows } from './_mp-settlement.js';
-
 const MP_TOKEN = process.env.MP_ACCESS_TOKEN || '';
 const MAX_RESULTS = 500;
 
@@ -33,8 +31,9 @@ function dayWindow(date) {
 }
 
 function paymentIsOutgoing(payment) {
-  return Number(payment.transaction_amount) < 0
-    || payment.operation_type === 'money_transfer_send';
+  if (Number(payment.transaction_amount) < 0) return true;
+  if (payment.operation_type === 'money_transfer_send' || payment.operation_type === 'withdrawal') return true;
+  return payment.point_of_interaction?.business_info?.sub_unit === 'money_outflows';
 }
 
 function publicPayment(payment) {
@@ -115,11 +114,9 @@ export default async function handler(req, res) {
         : `${payment.date_approved || payment.date_created}|${payment.transaction_amount}|${payment.operation_type}`;
       unique.set(key, payment);
     });
-    const report = await settlementOutflows(date, MP_TOKEN).catch(() => ({ status: 'unavailable', outflows: [] }));
-    report.outflows.forEach(payment => unique.set(`id:${payment.id}`, payment));
     const all = [...unique.values()].map(publicPayment);
     res.setHeader('Cache-Control', 'no-store');
-    return res.status(200).json({ results: all, outflowReportStatus: report.status });
+    return res.status(200).json({ results: all });
   } catch (error) {
     return res.status(502).json({ error: error.message || 'No se pudo consultar Mercado Pago' });
   }

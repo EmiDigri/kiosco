@@ -17,8 +17,10 @@ async function mpUserId() {
 }
 
 function pagoEsEnviado(pago, ownerId = FALLBACK_MP_USER_ID) {
-  return Number(pago.transaction_amount) < 0
-    || pago.operation_type === 'money_transfer_send';
+  if (Number(pago.transaction_amount) < 0) return true;
+  if (pago.operation_type === 'money_transfer_send' || pago.operation_type === 'withdrawal') return true;
+  // Retiros/salidas: MP los marca con sub_unit "money_outflows".
+  return pago.point_of_interaction?.business_info?.sub_unit === 'money_outflows';
 }
 
 function turnoDeHora(hora, esDomingo) {
