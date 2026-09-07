@@ -4655,12 +4655,41 @@ function renderTurnosCards(anteriores,datosDia,contId){
   });
 }
 
+// Acceso rápido a los turnos anteriores (chips arriba de todo). Cuando el turno
+// actual tiene muchos movimientos, llegar abajo scrolleando es eterno. Estos
+// botones saltan directo al turno anterior (que ya está cargado) y lo abren.
+// Reemplazan a los viejos "Ver turno de X" que además recargaban; ahora los datos
+// ya están, así que es instantáneo.
+function saltarATurno(nombre){
+  const card=document.querySelector(`#turnosHoySection [data-turno="${nombre}"]`)
+    ||document.querySelector(`#turnosHoyPortada [data-turno="${nombre}"]`);
+  if(!card){document.getElementById('turnosHoySection')?.scrollIntoView({behavior:'smooth',block:'start'});return;}
+  const clickable=card.querySelector('.trc-clickable');
+  if(clickable&&!card.classList.contains('open'))clickable.click();
+  setTimeout(()=>card.scrollIntoView({behavior:'smooth',block:'start'}),60);
+}
+function renderSaltosTurno(anteriores,datosDia){
+  const row=document.getElementById('otrosTurnosRow');if(!row)return;
+  row.innerHTML='';
+  if(!anteriores||!anteriores.length)return;
+  anteriores.forEach(t=>{
+    const datos=datosDia[t.nombre]||{};
+    const tot=(datos.movs||[]).reduce((a,m)=>a+(Number(m.monto)||0),0);
+    const btn=document.createElement('button');
+    btn.className='btn-ver-turno';btn.type='button';
+    btn.title=`Ir al turno de ${t.nombre}`;
+    btn.innerHTML=`<span class="t-dot" style="background:${t.color}"></span>${cmEsc(t.nombre)} · $${tot.toLocaleString('es-AR')}`;
+    btn.addEventListener('click',()=>saltarATurno(t.nombre));
+    row.appendChild(btn);
+  });
+}
 function renderTurnosHoy(turnoActualNombre,containerId){
   containerId=containerId||'turnosHoyCont';
   const hoyK=fechaHoy();let hist={};
   try{hist=JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}');}catch(e){}
   const datosDia=hist[hoyK]||{};
   const anteriores=TURNOS.filter(t=>t.nombre!==turnoActualNombre&&datosDia[t.nombre]);
+  renderSaltosTurno(anteriores,datosDia);
   const portada=document.getElementById('turnosHoyPortada');
   const section=document.getElementById('turnosHoySection');
   const cont=document.getElementById(containerId);
