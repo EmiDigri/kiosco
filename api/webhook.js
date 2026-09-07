@@ -19,7 +19,8 @@ async function mpUserId() {
 function pagoEsEnviado(pago, ownerId = FALLBACK_MP_USER_ID) {
   return Number(pago.transaction_amount) < 0
     || pago.operation_type === 'money_transfer_send'
-    || (pago.point_of_interaction?.business_info?.sub_unit === 'money_outflows' && Number(pago.payer_id) === Number(ownerId));
+    || (pago.point_of_interaction?.business_info?.sub_unit === 'money_outflows' && Number(pago.payer_id) === Number(ownerId))
+    || (pago.operation_type === 'regular_payment' && Number(pago.payer_id) === Number(ownerId));
 }
 
 function turnoDeHora(hora, esDomingo) {
@@ -57,7 +58,9 @@ async function procesarPago(pagoId) {
 
   let nombre = '';
   if (esEnviada) {
-    nombre = 'Transferencia enviada';
+    // Pagos de servicio (Edenor, etc.) muestran su description como nombre.
+    nombre = pago.operation_type === 'regular_payment' && pago.description
+      ? `Pago ${pago.description}` : 'Transferencia enviada';
   } else if (pago.operation_type === 'pos_payment') {
     const cardholder = pago.card?.cardholder?.name || '';
     const tarjeta = pago.payment_method?.id || '';

@@ -4,12 +4,15 @@ const MP_TOKEN = process.env.MP_ACCESS_TOKEN || '';
 const MP_USER_ID = Number(process.env.MP_USER_ID) || 443581160; // dueño de la cuenta del kiosco
 // Una operación es SALIDA (plata que se va) si el monto es negativo, o el tipo es
 // money_transfer_send, o MP la marca con sub_unit "money_outflows" Y el que paga
-// es el dueño de la cuenta. El filtro del dueño es CLAVE: sin él, sub_unit matchea
-// también ingresos y marca todo como salida.
+// es el dueño de la cuenta, o es un pago de servicio/factura (regular_payment)
+// hecho por el dueño (ej: pagar Edenor). El filtro del dueño (payer_id === MP_USER_ID)
+// es CLAVE: sin él, sub_unit money_outflows y regular_payment matchean también ingresos
+// (en los ingresos de clientes el payer_id NO es el dueño) y marcaría todo como salida.
 function pagoEsEnviado(pago) {
   return Number(pago.transaction_amount) < 0
     || pago.operation_type === 'money_transfer_send'
-    || (pago.point_of_interaction?.business_info?.sub_unit === 'money_outflows' && Number(pago.payer_id) === MP_USER_ID);
+    || (pago.point_of_interaction?.business_info?.sub_unit === 'money_outflows' && Number(pago.payer_id) === MP_USER_ID)
+    || (pago.operation_type === 'regular_payment' && Number(pago.payer_id) === MP_USER_ID);
 }
 
 function turnoDeHora(h, m, esDomingo) {
@@ -152,9 +155,13 @@ async function fetchYGuardar(esDomingo, fecha) {
       const pagoFecha = `${dAR.getUTCFullYear()}-${String(dAR.getUTCMonth()+1).padStart(2,'0')}-${String(dAR.getUTCDate()).padStart(2,'0')}`;
       const hora = `${String(dAR.getUTCHours()).padStart(2,'0')}:${String(dAR.getUTCMinutes()).padStart(2,'0')}`;
       const hNum = parseInt(hora.split(':')[0]);
+      // Los pagos de servicio (regular_payment: Edenor, etc.) muestran su description
+      // como nombre ("Pago Edenor") para que se entienda qué salida fue.
+      const nombreSalida = pago.operation_type === 'regular_payment' && pago.description
+        ? `Pago ${pago.description}` : 'Transferencia enviada';
       await guardarEnSupabase({
         pago_id: pago.id, fecha: pagoFecha, hora,
-        nombre: 'Transferencia enviada',
+        nombre: nombreSalida,
         tipo: 'Transferencia enviada',
         monto: Math.abs(pago.transaction_amount),
         turno: turnoDeHora(hNum, dAR.getUTCMinutes(), esDomingo),

@@ -34,7 +34,8 @@ function dayWindow(date) {
 function paymentIsOutgoing(payment) {
   return Number(payment.transaction_amount) < 0
     || payment.operation_type === 'money_transfer_send'
-    || (payment.point_of_interaction?.business_info?.sub_unit === 'money_outflows' && Number(payment.payer_id) === MP_USER_ID);
+    || (payment.point_of_interaction?.business_info?.sub_unit === 'money_outflows' && Number(payment.payer_id) === MP_USER_ID)
+    || (payment.operation_type === 'regular_payment' && Number(payment.payer_id) === MP_USER_ID);
 }
 
 function publicPayment(payment) {
