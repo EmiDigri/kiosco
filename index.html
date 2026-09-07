@@ -493,11 +493,10 @@ body.egg-champion .logo-shop{filter:drop-shadow(0 0 8px rgba(255,79,123,.9)) dro
   padding:13px 15px;min-height:88px;cursor:pointer;color:var(--text);
   font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   display:flex;flex-direction:column;gap:6px;justify-content:center;
-  opacity:0;transform:translateY(14px) scale(.98);
-  animation:saltoIn .55s cubic-bezier(.34,1.56,.64,1) both;
+  animation:saltoIn .55s cubic-bezier(.34,1.56,.64,1) backwards;
   transition:transform .18s cubic-bezier(.34,1.56,.64,1),box-shadow .25s ease,border-color .25s ease;
   -webkit-tap-highlight-color:transparent}
-@keyframes saltoIn{to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes saltoIn{from{opacity:0;transform:translateY(14px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
 .salto-card:hover{transform:translateY(-3px);border-color:var(--tc-strong);box-shadow:0 14px 32px -12px var(--tc-glow)}
 .salto-card:active{transform:scale(.96)}
 .salto-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--tc)}
@@ -3179,10 +3178,6 @@ body.light .tg-lock{background:rgba(255,255,255,.96)}
             <div class="hero-side-item"><span>Horario</span><strong id="heroMiniHorario">—</strong></div>
             <div class="hero-side-item"><span>Estado</span><strong id="heroMiniEstado">Esperando carga</strong></div>
           </div>
-        </div>
-        <div class="hero-side-actions">
-          <button type="button" class="hero-soft-btn" id="heroBtnCierre">Abrir cierre manual</button>
-          <button type="button" class="hero-soft-btn" id="heroBtnHistorial2">Ver historial</button>
         </div>
       </aside>
 
@@ -7484,8 +7479,6 @@ function actualizarHeroSide(movs){
 const tNombreActual=(turno||turnoReciente||{nombre:''}).nombre;
 renderTurnosHoy(tNombreActual);
 actualizarHeroSide();
-const heroBtnCierre=document.getElementById('heroBtnCierre');if(heroBtnCierre)heroBtnCierre.addEventListener('click',()=>cmAbrir());
-const heroBtnHistorial2=document.getElementById('heroBtnHistorial2');if(heroBtnHistorial2)heroBtnHistorial2.addEventListener('click',()=>document.getElementById('btnHistorial')?.click());
 
 // ─── TEMA ───
 const btnTheme=document.getElementById('btnTheme');
