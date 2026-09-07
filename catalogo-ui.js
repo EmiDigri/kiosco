@@ -1695,17 +1695,32 @@
       if (cat.scanHint) cat.scanHint.textContent = scanMode === 'vender' ? 'Cada escaneo resta 1 del stock' : scanMode === 'cargar' ? 'Escaneá para dar de alta o editar' : '';
       if (scanMode && cat.scanInput) { cat.scanInput.value = ''; setTimeout(() => cat.scanInput.focus(), 30); }
     }
+    // P3: resumen de precio y margen para mostrar al escanear (en cualquier modo).
+    // El margen sale del costo que ya se guarda en el catálogo; si falta, lo avisa.
+    function resumenPrecioMargen(rec) {
+      const precio = Number(rec.precio) || 0;
+      const costo = Number(rec.costo) || 0;
+      if (!precio) return 'sin precio cargado';
+      if (!costo) return `${money(precio)} · falta cargar el costo`;
+      const ganancia = precio - costo;
+      const margen = Math.round(ganancia / precio * 100);
+      return `${money(precio)} · margen ${margen}% (ganás ${money(ganancia)})`;
+    }
     function manejarEscaneo(code) {
       const rec = catByEan(code);
       if (scanMode === 'vender') {
         if (!rec) { notify('Ese código no está en el catálogo. Cambiá a “Cargar” para darlo de alta.'); return; }
         const actual = Number(rec.stock) || 0;
         const nuevo = Math.max(0, actual - 1);
-        catUpsert({ ...rec, stock: nuevo }, { toast: actual <= 0 ? `⚠️ ${rec.nombre}: sin stock cargado` : `Vendido: ${rec.nombre} · quedan ${nuevo}` });
+        const info = resumenPrecioMargen(rec);
+        const toast = actual <= 0
+          ? `⚠️ ${rec.nombre} · sin stock · ${info}`
+          : `Vendido ${rec.nombre} · quedan ${nuevo} · ${info}`;
+        catUpsert({ ...rec, stock: nuevo }, { toast });
         setTimeout(() => cat.scanInput?.focus(), 30);
         return;
       }
-      if (rec) { openManualForm(rec); }
+      if (rec) { notify(`${rec.nombre} · ${resumenPrecioMargen(rec)}`); openManualForm(rec); }
       else { openManualForm(null); if (cat.fEan) cat.fEan.value = code; setTimeout(() => cat.fNombre?.focus(), 60); }
     }
     cat.modeCargar?.addEventListener('click', () => setScanMode('cargar'));
