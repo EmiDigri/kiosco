@@ -484,6 +484,32 @@ body.egg-champion .logo-shop{filter:drop-shadow(0 0 8px rgba(255,79,123,.9)) dro
 .btn-ver-turno:hover{background:var(--glass-hover);color:var(--text);transform:translateY(-2px)}
 .btn-ver-turno:active{transform:scale(.97)}
 .btn-ver-turno .t-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+/* Acceso rápido a turnos anteriores: cuadros grandes con efecto glass + brillo */
+.salto-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:0;width:100%;flex:1}
+.salto-card{--tc:#7C5CFF;--tc-tint:rgba(124,92,255,.16);--tc-glow:rgba(124,92,255,.5);--tc-strong:rgba(124,92,255,.55);
+  position:relative;overflow:hidden;text-align:left;border:1px solid var(--glass-border);border-radius:16px;
+  background:linear-gradient(135deg,var(--tc-tint),transparent 62%),var(--glass);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  padding:13px 15px;min-height:88px;cursor:pointer;color:var(--text);
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  display:flex;flex-direction:column;gap:6px;justify-content:center;
+  opacity:0;transform:translateY(14px) scale(.98);
+  animation:saltoIn .55s cubic-bezier(.34,1.56,.64,1) both;
+  transition:transform .18s cubic-bezier(.34,1.56,.64,1),box-shadow .25s ease,border-color .25s ease;
+  -webkit-tap-highlight-color:transparent}
+@keyframes saltoIn{to{opacity:1;transform:translateY(0) scale(1)}}
+.salto-card:hover{transform:translateY(-3px);border-color:var(--tc-strong);box-shadow:0 14px 32px -12px var(--tc-glow)}
+.salto-card:active{transform:scale(.96)}
+.salto-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--tc)}
+.salto-card .salto-shine{position:absolute;top:0;left:-70%;width:45%;height:100%;background:linear-gradient(115deg,transparent,rgba(255,255,255,.16),transparent);transform:skewX(-18deg);pointer-events:none;animation:saltoShine 5s ease-in-out infinite}
+@keyframes saltoShine{0%,55%{left:-70%}100%{left:130%}}
+.salto-card-head{display:flex;align-items:center;gap:8px}
+.salto-card .salto-dot{width:10px;height:10px;border-radius:50%;background:var(--tc);box-shadow:0 0 10px var(--tc);flex-shrink:0}
+.salto-card-name{font-size:15px;font-weight:800;letter-spacing:.2px}
+.salto-card-total{font-size:21px;font-weight:900;line-height:1;letter-spacing:-.5px}
+.salto-card-sub{font-size:11.5px;color:var(--text-soft);font-weight:600;display:flex;align-items:center;gap:6px}
+.salto-card-sub .salto-arrow{margin-left:auto;color:var(--tc);font-weight:800}
+@media (prefers-reduced-motion:reduce){.salto-card{animation:none;opacity:1;transform:none}.salto-card .salto-shine{display:none}}
 
 /* ─── HISTORIAL ─── */
 .btn-historial{display:inline-flex;align-items:center;gap:6px;background:var(--glass);border:1px solid var(--glass-border);border-radius:999px;color:var(--text-mid);font-size:12px;font-weight:500;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;padding:5px 12px;cursor:pointer;backdrop-filter:blur(10px);transition:all .2s ease}
@@ -4668,20 +4694,38 @@ function saltarATurno(nombre){
   if(clickable&&!card.classList.contains('open'))clickable.click();
   setTimeout(()=>card.scrollIntoView({behavior:'smooth',block:'start'}),60);
 }
+function saltoHexRgba(hex,a){
+  hex=String(hex||'#7C5CFF').replace('#','');
+  if(hex.length===3)hex=hex.split('').map(c=>c+c).join('');
+  const n=parseInt(hex,16)||0;
+  return`rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`;
+}
 function renderSaltosTurno(anteriores,datosDia){
   const row=document.getElementById('otrosTurnosRow');if(!row)return;
   row.innerHTML='';
   if(!anteriores||!anteriores.length)return;
-  anteriores.forEach(t=>{
+  const grid=document.createElement('div');grid.className='salto-grid';
+  anteriores.forEach((t,i)=>{
     const datos=datosDia[t.nombre]||{};
-    const tot=(datos.movs||[]).reduce((a,m)=>a+(Number(m.monto)||0),0);
-    const btn=document.createElement('button');
-    btn.className='btn-ver-turno';btn.type='button';
-    btn.title=`Ir al turno de ${t.nombre}`;
-    btn.innerHTML=`<span class="t-dot" style="background:${t.color}"></span>${cmEsc(t.nombre)} · $${tot.toLocaleString('es-AR')}`;
-    btn.addEventListener('click',()=>saltarATurno(t.nombre));
-    row.appendChild(btn);
+    const movs=datos.movs||[];
+    const tot=movs.reduce((a,m)=>a+(Number(m.monto)||0),0);
+    const nPagos=movs.length;
+    const card=document.createElement('button');
+    card.className='salto-card';card.type='button';
+    card.title=`Ir al turno de ${t.nombre}`;
+    card.style.setProperty('--tc',t.color);
+    card.style.setProperty('--tc-tint',saltoHexRgba(t.color,.16));
+    card.style.setProperty('--tc-glow',saltoHexRgba(t.color,.5));
+    card.style.setProperty('--tc-strong',saltoHexRgba(t.color,.55));
+    card.style.animationDelay=(i*90)+'ms';
+    card.innerHTML=`<span class="salto-shine"></span>`+
+      `<div class="salto-card-head"><span class="salto-dot"></span><span class="salto-card-name">${cmEsc(t.nombre)}</span></div>`+
+      `<div class="salto-card-total">$${tot.toLocaleString('es-AR')}</div>`+
+      `<div class="salto-card-sub">${nPagos} pago${nPagos===1?'':'s'}<span class="salto-arrow">ver →</span></div>`;
+    card.addEventListener('click',()=>saltarATurno(t.nombre));
+    grid.appendChild(card);
   });
+  row.appendChild(grid);
 }
 function renderTurnosHoy(turnoActualNombre,containerId){
   containerId=containerId||'turnosHoyCont';
