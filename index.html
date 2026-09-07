@@ -9452,6 +9452,8 @@ function initEasterEggs(){
 // dispositivo (no por usuario: las 3 comparten cuenta y todas deben enterarse).
 // Para anunciar algo nuevo: agregá una entrada arriba de todo con un id único.
 const CHANGELOG=[
+  {id:'2026-09-07-pagos-servicio',fecha:'7 de septiembre',titulo:'Los pagos de servicios ya no cuentan como venta',
+   p:'Cuando desde la cuenta se paga un servicio o factura (luz, gas, internet, etc.), esa plata sale y antes se sumaba por error al total del turno. Ahora se detecta sola y figura como salida (ej: “Pago Edenor”), así el total del turno y del día queda bien sin que tengas que hacer nada.'},
   {id:'2026-09-06-devolver',fecha:'6 de septiembre',titulo:'Botón para devolver transferencias',
    p:'Si alguien transfiere por error, ahora podés marcar esa transferencia como “devuelta” con el botón ↩ (está en la lista de movimientos y en el Historial). Deja de contar en el total del turno y del día. Te pide confirmar y se puede deshacer.'},
   {id:'2026-09-06-login',fecha:'6 de septiembre',titulo:'Ahora la app pide usuario y contraseña',
