@@ -1898,6 +1898,38 @@
         notify(`✓ Cobrado ${money(t)} · stock descontado`);
         setTimeout(() => scan.focus(), 10);
       });
+
+      // ── Escaneo global: estando en el home, escanear abre el mostrador SOLO ──
+      // El lector manda una ráfaga de dígitos + Enter. Si nadie está escribiendo
+      // y no hay otra pantalla abierta, lo tomamos como venta y abrimos el carrito.
+      // Distingue el lector del tecleo humano por la velocidad (ráfaga < 60ms).
+      let buf = '', lastKey = 0;
+      function editableEnfocado() {
+        const el = document.activeElement; if (!el) return false;
+        const t = el.tagName;
+        return t === 'INPUT' || t === 'TEXTAREA' || t === 'SELECT' || el.isContentEditable === true;
+      }
+      function otraPantallaAbierta() {
+        const login = document.getElementById('loginOverlay');
+        if (login && !login.classList.contains('oculto')) return true;
+        return !!document.querySelector('.historial-overlay.open, .price-overlay.open');
+      }
+      document.addEventListener('keydown', event => {
+        if (overlay.classList.contains('open')) return;   // ya abierto: lo maneja su propio campo
+        if (editableEnfocado()) return;                    // alguien está escribiendo (clave, cierre, etc.)
+        const now = Date.now();
+        if (now - lastKey > 60) buf = '';                  // pausa larga = tecleo humano, reiniciar
+        lastKey = now;
+        if (event.key === 'Enter') {
+          const code = buf.trim(); buf = '';
+          if (code.length >= 6 && /^[0-9]+$/.test(code) && !otraPantallaAbierta()) {
+            abrir();
+            agregar(code);
+          }
+          return;
+        }
+        if (event.key.length === 1) buf += event.key;      // acumular dígitos del código
+      });
     }
   }
 
