@@ -462,7 +462,7 @@ async function casaPasoDetail(code) {
     code: safeCode,
     title: title.replace(/\\'/g, "'"),
     brand: familyParts[1] || '',
-    presentation: [minimum > 1 ? `Mínimo x${minimum}` : '', packUnits ? `Bulto x${packUnits}` : ''].filter(Boolean).join(' · ') || 'Venta mayorista',
+    presentation: minimum > 1 ? `Precio por unidad · mínimo ${minimum} unidades` : 'Precio por unidad',
     category: 'Librería',
     unitPrice,
     packPrice: unitPrice && packUnits ? unitPrice * packUnits : null,

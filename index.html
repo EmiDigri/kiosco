@@ -545,6 +545,48 @@ body.light .btn-mostrador{color:#1e8e50!important;border-color:rgba(30,142,80,.2
 .mostrador-btn-main:disabled{opacity:.45;cursor:default;box-shadow:none}
 .mostrador-flash{position:fixed;inset:0;background:rgba(46,204,113,.22);z-index:1250;pointer-events:none;opacity:0}
 .mostrador-flash.go{animation:mostFlash .4s ease}
+.mostrador-panel{max-width:650px;max-height:94dvh;border-radius:8px 8px 0 0}
+.mostrador-panel [hidden],.cat-scan-bar[hidden]{display:none!important}
+.mostrador-modes{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;margin:0 18px 12px;border-bottom:1px solid var(--glass-border)}
+.mostrador-modes button{min-width:0;padding:10px 4px;border:0;border-bottom:2px solid transparent;background:transparent;font:700 13px 'Inter',sans-serif;color:var(--text-soft);cursor:pointer}
+.mostrador-modes button.active{color:var(--text);border-bottom-color:#54ccb6}
+.mostrador-status{font-size:12px;line-height:1.4;color:var(--text-mid);margin:0 18px 10px;min-height:17px;overflow-wrap:anywhere}
+.mostrador-status.error{color:#f4b45f}
+body.light .mostrador-status.error{color:#9a4600}
+.mostrador-retry{margin:0 18px 12px;flex-shrink:0}
+.mostrador-scan{flex-shrink:0;border-radius:8px}
+.mostrador-list{min-height:70px;overscroll-behavior:contain}
+.mostrador-head,.mostrador-modes,.mostrador-status,.mostrador-foot{flex-shrink:0}
+.mostrador-item{border-radius:8px;padding:10px 0;border:0;border-bottom:1px solid var(--glass-border);background:transparent}
+.mostrador-item-name{white-space:normal;overflow-wrap:anywhere}
+.mostrador-item-sub small{display:block;font-size:10px;font-weight:500;color:var(--text-soft);margin-top:4px}
+.mostrador-payment{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:12px;color:var(--text-mid);margin-bottom:12px}
+.mostrador-panel select{border:1px solid var(--glass-border);background:var(--bg1);color:var(--text);border-radius:6px;padding:7px;font:inherit;max-width:100%}
+.mostrador-cost{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:11px;color:var(--text-soft);margin-top:5px}
+.mostrador-cost input{width:90px;max-width:100%;padding:5px;background:var(--glass);color:var(--text);border:1px solid var(--glass-border);border-radius:4px}
+.mostrador-alta{padding:0 18px 14px;overflow:auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;min-height:0}
+.mostrador-alta>strong,.mostrador-alta>.mostrador-actions{grid-column:1/-1}
+.mostrador-alta>strong{font-size:13px;overflow-wrap:anywhere}
+.mostrador-alta label{font-size:11px;color:var(--text-mid);min-width:0}
+.mostrador-alta input{margin-top:5px;width:100%}
+.mostrador-btn-main,.mostrador-btn-sec,.mostrador-close{border-radius:8px}
+.mostrador-actions{flex-wrap:wrap}
+.mostrador-btn-main{font-size:14px;box-shadow:none;background:#168451;min-width:140px}
+.mostrador-btn-sec{font-size:12px;padding:10px}
+.mostrador-total-row span:last-child{letter-spacing:0;font-size:28px;overflow-wrap:anywhere;min-width:0}
+.mostrador-consulta{padding:8px 0 16px}
+.mostrador-consulta img{object-fit:contain;background:white;border-radius:6px;float:right}
+.mostrador-consulta h3{font-size:18px;line-height:1.4;margin:0 76px 8px 0;overflow-wrap:anywhere}
+.mostrador-consulta>strong{font-size:28px}
+.mostrador-consulta dl{display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:14px}
+.mostrador-consulta dd{text-align:right;margin:0;font-weight:700}
+.mostrador-consulta dt{color:var(--text-soft)}
+.mostrador-ticket{border-bottom:1px solid var(--glass-border);padding:10px 0;font-size:13px}
+.mostrador-ticket summary{display:flex;justify-content:space-between;gap:12px;cursor:pointer;padding:6px 0}
+.mostrador-ticket small{display:block;color:var(--text-soft);margin-top:5px}
+.mostrador-ticket p{display:flex;justify-content:space-between;gap:10px;overflow-wrap:anywhere}
+.mostrador-ticket p strong{white-space:nowrap}
+@media(max-width:420px){.mostrador-item{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px}.mostrador-item-info{grid-column:1/-1}.mostrador-item-sub{text-align:right}.mostrador-item-del{width:28px;height:28px}.mostrador-btn-main{flex-basis:100%}.mostrador-scan{font-size:16px}.cat-scan-bar{flex-wrap:wrap}.cat-scan-hint{white-space:normal}}
 @keyframes mostFlash{0%{opacity:1}100%{opacity:0}}
 @media (prefers-reduced-motion:reduce){.mostrador-panel{transition:none}.mostrador-item{animation:none}.mostrador-flash.go{animation:none}}
 /* ── Salidas del mes (historial) ── */
@@ -2906,8 +2948,6 @@ body.light .price-source-match.selected,body.light .price-source-match.same{colo
 .price-metric-value{margin-top:8px;color:var(--text);font-size:18px;font-weight:820;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:0;word-break:break-word}
 .price-metric-value.good{color:#5fd68a}.price-metric-value.warn{color:#f4a435}.price-metric-value.bad{color:#f87171}
 .price-metric-note{margin-top:5px;color:var(--text-soft);font-size:8.5px;line-height:1.25}
-.price-pack-band{margin-top:8px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.price-pack-band[hidden]{display:none}
 .price-error{border:1px solid rgba(244,85,85,.3);border-radius:8px;background:var(--red-dim);color:#ff9d9d;padding:11px;font-size:11px;line-height:1.4}
 body.light .price-error{color:#991b1b}
 .price-spinner{width:22px;height:22px;border:2px solid var(--glass-border);border-top-color:#61d6c0;border-radius:50%;animation:price-spin .7s linear infinite;margin-bottom:10px}
@@ -2951,7 +2991,6 @@ body.light .price-error{color:#991b1b}
   .price-product-name{font-size:18px}
   .price-reference-grid{gap:10px}.price-reference + .price-reference{padding-left:10px}.price-reference-value{font-size:22px}
   .price-calc-form{grid-template-columns:1fr 1fr}.price-calc-form .price-field:first-child{grid-column:1/-1}.price-calc-btn{grid-column:1/-1}
-  .price-pack-band{grid-template-columns:1fr 1fr}.price-pack-band .price-metric:last-child{grid-column:1/-1}
 }
 @media(max-width:430px){
   .price-results{grid-template-columns:1fr}
@@ -2959,7 +2998,7 @@ body.light .price-error{color:#991b1b}
   .price-search-btn span,.price-location-btn span{display:none}.price-search-btn,.price-location-btn{width:40px;padding:0}
   .price-reference-grid{grid-template-columns:1fr}.price-reference + .price-reference{border-left:none;border-top:1px solid var(--glass-border);padding:13px 0 0}
   .price-calc-form{grid-template-columns:1fr}.price-calc-form .price-field:first-child,.price-calc-btn{grid-column:auto}
-  .price-metric-grid,.price-pack-band{grid-template-columns:1fr 1fr}.price-pack-band .price-metric:last-child{grid-column:1/-1}
+  .price-metric-grid{grid-template-columns:1fr 1fr}
   .price-saved{max-width:105px;white-space:normal;text-align:right;line-height:1.2;font-size:9px}
 }
 
@@ -3161,19 +3200,38 @@ body.light .tg-lock{background:rgba(255,255,255,.96)}
   <div id="novedades" hidden></div>
 
   <!-- Modo mostrador: caja registradora rápida con el lector -->
-  <div class="mostrador-overlay" id="mostradorOverlay" aria-hidden="true">
-    <div class="mostrador-panel" role="dialog" aria-label="Mostrador">
+  <div class="mostrador-overlay" id="mostradorOverlay" aria-hidden="true" inert>
+    <div class="mostrador-panel" role="dialog" aria-modal="true" aria-label="Mostrador">
       <div class="mostrador-head">
         <div class="mostrador-title">🛒 Mostrador</div>
         <button class="mostrador-close" id="mostradorClose" type="button" aria-label="Cerrar">✕</button>
       </div>
-      <input class="mostrador-scan" id="mostradorScan" type="text" placeholder="Escaneá un producto…" autocomplete="off" inputmode="numeric" aria-label="Escaneá un producto">
+      <div class="mostrador-modes" role="tablist" aria-label="Modo del lector">
+        <button type="button" role="tab" data-most-mode="venta">Vender</button>
+        <button type="button" role="tab" data-most-mode="entrada">Recibir</button>
+        <button type="button" role="tab" data-most-mode="consulta">Consultar</button>
+        <button type="button" role="tab" data-most-mode="tickets">Tickets</button>
+      </div>
+      <input class="mostrador-scan" id="mostradorScan" type="text" placeholder="Código de barras" autocomplete="off" inputmode="numeric" aria-label="Código de barras">
+      <p class="mostrador-status" id="mostradorStatus" role="status" aria-live="polite"></p>
+      <button class="cat-cancel-btn mostrador-retry" type="button" data-cat-retry hidden>Revisar pendiente</button>
+      <form id="mostradorAlta" class="mostrador-alta" hidden>
+        <strong>Nuevo producto · <span id="mostradorNuevoCodigo"></span></strong>
+        <label>Producto<input class="price-input" id="mostradorNombre" maxlength="90" required></label>
+        <label>Categoría<input class="price-input" id="mostradorCategoria" list="catCategoriasList" maxlength="40" required></label>
+        <label>Precio de venta<input class="price-input" id="mostradorPrecio" type="number" min="0.01" step="0.01" inputmode="decimal" required></label>
+        <label>Costo unitario<input class="price-input" id="mostradorCosto" type="number" min="0" step="0.01" inputmode="decimal"></label>
+        <label>Stock actual<input class="price-input" id="mostradorStock" type="number" min="0" step="1" inputmode="numeric" placeholder="Sin controlar"></label>
+        <div class="mostrador-actions"><button type="button" class="cat-cancel-btn" id="mostradorCancelarNuevo">Cancelar</button><button type="submit" class="price-calc-btn" id="mostradorGuardarNuevo">Guardar y continuar</button></div>
+      </form>
       <div class="mostrador-list" id="mostradorList"></div>
-      <div class="mostrador-foot">
-        <div class="mostrador-total-row"><span>Total a cobrar</span><span id="mostradorTotal">$0</span></div>
+      <div class="mostrador-foot" id="mostradorFoot">
+        <label class="mostrador-payment" id="mostradorPayment">Forma de pago<select id="mostradorPago"><option value="efectivo">Efectivo</option><option value="mp">Mercado Pago</option><option value="point">Point</option><option value="otro">Otro</option></select></label>
+        <div class="mostrador-total-row"><span id="mostradorTotalLabel">Total a registrar</span><span id="mostradorTotal">$0</span></div>
         <div class="mostrador-actions">
           <button class="mostrador-btn-sec" id="mostradorVaciar" type="button">Vaciar</button>
-          <button class="mostrador-btn-main" id="mostradorCobrar" type="button" disabled>Cobrar</button>
+          <button class="mostrador-btn-sec" id="mostradorActualizar" type="button">Actualizar precios</button>
+          <button class="mostrador-btn-main" id="mostradorCobrar" type="button" disabled>Registrar venta</button>
         </div>
       </div>
     </div>
@@ -3726,6 +3784,8 @@ body.light .tg-lock{background:rgba(255,255,255,.96)}
         <div class="cat-toolbar-info">
           <span class="cat-total" id="catTotal">0 productos</span>
           <span class="cat-sync-status" id="catSyncStatus"></span>
+          <button type="button" class="cat-cancel-btn" data-cat-retry hidden>Revisar pendiente</button>
+          <button type="button" class="cat-cancel-btn" id="catReviewLocal" hidden>Revisar cambios locales</button>
         </div>
         <div class="cat-toolbar-actions">
           <button class="cat-scan-btn" id="catScanBtn" type="button">📷 Cargar factura</button>
@@ -3737,6 +3797,8 @@ body.light .tg-lock{background:rgba(255,255,255,.96)}
       <div class="cat-scan-modes">
         <button class="cat-mode-btn" id="catModeCargar" type="button" aria-pressed="false">🔖 Escanear para cargar</button>
         <button class="cat-mode-btn" id="catModeVender" type="button" aria-pressed="false">🛒 Escanear para vender</button>
+        <button class="cat-mode-btn" id="catModeRecibir" type="button">Recibir mercadería</button>
+        <button class="cat-mode-btn" id="catModeConsultar" type="button">Consultar precio</button>
       </div>
       <div class="cat-scan-bar" id="catScanBar" hidden>
         <span aria-hidden="true">🔫</span>
@@ -3784,10 +3846,6 @@ body.light .tg-lock{background:rgba(255,255,255,.96)}
         <div class="price-field">
           <label for="catPrecio">Precio de venta</label>
           <input class="price-input" id="catPrecio" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0" required>
-        </div>
-        <div class="price-field">
-          <label for="catUnidades">Unid. por bulto</label>
-          <input class="price-input" id="catUnidades" type="number" min="1" step="1" inputmode="numeric" placeholder="Opc.">
         </div>
         <div class="price-field">
           <label for="catStock">Stock (unidades)</label>
@@ -5931,7 +5989,7 @@ function loginOcultar(){const o=document.getElementById('loginOverlay');if(o)o.c
 async function authBoot(){
   if(authRead()&&authRead().access_token)loginOcultar(); // optimista: evita el flash para el logueado
   const t=await sbToken();
-  if(t)loginOcultar();else loginMostrar();
+  if(t){loginOcultar();window.dispatchEvent(new CustomEvent('kiosco:login'));}else loginMostrar();
 }
 (function initLogin(){
   const form=document.getElementById('loginForm');
@@ -5950,6 +6008,7 @@ async function authBoot(){
     autoTurnoReanudarSiCorresponde();
     await Promise.resolve().then(()=>window.kioscoLogin?.success()).catch(()=>{});
     loginOcultar();
+    window.dispatchEvent(new CustomEvent('kiosco:login'));
     requestAnimationFrame(()=>document.getElementById('btnCargar')?.focus({preventScroll:true}));
   });
   const outBtn=document.getElementById('btnLogout');
@@ -9661,6 +9720,7 @@ function renderNovedades(){
 renderNovedades();
 initEasterEggs();
 </script>
+<script src="./mostrador.js"></script>
 <script src="./catalogo-ui.js"></script>
 </body>
 </html>

@@ -208,7 +208,6 @@
     if (item.available === false) parts.push('<span style="color:#f87171">Sin stock</span>');
     else if (item.stock !== null && item.stock !== undefined && Number.isFinite(Number(item.stock))) parts.push(`<span>${Number(item.stock)} disponibles</span>`);
     if (item.unitPrice) parts.push(`<span>Mayor. <strong>${money(item.unitPrice)}/u</strong></span>`);
-    if (item.packPrice && item.packUnits > 1) parts.push(`<span>Bulto x${Math.round(item.packUnits)} <strong>${money(item.packPrice)}</strong></span>`);
     return parts.length ? parts.join('') : '<span>Consultar disponibilidad</span>';
   }
 
@@ -675,7 +674,7 @@
         ean: productItem.code || productItem.id,
         name: productItem.title,
         brand: productItem.brand || productItem.sourceLabel || '',
-        presentation: productItem.presentation || (units ? `Bulto x${units}` : 'Unidad'),
+        presentation: productItem.presentation || 'Unidad',
       },
       image: productItem.image || retailItem?.image,
       retailReference: retailItem ? {
@@ -713,7 +712,7 @@
     state.selectedSupplier = id;
     renderResults();
     if (item.source === 'casa-paso' && !item.packUnits) {
-      detailElement.innerHTML = loadingHtml('Consultando mínimo y bulto en Casa Paso…');
+      detailElement.innerHTML = loadingHtml('Consultando precio por unidad en Casa Paso…');
       try {
         const data = await apiRequest({ action: 'supplier-detail', source: item.source, code: item.code });
         if (state.selectedSupplier !== id || !data.item) return;
@@ -745,10 +744,7 @@
     return stores.map(store => {
       const distance = Number.isFinite(store.distanceKm) ? ` · ${store.distanceKm.toLocaleString('es-AR', { maximumFractionDigits: 1 })} km` : '';
       const value = wholesale ? store.unitWithVat : store.price;
-      const pack = wholesale && store.unitsPerPack > 1
-        ? ` · bulto x${Math.round(store.unitsPerPack)} ${money(store.packWithVat)}`
-        : '';
-      return `<div class="price-shop-row"><div><span>${escapeHtml(store.store)}</span><small>${escapeHtml(store.address || store.locality)}${escapeHtml(distance)}${escapeHtml(pack)}</small></div><strong>${money(value)}</strong></div>`;
+      return `<div class="price-shop-row"><div><span>${escapeHtml(store.store)}</span><small>${escapeHtml(store.address || store.locality)}${escapeHtml(distance)}</small></div><strong>${money(value)}</strong></div>`;
     }).join('');
   }
 
@@ -766,7 +762,6 @@
       values.push(`<span><small>Minorista</small><strong>${money(offer.retailPrice)}</strong>${range}</span>`);
     }
     if (offer.wholesalePrice) values.push(`<span><small>Mayorista / u.</small><strong>${money(offer.wholesalePrice)}</strong></span>`);
-    if (offer.packPrice && offer.packUnits > 1) values.push(`<span><small>Bulto x${Math.round(offer.packUnits)}</small><strong>${money(offer.packPrice)}</strong></span>`);
     return values.length ? values.join('') : '<span><small>Precio</small><strong>Consultar</strong></span>';
   }
 
@@ -816,12 +811,9 @@
         : `${retail.count || 1} oferta${retail.count === 1 ? '' : 's'} en Buenos Aires${range} · puede incluir promoción o recargo de delivery`;
       if (data.supplierPriceType === 'combined') wholesaleLabel = 'Costo mayorista por unidad · c/IVA';
     } else if (data.supplierSource) {
-      const packText = data.supplierPackUnits > 1
-        ? `Bulto x${data.supplierPackUnits}${data.supplierMinimum > 1 ? ` · mínimo x${data.supplierMinimum}` : ''}`
-        : (data.supplierMinimum > 1 ? `Compra mínima x${data.supplierMinimum}` : 'Venta por unidad');
-      retailLabel = `Precio publicado en ${data.sourceLabel}`;
-      retailDisplayValue = data.supplierPackPrice || wholesale.unitWithVatMedian;
-      retailNote = `${packText} · ${data.supplierAvailable ? 'disponible' : 'sin stock'}`;
+      retailLabel = `Precio por unidad en ${data.sourceLabel}`;
+      retailDisplayValue = wholesale.unitWithVatMedian;
+      retailNote = `Por unidad · ${data.supplierAvailable ? 'disponible' : 'sin stock'}`;
       wholesaleLabel = 'Costo orientativo por unidad · c/IVA';
     } else if (data.mlSource) {
       retailLabel = 'Precio ganador Mercado Libre';
@@ -841,17 +833,12 @@
     const saved = readSavedPrices()[product.ean] || {};
     const catRecord = catByEan(product.ean);
     const savedCat = catRecord?.categoria || data.suggestedCategory || inferCategory(product.name, product.brand);
-    const suggestedUnits = wholesale.unitsPerPackMedian > 1 ? Math.round(wholesale.unitsPerPackMedian) : null;
-    const unitsValue = saved.units || suggestedUnits || '';
     const image = /^https:\/\//.test(data.image || '')
       ? `<img id="priceProductImage" src="${escapeHtml(data.image)}" alt="${escapeHtml(product.name)}">`
       : '<div class="price-product-placeholder">$</div>';
     const costHint = wholesale.unitWithVatMedian
       ? `Vacío: usa ${money(wholesale.unitWithVatMedian)} mayorista c/IVA.`
       : 'Sin referencia mayorista: cargá tu costo real.';
-    const packHint = suggestedUnits
-      ? `${data.sourceLabel || 'La fuente'} informa ${suggestedUnits} unidades.`
-      : 'Opcional para calcular el bulto.';
     const sourceLinks = Array.isArray(data.sourceLinks) && data.sourceLinks.length
       ? data.sourceLinks.map(link => `<a class="price-ml-link" href="${escapeHtml(link.url)}" target="_blank" rel="noopener">${escapeHtml(link.label)} ↗</a>`).join('')
       : (data.permalink ? `<a class="price-ml-link" href="${escapeHtml(data.permalink)}" target="_blank" rel="noopener">Ver en ${escapeHtml(data.sourceLabel || 'Mercado Libre')} ↗</a>` : '');
@@ -889,7 +876,7 @@
 
       <section class="price-own-section">
         <div class="price-own-head">
-          <div><div class="price-own-title">Tu precio y tu margen</div><div class="price-own-sub">Precio de venta, costo y bulto</div></div>
+          <div><div class="price-own-title">Tu precio y tu margen</div><div class="price-own-sub">Precio de venta y costo por unidad</div></div>
           <span class="price-saved" id="priceSavedStatus">Guardado para este ${data.supplierSource ? 'producto' : 'EAN'}</span>
         </div>
         <div class="price-cat-row">
@@ -918,11 +905,6 @@
             <input class="price-input" id="priceOwnCost" data-testid="price-own-cost" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0" value="${escapeHtml(numberInputValue(saved.cost))}">
             <div class="price-field-hint">${escapeHtml(costHint)}</div>
           </div>
-          <div class="price-field">
-            <label for="pricePackUnits">Unidades por bulto</label>
-            <input class="price-input" id="pricePackUnits" data-testid="price-pack-units" type="number" min="1" step="1" inputmode="numeric" placeholder="Ej. 40" value="${escapeHtml(numberInputValue(unitsValue))}">
-            <div class="price-field-hint">${escapeHtml(packHint)}</div>
-          </div>
           <button class="price-calc-btn" data-testid="price-calculate" type="submit">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="11" x2="8" y2="11"/><line x1="12" y1="11" x2="12" y2="11"/><line x1="16" y1="11" x2="16" y2="11"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="12" y1="16" x2="12" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/></svg>
             Calcular
@@ -931,7 +913,6 @@
         <div class="price-metrics" id="priceMetrics" data-testid="price-metrics" hidden>
           <div class="price-cost-used"><span>Base del cálculo</span><strong id="priceCostUsed">—</strong></div>
           <div class="price-metric-grid" id="priceMetricGrid"></div>
-          <div class="price-pack-band" id="pricePackBand" hidden></div>
         </div>
       </section>
     `;
@@ -972,15 +953,24 @@
     return Math.max(50, Math.ceil(raw / 50) * 50);
   }
 
-  function calculateMetrics(shouldNotify) {
+  async function catPriceIdentity(product) {
+    const key = String(product.ean || product.name || '').trim();
+    const ean = /^[0-9]{6,20}$/.test(key) ? key : null;
+    const existing = catByEan(key);
+    if (existing || ean) return { existing, uid: existing?.uid, ean };
+    // Supplier publication IDs are not barcodes. Keep a stable catalogue UID.
+    const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(key));
+    const uid = 'c_ref_' + [...new Uint8Array(hash)].slice(0,20).map(n => n.toString(16).padStart(2,'0')).join('');
+    return { existing: readCatalog()[uid], uid, ean: null };
+  }
+
+  async function calculateMetrics(shouldNotify) {
     const form = document.getElementById('priceCalcForm');
     if (!form || !state.detail) return;
     const saleInput = document.getElementById('priceOwnSale');
     const costInput = document.getElementById('priceOwnCost');
-    const unitsInput = document.getElementById('pricePackUnits');
     const sale = Number(saleInput.value);
     const realCost = Number(costInput.value);
-    const units = Number(unitsInput.value);
     const estimatedCost = Number(state.detail.wholesaleReference?.unitWithVatMedian);
     if (!Number.isFinite(sale) || sale <= 0) {
       saleInput.focus();
@@ -1010,44 +1000,30 @@
       metricCard('Recargo sobre costo', markup === null ? '—' : percentage(markup), markup === null ? costMissingNote : '(venta − costo) / costo', performanceClass(markup, 35, 15)),
     ].join('');
 
-    const packBand = document.getElementById('pricePackBand');
-    if (cost && Number.isFinite(units) && units > 1) {
-      packBand.innerHTML = [
-        metricCard(`Inversión bulto · x${Math.round(units)}`, money(cost * units), 'Costo por unidad × cantidad'),
-        metricCard(`Venta bulto · x${Math.round(units)}`, money(sale * units), 'Precio de venta × cantidad'),
-        metricCard('Ganancia del bulto', money(profit * units), 'Antes de otros gastos', profit >= 0 ? 'good' : 'bad'),
-      ].join('');
-      packBand.hidden = false;
-    } else {
-      packBand.hidden = true;
-      packBand.innerHTML = '';
-    }
-
     document.getElementById('priceMetrics').hidden = false;
+    if (!shouldNotify) return;
     saveOwnPrice(form.dataset.ean, {
       sale,
       cost: hasRealCost ? realCost : null,
-      units: Number.isFinite(units) && units > 0 ? Math.round(units) : null,
     });
 
     // Alimenta el catálogo del kiosco con este producto (precio, costo, margen).
     const product = state.detail.product || {};
     const categoria = (document.getElementById('priceOwnCategory')?.value || '').trim()
       || inferCategory(product.name, product.brand, state.detail.suggestedCategory);
-    const existing = catByEan(product.ean);
-    catUpsert({
-      uid: existing ? existing.uid : undefined,
-      ean: product.ean ? String(product.ean) : null,
+    const { existing, uid, ean } = await catPriceIdentity(product);
+    try { await catUpsert({
+      uid,
+      ean,
       nombre: product.name || 'Producto',
       marca: product.brand || '',
       presentacion: product.presentation || '',
       categoria,
       costo: hasRealCost ? realCost : (Number(existing?.costo) || 0),
       precio: sale,
-      unidades: Number.isFinite(units) && units > 0 ? Math.round(units) : null,
       imagen: state.detail.image || (existing ? existing.imagen : null) || null,
       origen: existing ? existing.origen : (state.detail.supplierSource || (state.detail.mlSource ? 'mercadolibre' : 'preciosclaros')),
-    }, { rerender: false });
+    }, { rerender: false }); } catch (error) { notify(error.message); return; }
 
     document.getElementById('priceSavedStatus').classList.add('show');
     if (shouldNotify) notify(hasRealCost || Number(existing?.costo) > 0 ? 'Guardado en tu catálogo ✓' : 'Guardado · falta cargar el costo real');
@@ -1202,10 +1178,16 @@
 
   // ─────────────────────────────────────────────────────────────
   // MI CATÁLOGO (beta): base de productos del kiosco con precio,
-  // costo y margen. Guarda local al instante y sincroniza a Supabase
-  // (tabla `catalogo`), con el mismo patrón offline-first del cierre manual.
+  // costo y margen. La base confirma las escrituras; el almacenamiento local
+  // conserva una copia de consulta y los reintentos con el mismo identificador.
   // ─────────────────────────────────────────────────────────────
   const CATALOG_STORAGE_KEY = 'kiosco_catalogo_v1';
+  const CATALOG_PENDING_KEY = 'kiosco_catalogo_operacion_v1';
+  let catRefreshPromise = null;
+  let catWriteQueue = Promise.resolve();
+  let catLastSync = null;
+  let catSyncError = '';
+  let mostradorOpen = null;
   const SB_URL = 'https://pilfeptwylgufhbmmday.supabase.co';
   const SB_KEY = 'sb_publishable_AE6T1LMQuY2T8mf0uD_ANA_Bh4nk_ej';
   // Cada request a Supabase va firmada con el token del usuario logueado, que
@@ -1235,7 +1217,6 @@
     fCategoria: document.getElementById('catCategoria'),
     fCosto: document.getElementById('catCosto'),
     fPrecio: document.getElementById('catPrecio'),
-    fUnidades: document.getElementById('catUnidades'),
     fStock: document.getElementById('catStock'),
     modeCargar: document.getElementById('catModeCargar'),
     modeVender: document.getElementById('catModeVender'),
@@ -1265,37 +1246,99 @@
   function marginClass(margin) { if (!Number.isFinite(margin)) return ''; if (margin >= 25) return 'good'; if (margin >= 12) return 'warn'; return 'bad'; }
   function marginText(margin) { return Number.isFinite(margin) ? `${margin.toLocaleString('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%` : '—'; }
 
-  async function catSbWrite(path, method, body, prefer) {
-    const headers = await catHeaders({ 'Content-Type': 'application/json' });
-    if (prefer) headers.Prefer = prefer;
-    const response = await fetch(`${SB_URL}/rest/v1/${path}`, { method, headers, body: body !== undefined ? JSON.stringify(body) : undefined });
-    if (!response.ok) throw new Error(await response.text());
-    return response;
-  }
   function catRecordToRow(record) {
     return {
       uid: record.uid, ean: record.ean || null, nombre: record.nombre || '',
       marca: record.marca || null, presentacion: record.presentacion || null,
       categoria: record.categoria || 'Kiosco varios',
       costo: Number(record.costo) || 0, precio: Number(record.precio) || 0,
-      unidades_bulto: record.unidades ? Number(record.unidades) : null,
       stock: record.stock != null ? Number(record.stock) : null,
       imagen: record.imagen || null,
       origen: record.origen || 'manual', updated_at: record.savedAt || new Date().toISOString(),
     };
   }
-  async function catSaveRemote(record) {
-    await catSbWrite('catalogo?on_conflict=uid', 'POST', catRecordToRow(record), 'resolution=merge-duplicates,return=minimal');
+  function catPending() {
+    try { return JSON.parse(localStorage.getItem(CATALOG_PENDING_KEY) || 'null'); } catch { return null; }
   }
-  async function catDeleteRemote(uid) {
-    await catSbWrite(`catalogo?uid=eq.${encodeURIComponent(uid)}`, 'DELETE', undefined, 'return=minimal');
+  function catLocalDrafts() {
+    try { return Object.values(JSON.parse(localStorage.getItem('kiosco_catalogo_respaldo_local_v1') || '{}')); } catch { return []; }
+  }
+  function catFromRow(row) {
+    return { uid: row.uid, ean: row.ean || null, nombre: row.nombre || '', marca: row.marca || '',
+      presentacion: row.presentacion || '', categoria: row.categoria || 'Kiosco varios',
+      costo: Number(row.costo) || 0, precio: Number(row.precio) || 0,
+      stock: row.stock == null ? null : Number(row.stock),
+      imagen: row.imagen || null, origen: row.origen || 'manual', savedAt: row.updated_at,
+      version: Number(row.version) || 0, synced: true };
+  }
+  function catMergeRows(rows) {
+    const all = readCatalog();
+    let archived;
+    try { archived = JSON.parse(localStorage.getItem('kiosco_catalogo_archivados_v1') || '{}'); } catch { archived = {}; }
+    rows.forEach(row => {
+      const local = all[row.uid];
+      if (local && Number(local.version) > Number(row.version)) return;
+      if (archived[row.uid] >= Number(row.version || 0)) return;
+      if (row.archived_at) { archived[row.uid] = Number(row.version); delete all[row.uid]; }
+      else all[row.uid] = catFromRow(row);
+    });
+    localStorage.setItem('kiosco_catalogo_archivados_v1', JSON.stringify(archived));
+    writeCatalog(all);
+    updateCatalogCount(); renderCatSyncStatus(); renderCatalog();
+    window.dispatchEvent(new CustomEvent('kiosco:catalogo'));
+  }
+  async function catRpc(tipo, datos, retry = false, operationId = null) {
+    const run = async () => {
+      if (!await window.kioscoAuth?.token()) throw new Error('Iniciá sesión para guardar.');
+      let request = catPending();
+      if (request && !retry && (request.p_tipo !== tipo || JSON.stringify(request.p_datos) !== JSON.stringify(datos))) {
+        throw new Error('Hay una operación sin confirmar. Usá “Revisar pendiente” antes de continuar.');
+      }
+      request ||= { p_id: operationId || crypto.randomUUID(), p_tipo: tipo, p_datos: datos };
+      // Persist BEFORE sending: a timeout/reload must reuse the same operation ID.
+      localStorage.setItem(CATALOG_PENDING_KEY, JSON.stringify(request));
+      renderCatSyncStatus();
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000);
+      try {
+        const response = await fetch(`${SB_URL}/rest/v1/rpc/catalogo_aplicar`, {
+          method: 'POST', headers: await catHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify(request), signal: controller.signal,
+        });
+        const body = await response.json().catch(() => null);
+        if (!response.ok) {
+          if ([400,401,403,404,409,422].includes(response.status)) localStorage.removeItem(CATALOG_PENDING_KEY);
+          const error = new Error(body?.code === 'PGRST202'
+            ? 'Falta activar la actualización del catálogo en Supabase. No se modificó el stock.'
+            : body?.message || 'No se pudo confirmar. Revisá la operación pendiente.');
+          error.definitive = !catPending();
+          throw error;
+        }
+        if (!body?.id || !Array.isArray(body.productos)) throw new Error('Respuesta incompleta. Revisá la operación pendiente.');
+        localStorage.removeItem(CATALOG_PENDING_KEY);
+        catMergeRows(body.productos);
+        catSyncError = '';
+        window.dispatchEvent(new CustomEvent('kiosco:operacion', { detail: body }));
+        return body;
+      } catch (error) {
+        catSyncError = catPending() ? 'Operación sin confirmar' : error.message;
+        throw error.name === 'AbortError' ? new Error('Se agotó la espera. Revisá la operación pendiente; no vuelvas a cargarla.') : error;
+      } finally { clearTimeout(timeout); renderCatSyncStatus(); }
+    };
+    const result = catWriteQueue.then(run);
+    catWriteQueue = result.catch(() => {});
+    return result;
   }
   function catCountPending() { return catItems().filter(record => !record.synced).length; }
   function renderCatSyncStatus() {
     if (!cat.sync) return;
     const pending = catCountPending();
-    if (pending > 0) { cat.sync.className = 'cat-sync-status pend'; cat.sync.textContent = '⟳ ' + pending + ' sin subir'; }
-    else { cat.sync.className = 'cat-sync-status ok'; cat.sync.textContent = catItems().length ? '✓ Sincronizado' : ''; }
+    const unresolved = catPending();
+    const review = document.getElementById('catReviewLocal');
+    if (review) { const count = catLocalDrafts().length; review.hidden = !count; review.textContent = `Revisar cambios locales (${count})`; }
+    document.querySelectorAll('[data-cat-retry]').forEach(btn => { btn.hidden = !unresolved; });
+    cat.sync.className = 'cat-sync-status ' + (unresolved || catSyncError || pending ? 'pend' : 'ok');
+    cat.sync.textContent = unresolved ? 'Operación sin confirmar' : catSyncError || (pending ? `${pending} productos locales por revisar` : catLastSync ? `Actualizado ${catLastSync.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}` : 'Copia local');
   }
   function updateCatalogCount() {
     const total = catItems().length;
@@ -1303,62 +1346,54 @@
     if (cat.total) cat.total.textContent = total + (total === 1 ? ' producto' : ' productos');
   }
 
-  // Guarda un producto local al instante y lo sube a Supabase en segundo plano.
-  function catUpsert(record, options = {}) {
-    const all = readCatalog();
-    if (!record.uid) record.uid = catUid();
-    record.savedAt = new Date().toISOString();
-    record.synced = false;
-    all[record.uid] = { ...record };
-    writeCatalog(all);
-    updateCatalogCount();
+  async function catUpsert(record, options = {}) {
+    record.uid ||= catUid();
+    const duplicate = catItems().find(r => record.ean && r.ean === record.ean && r.uid !== record.uid);
+    if (duplicate) throw new Error(`Ese código ya pertenece a “${duplicate.nombre}”. Editá ese producto.`);
+    const data = catRecordToRow(record);
+    delete data.updated_at;
+    data.version = record.version ?? readCatalog()[record.uid]?.version ?? null;
+    if (!Object.hasOwn(record, 'stock')) delete data.stock;
+    const result = await catRpc('guardar', data);
+    const remaining = catLocalDrafts().filter(r => r.uid !== record.uid);
+    localStorage.setItem('kiosco_catalogo_respaldo_local_v1', JSON.stringify(Object.fromEntries(remaining.map(r => [r.uid, r]))));
     renderCatSyncStatus();
-    if (options.rerender !== false) renderCatalog();
-    const target = { ...record };
-    catSaveRemote(target).then(() => {
-      const current = readCatalog();
-      if (current[target.uid]) { current[target.uid].synced = true; writeCatalog(current); renderCatSyncStatus(); }
-    }).catch(() => { if (options.toast) notify('Guardado local. Se sube cuando haya conexión.'); });
     if (options.toast) notify(options.toast);
-    return record;
+    return catFromRow(result.productos[0]);
   }
 
-  async function catSyncLocal() {
-    const all = readCatalog();
-    let changed = false;
-    for (const uid of Object.keys(all)) {
-      const record = all[uid];
-      if (!record || record.synced) continue;
-      try { await catSaveRemote(record); record.synced = true; changed = true; } catch { /* se reintenta la próxima vez */ }
-    }
-    if (changed) writeCatalog(all);
-    renderCatSyncStatus();
-  }
-
-  async function catLoadRemote() {
-    try {
-      const response = await fetch(`${SB_URL}/rest/v1/catalogo?select=*&order=categoria.asc,nombre.asc`, {
-        cache: 'no-store', headers: await catHeaders(),
-      });
-      if (!response.ok) throw new Error(await response.text());
-      const rows = await response.json();
-      const all = readCatalog();
-      rows.forEach(row => {
-        const local = all[row.uid];
-        if (local && local.synced === false) return; // un cambio local sin subir tiene prioridad
-        all[row.uid] = {
-          uid: row.uid, ean: row.ean || null, nombre: row.nombre || '',
-          marca: row.marca || '', presentacion: row.presentacion || '',
-          categoria: row.categoria || 'Kiosco varios',
-          costo: Number(row.costo) || 0, precio: Number(row.precio) || 0,
-          unidades: row.unidades_bulto ? Number(row.unidades_bulto) : null,
-          stock: row.stock != null ? Number(row.stock) : null,
-          imagen: row.imagen || null,
-          origen: row.origen || 'manual', savedAt: row.updated_at || new Date().toISOString(), synced: true,
-        };
-      });
-      writeCatalog(all);
-    } catch { /* sin conexión o tabla aún no creada: seguimos con lo local */ }
+  function catLoadRemote() {
+    if (catRefreshPromise) return catRefreshPromise;
+    catRefreshPromise = (async () => {
+      if (!await window.kioscoAuth?.token()) return false;
+      try {
+        const rows = [];
+        let after = '';
+        for (;;) {
+          const response = await fetch(`${SB_URL}/rest/v1/catalogo?select=*&order=uid.asc&limit=500${after ? `&uid=gt.${encodeURIComponent(after)}` : ''}`, {
+            cache: 'no-store', headers: await catHeaders(), signal: AbortSignal.timeout(15000),
+          });
+          if (!response.ok) throw new Error('Sin conexión al catálogo. Mostrando copia local.');
+          const page = await response.json();
+          rows.push(...page);
+          if (page.length < 500) break;
+          after = page.at(-1).uid;
+        }
+        // Preserve legacy unsent edits separately; never replay their absolute stock.
+        const unsent = catItems().filter(r => !r.synced);
+        if (unsent.length) {
+          const backup = JSON.parse(localStorage.getItem('kiosco_catalogo_respaldo_local_v1') || '{}');
+          // Previous previews used an array; normalize without losing drafts.
+          const saved = Object.fromEntries(Object.values(backup).map(r => [r.uid, r]));
+          unsent.forEach(r => { saved[r.uid] = r; });
+          localStorage.setItem('kiosco_catalogo_respaldo_local_v1', JSON.stringify(saved));
+        }
+        catLastSync = new Date(); catSyncError = '';
+        catMergeRows(rows);
+        return true;
+      } catch (error) { catSyncError = error.message; renderCatSyncStatus(); return false; }
+    })().finally(() => { catRefreshPromise = null; });
+    return catRefreshPromise;
   }
 
   const CAT_ICONS = {
@@ -1388,7 +1423,7 @@
       const current = all[record.uid];
       if (!current || current.imagen) return;
       current.imagen = data.image;
-      catUpsert(current, { rerender: !cat.viewCatalog || !cat.viewCatalog.hidden });
+      return catUpsert(current, { rerender: !cat.viewCatalog || !cat.viewCatalog.hidden });
     }).catch(() => { /* sin foto: el ícono de categoría alcanza */ });
   }
 
@@ -1422,28 +1457,14 @@
     });
   }
 
-  function catTokensNombre(text) {
-    return String(text || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
-      .replace(/[^a-z0-9]+/g, ' ').trim().split(' ').filter(token => token.length > 1);
-  }
-
   // Busca si el renglón ya existe en el catálogo (por EAN o por parecido de nombre).
   function catMatchExistente(item) {
     if (item.ean) {
-      const porEan = catByEan(item.ean);
-      if (porEan) return porEan;
+      return catByEan(String(item.ean).trim());
     }
-    const target = new Set(catTokensNombre(item.descripcion));
-    if (!target.size) return null;
-    let best = null, bestScore = 0;
-    Object.values(readCatalog()).forEach(record => {
-      const tokens = new Set(catTokensNombre(record.nombre));
-      if (!tokens.size) return;
-      const shared = [...target].filter(token => tokens.has(token)).length;
-      const score = shared / Math.max(target.size, tokens.size);
-      if (score > bestScore) { bestScore = score; best = record; }
-    });
-    return bestScore >= 0.55 ? best : null;
+    const normalize = text => String(text || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+    const matches = catItems().filter(record => normalize(record.nombre) === normalize(item.descripcion));
+    return matches.length === 1 ? matches[0] : null;
   }
 
   async function catLeerFactura(file) {
@@ -1482,14 +1503,11 @@
       const badge = match
         ? `<span class="cat-fact-badge upd" title="Ya está en tu catálogo como “${escapeHtml(match.nombre)}”: se le actualiza el costo">actualiza costo</span>`
         : '<span class="cat-fact-badge new">nuevo</span>';
-      const bulto = item.unidadesPorBulto > 1
-        ? ` · bulto x${item.unidadesPorBulto} a ${money(item.unitario)} → ${money(costoUnidad)} por unidad`
-        : '';
       return `<div class="cat-fact-row" data-i="${i}">
         <label class="cat-fact-check"><input type="checkbox" checked data-role="incluir" aria-label="Incluir este renglón"></label>
         <div class="cat-fact-main">
           <input class="price-input cat-fact-nombre" data-role="nombre" value="${escapeHtml(item.descripcion)}" maxlength="90">
-          <div class="cat-fact-meta">${badge}<span>${item.cantidad} × ${money(item.unitario)}${item.importe ? ` = ${money(item.importe)}` : ''}${bulto}</span></div>
+          <div class="cat-fact-meta">${badge}<span>Costo por unidad: ${money(costoUnidad)}</span></div>
         </div>
         <div class="cat-fact-field"><label>Costo por unidad</label><input class="price-input" data-role="costo" type="number" min="0" step="0.01" value="${costoUnidad}"></div>
         <div class="cat-fact-field"><label>Categoría</label><input class="price-input" data-role="categoria" list="catCategoriasList" value="${escapeHtml(match ? match.categoria : inferCategory(item.descripcion, ''))}" placeholder="Kiosco varios"></div>
@@ -1514,24 +1532,32 @@
     catFacturaData = null;
   }
 
-  function catConfirmarFactura() {
+  async function catConfirmarFactura() {
     if (!catFacturaData || !cat.facturaReview) return;
-    const margen = Number(document.getElementById('catFactMargen')?.value) || 30;
+    const margen = Number(document.getElementById('catFactMargen')?.value);
+    if (!Number.isFinite(margen) || margen < 1 || margen > 94) { notify('Revisá el margen: entre 1 y 94%.'); return; }
+    const button = document.getElementById('catFactConfirmar');
+    if (button.disabled) return;
+    button.disabled = true;
     let creados = 0, actualizados = 0;
-    cat.facturaReview.querySelectorAll('.cat-fact-row').forEach(row => {
-      if (!row.querySelector('[data-role="incluir"]').checked) return;
+    try { for (const row of cat.facturaReview.querySelectorAll('.cat-fact-row')) {
+      if (!row.querySelector('[data-role="incluir"]').checked || row.dataset.saved) continue;
       const item = catFacturaData.items[Number(row.dataset.i)];
-      if (!item) return;
+      if (!item) continue;
       const nombre = row.querySelector('[data-role="nombre"]').value.trim();
       const costo = catNum(row.querySelector('[data-role="costo"]').value);
       const categoria = row.querySelector('[data-role="categoria"]').value.trim() || 'Kiosco varios';
-      if (!nombre || !costo) return;
+      if (!nombre || !costo) throw new Error('Revisá el nombre y costo de los renglones seleccionados.');
       const existing = item._matchUid ? readCatalog()[item._matchUid] : null;
       if (existing) {
-        catUpsert({ ...existing, costo, categoria, unidades: item.unidadesPorBulto || existing.unidades || null }, { rerender: false });
+        const updated = { ...existing, costo, categoria };
+        delete updated.stock;
+        await catUpsert(updated, { rerender: false });
         actualizados++;
       } else {
-        const saved = catUpsert({
+        item._newUid ||= catUid();
+        const saved = await catUpsert({
+          uid: item._newUid,
           ean: item.ean || null,
           nombre,
           marca: '',
@@ -1539,14 +1565,17 @@
           categoria,
           costo,
           precio: suggestPrice(costo, margen),
-          unidades: item.unidadesPorBulto || null,
           imagen: null,
           origen: 'factura',
         }, { rerender: false });
         catFetchFoto(saved);
         creados++;
       }
-    });
+      row.dataset.saved = 'true';
+      row.querySelector('[data-role="incluir"]').checked = false;
+      row.querySelectorAll('input').forEach(input => { input.disabled = true; });
+    } } catch (error) { notify(`${error.message} Los renglones confirmados no se volverán a cargar.`); return; }
+    finally { button.disabled = false; }
     catCerrarFactura();
     renderCatalog();
     notify(`Factura cargada ✓ ${creados} nuevo${creados === 1 ? '' : 's'}, ${actualizados} costo${actualizados === 1 ? '' : 's'} actualizado${actualizados === 1 ? '' : 's'}`);
@@ -1635,13 +1664,13 @@
     cat.addBtn.textContent = 'Cerrar formulario';
     cat.addBtn.classList.add('close');
     cat.editUid.value = record?.uid || '';
+    cat.form.dataset.version = record?.version ?? '';
     cat.formTitle.textContent = record ? 'Editar producto' : 'Nuevo producto';
     if (cat.fEan) cat.fEan.value = record?.ean || '';
     cat.fNombre.value = record?.nombre || '';
     cat.fCategoria.value = record?.categoria || '';
     cat.fCosto.value = record && record.costo ? record.costo : '';
     cat.fPrecio.value = record && record.precio ? record.precio : '';
-    cat.fUnidades.value = record && record.unidades ? record.unidades : '';
     if (cat.fStock) cat.fStock.value = record && record.stock != null ? record.stock : '';
     // En un alta nueva enfocamos el código: el lector USB "tipea" el código ahí solo.
     setTimeout(() => { (record ? cat.fNombre : (cat.fEan || cat.fNombre)).focus(); }, 40);
@@ -1672,6 +1701,12 @@
     cat.search?.addEventListener('input', renderCatalog);
     cat.categoryFilter?.addEventListener('change', renderCatalog);
     cat.addBtn.addEventListener('click', () => { if (cat.form.hidden) openManualForm(null); else closeManualForm(); });
+    document.getElementById('catReviewLocal')?.addEventListener('click', () => {
+      const record = catLocalDrafts()[0];
+      if (!record) return;
+      openManualForm({ ...record, version: readCatalog()[record.uid]?.version ?? null });
+      notify('Borrador anterior: revisá precio, costo y stock antes de guardar.');
+    });
     cat.scanBtn?.addEventListener('click', () => cat.facturaInput?.click());
     cat.facturaInput?.addEventListener('change', () => {
       const file = cat.facturaInput.files?.[0];
@@ -1692,7 +1727,7 @@
       cat.modeCargar?.setAttribute('aria-pressed', String(scanMode === 'cargar'));
       cat.modeVender?.setAttribute('aria-pressed', String(scanMode === 'vender'));
       if (cat.scanBar) cat.scanBar.hidden = !scanMode;
-      if (cat.scanHint) cat.scanHint.textContent = scanMode === 'vender' ? 'Cada escaneo resta 1 del stock' : scanMode === 'cargar' ? 'Escaneá para dar de alta o editar' : '';
+      if (cat.scanHint) cat.scanHint.textContent = scanMode === 'cargar' ? 'Alta o edición de producto' : '';
       if (scanMode && cat.scanInput) { cat.scanInput.value = ''; setTimeout(() => cat.scanInput.focus(), 30); }
     }
     // P3: resumen de precio y margen para mostrar al escanear (en cualquier modo).
@@ -1708,23 +1743,13 @@
     }
     function manejarEscaneo(code) {
       const rec = catByEan(code);
-      if (scanMode === 'vender') {
-        if (!rec) { notify('Ese código no está en el catálogo. Cambiá a “Cargar” para darlo de alta.'); return; }
-        const actual = Number(rec.stock) || 0;
-        const nuevo = Math.max(0, actual - 1);
-        const info = resumenPrecioMargen(rec);
-        const toast = actual <= 0
-          ? `⚠️ ${rec.nombre} · sin stock · ${info}`
-          : `Vendido ${rec.nombre} · quedan ${nuevo} · ${info}`;
-        catUpsert({ ...rec, stock: nuevo }, { toast });
-        setTimeout(() => cat.scanInput?.focus(), 30);
-        return;
-      }
       if (rec) { notify(`${rec.nombre} · ${resumenPrecioMargen(rec)}`); openManualForm(rec); }
       else { openManualForm(null); if (cat.fEan) cat.fEan.value = code; setTimeout(() => cat.fNombre?.focus(), 60); }
     }
     cat.modeCargar?.addEventListener('click', () => setScanMode('cargar'));
-    cat.modeVender?.addEventListener('click', () => setScanMode('vender'));
+    cat.modeVender?.addEventListener('click', () => { closeButton.click(); mostradorOpen?.('venta'); });
+    document.getElementById('catModeRecibir')?.addEventListener('click', () => { closeButton.click(); mostradorOpen?.('entrada'); });
+    document.getElementById('catModeConsultar')?.addEventListener('click', () => { closeButton.click(); mostradorOpen?.('consulta'); });
     cat.scanInput?.addEventListener('keydown', event => {
       if (event.key !== 'Enter') return;
       event.preventDefault();
@@ -1737,32 +1762,48 @@
         cat.fCategoria.value = inferCategory(cat.fNombre.value, '');
       }
     });
-    cat.form.addEventListener('submit', event => {
+    cat.fEan?.addEventListener('keydown', event => {
+      if (event.key !== 'Enter') return;
       event.preventDefault();
+      const existing = catByEan(cat.fEan.value.trim());
+      if (existing && existing.uid !== cat.editUid.value) { openManualForm(existing); notify('Ese código ya está cargado.'); }
+      else cat.fNombre.focus();
+    });
+    cat.form.addEventListener('submit', async event => {
+      event.preventDefault();
+      const saveButton = document.getElementById('catSaveBtn');
+      if (saveButton.disabled) return;
       const nombre = cat.fNombre.value.trim();
       const editUid = cat.editUid.value || undefined;
       const existing = editUid ? readCatalog()[editUid] : null;
       const categoria = cat.fCategoria.value.trim() || inferCategory(nombre, existing?.marca || '');
       const precio = catNum(cat.fPrecio.value);
       const costo = catNum(cat.fCosto.value);
-      const unitsRaw = Number(cat.fUnidades.value);
-      const unidades = Number.isFinite(unitsRaw) && unitsRaw > 0 ? Math.round(unitsRaw) : null;
       const stockRaw = cat.fStock ? String(cat.fStock.value).trim() : '';
       const stock = stockRaw === '' ? (existing && existing.stock != null ? existing.stock : null) : Math.max(0, Math.round(Number(stockRaw) || 0));
       if (!nombre) { cat.fNombre.focus(); notify('Poné el nombre del producto'); return; }
       if (!precio) { cat.fPrecio.focus(); notify('Poné el precio de venta'); return; }
-      const saved = catUpsert({
-        uid: editUid,
-        ean: (cat.fEan && cat.fEan.value.trim()) || (existing ? existing.ean : null),
+      const ean = cat.fEan.value.trim();
+      if (ean && !/^[0-9]{6,20}$/.test(ean)) { notify('El código debe tener entre 6 y 20 dígitos.'); cat.fEan.focus(); return; }
+      cat.editUid.value ||= catUid();
+      saveButton.disabled = true;
+      try {
+      const saved = await catUpsert({
+        uid: cat.editUid.value,
+        version: cat.form.dataset.version === '' ? null : Number(cat.form.dataset.version),
+        ean: ean || null,
         nombre,
         marca: existing ? existing.marca : '',
         presentacion: existing ? existing.presentacion : '',
-        categoria, costo: costo || 0, precio, unidades, stock,
+        categoria, costo: costo || 0, precio, stock,
         imagen: existing ? existing.imagen : null,
         origen: existing ? existing.origen : 'manual',
       }, { toast: editUid ? 'Producto actualizado ✓' : 'Producto agregado ✓' });
       closeManualForm();
       catFetchFoto(saved);
+      if (scanMode) setTimeout(() => cat.scanInput.focus(), 30);
+      } catch (error) { notify(error.message); await catLoadRemote(); }
+      finally { saveButton.disabled = false; }
     });
     document.getElementById('catSugerirBtn')?.addEventListener('click', () => {
       const cost = catNum(cat.fCosto.value);
@@ -1773,7 +1814,7 @@
       cat.fPrecio.value = suggested;
       notify(`Sugerido ${money(suggested)} para ganarle ${marginTarget}%`);
     });
-    cat.list.addEventListener('click', event => {
+    cat.list.addEventListener('click', async event => {
       const editBtn = event.target.closest('.cat-icon-btn.edit');
       const delBtn = event.target.closest('.cat-icon-btn.del');
       if (editBtn) {
@@ -1786,20 +1827,14 @@
         const record = readCatalog()[uid];
         if (!record) return;
         if (!window.confirm(`¿Eliminar “${record.nombre}” del catálogo?`)) return;
-        const all = readCatalog();
-        delete all[uid];
-        writeCatalog(all);
-        renderCatalog();
-        updateCatalogCount();
-        renderCatSyncStatus();
-        catDeleteRemote(uid).catch(() => notify('Borrado local. Supabase no respondió.'));
+        try { await catRpc('archivar', { uid, version: record.version }); }
+        catch (error) { notify(error.message); }
       }
     });
     // Al abrir la referencia: refrescamos contador, subimos pendientes y traemos lo remoto.
     openButton.addEventListener('click', () => {
       updateCatalogCount();
       renderCatSyncStatus();
-      catSyncLocal();
       catLoadRemote().then(() => {
         updateCatalogCount();
         renderCatSyncStatus();
@@ -1808,127 +1843,45 @@
     });
     setupMostrador();
     updateCatalogCount();
+    document.querySelectorAll('[data-cat-retry]').forEach(btn => btn.addEventListener('click', async () => {
+      if (btn.disabled || !catPending()) return;
+      const request = catPending();
+      btn.disabled = true;
+      try { await catRpc(null, null, true); notify('Operación confirmada.'); }
+      catch (error) {
+        notify(error.message);
+        if (!catPending()) window.dispatchEvent(new CustomEvent('kiosco:operacion-rechazada', { detail: request }));
+      }
+      finally { btn.disabled = false; await catLoadRemote(); }
+    }));
+    window.addEventListener('kiosco:login', catLoadRemote);
+    window.addEventListener('online', catLoadRemote);
+    window.addEventListener('focus', catLoadRemote);
+    window.addEventListener('storage', event => {
+      if ([CATALOG_STORAGE_KEY, CATALOG_PENDING_KEY].includes(event.key)) {
+        renderCatalog(); renderCatSyncStatus();
+        window.dispatchEvent(new CustomEvent('kiosco:catalogo'));
+      }
+    });
+    setInterval(() => { if (!document.hidden) catLoadRemote(); }, 30000);
+    catLoadRemote();
 
     // ── Modo mostrador: caja registradora rápida (escaneo → ticket → cobrar) ──
     // El lector escribe el código en #mostradorScan y da Enter; cada escaneo suma
     // al carrito. "Cobrar" descuenta el stock de todo junto. Pensado para la PC del
     // mostrador (en el celu no hay lector físico; eso es la cámara, P8).
     function setupMostrador() {
-      const btn = document.getElementById('btnMostrador');
-      const overlay = document.getElementById('mostradorOverlay');
-      const scan = document.getElementById('mostradorScan');
-      const listEl = document.getElementById('mostradorList');
-      const totalEl = document.getElementById('mostradorTotal');
-      const cobrarBtn = document.getElementById('mostradorCobrar');
-      const vaciarBtn = document.getElementById('mostradorVaciar');
-      const closeBtn = document.getElementById('mostradorClose');
-      const flash = document.getElementById('mostradorFlash');
-      if (!btn || !overlay || !scan) return;
-      const carrito = new Map(); // uid -> cantidad
-
-      let audioCtx = null;
-      function ensureAudio() { try { if (!audioCtx) { const C = window.AudioContext || window.webkitAudioContext; if (C) audioCtx = new C(); } if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); } catch { /* sin audio */ } }
-      function bip(ok) {
-        try {
-          ensureAudio(); if (!audioCtx) return;
-          const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-          o.connect(g); g.connect(audioCtx.destination);
-          o.type = 'square'; o.frequency.value = ok ? 880 : 200;
-          g.gain.setValueAtTime(0.05, audioCtx.currentTime);
-          g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.13);
-          o.start(); o.stop(audioCtx.currentTime + 0.14);
-        } catch { /* sin audio */ }
-      }
-      function flashOk() { if (!flash) return; flash.classList.remove('go'); void flash.offsetWidth; flash.classList.add('go'); }
-
-      function totalVenta() { let t = 0; const c = readCatalog(); carrito.forEach((qty, uid) => { const r = c[uid]; if (r) t += (Number(r.precio) || 0) * qty; }); return t; }
-      function render() {
-        const c = readCatalog();
-        const uids = [...carrito.keys()].filter(uid => c[uid]);
-        if (!uids.length) {
-          listEl.innerHTML = '<div class="mostrador-empty">Escaneá productos para armar la venta.<br>El total se calcula solo.</div>';
-        } else {
-          listEl.innerHTML = uids.map(uid => {
-            const r = c[uid], qty = carrito.get(uid), sub = (Number(r.precio) || 0) * qty;
-            return `<div class="mostrador-item"><div class="mostrador-item-info"><div class="mostrador-item-name">${escapeHtml(r.nombre || 'Producto')}</div><div class="mostrador-item-price">${money(r.precio)} c/u</div></div><div class="mostrador-qty"><button type="button" data-menos="${escapeHtml(uid)}" aria-label="Restar">−</button><span>${qty}</span><button type="button" data-mas="${escapeHtml(uid)}" aria-label="Sumar">+</button></div><div class="mostrador-item-sub">${money(sub)}</div><button class="mostrador-item-del" type="button" data-del="${escapeHtml(uid)}" aria-label="Quitar">✕</button></div>`;
-          }).join('');
-        }
-        const t = totalVenta();
-        totalEl.textContent = money(t);
-        cobrarBtn.disabled = t <= 0;
-        cobrarBtn.textContent = t > 0 ? `Cobrar ${money(t)}` : 'Cobrar';
-      }
-      function agregar(code) {
-        const rec = catByEan(code);
-        if (!rec) { bip(false); notify(`Código ${code}: no está en el catálogo. Cargalo primero.`); return; }
-        carrito.set(rec.uid, (carrito.get(rec.uid) || 0) + 1);
-        bip(true); flashOk(); render();
-      }
-      scan.addEventListener('keydown', event => {
-        if (event.key !== 'Enter') return;
-        event.preventDefault();
-        const code = scan.value.trim(); scan.value = '';
-        if (code) agregar(code);
-      });
-      listEl.addEventListener('click', event => {
-        const mas = event.target.closest('[data-mas]'), menos = event.target.closest('[data-menos]'), del = event.target.closest('[data-del]');
-        if (mas) { const uid = mas.dataset.mas; carrito.set(uid, (carrito.get(uid) || 0) + 1); render(); }
-        else if (menos) { const uid = menos.dataset.menos; const q = (carrito.get(uid) || 0) - 1; if (q <= 0) carrito.delete(uid); else carrito.set(uid, q); render(); }
-        else if (del) { carrito.delete(del.dataset.del); render(); } else return;
-        setTimeout(() => scan.focus(), 10);
-      });
-      function abrir() { ensureAudio(); overlay.classList.add('open'); overlay.setAttribute('aria-hidden', 'false'); render(); setTimeout(() => scan.focus(), 130); }
-      function cerrar() { overlay.classList.remove('open'); overlay.setAttribute('aria-hidden', 'true'); }
-      btn.addEventListener('click', abrir);
-      closeBtn?.addEventListener('click', cerrar);
-      overlay.addEventListener('click', event => { if (event.target === overlay) cerrar(); });
-      // Mantener el foco en el campo de escaneo mientras el mostrador está abierto,
-      // así el lector siempre "tipea" ahí (en la PC del mostrador es lo que queremos).
-      scan.addEventListener('blur', () => { if (overlay.classList.contains('open')) setTimeout(() => { if (overlay.classList.contains('open') && !overlay.querySelector(':focus')) scan.focus(); }, 60); });
-      vaciarBtn?.addEventListener('click', () => { if (!carrito.size) return; if (!window.confirm('¿Vaciar la venta?')) return; carrito.clear(); render(); scan.focus(); });
-      cobrarBtn?.addEventListener('click', () => {
-        const c = readCatalog();
-        const lineas = [...carrito.entries()].filter(([uid]) => c[uid]);
-        if (!lineas.length) return;
-        const t = totalVenta();
-        lineas.forEach(([uid, qty]) => { const r = c[uid], actual = Number(r.stock) || 0; catUpsert({ ...r, stock: Math.max(0, actual - qty) }, { rerender: false }); });
-        renderCatalog();
-        carrito.clear(); render();
-        bip(true); flashOk();
-        notify(`✓ Cobrado ${money(t)} · stock descontado`);
-        setTimeout(() => scan.focus(), 10);
-      });
-
-      // ── Escaneo global: estando en el home, escanear abre el mostrador SOLO ──
-      // El lector manda una ráfaga de dígitos + Enter. Si nadie está escribiendo
-      // y no hay otra pantalla abierta, lo tomamos como venta y abrimos el carrito.
-      // Distingue el lector del tecleo humano por la velocidad (ráfaga < 60ms).
-      let buf = '', lastKey = 0;
-      function editableEnfocado() {
-        const el = document.activeElement; if (!el) return false;
-        const t = el.tagName;
-        return t === 'INPUT' || t === 'TEXTAREA' || t === 'SELECT' || el.isContentEditable === true;
-      }
-      function otraPantallaAbierta() {
-        const login = document.getElementById('loginOverlay');
-        if (login && !login.classList.contains('oculto')) return true;
-        return !!document.querySelector('.historial-overlay.open, .price-overlay.open');
-      }
-      document.addEventListener('keydown', event => {
-        if (overlay.classList.contains('open')) return;   // ya abierto: lo maneja su propio campo
-        if (editableEnfocado()) return;                    // alguien está escribiendo (clave, cierre, etc.)
-        const now = Date.now();
-        if (now - lastKey > 60) buf = '';                  // pausa larga = tecleo humano, reiniciar
-        lastKey = now;
-        if (event.key === 'Enter') {
-          const code = buf.trim(); buf = '';
-          if (code.length >= 6 && /^[0-9]+$/.test(code) && !otraPantallaAbierta()) {
-            abrir();
-            agregar(code);
-          }
-          return;
-        }
-        if (event.key.length === 1) buf += event.key;      // acumular dígitos del código
+      mostradorOpen = window.KioscoMostrador({
+        items: catItems, find: catByEan, refresh: catLoadRemote, rpc: catRpc,
+        pending: catPending, save: catUpsert, uid: catUid,
+        money, escapeHtml, margin: catMargin, notify,
+        history: async () => {
+          const response = await fetch(`${SB_URL}/rest/v1/catalogo_operaciones?select=id,tipo,created_at,resultado,original_id&tipo=in.(venta,anular)&order=created_at.desc&limit=200`, {
+            headers: await catHeaders(), cache: 'no-store', signal: AbortSignal.timeout(15000),
+          });
+          if (!response.ok) throw new Error('No se pudieron consultar los tickets. Revisá la conexión y la actualización de Supabase.');
+          return response.json();
+        },
       });
     }
   }
