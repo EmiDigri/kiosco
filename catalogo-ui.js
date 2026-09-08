@@ -1806,7 +1806,99 @@
         if (!cat.viewCatalog.hidden) renderCatalog();
       });
     });
+    setupMostrador();
     updateCatalogCount();
+
+    // ── Modo mostrador: caja registradora rápida (escaneo → ticket → cobrar) ──
+    // El lector escribe el código en #mostradorScan y da Enter; cada escaneo suma
+    // al carrito. "Cobrar" descuenta el stock de todo junto. Pensado para la PC del
+    // mostrador (en el celu no hay lector físico; eso es la cámara, P8).
+    function setupMostrador() {
+      const btn = document.getElementById('btnMostrador');
+      const overlay = document.getElementById('mostradorOverlay');
+      const scan = document.getElementById('mostradorScan');
+      const listEl = document.getElementById('mostradorList');
+      const totalEl = document.getElementById('mostradorTotal');
+      const cobrarBtn = document.getElementById('mostradorCobrar');
+      const vaciarBtn = document.getElementById('mostradorVaciar');
+      const closeBtn = document.getElementById('mostradorClose');
+      const flash = document.getElementById('mostradorFlash');
+      if (!btn || !overlay || !scan) return;
+      const carrito = new Map(); // uid -> cantidad
+
+      let audioCtx = null;
+      function ensureAudio() { try { if (!audioCtx) { const C = window.AudioContext || window.webkitAudioContext; if (C) audioCtx = new C(); } if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); } catch { /* sin audio */ } }
+      function bip(ok) {
+        try {
+          ensureAudio(); if (!audioCtx) return;
+          const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+          o.connect(g); g.connect(audioCtx.destination);
+          o.type = 'square'; o.frequency.value = ok ? 880 : 200;
+          g.gain.setValueAtTime(0.05, audioCtx.currentTime);
+          g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.13);
+          o.start(); o.stop(audioCtx.currentTime + 0.14);
+        } catch { /* sin audio */ }
+      }
+      function flashOk() { if (!flash) return; flash.classList.remove('go'); void flash.offsetWidth; flash.classList.add('go'); }
+
+      function totalVenta() { let t = 0; const c = readCatalog(); carrito.forEach((qty, uid) => { const r = c[uid]; if (r) t += (Number(r.precio) || 0) * qty; }); return t; }
+      function render() {
+        const c = readCatalog();
+        const uids = [...carrito.keys()].filter(uid => c[uid]);
+        if (!uids.length) {
+          listEl.innerHTML = '<div class="mostrador-empty">Escaneá productos para armar la venta.<br>El total se calcula solo.</div>';
+        } else {
+          listEl.innerHTML = uids.map(uid => {
+            const r = c[uid], qty = carrito.get(uid), sub = (Number(r.precio) || 0) * qty;
+            return `<div class="mostrador-item"><div class="mostrador-item-info"><div class="mostrador-item-name">${escapeHtml(r.nombre || 'Producto')}</div><div class="mostrador-item-price">${money(r.precio)} c/u</div></div><div class="mostrador-qty"><button type="button" data-menos="${escapeHtml(uid)}" aria-label="Restar">−</button><span>${qty}</span><button type="button" data-mas="${escapeHtml(uid)}" aria-label="Sumar">+</button></div><div class="mostrador-item-sub">${money(sub)}</div><button class="mostrador-item-del" type="button" data-del="${escapeHtml(uid)}" aria-label="Quitar">✕</button></div>`;
+          }).join('');
+        }
+        const t = totalVenta();
+        totalEl.textContent = money(t);
+        cobrarBtn.disabled = t <= 0;
+        cobrarBtn.textContent = t > 0 ? `Cobrar ${money(t)}` : 'Cobrar';
+      }
+      function agregar(code) {
+        const rec = catByEan(code);
+        if (!rec) { bip(false); notify(`Código ${code}: no está en el catálogo. Cargalo primero.`); return; }
+        carrito.set(rec.uid, (carrito.get(rec.uid) || 0) + 1);
+        bip(true); flashOk(); render();
+      }
+      scan.addEventListener('keydown', event => {
+        if (event.key !== 'Enter') return;
+        event.preventDefault();
+        const code = scan.value.trim(); scan.value = '';
+        if (code) agregar(code);
+      });
+      listEl.addEventListener('click', event => {
+        const mas = event.target.closest('[data-mas]'), menos = event.target.closest('[data-menos]'), del = event.target.closest('[data-del]');
+        if (mas) { const uid = mas.dataset.mas; carrito.set(uid, (carrito.get(uid) || 0) + 1); render(); }
+        else if (menos) { const uid = menos.dataset.menos; const q = (carrito.get(uid) || 0) - 1; if (q <= 0) carrito.delete(uid); else carrito.set(uid, q); render(); }
+        else if (del) { carrito.delete(del.dataset.del); render(); } else return;
+        setTimeout(() => scan.focus(), 10);
+      });
+      function abrir() { ensureAudio(); overlay.classList.add('open'); overlay.setAttribute('aria-hidden', 'false'); render(); setTimeout(() => scan.focus(), 130); }
+      function cerrar() { overlay.classList.remove('open'); overlay.setAttribute('aria-hidden', 'true'); }
+      btn.addEventListener('click', abrir);
+      closeBtn?.addEventListener('click', cerrar);
+      overlay.addEventListener('click', event => { if (event.target === overlay) cerrar(); });
+      // Mantener el foco en el campo de escaneo mientras el mostrador está abierto,
+      // así el lector siempre "tipea" ahí (en la PC del mostrador es lo que queremos).
+      scan.addEventListener('blur', () => { if (overlay.classList.contains('open')) setTimeout(() => { if (overlay.classList.contains('open') && !overlay.querySelector(':focus')) scan.focus(); }, 60); });
+      vaciarBtn?.addEventListener('click', () => { if (!carrito.size) return; if (!window.confirm('¿Vaciar la venta?')) return; carrito.clear(); render(); scan.focus(); });
+      cobrarBtn?.addEventListener('click', () => {
+        const c = readCatalog();
+        const lineas = [...carrito.entries()].filter(([uid]) => c[uid]);
+        if (!lineas.length) return;
+        const t = totalVenta();
+        lineas.forEach(([uid, qty]) => { const r = c[uid], actual = Number(r.stock) || 0; catUpsert({ ...r, stock: Math.max(0, actual - qty) }, { rerender: false }); });
+        renderCatalog();
+        carrito.clear(); render();
+        bip(true); flashOk();
+        notify(`✓ Cobrado ${money(t)} · stock descontado`);
+        setTimeout(() => scan.focus(), 10);
+      });
+    }
   }
 
   syncLocationControl();
