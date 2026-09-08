@@ -5084,7 +5084,7 @@ function histRenderMetricas(y,m,last){
   for(let d=1;d<=last;d++){
     const dia=histIso(y,m,d);
     const data=histResumenMes[dia];
-    const principal=data?(data.cajaTotal>0?data.cajaTotal:data.mpTotal):0;
+    const principal=histTotalDia(data);
     dailyVals.push(principal);
     if(data){
       if(principal>0)diasActivos++;
@@ -5109,7 +5109,7 @@ function histRenderMetricas(y,m,last){
     const data=histResumenMes[dia];
     const turnosEsperados=dowLun===6?2:3;
     const completo=!!(data&&data.cierres.length>=turnosEsperados);
-    const total=data?(data.cajaTotal>0?data.cajaTotal:data.mpTotal):0;
+    const total=histTotalDia(data);
     semana.total+=total;
     if(completo){semana.diasCompletos++;sumCompletos+=data.cajaTotal;diasCompletos++;}
   }
@@ -5414,6 +5414,30 @@ function histAgruparPorDia(pagos,cierres,gastos){
   gastos.forEach(g=>{if(g.fecha)ensure(g.fecha).gastos.push(g);});
   return out;
 }
+// Total REAL de un día: parte del MP de todo el día y, en los turnos que ya tienen
+// cierre cargado, reemplaza el MP de ese turno por el total del cierre (que incluye
+// el efectivo). Antes se usaba "cajaTotal>0?cajaTotal:mpTotal": si solo 1 de los 3
+// turnos tenía cierre, el día quedaba subvaluado (mostraba solo ese cierre y perdía
+// el MP de los otros dos). Ahora cada turno aporta su número real y todo cuadra.
+function histTotalDia(data){
+  if(!data)return 0;
+  let total=Number(data.mpTotal)||0;
+  (data.cierres||[]).forEach(c=>{
+    const mpTurno=(data.turnos&&data.turnos[c.turno])?(Number(data.turnos[c.turno].mp)||0):0;
+    total+=(Number(c.total_turno)||0)-mpTurno;
+  });
+  return total;
+}
+// Igual que histTotalDia pero desde los pagos válidos + cierres crudos (para el
+// detalle del día y el refresco de hoy, que no usan el resumen agregado).
+function histTotalDesdePagos(pagosValidos,cierres){
+  let total=(pagosValidos||[]).reduce((a,p)=>a+(Number(p.monto)||0),0);
+  (cierres||[]).forEach(c=>{
+    const mpT=(pagosValidos||[]).filter(p=>p.turno===c.turno).reduce((a,p)=>a+(Number(p.monto)||0),0);
+    total+=(Number(c.total_turno)||0)-mpT;
+  });
+  return total;
+}
 async function histCargarMes(){
   const {desde,hasta,y,m,last}=histPrimerYUltimoDiaMes(histMesActual);
   const title=document.getElementById('histMonthTitle');
@@ -5486,7 +5510,7 @@ async function histCargarMes(){
       if(histResumenMes[hoyStr]){histResumenMes[hoyStr].mpTotal=totalMP;histResumenMes[hoyStr].cajaTotal=totalCaja;histResumenMes[hoyStr].movs=totalMovs;}
       const cell=document.querySelector(`.hist-day-cell[data-dia="${hoyStr}"]`);
       if(cell){
-        const principal=totalCaja>0?totalCaja:totalMP;
+        const principal=histTotalDesdePagos(pagosValidos,c2);
         const mainEl=cell.querySelector('.hist-day-main');
         if(mainEl)mainEl.textContent=principal?histMoney(principal):'—';
         const subEl=cell.querySelector('.hist-day-sub');
@@ -5512,13 +5536,13 @@ function renderCalendarioMes(){
     <div class="hist-sum-card sum-dias"><div class="hist-sum-label">Días con MP</div><div class="hist-sum-value">${diasConMP}</div></div>
     <div class="hist-sum-card sum-movs"><div class="hist-sum-label">Movimientos</div><div class="hist-sum-value">${movs}</div></div>`;
   let topDia=null,topVal=0,botDia=null,botVal=Infinity;
-  for(let d=1;d<=last;d++){const dia=histIso(y,m,d);const data=histResumenMes[dia];if(!data)continue;const v=data.cajaTotal>0?data.cajaTotal:data.mpTotal;if(v>topVal){topVal=v;topDia=dia;}if(v>0&&v<botVal&&dia<today){botVal=v;botDia=dia;}}
+  for(let d=1;d<=last;d++){const dia=histIso(y,m,d);const data=histResumenMes[dia];if(!data)continue;const v=histTotalDia(data);if(v>topVal){topVal=v;topDia=dia;}if(v>0&&v<botVal&&dia<today){botVal=v;botDia=dia;}}
   let html='';
   for(let i=0;i<blanks;i++)html+='<div class="hist-day-cell empty"></div>';
   for(let d=1;d<=last;d++){
     const dia=histIso(y,m,d);
     const data=histResumenMes[dia]||{mpTotal:0,cajaTotal:0,movs:0,cierres:[],gastos:[],turnos:{}};
-    const principal=data.cajaTotal>0?data.cajaTotal:data.mpTotal;
+    const principal=histTotalDia(data);
     const badges=[];
     if(data.cierres.length)badges.push('Caja');
     if(data.mpTotal>0)badges.push('MP');
@@ -5596,7 +5620,7 @@ function renderListaDiasMes(fuente){
   cont.innerHTML='';
   dias.forEach(dia=>{
     const data=histResumenMes[dia];
-    const totalMostrar=data.cajaTotal>0?data.cajaTotal:data.mpTotal;
+    const totalMostrar=histTotalDia(data);
     let chipsHTML='';
     turnosDelDia(dia).forEach(t=>{
       const cierre=data.cierres.find(c=>c.turno===t.nombre);
@@ -5610,7 +5634,7 @@ function renderListaDiasMes(fuente){
     card.innerHTML=`<div class="hist-dia-fecha">${formatFecha(dia)}</div>
       <div class="hist-dia-sub">MP ${histMoney(data.mpTotal)} · ${data.movs} movimiento${data.movs!==1?'s':''}${data.cajaTotal>0?` · caja ${histMoney(data.cajaTotal)}`:''}</div>
       <div class="hist-dia-turnos-preview">${chipsHTML}</div>
-      <div class="hist-dia-total-row"><span class="hist-dia-total-lbl">${data.cajaTotal>0?'Total caja':'Total MP'}</span><span class="hist-dia-total">${histMoney(totalMostrar)}</span></div>`;
+      <div class="hist-dia-total-row"><span class="hist-dia-total-lbl">Total del día</span><span class="hist-dia-total">${histMoney(totalMostrar)}</span></div>`;
     card.addEventListener('click',()=>mostrarDetalleDia(dia));
     cont.appendChild(card);
   });
@@ -5710,15 +5734,16 @@ async function mostrarDetalleDia(dia){
   const totalMP=pagosValidos.reduce((a,p)=>a+(Number(p.monto)||0),0);
   const totalCaja=cierres.reduce((a,c)=>a+(Number(c.total_turno)||0),0);
   const totalMovs=pagosValidos.length;
+  const totalDia=histTotalDesdePagos(pagosValidos,cierres);
   const tieneFueraHorario=pagosValidos.some(p=>esTransferenciaFueraHorario(p,turnosDelDia(dia)));
   if(histResumenMes[dia]){histResumenMes[dia].mpTotal=totalMP;histResumenMes[dia].cajaTotal=totalCaja;histResumenMes[dia].movs=totalMovs;histResumenMes[dia].fueraHorario=tieneFueraHorario;}
   const cell=document.querySelector(`.hist-day-cell[data-dia="${dia}"]`);
   if(cell){
-    const principal=totalCaja>0?totalCaja:totalMP;const mainEl=cell.querySelector('.hist-day-main');if(mainEl)mainEl.textContent=principal?histMoney(principal):'—';const subEl=cell.querySelector('.hist-day-sub');if(subEl)subEl.textContent=totalMovs?`${totalMovs} movs · MP ${histMoney(totalMP)}`:'sin movimientos';const compactEl=cell.querySelector('.hist-day-compact');if(compactEl)compactEl.textContent=histMoneyCompact(principal);
+    const principal=totalDia;const mainEl=cell.querySelector('.hist-day-main');if(mainEl)mainEl.textContent=principal?histMoney(principal):'—';const subEl=cell.querySelector('.hist-day-sub');if(subEl)subEl.textContent=totalMovs?`${totalMovs} movs · MP ${histMoney(totalMP)}`:'sin movimientos';const compactEl=cell.querySelector('.hist-day-compact');if(compactEl)compactEl.textContent=histMoneyCompact(principal);
     const numEl=cell.querySelector('.hist-day-num');
     if(numEl&&tieneFueraHorario&&!numEl.querySelector('.hist-day-moon'))numEl.insertAdjacentHTML('beforeend','<span class="hist-day-marker" tabindex="0" role="img" aria-label="Transferencias fuera de horario: antes de las 7 o después de las 22:30" data-tooltip="Transferencias fuera de horario · antes de las 7 o después de las 22:30"><span class="hist-day-emoji hist-day-moon" aria-hidden="true">🌙</span></span>');
   }
-  document.getElementById('histTotalGlobal').textContent=histMoney(totalCaja>0?totalCaja:totalMP);
+  document.getElementById('histTotalGlobal').textContent=histMoney(totalDia);
   document.getElementById('histTotalSub').textContent=`Caja ${histMoney(totalCaja)} · MercadoPago ${histMoney(totalMP)} · ${totalMovs} movimientos`;
   const esPasado=dia<fechaHoy();
   const sinDatos=totalMP===0&&totalCaja===0;
