@@ -556,8 +556,8 @@ body.light .btn-mostrador{color:#1e8e50!important;border-color:rgba(30,142,80,.2
 .hist-salidas-body{display:flex;flex-direction:column;gap:2px}
 .hist-salida-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--glass-border)}
 .hist-salida-row:last-child{border-bottom:none}
+.hist-salida-fecha{font-size:11.5px;color:var(--text-soft);font-weight:800;flex-shrink:0;min-width:40px;font-variant-numeric:tabular-nums}
 .hist-salida-nombre{flex:1;min-width:0;font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.hist-salida-n{font-size:11px;color:var(--text-soft);font-weight:700;flex-shrink:0}
 .hist-salida-monto{font-size:13.5px;font-weight:800;color:var(--amber);font-variant-numeric:tabular-nums;flex-shrink:0}
 .hist-salidas-hint{margin-top:10px;font-size:10.5px;color:var(--text-soft);line-height:1.4}
 
@@ -5556,12 +5556,16 @@ function histRenderSalidasMes(){
     &&!(p.devuelta===true||String(p.devuelta)==='true')
     &&(!p.status||p.status==='approved'));
   if(!rows.length){cont.innerHTML='';return;}
-  const grupos={};
-  rows.forEach(p=>{const k=(p.nombre||'Salida').trim()||'Salida';if(!grupos[k])grupos[k]={total:0,n:0};grupos[k].total+=Number(p.monto)||0;grupos[k].n++;});
-  const orden=Object.entries(grupos).sort((a,b)=>b[1].total-a[1].total);
-  const totalGeneral=orden.reduce((a,[,g])=>a+g.total,0);
-  const filas=orden.map(([nombre,g])=>`<div class="hist-salida-row"><span class="hist-salida-nombre">${cmEsc(nombre)}</span><span class="hist-salida-n">${g.n}×</span><span class="hist-salida-monto">-${histMoney(g.total)}</span></div>`).join('');
-  cont.innerHTML=`<div class="hist-salidas-card"><div class="hist-salidas-head"><span class="hist-salidas-title">↗ Salidas del mes</span><span class="hist-salidas-total">-${histMoney(totalGeneral)}</span></div><div class="hist-salidas-body">${filas}</div><div class="hist-salidas-hint">Plata que salió de la cuenta: pagos de servicios, transferencias enviadas y retiros. No cuenta como venta.</div></div>`;
+  // Una línea por salida (con fecha y monto), ordenadas por fecha. Antes las
+  // agrupaba por concepto ("Transferencia enviada ×3") y no se entendía nada.
+  const orden=[...rows].sort((a,b)=>String(a.fecha||'').localeCompare(String(b.fecha||''))||String(a.hora||'').localeCompare(String(b.hora||'')));
+  const totalGeneral=orden.reduce((a,p)=>a+(Number(p.monto)||0),0);
+  const filas=orden.map(p=>{
+    const f=String(p.fecha||''),dd=f.slice(8,10),mm=f.slice(5,7);
+    const fechaTxt=dd&&mm?`${dd}/${mm}`:'';
+    return`<div class="hist-salida-row"><span class="hist-salida-fecha">${fechaTxt}</span><span class="hist-salida-nombre">${cmEsc(p.nombre||'Salida')}</span><span class="hist-salida-monto">-${histMoney(Number(p.monto)||0)}</span></div>`;
+  }).join('');
+  cont.innerHTML=`<div class="hist-salidas-card"><div class="hist-salidas-head"><span class="hist-salidas-title">↗ Salidas del mes</span><span class="hist-salidas-total">-${histMoney(totalGeneral)}</span></div><div class="hist-salidas-body">${filas}</div><div class="hist-salidas-hint">Cada línea es una salida real (pago de servicio, transferencia enviada o retiro), con su fecha. No cuenta como venta.</div></div>`;
 }
 let _histEmojiRaf=null;
 function histAnimarEmojis(){
