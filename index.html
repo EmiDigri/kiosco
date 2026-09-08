@@ -547,6 +547,19 @@ body.light .btn-mostrador{color:#1e8e50!important;border-color:rgba(30,142,80,.2
 .mostrador-flash.go{animation:mostFlash .4s ease}
 @keyframes mostFlash{0%{opacity:1}100%{opacity:0}}
 @media (prefers-reduced-motion:reduce){.mostrador-panel{transition:none}.mostrador-item{animation:none}.mostrador-flash.go{animation:none}}
+/* ── Salidas del mes (historial) ── */
+.hist-salidas-section{margin-top:16px}
+.hist-salidas-card{border:1px solid rgba(244,164,53,.28);border-radius:14px;background:rgba(244,164,53,.06);padding:14px 16px}
+.hist-salidas-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.hist-salidas-title{font-size:13px;font-weight:900;color:var(--text);letter-spacing:.2px}
+.hist-salidas-total{font-size:18px;font-weight:900;color:var(--amber);font-variant-numeric:tabular-nums;white-space:nowrap}
+.hist-salidas-body{display:flex;flex-direction:column;gap:2px}
+.hist-salida-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--glass-border)}
+.hist-salida-row:last-child{border-bottom:none}
+.hist-salida-nombre{flex:1;min-width:0;font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hist-salida-n{font-size:11px;color:var(--text-soft);font-weight:700;flex-shrink:0}
+.hist-salida-monto{font-size:13.5px;font-weight:800;color:var(--amber);font-variant-numeric:tabular-nums;flex-shrink:0}
+.hist-salidas-hint{margin-top:10px;font-size:10.5px;color:var(--text-soft);line-height:1.4}
 
 /* ─── HISTORIAL ─── */
 .btn-historial{display:inline-flex;align-items:center;gap:6px;background:var(--glass);border:1px solid var(--glass-border);border-radius:999px;color:var(--text-mid);font-size:12px;font-weight:500;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;padding:5px 12px;cursor:pointer;backdrop-filter:blur(10px);transition:all .2s ease}
@@ -3461,6 +3474,7 @@ body.light .tg-lock{background:rgba(255,255,255,.96)}
         <div class="hist-calendar-grid" id="histCalendarGrid"></div>
         <div class="hist-source-note" id="histSourceNote"></div>
         <div id="histMetricas" class="hist-metricas-section"></div>
+        <div id="histSalidasMes" class="hist-salidas-section"></div>
       </div>
       <div class="hist-month-list-title">Días del mes</div>
       <div id="historialDias"></div>
@@ -5528,7 +5542,26 @@ function renderCalendarioMes(){
   grid.innerHTML=html;
   grid.querySelectorAll('.hist-day-cell[data-dia]').forEach(cell=>cell.addEventListener('click',()=>mostrarDetalleDia(cell.dataset.dia)));
   histRenderMetricas(y,m,last);
+  histRenderSalidasMes();
   histAnimarEmojis();
+}
+// Desglose de las SALIDAS del mes (plata que salió de la cuenta) agrupadas por
+// concepto: "Pago Edenor", "Transferencia enviada", etc. — con total. Usa las
+// filas es_enviada del mes (excluye las devueltas). Aprovecha que ahora el cron
+// nombra cada salida (ver detección de pagos de servicio del dueño).
+function histRenderSalidasMes(){
+  const cont=document.getElementById('histSalidasMes');if(!cont)return;
+  const rows=(histRowsPagosMes||[]).filter(p=>
+    (p.es_enviada===true||String(p.es_enviada)==='true')
+    &&!(p.devuelta===true||String(p.devuelta)==='true')
+    &&(!p.status||p.status==='approved'));
+  if(!rows.length){cont.innerHTML='';return;}
+  const grupos={};
+  rows.forEach(p=>{const k=(p.nombre||'Salida').trim()||'Salida';if(!grupos[k])grupos[k]={total:0,n:0};grupos[k].total+=Number(p.monto)||0;grupos[k].n++;});
+  const orden=Object.entries(grupos).sort((a,b)=>b[1].total-a[1].total);
+  const totalGeneral=orden.reduce((a,[,g])=>a+g.total,0);
+  const filas=orden.map(([nombre,g])=>`<div class="hist-salida-row"><span class="hist-salida-nombre">${cmEsc(nombre)}</span><span class="hist-salida-n">${g.n}×</span><span class="hist-salida-monto">-${histMoney(g.total)}</span></div>`).join('');
+  cont.innerHTML=`<div class="hist-salidas-card"><div class="hist-salidas-head"><span class="hist-salidas-title">↗ Salidas del mes</span><span class="hist-salidas-total">-${histMoney(totalGeneral)}</span></div><div class="hist-salidas-body">${filas}</div><div class="hist-salidas-hint">Plata que salió de la cuenta: pagos de servicios, transferencias enviadas y retiros. No cuenta como venta.</div></div>`;
 }
 let _histEmojiRaf=null;
 function histAnimarEmojis(){
