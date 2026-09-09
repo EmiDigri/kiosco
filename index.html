@@ -1093,6 +1093,30 @@ body.light .mostrador-status.error{color:#9a4600}
 }
 .cm-foto-f input:focus{outline:none;border-color:var(--cm-accent)}
 .cm-foto-f.readonly input{background:transparent;border-color:var(--cm-border-soft);color:var(--cm-ink-mid)}
+.cm-foto-context{margin-bottom:16px}
+#cierreManualOverlay:has(.cm-foto-review:not([hidden])){overflow:hidden}
+.cm-foto-review input:disabled{opacity:.65}
+.cm-foto-check{white-space:pre-line;overflow-wrap:anywhere}
+.cm-foto-turno-head{gap:10px;flex-wrap:wrap}
+.cm-foto-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.cm-foto-f{min-width:0}
+.cm-foto-f label{letter-spacing:0}
+.cm-foto-f input{min-width:0;box-sizing:border-box;border-radius:8px}
+.cm-foto-f input[aria-invalid="true"]{border-color:var(--cm-amber)}
+.cm-foto-medio{grid-column:1/-1;color:var(--cm-ink-mid);font-size:12px;line-height:1.5}
+.cm-foto-accept{display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.5;margin-block:12px}
+.cm-foto-accept[hidden]{display:none}
+.cm-foto-accept input{flex:none;margin-top:3px}
+.cm-foto-gasto input{min-width:0}
+.hist-gasto-meta{display:block;font-size:12px;color:var(--text-soft);margin-top:3px}
+.hist-gasto-line{gap:12px;align-items:center}
+.hist-gasto-line>span{min-width:0;overflow-wrap:anywhere}
+.hist-gasto-line>strong{flex-shrink:0}
+.hist-gastos-mes{margin-top:20px;border-top:1px solid var(--border);padding-top:14px}
+.hist-gastos-mes h3{font-size:15px;margin:0 0 10px;letter-spacing:0}
+.hist-gastos-mes button{font:inherit;color:var(--accent);background:none;border:0;padding:0;cursor:pointer}
+.hk-metric-val{overflow-wrap:anywhere}
+@media(max-width:480px){.cm-foto-review .cm-foto-gasto{grid-template-columns:minmax(0,1fr) 100px 32px}.cm-foto-review .cm-foto-actions{flex-wrap:wrap}.cm-foto-review .cm-foto-actions>button{flex:1;min-width:120px}.cm-foto-f label{font-size:11px;line-height:1.4}.hk-metric-val{font-size:19px}}
 .cm-foto-gastos-head{font-size:13px;font-weight:800;color:var(--cm-ink-mid);text-transform:uppercase;letter-spacing:.5px;margin:18px 0 10px}
 .cm-foto-gasto{
   display:grid;grid-template-columns:1fr 120px 34px;gap:8px;align-items:center;
@@ -3531,6 +3555,7 @@ body.light .tg-lock{background:rgba(255,255,255,.96)}
         <div class="hist-calendar-grid" id="histCalendarGrid"></div>
         <div class="hist-source-note" id="histSourceNote"></div>
         <div id="histMetricas" class="hist-metricas-section"></div>
+        <div id="histGastosMes" class="hist-gastos-mes"></div>
         <div id="histSalidasMes" class="hist-salidas-section"></div>
       </div>
       <div class="hist-month-list-title">Días del mes</div>
@@ -3688,7 +3713,12 @@ body.light .tg-lock{background:rgba(255,255,255,.96)}
       <button class="btn-cerrar-hist" id="cmFotoCerrar" title="Cerrar">✕</button>
     </div>
     <div class="cm-foto-check" id="cmFotoCheck"></div>
+    <div class="cm-foto-grid cm-foto-context">
+      <div class="cm-foto-f"><label for="cmFotoFecha">Fecha del cierre</label><input id="cmFotoFecha" type="date"></div>
+      <div class="cm-foto-f"><label for="cmFotoTotal">Total escrito del dia</label><input id="cmFotoTotal" type="text" inputmode="decimal" placeholder="Sin total escrito"></div>
+    </div>
     <div id="cmFotoTurnos"></div>
+    <label class="cm-foto-accept" id="cmFotoMpAviso" hidden><input type="checkbox" id="cmFotoAceptarMp">Confirmo usar el MP registrado en la app, aunque difiera del cuaderno.</label>
     <div class="cm-foto-gastos-head">Gastos leídos</div>
     <div id="cmFotoGastos"></div>
     <button class="cm-foto-addgasto" id="cmFotoAddGasto" type="button">+ Agregar gasto</button>
@@ -3880,6 +3910,7 @@ body.light .tg-lock{background:rgba(255,255,255,.96)}
 <div class="toast" id="toast"></div>
 
 <script src="./assets/desafios-es.js"></script>
+<script src="./cierre-cuentas.js?v=20260908-cuaderno"></script>
 <script defer src="./assets/palabras-validas.js"></script>
 <script>
 const TURNOS_DOMINGO = [
@@ -5165,11 +5196,10 @@ function histRenderMetricas(y,m,last){
     semana.fin=d;semana.diasTotales++;
     const dia=histIso(y,m,d);
     const data=histResumenMes[dia];
-    const turnosEsperados=dowLun===6?2:3;
-    const completo=!!(data&&data.cierres.length>=turnosEsperados);
+    const completo=CierreCuentas.completo(data,dia);
     const total=histTotalDia(data);
     semana.total+=total;
-    if(completo){semana.diasCompletos++;sumCompletos+=data.cajaTotal;diasCompletos++;}
+    if(completo){semana.diasCompletos++;sumCompletos+=total;diasCompletos++;}
   }
   const hoyReal=new Date();
   const esMesActual=y===hoyReal.getFullYear()&&m===hoyReal.getMonth()+1;
@@ -5212,26 +5242,30 @@ function histRenderMetricas(y,m,last){
   const nCierresMes=(mesLearn.errs||[]).length;
   const projLow=Math.max(mpDelMes,projMes*(1-projErr)),projHigh=projMes*(1+projErr);
   const mesCorto=new Date(y,m-1,1).toLocaleDateString('es-AR',{month:'long'});
+  const contable=CierreCuentas.resumenMes(histResumenMes,histIso(y,m,1),histIso(y,m,hoyD));
+  const faltanCierres=contable.esperados-contable.cerrados;
   const projBloque=!esMesActual
     ?`<div class="hk-proj-top"><span>Cierre del mes</span></div><div class="hk-proj-val">${histMoney(mpDelMes)}</div><div class="hk-proj-note">mes cerrado</div>`
     :`<div class="hk-proj-top"><span>Proyección de cierre del mes</span><span class="hk-learn-pill">✨ aprende</span></div><div class="hk-proj-val">${histMoneyCompact(projLow)} – ${histMoneyCompact(projHigh)}</div><div class="hk-proj-note">${nCierresMes>=2?`afinada con ${nCierresMes} cierre${nCierresMes===1?'':'s'} · `:'todavía aprendiendo · '}margen ±${Math.round(projErr*100)}%</div><div class="hk-proj-goal" id="hkVsMejor"></div>`;
   const kioscoHtml=`<div class="hist-kiosco">
     <div class="hk-head"><span class="hk-title">Nuestro kiosco</span><span class="hk-sub">${mesCorto}${esMesActual?` · día ${hoyD} de ${last}`:''}</span></div>
-    <div class="hk-proj-card">${projBloque}</div>
+    <div class="hk-proj-card"><div class="hk-proj-top"><span>Recaudación registrada</span></div><div class="hk-proj-val">${histMoney(contable.total)}</div><div class="hk-proj-note">Efectivo + Mercado Pago · ${contable.cerrados}/${contable.esperados} turnos con cierre${faltanCierres>0?' · falta efectivo por cargar':''}</div></div>
     <div class="hk-metrics">
-      <div class="hk-metric"><div class="hk-metric-lbl">${esMesActual?'Va este mes':'Total del mes'}</div><div class="hk-metric-val">${histMoney(mpDelMes)}</div></div>
-      <div class="hk-metric" id="hkVsAnt"><div class="hk-metric-lbl">Ritmo del mes</div><div class="hk-metric-val" style="opacity:.4">···</div></div>
+      <div class="hk-metric"><div class="hk-metric-lbl">MP incluido en el total</div><div class="hk-metric-val">${histMoney(contable.mp)}</div></div>
+      <div class="hk-metric"><div class="hk-metric-lbl">Efectivo registrado (incluye Once)</div><div class="hk-metric-val">${histMoney(contable.efectivo)}</div></div>
+      <div class="hk-metric"><div class="hk-metric-lbl">Gastos registrados</div><div class="hk-metric-val">${histMoney(contable.gastos)}</div></div>
+      <div class="hk-metric"><div class="hk-metric-lbl">Resultado registrado${faltanCierres?' · parcial':''}</div><div class="hk-metric-val">${histMoney(contable.resultado)}</div></div>
     </div>
     <div class="hk-meta" id="hkMeta" hidden>
-      <div class="hk-meta-head"><span>Meta: superar tu mejor mes</span><span id="hkMetaFalta"></span></div>
+      <div class="hk-meta-head"><span>Meta MP: superar tu mejor mes</span><span id="hkMetaFalta"></span></div>
       <div class="hk-meta-track"><div class="hk-meta-fill" id="hkMetaFill"></div></div>
     </div>
     <div class="hk-ritmo">
-      <div class="hk-ritmo-title">El ritmo del día</div>
+      <div class="hk-ritmo-title">Mercado Pago por turno</div>
       ${persNames.map(p=>`<div class="hk-persona"><span class="hk-persona-emoji">${persEmoji[p]}</span><span class="hk-persona-main"><span class="hk-persona-name">${p} · ${persRole[p]}</span><span class="hk-persona-desc">${persMes[p]>0?histMoneyCompact(persMes[p])+' este mes':'sin datos aún'}</span></span><span class="hk-persona-chip flat" data-chip="${p}">···</span></div>`).join('')}
       <div class="hk-persona"><span class="hk-persona-emoji">📅</span><span class="hk-persona-main"><span class="hk-persona-name">Domingos</span><span class="hk-persona-desc">${domMes>0?histMoneyCompact(domMes)+' este mes':'sin datos aún'}</span></span><span class="hk-persona-chip flat" data-chip="Domingos">···</span></div>
     </div>
-    <div class="hk-foot"><span aria-hidden="true">🧠</span> Cada mes que cierra, afina la proyección y aprende mejor el ritmo de tu kiosco.</div>
+    <div class="hk-foot">Resultado = recaudación menos gastos cargados. ${faltanCierres>0?`Faltan ${faltanCierres} cierres: el efectivo y el resultado están incompletos.`:'Cierres completos; los gastos pueden tener pendientes.'}</div>
   </div>`;
   el.innerHTML=`
     ${kioscoHtml}
@@ -5239,7 +5273,7 @@ function histRenderMetricas(y,m,last){
       <div class="hist-met-kpi"><div class="hist-met-kpi-label">Promedio diario MP</div><div class="hist-met-kpi-val">${histMoneyCompact(promDiario)||'—'}</div></div>
       <div class="hist-met-kpi"><div class="hist-met-kpi-label">Ticket MP</div><div class="hist-met-kpi-val">${ticketMP>0?histMoneyCompact(ticketMP):'—'}</div></div>
       <div class="hist-met-kpi"><div class="hist-met-kpi-label">Días activos</div><div class="hist-met-kpi-val">${diasActivos}</div></div>
-      <div class="hist-met-kpi" id="histVsMesAnt"><div class="hist-met-kpi-label">vs mes anterior</div><div class="hist-met-kpi-val" style="font-size:13px;opacity:.35">···</div></div>
+      <div class="hist-met-kpi" id="histVsMesAnt"><div class="hist-met-kpi-label">MP vs mes anterior</div><div class="hist-met-kpi-val" style="font-size:13px;opacity:.35">···</div></div>
     </div>
     <div class="hist-met-chart-card" id="histChartCard"><div class="hist-met-chart-title"><span>Evolución diaria del mes</span>${histTendenciaPill(dailyVals,last,y,m)}</div>${histSvgBarsDias(dailyVals,last,y,m)}</div>
     <div class="hist-met-chart-card" style="margin-top:12px"><div class="hist-met-chart-title">Proyección de facturación</div>${proyeccionHtml}</div>
@@ -5410,10 +5444,20 @@ function histNormalizarCierreLocal(dia){
   Object.entries(local.cierres||{}).forEach(([turno,c])=>{
     const gastos=(local.gastos||[]).filter(g=>CM_TURNO_CAJA_ALL[turno]===g.caja).reduce((a,g)=>a+(Number(g.monto)||0),0);
     const mp=Number(c.mp)||0, efectivo=Number(c.efectivo)||0, once=Number(c.once)||0;
-    cierres.push({fecha:dia,turno,apertura:Number(c.apertura)||0,efectivo,once_monto:once,mpo:Number(c.mpo)||0,mp,gastos_caja:gastos,total_turno:mp+efectivo+once+gastos});
+    cierres.push({fecha:dia,turno,apertura:Number(c.apertura)||0,efectivo,once_monto:once,mpo:Number(c.mpo)||0,mp,gastos_caja:gastos,total_turno:CierreCuentas.totalCierre(c,gastos),synced:c.synced});
   });
-  const gastos=(local.gastos||[]).map(g=>({fecha:dia,nombre:g.nombre,monto:Number(g.monto)||0,caja:g.caja,turno:g.turno||CM_CAJA_TURNO[g.caja]||null,uid:g.uid||''}));
+  const gastos=(local.gastos||[]).map(g=>({fecha:dia,nombre:g.nombre,monto:Number(g.monto)||0,caja:g.caja,turno:g.turno||CM_CAJA_TURNO[g.caja]||null,uid:g.uid||'',synced:g.synced}));
   return {cierres,gastos};
+}
+function histUnirCierresLocales(cierres,gastos,local){
+  (local.cierres||[]).forEach(c=>{
+    const i=cierres.findIndex(r=>r.fecha===c.fecha&&r.turno===c.turno);
+    if(i<0)cierres.push(c);else if(!c.synced)cierres[i]=c;
+  });
+  (local.gastos||[]).forEach(g=>{
+    const i=gastos.findIndex(r=>g.uid?r.uid===g.uid:r.fecha===g.fecha&&r.nombre===g.nombre&&Number(r.monto)===Number(g.monto)&&r.caja===g.caja);
+    if(i<0)gastos.push(g);else if(!g.synced)gastos[i]=g;
+  });
 }
 async function histSbSelect(path){
   const res=await fetch(`${SUPABASE_URL}/rest/v1/${path}`,{cache:'no-store',headers:await sbAuthHeaders()});
@@ -5441,7 +5485,7 @@ async function histSbSelectAll(path){
 function histDeduplicarGastos(arr){
   const seen=new Set();
   return arr.filter(g=>{
-    const key=(g.fecha||'')+'|'+(g.nombre||'').trim().toLowerCase()+'|'+(g.caja||'')+'|'+(Number(g.monto)||0);
+    const key=g.uid?`uid:${g.uid}`:g.id?`id:${g.id}`:(g.fecha||'')+'|'+(g.nombre||'').trim().toLowerCase()+'|'+(g.caja||'')+'|'+(Number(g.monto)||0);
     if(seen.has(key))return false;
     seen.add(key);return true;
   });
@@ -5477,14 +5521,16 @@ function histAgruparPorDia(pagos,cierres,gastos){
 // el efectivo). Antes se usaba "cajaTotal>0?cajaTotal:mpTotal": si solo 1 de los 3
 // turnos tenía cierre, el día quedaba subvaluado (mostraba solo ese cierre y perdía
 // el MP de los otros dos). Ahora cada turno aporta su número real y todo cuadra.
+let histGastosFuenteRemota=false;
+function histRenderGastosMes(){
+  const el=document.getElementById('histGastosMes');if(!el)return;
+  const gastos=histRowsGastosMes||[],medios=CierreCuentas.conciliarGastos(gastos,histRowsPagosMes||[],histGastosFuenteRemota);
+  const total=gastos.reduce((s,g)=>s+(Number(g.monto)||0),0);
+  el.innerHTML=`<h3>Gastos registrados · ${histMoney(total)}</h3>`+(gastos.length?gastos.map((g,i)=>`<div class="hist-gasto-line"><span>${cmEsc(g.nombre)}<small class="hist-gasto-meta"><button type="button" data-gasto-dia="${cmEsc(g.fecha)}">${cmEsc(formatFecha(g.fecha))}</button> · ${cmEsc(medios[i].texto)}</small></span><strong>${histMoney(g.monto)}</strong></div>`).join(''):'<div class="hist-gasto-meta">Sin gastos cargados en este mes</div>');
+  el.querySelectorAll('[data-gasto-dia]').forEach(btn=>btn.addEventListener('click',()=>mostrarDetalleDia(btn.dataset.gastoDia)));
+}
 function histTotalDia(data){
-  if(!data)return 0;
-  let total=Number(data.mpTotal)||0;
-  (data.cierres||[]).forEach(c=>{
-    const mpTurno=(data.turnos&&data.turnos[c.turno])?(Number(data.turnos[c.turno].mp)||0):0;
-    total+=(Number(c.total_turno)||0)-mpTurno;
-  });
-  return total;
+  return CierreCuentas.totalDia(data);
 }
 // Igual que histTotalDia pero desde los pagos válidos + cierres crudos (para el
 // detalle del día y el refresco de hoy, que no usan el resumen agregado).
@@ -5528,10 +5574,7 @@ async function histCargarMes(){
   for(let d=1;d<=last;d++){
     const dia=histIso(y,m,d);
     const loc=histNormalizarCierreLocal(dia);
-    const tieneRemoto=cierres.some(c=>c.fecha===dia);
-    if(!tieneRemoto&&loc.cierres.length)cierres.push(...loc.cierres);
-    const tieneGastosRemotos=gastos.some(g=>g.fecha===dia);
-    if(!tieneGastosRemotos&&loc.gastos.length)gastos.push(...loc.gastos);
+    histUnirCierresLocales(cierres,gastos,loc);
     // Completar desde kiosco_historial local: siempre para hoy (merge), solo si no hay datos remotos para otros días
     const esHoy=dia===fechaHoy();
     const tienePagosRemotos=pagos.some(p=>p.fecha===dia);
@@ -5554,18 +5597,24 @@ async function histCargarMes(){
   // lo derivamos del status real para no sumar rechazados/cancelados al mes.
   pagos.forEach(p=>{if(p.excluido===undefined)p.excluido=!p.es_enviada&&!!p.status&&p.status!=='approved';if(p.devuelta===true||p.devuelta==='true')p.excluido=true;});
   histRowsPagosMes=pagos;histRowsCierresMes=cierres;histRowsGastosMes=gastos;
+  histGastosFuenteRemota=fuente==='Supabase';
   histResumenMes=histAgruparPorDia(pagos,cierres,gastos);
   renderCalendarioMes();
   renderListaDiasMes(fuente);
   // Para hoy, hacer fetch fresco y actualizar el tile (el resumen mensual puede estar desactualizado)
   const hoyStr=fechaHoy();
   if(histMesActual.getFullYear()===new Date().getFullYear()&&histMesActual.getMonth()===new Date().getMonth()){
-    histFetchDia(hoyStr).then(({pagos:p2,cierres:c2})=>{
+    histFetchDia(hoyStr).then(({pagos:p2,cierres:c2,gastos:g2})=>{
+      if(histMesActual.getFullYear()!==y||histMesActual.getMonth()+1!==m)return;
       const pagosValidos=p2.filter(x=>!x.es_enviada&&!x.excluido);
       const totalMP=pagosValidos.reduce((a,x)=>a+(Number(x.monto)||0),0);
       const totalCaja=c2.reduce((a,x)=>a+(Number(x.total_turno)||0),0);
       const totalMovs=pagosValidos.length;
-      if(histResumenMes[hoyStr]){histResumenMes[hoyStr].mpTotal=totalMP;histResumenMes[hoyStr].cajaTotal=totalCaja;histResumenMes[hoyStr].movs=totalMovs;}
+      histResumenMes[hoyStr]=histAgruparPorDia(p2,c2,g2)[hoyStr]||{pagos:[],cierres:[],gastos:[],mpTotal:0,cajaTotal:0,movs:0,turnos:{}};
+      histRowsPagosMes=histRowsPagosMes.filter(p=>p.fecha!==hoyStr).concat(p2);
+      histRowsCierresMes=histRowsCierresMes.filter(c=>c.fecha!==hoyStr).concat(c2);
+      histRowsGastosMes=histRowsGastosMes.filter(g=>g.fecha!==hoyStr).concat(g2);
+      renderCalendarioMes();
       const cell=document.querySelector(`.hist-day-cell[data-dia="${hoyStr}"]`);
       if(cell){
         const principal=histTotalDesdePagos(pagosValidos,c2);
@@ -5624,6 +5673,7 @@ function renderCalendarioMes(){
   grid.querySelectorAll('.hist-day-cell[data-dia]').forEach(cell=>cell.addEventListener('click',()=>mostrarDetalleDia(cell.dataset.dia)));
   histRenderMetricas(y,m,last);
   histRenderSalidasMes();
+  histRenderGastosMes();
   histAnimarEmojis();
 }
 // Desglose de las SALIDAS del mes (plata que salió de la cuenta) agrupadas por
@@ -5739,7 +5789,7 @@ async function mostrarListaDias(skipFetch=false){
   }
 }
 async function histFetchDia(dia){
-  let pagos=[],cierres=[],gastos=[];
+  let pagos=[],cierres=[],gastos=[],remoto=true;
   try{
     [pagos,cierres,gastos]=await Promise.all([
       histSbSelect(`pagos?fecha=eq.${dia}&order=hora.asc&limit=1000`),
@@ -5748,6 +5798,7 @@ async function histFetchDia(dia){
     ]);
   }catch(e){
     console.warn('Detalle desde Supabase falló, uso localStorage:',e.message);
+    remoto=false;
     const hist=leerHistorial(),datosDia=hist[dia]||{};
     Object.entries(datosDia).forEach(([turno,d])=>{
       (d.movs||[]).forEach(m=>pagos.push({fecha:dia,hora:m.hora,nombre:m.nombre,tipo:m.tipo,monto:m.monto,turno,es_enviada:false}));
@@ -5760,14 +5811,13 @@ async function histFetchDia(dia){
   // capturas viejas que aparecían como "transferencias enviadas" fantasma aunque
   // la base estuviera limpia.
   const loc=histNormalizarCierreLocal(dia);
-  if(!cierres.length&&loc.cierres.length)cierres=loc.cierres;
-  if(!gastos.length&&loc.gastos.length)gastos=loc.gastos;
+  histUnirCierresLocales(cierres,gastos,loc);
   gastos=histDeduplicarGastos(gastos);
   // Las filas que vienen directo de Supabase no traen el flag excluido seteado
   // (eso solo pasa en el camino de respaldo por localStorage): lo derivamos del
   // status real del pago para no contar rechazados/cancelados como validos.
   pagos.forEach(p=>{if(p.excluido===undefined)p.excluido=!p.es_enviada&&!!p.status&&p.status!=='approved';if(p.devuelta===true||p.devuelta==='true')p.excluido=true;});
-  return {pagos,cierres,gastos};
+  return {pagos,cierres,gastos,remoto};
 }
 // Marca (o desmarca) una transferencia como "devuelta" en Supabase. Una vez
 // devuelta, queda excluida de TODOS los totales (turno, día, mes, pulse, cierre).
@@ -5787,7 +5837,7 @@ async function mostrarDetalleDia(dia){
   document.getElementById('histDiaTitulo').textContent=formatFecha(dia);
   const cont=document.getElementById('histTurnosDetalle');
   cont.innerHTML='<div class="hist-loading">Cargando detalle del día…</div>';
-  const {pagos,cierres,gastos}=await histFetchDia(dia);
+  const {pagos,cierres,gastos,remoto}=await histFetchDia(dia);
   const pagosValidos=pagos.filter(p=>!p.es_enviada&&!p.excluido);
   const totalMP=pagosValidos.reduce((a,p)=>a+(Number(p.monto)||0),0);
   const totalCaja=cierres.reduce((a,c)=>a+(Number(c.total_turno)||0),0);
@@ -5813,7 +5863,8 @@ async function mostrarDetalleDia(dia){
     <div class="hist-detail-card"><div class="hist-detail-label">Gastos</div><div class="hist-detail-value">${histMoney(gastos.reduce((a,g)=>a+(Number(g.monto)||0),0))}</div></div>
   </div>`;
   if(gastos.length){
-    html+=`<div class="hist-cierre-block"><div class="hist-cierre-title">Gastos del día</div>${gastos.map(g=>`<div class="hist-gasto-line"><span>${cmEsc?cmEsc(g.nombre):g.nombre}${g.caja?` · ${g.caja}`:''}</span><strong>${histMoney(g.monto)}</strong></div>`).join('')}</div>`;
+    const medios=CierreCuentas.conciliarGastos(gastos,pagos,remoto);
+    html+=`<div class="hist-cierre-block"><div class="hist-cierre-title">Gastos del día</div>${gastos.map((g,i)=>`<div class="hist-gasto-line"><span>${cmEsc(g.nombre)}${g.caja?` · ${cmEsc(g.caja)}`:''}<small class="hist-gasto-meta">${cmEsc(medios[i].texto)}</small></span><strong>${histMoney(g.monto)}</strong></div>`).join('')}</div>`;
   }
   let huboAlgo=false;
   turnosDelDia(dia).forEach(t=>{
@@ -6698,24 +6749,23 @@ async function cmSbWrite(path,method,body,prefer){
   if(!res.ok)throw new Error(await res.text());
   return res;
 }
-async function cmGuardarCierreRemoto(turno,data){
-  const gastosCaja=cmGastosDeCaja(turno);
+async function cmGuardarCierreRemoto(turno,data,fecha=cmFechaObjetivo,gastosCaja=cmGastosDeCaja(turno)){
   const payload={
-    fecha:cmFechaObjetivo,turno,
+    fecha,turno,
     apertura:Number(data.apertura)||0,
     efectivo:Number(data.efectivo)||0,
     once_monto:Number(data.once)||0,
     mpo:Number(data.mpo)||0,
     mp:Number(data.mp)||0,
     gastos_caja:gastosCaja,
-    total_turno:(Number(data.mp)||0)+(Number(data.efectivo)||0)+(Number(data.once)||0)+gastosCaja,
+    total_turno:CierreCuentas.totalCierre(data,gastosCaja),
     updated_at:new Date().toISOString()
   };
   await cmSbWrite('cierres_caja?on_conflict=fecha,turno','POST',payload,'resolution=merge-duplicates,return=minimal');
 }
-async function cmGuardarGastoRemoto(g){
+async function cmGuardarGastoRemoto(g,fecha=cmFechaObjetivo){
   if(!g.uid)g.uid=cmUid();
-  const payload={uid:g.uid,fecha:cmFechaObjetivo,nombre:g.nombre,monto:Number(g.monto)||0,caja:g.caja||null,turno:g.turno||CM_CAJA_TURNO[g.caja]||null};
+  const payload={uid:g.uid,fecha,nombre:g.nombre,monto:Number(g.monto)||0,caja:g.caja||null,turno:g.turno||CM_CAJA_TURNO[g.caja]||null};
   await cmSbWrite('gastos_caja?on_conflict=uid','POST',payload,'resolution=merge-duplicates,return=minimal');
 }
 async function cmEliminarGastoRemoto(g){
@@ -6777,7 +6827,7 @@ async function cmSyncLocales(){
         if(!c||c.synced)continue;
         const caja=CM_TURNO_CAJA_ALL[turno];
         const gastosCaja=dayGastos.filter(g=>g.caja===caja).reduce((a,g)=>a+(Number(g.monto)||0),0);
-        const payload={fecha,turno,apertura:Number(c.apertura)||0,efectivo:Number(c.efectivo)||0,once_monto:Number(c.once)||0,mpo:Number(c.mpo)||0,mp:Number(c.mp)||0,gastos_caja:gastosCaja,total_turno:(Number(c.mp)||0)+(Number(c.efectivo)||0)+(Number(c.once)||0)+gastosCaja,updated_at:new Date().toISOString()};
+        const payload={fecha,turno,apertura:Number(c.apertura)||0,efectivo:Number(c.efectivo)||0,once_monto:Number(c.once)||0,mpo:Number(c.mpo)||0,mp:Number(c.mp)||0,gastos_caja:gastosCaja,total_turno:CierreCuentas.totalCierre(c,gastosCaja),updated_at:new Date().toISOString()};
         try{
           await cmSbWrite('cierres_caja?on_conflict=fecha,turno','POST',payload,'resolution=merge-duplicates,return=minimal');
           c.synced=true;changed=true;cCount++;
@@ -6803,7 +6853,7 @@ function cmCalcularTotalTurno(){const once=Number(document.getElementById('cmOnc
 function cmGuardarCierreTurno(){const apertura=Number(document.getElementById('cmApertura').value)||0,once=Number(document.getElementById('cmOnce').value)||0,mpo=Number(document.getElementById('cmMpo').value)||0,mp=cmMpTurno(cmTurnoActivo),gCaja=cmGastosDeCaja(cmTurnoActivo),esMarta=cmTurnoActivo==='Marta';let efectivo,total;if(esMarta){efectivo=Number(document.getElementById('cmEfectivo').value)||0;total=mp+efectivo+once+gCaja;}else{total=Number(document.getElementById('cmTotalInput').value)||0;efectivo=total-mp-once-gCaja;}cmCierres[cmTurnoActivo]={apertura,efectivo,once,mpo,mp,total_turno:total,guardadoEn:new Date().toISOString()};cmGuardarData();cmRenderResumen();cmRenderSyncStatus();showToast('Cierre de '+cmTurnoActivo+' guardado ✓');const tCierre=cmTurnoActivo;cmGuardarCierreRemoto(tCierre,cmCierres[tCierre]).then(()=>{if(cmCierres[tCierre]){cmCierres[tCierre].synced=true;cmGuardarData();cmRenderSyncStatus();}}).catch(e=>showToast('Guardado local. Se sincroniza al reabrir.'));}
 function cmRenderGastos(){const list=document.getElementById('cmGastoList');if(!list)return;if(!cmGastos.length){list.innerHTML='<div class="empty">Todavía no se cargó ningún gasto hoy.</div>';}else{list.innerHTML=cmGastos.map((g,i)=>`<div class="cm-gasto-row"><span class="cm-gasto-nombre">${cmEsc(g.nombre)}${g.caja?`<span class="cm-gasto-pill">${cmEsc(g.caja)}</span>`:''}</span><span class="cm-gasto-right"><b>${cmFmt(g.monto)}</b><button class="cm-gasto-del" data-i="${i}">✕</button></span></div>`).join('');list.querySelectorAll('.cm-gasto-del').forEach(btn=>btn.addEventListener('click',()=>{const idx=Number(btn.dataset.i),g=cmGastos[idx];cmGastos.splice(idx,1);cmGuardarData();cmRenderGastos();cmCalcularTotalTurno();cmRenderResumen();cmRenderSyncStatus();cmEliminarGastoRemoto(g).catch(e=>showToast('Borrado local. Supabase falló.'));}));}const total=cmGastos.reduce((a,g)=>a+(Number(g.monto)||0),0);document.getElementById('cmGastoTotal').textContent=cmFmt(total);document.getElementById('cmResumenGastos').textContent=cmFmt(total);}
 function cmAgregarGasto(){const nombre=document.getElementById('cmGastoNombre').value.trim(),monto=Number(document.getElementById('cmGastoMonto').value)||0;if(!nombre||!monto){showToast('Cargá concepto y monto');return;}const g={uid:cmUid(),nombre,monto,caja:cmCajaSeleccionada,turno:CM_CAJA_TURNO[cmCajaSeleccionada]||'',creadoEn:new Date().toISOString()};cmGastos.push(g);document.getElementById('cmGastoNombre').value='';document.getElementById('cmGastoMonto').value='';cmCajaSeleccionada='';document.querySelectorAll('.cm-caja-btn').forEach(b=>b.classList.remove('active'));const noBtn=document.querySelector('.cm-caja-btn[data-caja=""]');if(noBtn)noBtn.classList.add('active');cmGuardarData();cmRenderGastos();cmCalcularTotalTurno();cmRenderResumen();cmRenderSyncStatus();showToast('Gasto agregado ✓');cmGuardarGastoRemoto(g).then(()=>{g.synced=true;cmGuardarData();cmRenderSyncStatus();}).catch(e=>showToast('Guardado local. Se sincroniza al reabrir.'));}
-function cmRenderResumen(){const cont=document.getElementById('cmResumenTurnos');if(!cont)return;let totalDia=0,cerrados=0,sumMp=0,sumEf=0,sumOnce=0,sumMpo=0;cont.innerHTML=CM_TURNOS.map(t=>{const c=cmCierres[t];if(!c){return `<div class="cm-resumen-turno"><div class="cm-resumen-head"><div class="cm-resumen-name"><span class="cm-resumen-dot" style="background:${CM_COLORS[t]}"></span>${t}</div><div class="cm-pendiente">Sin cerrar</div></div></div>`;}cerrados++;const mp=Number(c.mp)||cmMpTurno(t),gCaja=cmGastosDeCaja(t),total=mp+(Number(c.efectivo)||0)+(Number(c.once)||0)+gCaja;totalDia+=total;sumMp+=mp;sumEf+=Number(c.efectivo)||0;sumOnce+=Number(c.once)||0;sumMpo+=Number(c.mpo)||0;return `<div class="cm-resumen-turno"><div class="cm-resumen-head"><div class="cm-resumen-name"><span class="cm-resumen-dot" style="background:${CM_COLORS[t]}"></span>${t}</div><div class="cm-resumen-total">${cmFmt(total)}</div></div><div class="cm-resumen-detail"><span>Apertura ${cmFmt(c.apertura)}</span><span>MP ${cmFmt(mp)}</span><span>Efectivo ${cmFmt(c.efectivo)}</span>${Number(c.once)>0?`<span>Once ${cmFmt(c.once)}</span>`:''}${Number(c.mpo)>0?`<span>MPO ${cmFmt(c.mpo)}</span>`:''}${gCaja>0?`<span>Gastos caja ${cmFmt(gCaja)}</span>`:''}</div></div>`;}).join('');document.getElementById('cmTotalDia').textContent=cmFmt(totalDia);document.getElementById('cmTotalDiaSub').textContent=cerrados+' de '+CM_TURNOS.length+' turnos cerrados';document.getElementById('cmTotMp').textContent=cmFmt(sumMp);document.getElementById('cmTotEfectivo').textContent=cmFmt(sumEf);document.getElementById('cmTotOnce').textContent=cmFmt(sumOnce);document.getElementById('cmTotMpo').textContent=cmFmt(sumMpo);document.getElementById('cmResumenGastos').textContent=cmFmt(cmGastos.reduce((a,g)=>a+(Number(g.monto)||0),0));}
+function cmRenderResumen(){const cont=document.getElementById('cmResumenTurnos');if(!cont)return;let totalDia=0,cerrados=0,sumMp=0,sumEf=0,sumOnce=0,sumMpo=0;cont.innerHTML=CM_TURNOS.map(t=>{const c=cmCierres[t];if(!c){return `<div class="cm-resumen-turno"><div class="cm-resumen-head"><div class="cm-resumen-name"><span class="cm-resumen-dot" style="background:${CM_COLORS[t]}"></span>${t}</div><div class="cm-pendiente">Sin cerrar</div></div></div>`;}cerrados++;const mp=Number(c.mp)||0,gCaja=cmGastosDeCaja(t),total=CierreCuentas.totalCierre(c,gCaja);totalDia+=total;sumMp+=mp;sumEf+=Number(c.efectivo)||0;sumOnce+=Number(c.once)||0;sumMpo+=Number(c.mpo)||0;return `<div class="cm-resumen-turno"><div class="cm-resumen-head"><div class="cm-resumen-name"><span class="cm-resumen-dot" style="background:${CM_COLORS[t]}"></span>${t}</div><div class="cm-resumen-total">${cmFmt(total)}</div></div><div class="cm-resumen-detail"><span>Apertura ${cmFmt(c.apertura)}</span><span>MP ${cmFmt(mp)}</span><span>Efectivo ${cmFmt(c.efectivo)}</span>${Number(c.once)>0?`<span>Once ${cmFmt(c.once)}</span>`:''}${Number(c.mpo)>0?`<span>MPO ${cmFmt(c.mpo)}</span>`:''}${gCaja>0?`<span>Gastos caja ${cmFmt(gCaja)}</span>`:''}</div></div>`;}).join('');document.getElementById('cmTotalDia').textContent=cmFmt(totalDia);document.getElementById('cmTotalDiaSub').textContent=cerrados+' de '+CM_TURNOS.length+' turnos cerrados';document.getElementById('cmTotMp').textContent=cmFmt(sumMp);document.getElementById('cmTotEfectivo').textContent=cmFmt(sumEf);document.getElementById('cmTotOnce').textContent=cmFmt(sumOnce);document.getElementById('cmTotMpo').textContent=cmFmt(sumMpo);document.getElementById('cmResumenGastos').textContent=cmFmt(cmGastos.reduce((a,g)=>a+(Number(g.monto)||0),0));}
 function cmCambiarVista(view){document.querySelectorAll('.cm-tab').forEach(t=>t.classList.toggle('active',t.dataset.cmView===view));document.querySelectorAll('.cm-view').forEach(v=>v.classList.remove('active'));const el=document.getElementById('cm-view-'+view);if(el)el.classList.add('active');if(view==='resumen')cmRenderResumen();if(view==='gastos')cmRenderGastos();}
 async function cmAbrir(fecha,turnoInicial){
   lockBody();
@@ -6859,157 +6909,7 @@ const cmGastoMonto=document.getElementById('cmGastoMonto');if(cmGastoMonto)cmGas
 const cmGastoNombre=document.getElementById('cmGastoNombre');if(cmGastoNombre)cmGastoNombre.addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('cmGastoMonto').focus();});
 document.querySelectorAll('.cm-caja-btn').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('.cm-caja-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');cmCajaSeleccionada=btn.dataset.caja||'';}));
 
-// ─── Foto del cuaderno → autocompletar el cierre del día ───
-// El kiosquero saca UNA foto a la planilla escrita a mano y la IA (api/cierre-foto.js)
-// devuelve los cierres por turno + gastos. Acá se muestran editables para revisar y,
-// al confirmar, se cargan igual que si se hubieran tipeado a mano.
-let cmFotoData=null; // {fecha,total_dia,turnos:[{turno,cierre,apertura,once,mpo}],gastos:[{nombre,monto}]}
-const cmFotoNum=v=>Math.max(0,Math.round(Number(String(v==null?'':v).replace(/[^\d]/g,''))||0));
-function cmComprimirFoto(file){
-  return new Promise((resolve,reject)=>{
-    const reader=new FileReader();
-    reader.onerror=()=>reject(new Error('No pude leer la foto'));
-    reader.onload=()=>{
-      const img=new Image();
-      img.onerror=()=>reject(new Error('La foto está dañada, probá otra'));
-      img.onload=()=>{
-        const MAX=1600;let w=img.naturalWidth||img.width,h=img.naturalHeight||img.height;
-        if(w>MAX||h>MAX){const r=Math.min(MAX/w,MAX/h);w=Math.round(w*r);h=Math.round(h*r);}
-        const c=document.createElement('canvas');c.width=w;c.height=h;
-        c.getContext('2d').drawImage(img,0,0,w,h);
-        const url=c.toDataURL('image/jpeg',0.85);
-        resolve({image:url.split(',')[1]||'',mime:'image/jpeg'});
-      };
-      img.src=reader.result;
-    };
-    reader.readAsDataURL(file);
-  });
-}
-async function cmLeerCuaderno(file){
-  if(!file)return;
-  if(!/^image\//.test(file.type||'')){showToast('Elegí una foto del cuaderno');return;}
-  const btn=document.getElementById('cmBtnFoto');
-  if(btn){btn.disabled=true;btn.classList.add('cm-foto-loading');btn.innerHTML='<span aria-hidden="true">⏳</span> Leyendo el cuaderno…';}
-  try{
-    const{image,mime}=await cmComprimirFoto(file);
-    if(!image)throw new Error('No pude procesar la foto');
-    const res=await fetch('/api/cierre-foto',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image,mime})});
-    const data=await res.json().catch(()=>null);
-    if(!res.ok||!data)throw new Error((data&&data.error)||'No pude leer el cuaderno');
-    if(!Array.isArray(data.turnos)||!data.turnos.length)throw new Error('No encontré los turnos: sacá la foto más derecha y con buena luz');
-    cmFotoData={
-      fecha:data.fecha||null,
-      total_dia:cmFotoNum(data.total_dia),
-      turnos:data.turnos.slice(0,CM_TURNOS.length).map((t,i)=>({
-        turno:CM_TURNOS[i],
-        cierre:cmFotoNum(t&&t.cierre),
-        apertura:cmFotoNum(t&&t.apertura)||10000,
-        once:cmFotoNum(t&&t.once),
-        mpo:cmFotoNum(t&&t.mpo)
-      })),
-      gastos:(Array.isArray(data.gastos)?data.gastos:[]).map(g=>({nombre:String((g&&g.nombre)||''),monto:cmFotoNum(g&&g.monto)}))
-    };
-    cmRenderFotoReview();
-  }catch(e){
-    showToast(e.message||'No pude leer el cuaderno');
-  }finally{
-    if(btn){btn.disabled=false;btn.classList.remove('cm-foto-loading');btn.innerHTML='<span aria-hidden="true">📷</span> Cargar del cuaderno';}
-    const inp=document.getElementById('cmFotoInput');if(inp)inp.value='';
-  }
-}
-function cmFotoEfectivo(t){return (Number(t.cierre)||0)-cmMpTurno(t.turno)-(Number(t.once)||0);}
-function cmRenderFotoReview(){
-  if(!cmFotoData)return;
-  const sub=document.getElementById('cmFotoSub');
-  if(sub)sub.textContent=(cmFotoData.fecha?('Cuaderno del '+cmFotoData.fecha+' · '):'')+'revisá y corregí lo que haga falta.';
-  const cont=document.getElementById('cmFotoTurnos');
-  cont.innerHTML=cmFotoData.turnos.map((t,i)=>`<div class="cm-foto-turno" data-i="${i}">
-    <div class="cm-foto-turno-head">
-      <div class="cm-foto-turno-nombre"><span class="cm-resumen-dot" style="background:${CM_COLORS[t.turno]||'#7C90FF'}"></span> ${cmEsc(t.turno)}</div>
-      <div class="cm-foto-turno-efectivo">Efectivo ${cmFmt(cmFotoEfectivo(t))}</div>
-    </div>
-    <div class="cm-foto-grid">
-      <div class="cm-foto-f"><label>Cierre (total)</label><input type="text" inputmode="numeric" data-f="cierre" value="${t.cierre||''}"></div>
-      <div class="cm-foto-f readonly"><label>MP (automático)</label><input type="text" value="${cmFmt(cmMpTurno(t.turno))}" readonly tabindex="-1"></div>
-      <div class="cm-foto-f"><label>Once (O)</label><input type="text" inputmode="numeric" data-f="once" value="${t.once||''}"></div>
-      <div class="cm-foto-f"><label>MPO juguetería</label><input type="text" inputmode="numeric" data-f="mpo" value="${t.mpo||''}"></div>
-      <div class="cm-foto-f"><label>Apertura</label><input type="text" inputmode="numeric" data-f="apertura" value="${t.apertura||''}"></div>
-    </div>
-  </div>`).join('');
-  cont.querySelectorAll('.cm-foto-turno').forEach(card=>{
-    const i=Number(card.dataset.i);
-    card.querySelectorAll('input[data-f]').forEach(inp=>inp.addEventListener('input',()=>{
-      cmFotoData.turnos[i][inp.dataset.f]=cmFotoNum(inp.value);
-      card.querySelector('.cm-foto-turno-efectivo').textContent='Efectivo '+cmFmt(cmFotoEfectivo(cmFotoData.turnos[i]));
-      cmRenderFotoCheck();
-    }));
-  });
-  cmRenderFotoGastos();
-  cmRenderFotoCheck();
-  document.getElementById('cmFotoReview').hidden=false;
-}
-function cmRenderFotoCheck(){
-  const el=document.getElementById('cmFotoCheck');if(!el||!cmFotoData)return;
-  const suma=cmFotoData.turnos.reduce((a,t)=>a+(Number(t.cierre)||0),0),total=Number(cmFotoData.total_dia)||0;
-  if(total>0&&Math.abs(suma-total)>1){
-    el.className='cm-foto-check warn';
-    el.innerHTML='⚠️ Los cierres suman '+cmFmt(suma)+' pero el total del cuaderno dice '+cmFmt(total)+'. Revisá los números.';
-  }else{
-    el.className='cm-foto-check ok';
-    el.innerHTML='✓ Los cierres suman '+cmFmt(suma)+(total>0?', igual que el total del cuaderno.':'.');
-  }
-}
-function cmRenderFotoGastos(){
-  const cont=document.getElementById('cmFotoGastos');if(!cont||!cmFotoData)return;
-  if(!cmFotoData.gastos.length){cont.innerHTML='<div class="empty" style="color:var(--cm-ink-soft);font-size:13px;padding:4px 2px">No leí ningún gasto. Podés agregarlos abajo.</div>';return;}
-  cont.innerHTML=cmFotoData.gastos.map((g,i)=>`<div class="cm-foto-gasto" data-i="${i}">
-    <input type="text" data-g="nombre" value="${cmEsc(g.nombre)}" placeholder="Concepto">
-    <input type="text" inputmode="numeric" data-g="monto" value="${g.monto||''}" placeholder="Monto">
-    <button class="cm-foto-gasto-del" data-del="${i}" title="Quitar">✕</button>
-  </div>`).join('');
-  cont.querySelectorAll('.cm-foto-gasto').forEach(row=>{
-    const i=Number(row.dataset.i);
-    row.querySelector('input[data-g="nombre"]').addEventListener('input',e=>{cmFotoData.gastos[i].nombre=e.target.value;});
-    row.querySelector('input[data-g="monto"]').addEventListener('input',e=>{cmFotoData.gastos[i].monto=cmFotoNum(e.target.value);});
-    row.querySelector('[data-del]').addEventListener('click',()=>{cmFotoData.gastos.splice(i,1);cmRenderFotoGastos();});
-  });
-}
-function cmFotoAgregarGastoFila(){if(!cmFotoData)return;cmFotoData.gastos.push({nombre:'',monto:0});cmRenderFotoGastos();}
-function cmCerrarFotoReview(){const r=document.getElementById('cmFotoReview');if(r)r.hidden=true;cmFotoData=null;}
-async function cmConfirmarCuaderno(){
-  if(!cmFotoData)return;
-  const btn=document.getElementById('cmFotoConfirmar');if(btn)btn.disabled=true;
-  // 1) Gastos: agregar los del cuaderno que no existan ya (evita duplicar si se escanea dos veces).
-  const nuevosGastos=[];
-  cmFotoData.gastos.filter(g=>g.nombre.trim()&&Number(g.monto)>0).forEach(g=>{
-    const ya=cmGastos.some(x=>x.nombre.trim().toLowerCase()===g.nombre.trim().toLowerCase()&&Number(x.monto)===Number(g.monto));
-    if(ya)return;
-    const nuevo={uid:cmUid(),nombre:g.nombre.trim(),monto:Number(g.monto)||0,caja:'',turno:'',creadoEn:new Date().toISOString()};
-    cmGastos.push(nuevo);nuevosGastos.push(nuevo);
-  });
-  // 2) Cierres por turno. Misma fórmula que a mano: efectivo = cierre − MP − Once − gastos de esa caja.
-  const cierresGuardados=[];
-  cmFotoData.turnos.forEach(t=>{
-    const mp=cmMpTurno(t.turno),gCaja=cmGastosDeCaja(t.turno),total=Number(t.cierre)||0,once=Number(t.once)||0;
-    cmCierres[t.turno]={apertura:Number(t.apertura)||10000,efectivo:total-mp-once-gCaja,once,mpo:Number(t.mpo)||0,mp,total_turno:total,guardadoEn:new Date().toISOString()};
-    cierresGuardados.push(t.turno);
-  });
-  cmGuardarData();
-  cmCerrarFotoReview();
-  cmCargarFormularioTurno();cmRenderGastos();cmRenderResumen();cmRenderSyncStatus();
-  showToast('Cargado del cuaderno ✓');
-  // 3) Sincronizar a Supabase (si falla, queda local y se reintenta al reabrir).
-  for(const g of nuevosGastos){try{await cmGuardarGastoRemoto(g);g.synced=true;}catch(e){}}
-  for(const turno of cierresGuardados){try{await cmGuardarCierreRemoto(turno,cmCierres[turno]);if(cmCierres[turno])cmCierres[turno].synced=true;}catch(e){}}
-  cmGuardarData();cmRenderSyncStatus();
-  if(btn)btn.disabled=false;
-}
-const cmBtnFoto=document.getElementById('cmBtnFoto');if(cmBtnFoto)cmBtnFoto.addEventListener('click',()=>{const i=document.getElementById('cmFotoInput');if(i)i.click();});
-const cmFotoInput=document.getElementById('cmFotoInput');if(cmFotoInput)cmFotoInput.addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];if(f)cmLeerCuaderno(f);});
-const cmFotoCerrarBtn=document.getElementById('cmFotoCerrar');if(cmFotoCerrarBtn)cmFotoCerrarBtn.addEventListener('click',cmCerrarFotoReview);
-const cmFotoCancelarBtn=document.getElementById('cmFotoCancelar');if(cmFotoCancelarBtn)cmFotoCancelarBtn.addEventListener('click',cmCerrarFotoReview);
-const cmFotoConfirmarBtn=document.getElementById('cmFotoConfirmar');if(cmFotoConfirmarBtn)cmFotoConfirmarBtn.addEventListener('click',cmConfirmarCuaderno);
-const cmFotoAddGastoBtn=document.getElementById('cmFotoAddGasto');if(cmFotoAddGastoBtn)cmFotoAddGastoBtn.addEventListener('click',cmFotoAgregarGastoFila);
+// Lectura y revision del cuaderno: cierre-foto-ui.js.
 
 
 
@@ -9721,6 +9621,7 @@ renderNovedades();
 initEasterEggs();
 </script>
 <script src="./mostrador.js"></script>
+<script src="./cierre-foto-ui.js?v=20260908-cuaderno"></script>
 <script src="./catalogo-ui.js"></script>
 </body>
 </html>

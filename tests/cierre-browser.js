@@ -1,0 +1,44 @@
+(async()=>{
+  if(!new URLSearchParams(location.search).has('test'))return;
+  const results=[],check=(condition,label)=>{if(!condition)throw Error(label);results.push('OK '+label);};
+  const report=()=>{document.getElementById('qaResults').textContent=results.join('\n');document.body.dataset.qa='passed';};
+  try{
+    resetFixture();await loadExample();
+    check(!document.getElementById('cmFotoConfirmar').disabled,'valid sample can be confirmed');
+    check(document.querySelectorAll('#cmFotoTurnos .cm-foto-turno').length===3,'three shifts rendered');
+    check(!document.querySelector('#cmFotoTurnos [data-f="apertura"]'),'opening float is not extracted');
+    cmFotoData.turnos[0].cierre=null;cmRenderFotoReview();
+    check(document.getElementById('cmFotoConfirmar').disabled,'unreadable closing blocks saving');
+    await loadExample();cmFotoData.turnos[0].mp=100;cmRenderFotoReview();
+    check(document.getElementById('cmFotoConfirmar').disabled,'MP mismatch blocks unconfirmed save');
+    await loadExample();await cmConfirmarCuaderno();
+    check(db.cierres.length===3&&db.gastos.length===1,'all closings and expense persisted');
+    check(db.cierres.reduce((s,c)=>s+c.total_turno,0)===1681800,'persisted revenue exactly matches the photo');
+    check(db.writes.every(w=>w.row.fecha===fixed),'writes use the photo date');
+    check(db.writes.every(w=>!('image' in w.row)),'no photo stored');
+    check(db.cierres.reduce((s,c)=>s+c.efectivo+c.once_monto,0)===968500,'cash and Once are counted once');
+    renderMonth();
+    check(document.querySelector('.hist-kiosco').textContent.includes('$1.681.800'),'monthly headline includes cash');
+    check(document.getElementById('histGastosMes').textContent.includes('Arcor'),'expense appears in monthly history');
+    check(document.getElementById('histGastosMes').textContent.includes('Efectivo presunto'),'expense initially assumed cash');
+    await loadExample();await cmConfirmarCuaderno();
+    check(db.cierres.length===3&&db.gastos.length===1,'reimport does not duplicate shifts or expenses');
+    db.pagos.push({id:9,fecha:fixed,es_enviada:true,monto:254403,nombre:'Arcor SA',status:'approved'});renderMonth();
+    check(document.getElementById('histGastosMes').textContent.includes('MP coincidente'),'later MP outgoing reclassifies expense');
+    check(document.querySelector('.hist-kiosco').textContent.includes('$254.403'),'outgoing is not counted as a second expense');
+    db.failRead=true;await loadExample();
+    check(document.getElementById('cmFotoConfirmar').disabled,'read outage cannot invent MP zero');
+    db.failRead=false;resetFixture();await loadExample();db.failWrite=true;await cmConfirmarCuaderno();
+    check(cmContarPendientes()===4,'failed writes remain pending without claiming sync');
+    db.failWrite=false;await cmSyncLocales();
+    check(cmContarPendientes()===0&&db.cierres.length===3&&db.gastos.length===1,'retry synchronizes without duplicates');
+    resetFixture();const sunday='2026-09-06';
+    db.pagos=example().turnos.slice(0,2).map((t,i)=>({id:i+1,fecha:sunday,turno:'Turno '+(i+1),monto:t.mp,es_enviada:false,status:'approved'}));
+    cmFotoData={...example(),fecha:sunday,turnos:example().turnos.slice(0,2),total_dia:1024050};
+    cmRenderFotoReview();await cmFotoConsultar(cmFotoData);await cmConfirmarCuaderno();
+    check(db.cierres.length===2&&db.cierres.every(c=>c.fecha===sunday&&c.turno.startsWith('Turno ')),'past Sunday saves two shifts to the correct date');
+    check(db.gastos[0].fecha===sunday,'photo expense uses the past date too');
+    resetFixture();
+    await loadExample();report();
+  }catch(e){results.push('FAIL '+e.stack);document.getElementById('qaResults').textContent=results.join('\n');document.body.dataset.qa='failed';}
+})();

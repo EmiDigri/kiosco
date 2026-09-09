@@ -1,5 +1,9 @@
 {
   "functions": {
+    "api/cierre-foto.js": {
+      "memory": 128,
+      "maxDuration": 60
+    },
     "api/webhook.js": {
       "memory": 128,
       "maxDuration": 10
