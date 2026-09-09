@@ -16,6 +16,8 @@ ${markup}<div id="toast" class="toast"></div><script src="/cierre-cuentas.js"></
 const esDomingo=false,turno={nombre:'Marta'},turnoReciente=null,SUPABASE_URL='https://fixture.invalid';
 let histResumenMes={},histRowsGastosMes=[],histRowsPagosMes=[];
 const fixed='2026-09-08',db={pagos:[],cierres:[],gastos:[],writes:[]};
+let fixtureOwner='fixture@kiosco.test';
+const authRead=()=>({email:fixtureOwner});
 const fechaHoy=()=>fixed,histIso=(y,m,d)=>y+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0');
 const histMoney=n=>'$'+Number(n||0).toLocaleString('es-AR'),histMoneyCompact=histMoney,formatFecha=d=>d;
 const histMediana=a=>a.length?a[Math.floor(a.length/2)]:0,histMesLearnRead=()=>({bias:[],errs:[]});

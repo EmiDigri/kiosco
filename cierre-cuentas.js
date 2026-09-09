@@ -93,8 +93,12 @@
     if (!Array.isArray(foto.turnos) || foto.turnos.length !== expected.length) errores.push(`Este dia necesita ${expected.length} turnos. Revisa si falta parte de la foto.`);
     (foto.turnos || []).forEach((t, i) => {
       const label = expected[i] || `Turno ${i + 1}`;
-      for (const f of ['cierre', 'mp', 'once', 'mpo']) if (monto(t[f]) === null) errores.push(`${label}: completa ${f === 'mp' ? 'MP del cuaderno' : f}.`);
+      const campos = {cierre:'Cierre total', mp:'MP del cuaderno', mpo:'MPO', once:'Once'};
+      for (const f of Object.keys(campos)) if (monto(t[f]) === null) errores.push(`${label}: revisa ${campos[f]}.`);
+      if (monto(t.mp) !== null && monto(t.cierre) !== null && t.mp > t.cierre) errores.push(`${label}: MP del cuaderno supera el Cierre total. Revisa esos importes.`);
+      if (monto(t.mp) !== null && monto(t.mpo) !== null && t.mpo > t.mp) errores.push(`${label}: MPO supera MP del cuaderno. Revisa las columnas.`);
       if (monto(t.cierre) === null || monto(t.once) === null) return;
+      if (monto(t.mp) !== null && t.mp + t.once > t.cierre) errores.push(`${label}: MP y Once del cuaderno superan el Cierre total.`);
       const mp = monto(mpPorTurno?.[label]);
       if (mp === null) { errores.push(`${label}: falta consultar MP.`); return; }
       if (t.cierre - mp - t.once - (Number(gastosCaja[label]) || 0) < 0) errores.push(`${label}: el efectivo calculado es negativo.`);
@@ -102,7 +106,10 @@
       if (monto(t.mpo) !== null && t.mpo > mp) errores.push(`${label}: MPO no puede superar MP.`);
     });
     const suma = (foto.turnos || []).reduce((s, t) => s + (monto(t.cierre) || 0), 0);
-    if (monto(foto.total_dia) !== null && Math.abs(suma - foto.total_dia) > .005) errores.push('La suma de los cierres no coincide con el total del cuaderno.');
+    if (monto(foto.total_dia) !== null && (foto.turnos || []).every(t => monto(t.cierre) !== null) && Math.abs(suma - foto.total_dia) > .005) {
+      const pesos = n => '$' + Number(n).toLocaleString('es-AR');
+      errores.push(`Los cierres suman ${pesos(suma)}; el total escrito es ${pesos(foto.total_dia)}. Diferencia: ${pesos(Math.abs(suma-foto.total_dia))}. Revisa los importes, no los ajustes solo para que coincidan.`);
+    }
     (foto.gastos || []).forEach((g, i) => {
       if (!String(g.nombre || '').trim() || monto(g.monto) === null || Number(g.monto) <= 0) errores.push(`Gasto ${i + 1}: completa concepto e importe, o quita el renglon.`);
     });

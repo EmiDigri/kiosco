@@ -57,7 +57,9 @@ test('dates use explicit target year and reject impossible dates', () => {
 });
 test('invalid photo totals, missing expenses and negative cash block saving', () => {
   const f=foto(); f.turnos[0].cierre=null; f.gastos[0].monto=null;
-  assert.ok(C.validarFoto(f,mp,f.fecha).errores.length>=3);
+  const errores=C.validarFoto(f,mp,f.fecha).errores;
+  assert.ok(errores.some(e=>e.includes('Cierre total')));
+  assert.ok(errores.some(e=>e.includes('Gasto 1')));
   const g=foto();g.turnos[1].cierre=200000;
   assert.ok(C.validarFoto(g,mp,g.fecha).errores.some(s=>s.includes('negativo')));
   const h=foto();h.turnos[0].mpo=999999;
@@ -131,9 +133,9 @@ test('pending closings and expenses appear even when the day already has remote 
   assert.equal(cierres[0].total_turno,2);assert.equal(gastos.length,2);
 });
 test('photo API authenticates and preserves unreadable values without storing images', async () => {
-  const source=fs.readFileSync(require('node:path').join(__dirname,'../api/cierre-foto.js'),'utf8').replace('export default async function handler','async function handler');
+  const source=fs.readFileSync(require('node:path').join(__dirname,'../api/cierre-foto.js'),'utf8').replace("import CierreCuentas from '../cierre-cuentas.js';",'').replace('export default async function handler','async function handler');
   let calls=[];
-  const ctx={process:{env:{ANTHROPIC_API_KEY:'fixture'}},AbortSignal,
+  const ctx={process:{env:{ANTHROPIC_API_KEY:'fixture'}},AbortSignal,CierreCuentas:C,
     fetch:async(url,opts)=>{calls.push({url,opts});if(url.includes('/auth/'))return {ok:true,json:async()=>({id:'fixture-user'})};return {ok:true,json:async()=>({content:[{type:'tool_use',input:{...foto(),turnos:[{cierre:null,mp:100,once:0,mpo:0}],gastos:[{nombre:'Arcor',monto:null}]} }]})};}};
   vm.createContext(ctx);vm.runInContext(source,ctx);
   const res={setHeader(){},status(code){this.code=code;return this;},json(body){this.body=body;return this;}};
@@ -143,4 +145,29 @@ test('photo API authenticates and preserves unreadable values without storing im
   assert.equal(res.code,200);assert.equal(res.body.turnos[0].cierre,null);assert.equal(res.body.turnos[0].once,0);
   assert.equal(res.body.gastos[0].monto,null);assert.equal(res.body.turnos[0].apertura,undefined);
   assert.equal(calls.length,2);assert.equal(res.body.image,undefined);
+  const request=JSON.parse(calls[1].opts.body);
+  assert.equal(request.model,'claude-haiku-4-5-20251001');
+  assert.equal(request.temperature,0);
+  assert.ok(request.system.includes('MPO es la columna del MEDIO'));
+  assert.deepEqual(Object.keys(request.tools[0].input_schema.properties.turnos.items.properties),['cierre','mp','mpo','once']);
+  for(const [raw,expected] of [['521450',521450],['221.450',221450],['3.500',3500],['8.000',8000],['12.000',12000],['-',0],['\u2014',0],[null,null],['',null],['25?403',null]]) {
+    assert.equal(ctx.importeLeido(raw,true),expected);
+  }
+  assert.equal(ctx.importeLeido('-'),null,'a missing closing is not turned into zero');
+});
+
+test('contradictory OCR amounts cannot be accepted just by acknowledging MP differences', () => {
+  const f=foto();f.turnos[0].cierre=592450;f.turnos[0].mp=921450;f.turnos[0].once=null;
+  const result=C.validarFoto(f,mp,f.fecha);
+  assert.ok(result.errores.some(e=>e.includes('MP del cuaderno supera')));
+  assert.ok(result.errores.some(e=>e.includes('$71.000')));
+  const g=foto();g.turnos[0].mpo=225000;
+  assert.ok(C.validarFoto(g,{...mp,Vale:248350},g.fecha).errores.some(e=>e.includes('MPO supera MP del cuaderno')));
+});
+
+test('photo API loads the shared money parser through its real ESM import', async () => {
+  const url=require('node:url').pathToFileURL(require.resolve('../cierre-cuentas.js')).href;
+  const source=fs.readFileSync(require.resolve('../api/cierre-foto.js'),'utf8').replace('../cierre-cuentas.js',url);
+  const api=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
+  assert.equal(typeof api.default,'function');
 });

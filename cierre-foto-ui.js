@@ -1,5 +1,7 @@
 // The draft stays separate from saved closings until the user confirms it.
-let cmFotoData = null, cmFotoSaving = false, cmFotoRequest = 0;
+let cmFotoData = null, cmFotoSaving = false, cmFotoLeyendo = false, cmFotoRequest = 0;
+let cmFotoLecturas = [];
+const CM_FOTO_CACHE = 'kiosco_cuaderno_lecturas_v2';
 const cmFotoNum = CierreCuentas.monto;
 function cmFotoEsImagen(file) {
   const type = (file?.type || '').toLowerCase();
@@ -23,6 +25,31 @@ function cmComprimirFoto(file) {
     };
     reader.readAsDataURL(file);
   });
+}
+// Only extracted numbers and a file fingerprint survive a reload, never the photo.
+async function cmFotoCacheId(file) {
+  const owner = typeof authRead === 'function' ? authRead()?.email : '';
+  if (!owner || !crypto.subtle) return null;
+  const hash = await crypto.subtle.digest('SHA-256', await file.arrayBuffer());
+  return owner + ':' + Array.from(new Uint8Array(hash), b => b.toString(16).padStart(2, '0')).join('');
+}
+function cmFotoCacheLeer(id) {
+  try { cmFotoLecturas = JSON.parse(sessionStorage.getItem(CM_FOTO_CACHE) || '[]'); } catch {}
+  if (!Array.isArray(cmFotoLecturas)) cmFotoLecturas = [];
+  cmFotoLecturas = cmFotoLecturas.filter(r => r && r.hasta > Date.now() && Array.isArray(r.data?.turnos)).slice(-3);
+  const entry = id && cmFotoLecturas.find(r => r.id === id);
+  return entry ? structuredClone(entry.data) : null;
+}
+function cmFotoCacheGuardar(id, data) {
+  if (!id) return;
+  cmFotoCacheLeer(id);
+  const numbers = {
+    fecha:data.fecha, nota:data.nota, total_dia:data.total_dia,
+    turnos:data.turnos.map(t => ({cierre:t.cierre, mp:t.mp, mpo:t.mpo, once:t.once})),
+    gastos:(data.gastos || []).map(g => ({nombre:g.nombre, monto:g.monto}))
+  };
+  cmFotoLecturas = [...cmFotoLecturas.filter(r => r.id !== id), {id, hasta:Date.now()+6*60*60*1000, data:numbers}].slice(-3);
+  try { sessionStorage.setItem(CM_FOTO_CACHE, JSON.stringify(cmFotoLecturas)); } catch {}
 }
 function cmFotoGastosCaja(context, turno) {
   return (context?.gastos || []).filter(g => g.caja === CM_TURNO_CAJA_ALL[turno]).reduce((s, g) => s + (Number(g.monto) || 0), 0);
@@ -58,17 +85,25 @@ async function cmFotoConsultar(draft) {
   }
 }
 async function cmLeerCuaderno(file) {
-  if (!file || cmFotoSaving) return;
+  if (!file || cmFotoSaving || cmFotoLeyendo) return;
   if (!cmFotoEsImagen(file)) { showToast('Elegi una foto del cuaderno en JPG, PNG o WebP'); document.getElementById('cmFotoInput').value = ''; return; }
+  cmFotoLeyendo = true;
   const btn = document.getElementById('cmBtnFoto');
   btn.disabled = true; btn.textContent = 'Leyendo el cuaderno...';
   try {
-    const body = await cmComprimirFoto(file);
-    const res = await fetch('/api/cierre-foto', {method:'POST', headers:await sbAuthHeaders({'Content-Type':'application/json'}), body:JSON.stringify(body), signal:AbortSignal.timeout(65000)});
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'No pude leer el cuaderno');
+    const headers = await sbAuthHeaders({'Content-Type':'application/json'});
+    const cacheId = await cmFotoCacheId(file);
+    let data = cmFotoCacheLeer(cacheId);
+    const reutilizada = !!data;
+    if (!data) {
+      const body = await cmComprimirFoto(file);
+      const res = await fetch('/api/cierre-foto', {method:'POST', headers, body:JSON.stringify(body), signal:AbortSignal.timeout(65000)});
+      data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'No pude leer el cuaderno');
+    }
     if (!Array.isArray(data.turnos) || !data.turnos.length) throw new Error('No encontre cierres en la foto.');
     cmFotoData = {
+      cacheId,
       fecha:CierreCuentas.fecha(data.fecha, cmFechaObjetivo) || '', fechaLeida:data.fecha || '', nota:data.nota || '',
       total_dia:cmFotoNum(data.total_dia), context:null, loading:false,
       turnos:data.turnos.map(t => ({cierre:cmFotoNum(t.cierre), mp:cmFotoNum(t.mp), once:cmFotoNum(t.once), mpo:cmFotoNum(t.mpo)})),
@@ -79,8 +114,9 @@ async function cmLeerCuaderno(file) {
     document.getElementById('cmFotoAceptarMp').checked = false;
     cmRenderFotoReview();
     await cmFotoConsultar(cmFotoData);
+    if (reutilizada) showToast('Lectura recuperada. No se volvio a consultar a la IA.');
   } catch (e) { showToast(e.message || 'No pude leer la foto'); }
-  finally { btn.disabled = false; btn.textContent = 'Cargar del cuaderno'; document.getElementById('cmFotoInput').value = ''; }
+  finally { cmFotoLeyendo = false; btn.disabled = false; btn.textContent = 'Cargar del cuaderno'; document.getElementById('cmFotoInput').value = ''; }
 }
 function cmFotoEstado() {
   const draft = cmFotoData;
@@ -100,7 +136,7 @@ function cmRenderFotoReview() {
     const efectivo = mp == null || t.cierre == null || t.once == null ? null : t.cierre - mp - t.once - cmFotoGastosCaja(draft.context, turno);
     return `<div class="cm-foto-turno" data-i="${i}">
       <div class="cm-foto-turno-head"><div class="cm-foto-turno-nombre">${cmEsc(turno)}</div><div class="cm-foto-turno-efectivo">Efectivo ${efectivo == null ? 'pendiente' : cmFmt(efectivo)}</div></div>
-      <div class="cm-foto-grid">${[['cierre','Cierre total'],['mp','MP del cuaderno'],['once','Once (incluido)'],['mpo','MPO (dentro de MP)']].map(([key,label]) => `<div class="cm-foto-f"><label for="foto-${i}-${key}">${label}</label><input id="foto-${i}-${key}" type="text" inputmode="decimal" data-f="${key}" value="${t[key] ?? ''}" placeholder="Revisar importe" aria-invalid="${t[key] === null}"></div>`).join('')}
+      <div class="cm-foto-grid">${[['cierre','Cierre total'],['mp','MP del cuaderno'],['mpo','MPO (dentro de MP)'],['once','Once (columna O)']].map(([key,label]) => `<div class="cm-foto-f"><label for="foto-${i}-${key}">${label}</label><input id="foto-${i}-${key}" type="text" inputmode="decimal" data-f="${key}" value="${t[key] ?? ''}" placeholder="Revisar importe" aria-invalid="${t[key] === null}"></div>`).join('')}
       <div class="cm-foto-f readonly"><label>MP registrado en la app</label><input type="text" readonly value="${mp == null ? 'Pendiente' : cmFmt(mp)}" tabindex="-1"></div></div></div>`;
   }).join('');
   document.querySelectorAll('#cmFotoTurnos .cm-foto-turno').forEach(card => {
@@ -119,6 +155,7 @@ function cmRenderFotoReview() {
 }
 function cmRenderFotoCheck() {
   if (!cmFotoData) return;
+  cmFotoCacheGuardar(cmFotoData.cacheId, cmFotoData);
   const s = cmFotoEstado(), accepted = document.getElementById('cmFotoAceptarMp').checked;
   const lines = [...s.errores];
   if (s.diferencias.length) lines.push(`MP difiere del cuaderno en: ${s.diferencias.join(', ')}.`);
