@@ -3,6 +3,18 @@
   const results=[],check=(condition,label)=>{if(!condition)throw Error(label);results.push('OK '+label);};
   const report=()=>{document.getElementById('qaResults').textContent=results.join('\n');document.body.dataset.qa='passed';};
   try{
+    check(!document.getElementById('cmFotoInput').hasAttribute('capture'),'gallery upload does not force camera capture');
+    const canvas=document.createElement('canvas');canvas.width=240;canvas.height=320;
+    const ctx=canvas.getContext('2d');ctx.fillStyle='white';ctx.fillRect(0,0,240,320);ctx.fillStyle='black';ctx.fillText('Cierre 521450',20,40);
+    for(const mime of ['image/jpeg','image/png','image/webp']){
+      const blob=await new Promise(resolve=>canvas.toBlob(resolve,mime));
+      check(blob?.type===mime,'browser fixture encodes '+mime);
+      const file=new File([blob],'cuaderno.'+mime.split('/')[1],{type:mime});
+      const result=await cmComprimirFoto(file);
+      check(result.mime==='image/jpeg'&&result.image.startsWith('/9j/'),'saved '+mime+' converts to API JPEG');
+    }
+    try{await cmComprimirFoto(new File(['invalid image'],'cuaderno.heic',{type:'image/heic'}));throw Error('invalid image accepted');}
+    catch(e){check(e.message.includes('JPG, PNG o WebP'),'unsupported or damaged image offers a usable format');}
     resetFixture();await loadExample();
     check(!document.getElementById('cmFotoConfirmar').disabled,'valid sample can be confirmed');
     check(document.querySelectorAll('#cmFotoTurnos .cm-foto-turno').length===3,'three shifts rendered');

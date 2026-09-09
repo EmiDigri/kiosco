@@ -3,6 +3,26 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 const C = require('../cierre-cuentas.js');
+test('notebook accepts saved photos without forcing camera capture', () => {
+  const html = fs.readFileSync(require.resolve('../index.html'), 'utf8');
+  const input = html.match(/<input\b[^>]*id="cmFotoInput"[^>]*>/)[0];
+  assert.ok(input.includes('type="file"'));
+  assert.ok(input.includes('image/*'));
+  assert.ok(!/\bcapture\b/.test(input));
+  const source = fs.readFileSync(require.resolve('../cierre-foto-ui.js'), 'utf8');
+  const context = vm.createContext({CierreCuentas:C});
+  vm.runInContext(source.slice(0, source.indexOf('function cmComprimirFoto')), context);
+  for (const ext of ['jpg','jpeg','png','webp','gif','avif','bmp','HEIC','heif']) {
+    assert.equal(context.cmFotoEsImagen({name:'cuaderno.'+ext, type:''}), true, ext);
+    assert.equal(context.cmFotoEsImagen({name:'cuaderno.'+ext, type:'application/octet-stream'}), true, ext);
+  }
+  for (const type of ['image/jpeg','image/png','image/webp','image/heic']) {
+    assert.equal(context.cmFotoEsImagen({name:'foto', type}), true, type);
+  }
+  for (const file of [null,{name:'cuaderno.pdf',type:'application/pdf'},{name:'archivo',type:''},{name:'archivo.jpg',type:'text/html'}]) {
+    assert.equal(context.cmFotoEsImagen(file), false);
+  }
+});
 const foto = () => ({fecha:'2026-09-08', total_dia:1681800, turnos:[
   {cierre:521450, mp:221450, once:0, mpo:36000},
   {cierre:502600, mp:201600, once:8000, mpo:3500},

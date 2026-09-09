@@ -1,13 +1,17 @@
 // The draft stays separate from saved closings until the user confirms it.
 let cmFotoData = null, cmFotoSaving = false, cmFotoRequest = 0;
 const cmFotoNum = CierreCuentas.monto;
+function cmFotoEsImagen(file) {
+  const type = (file?.type || '').toLowerCase();
+  return /^image\//.test(type) || ((!type || type === 'application/octet-stream') && /\.(jpe?g|jfif|png|webp|gif|avif|bmp|heic|heif)$/i.test(file?.name || ''));
+}
 function cmComprimirFoto(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onerror = () => reject(new Error('No pude leer la foto'));
     reader.onload = () => {
       const img = new Image();
-      img.onerror = () => reject(new Error('La foto esta danada'));
+      img.onerror = () => reject(new Error('No pude abrir esta imagen. Proba con una copia en JPG, PNG o WebP; no alcanza con cambiarle el nombre.'));
       img.onload = () => {
         const scale = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight));
         const c = document.createElement('canvas');
@@ -55,7 +59,7 @@ async function cmFotoConsultar(draft) {
 }
 async function cmLeerCuaderno(file) {
   if (!file || cmFotoSaving) return;
-  if (!/^image\//.test(file.type || '')) { showToast('Elegi una foto del cuaderno'); return; }
+  if (!cmFotoEsImagen(file)) { showToast('Elegi una foto del cuaderno en JPG, PNG o WebP'); document.getElementById('cmFotoInput').value = ''; return; }
   const btn = document.getElementById('cmBtnFoto');
   btn.disabled = true; btn.textContent = 'Leyendo el cuaderno...';
   try {
