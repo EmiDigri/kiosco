@@ -2217,6 +2217,9 @@ body{
 }
 .hist-cierre-row:last-child{border-bottom:none}
 .hist-cierre-row strong{color:var(--text)}
+.hist-foto-dia{margin:14px 0}
+.hist-foto-dia .hist-foto-label{font-size:12.5px;color:var(--text-soft);font-weight:800;margin-bottom:8px}
+.hist-foto-dia img{width:100%;max-height:440px;object-fit:contain;border:1px solid var(--glass-border);border-radius:12px;background:#0a0a0a;cursor:zoom-in}
 .hist-gasto-line{
   display:flex;
   justify-content:space-between;
@@ -3574,6 +3577,7 @@ body.light .tg-lock{background:rgba(255,255,255,.96)}
         <div class="hist-detalle-total-val" id="histTotalGlobal">$0</div>
         <div class="hist-detalle-total-sub" id="histTotalSub"></div>
       </div>
+      <div id="histFotoDia" class="hist-foto-dia" hidden></div>
       <div id="histTurnosDetalle"></div>
     </div>
   </div>
@@ -5830,6 +5834,20 @@ async function marcarDevuelta(pagoId,valor){
     return true;
   }catch(e){showToast('No se pudo actualizar. Probá de nuevo.');return false;}
 }
+// Snapshot del cierre: muestra en el detalle del día la foto del cuaderno que se
+// guardó al confirmar el cierre por foto (endpoint /api/cierre-foto-guardar).
+async function histCargarFotoDia(dia){
+  const cont=document.getElementById('histFotoDia');if(!cont)return;
+  cont.hidden=true;cont.innerHTML='';
+  try{
+    const r=await fetch(`/api/cierre-foto-guardar?fecha=${encodeURIComponent(dia)}`,{headers:await sbAuthHeaders()});
+    if(!r.ok)return;
+    const d=await r.json().catch(()=>null);
+    if(!d||!d.url)return;
+    cont.innerHTML=`<div class="hist-foto-label">📷 Foto del cierre</div><img src="${d.url}" alt="Foto del cuaderno del ${cmEsc?cmEsc(dia):dia}" loading="lazy" onclick="window.open(this.src,'_blank')">`;
+    cont.hidden=false;
+  }catch(e){}
+}
 async function mostrarDetalleDia(dia){
   document.getElementById('histVistaLista').style.display='none';
   document.getElementById('histVistaDetalle').style.display='block';
@@ -5837,6 +5855,7 @@ async function mostrarDetalleDia(dia){
   document.getElementById('histDiaTitulo').textContent=formatFecha(dia);
   const cont=document.getElementById('histTurnosDetalle');
   cont.innerHTML='<div class="hist-loading">Cargando detalle del día…</div>';
+  histCargarFotoDia(dia);
   const {pagos,cierres,gastos,remoto}=await histFetchDia(dia);
   const pagosValidos=pagos.filter(p=>!p.es_enviada&&!p.excluido);
   const totalMP=pagosValidos.reduce((a,p)=>a+(Number(p.monto)||0),0);
@@ -9624,5 +9643,35 @@ initEasterEggs();
 <script src="./mostrador.js"></script>
 <script src="./cierre-foto-ui.js?v=20260908-cuaderno"></script>
 <script src="./catalogo-ui.js"></script>
+<script>
+// Snapshot del cierre por foto (opción A, automático). NO toca cierre-foto-ui.js de
+// Codex: agrega listeners EXTRA al input de la foto y al botón "Cargar todo al cierre".
+// Al confirmar, sube la foto comprimida a /api/cierre-foto-guardar (Storage privado).
+(function(){
+  let snapFoto=null; // {image, mime}
+  function comprimir(file){
+    return new Promise(res=>{
+      const rd=new FileReader();
+      rd.onload=()=>{const img=new Image();img.onload=()=>{try{
+        const max=1400,esc=Math.min(1,max/Math.max(img.width,img.height));
+        const c=document.createElement('canvas');c.width=Math.round(img.width*esc);c.height=Math.round(img.height*esc);
+        c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+        res({image:c.toDataURL('image/jpeg',.7).split(',')[1],mime:'image/jpeg'});
+      }catch(e){res(null);}};img.onerror=()=>res(null);img.src=rd.result;};
+      rd.onerror=()=>res(null);rd.readAsDataURL(file);
+    });
+  }
+  const input=document.getElementById('cmFotoInput');
+  if(input)input.addEventListener('change',async e=>{const f=e.target.files&&e.target.files[0];snapFoto=f?await comprimir(f):null;});
+  const btn=document.getElementById('cmFotoConfirmar');
+  if(btn)btn.addEventListener('click',async()=>{
+    if(btn.disabled||!snapFoto)return;
+    const fecha=(document.getElementById('cmFotoFecha')?.value||'').trim();
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(fecha))return;
+    const foto=snapFoto;
+    try{await fetch('/api/cierre-foto-guardar',{method:'POST',headers:await sbAuthHeaders({'Content-Type':'application/json'}),body:JSON.stringify({fecha,image:foto.image,mime:foto.mime})});}catch(e){}
+  });
+})();
+</script>
 </body>
 </html>
