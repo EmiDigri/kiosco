@@ -1108,7 +1108,7 @@ body.light .mostrador-status.error{color:#9a4600}
 .cm-foto-accept[hidden]{display:none}
 .cm-foto-accept input{flex:none;margin-top:3px}
 .cm-foto-gasto input{min-width:0}
-.hist-gasto-meta{display:block;font-size:12px;color:var(--text-soft);margin-top:3px}
+.hist-gasto-meta{display:block;font-size:13.5px;color:var(--text-soft);margin-top:3px}
 .hist-gasto-line{gap:12px;align-items:center}
 .hist-gasto-line>span{min-width:0;overflow-wrap:anywhere}
 .hist-gasto-line>strong{flex-shrink:0}
@@ -2221,7 +2221,7 @@ body{
   display:flex;
   justify-content:space-between;
   gap:10px;
-  font-size:12px;
+  font-size:13.5px;
   color:var(--text-mid);
   padding:7px 0;
   border-bottom:1px solid rgba(255,255,255,.05);
@@ -9597,6 +9597,8 @@ function initEasterEggs(){
 // dispositivo (no por usuario: las 3 comparten cuenta y todas deben enterarse).
 // Para anunciar algo nuevo: agregá una entrada arriba de todo con un id único.
 const CHANGELOG=[
+  {id:'2026-09-09-foto-cuaderno',fecha:'9 de septiembre',titulo:'Cargá el cierre con una foto del cuaderno',
+   p:'Ya podés sacarle una foto al cuaderno del cierre (botón “📷 Cargar del cuaderno” dentro de Cierre manual) y la app carga sola los importes. Revisá siempre lo que leyó antes de confirmar: si un número no coincide, la app te avisa y no te deja cargar hasta arreglarlo. Ojo: en el cierre del 8/9 el MP de Vale del cuaderno no coincide con el de la app (faltan unos $26.900) — hay que verificar esas transferencias.'},
   {id:'2026-09-07-pagos-servicio',fecha:'7 de septiembre',titulo:'Los pagos de servicios ya no cuentan como venta',
    p:'Cuando desde la cuenta se paga un servicio o factura (luz, gas, internet, etc.), ahora se detecta sola y figura como salida (ej: “Pago Edenor”), así el total del turno y del día queda bien sin que tengas que hacer nada.'},
   {id:'2026-09-06-devolver',fecha:'6 de septiembre',titulo:'Botón para devolver transferencias',

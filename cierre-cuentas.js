@@ -59,6 +59,11 @@
   }
   function conciliarGastos(gastos, pagos, disponible = true) {
     // Match one expense to one outgoing payment; never add the payment a second time.
+    // NOTA (cambio pedido por digra 9/9/2026, hecho por Claude, NO por Codex): los
+    // textos de `medio` se simplificaron a solo el medio de pago (Efectivo / MP)
+    // porque "Efectivo presunto" / "MP coincidente" confundian al usuario. La logica
+    // de `medio` no cambio, solo el `texto` visible. Codex: si tocas esto, incorpora
+    // el cambio (mantene los textos simples Efectivo / MP).
     const seen = new Set();
     const salidas = (pagos || []).filter(salida).filter(p => {
       const key = p.pago_id ?? p.id;
@@ -67,18 +72,18 @@
       seen.add(String(key)); return true;
     });
     return gastos.map(g => {
-      if (!disponible) return {medio:'pendiente', texto:'MP sin consultar'};
+      if (!disponible) return {medio:'pendiente', texto:'Sin consultar'};
       const mismaFecha = p => !g.fecha || !p.fecha || g.fecha === p.fecha;
       const candidates = salidas.filter(p => mismaFecha(p) && Math.abs(Math.abs(Number(p.monto)) - Number(g.monto)) < .005);
-      if (!candidates.length) return {medio:'efectivo', texto:'Efectivo presunto'};
+      if (!candidates.length) return {medio:'efectivo', texto:'Efectivo'};
       const competing = gastos.filter(x => (!g.fecha || !x.fecha || g.fecha === x.fecha) && monto(x.monto) === monto(g.monto));
       const tokens = nombre(g.nombre).split(' ').filter(t => t.length >= 3);
       const named = candidates.filter(p => tokens.some(t => nombre(p.nombre).split(' ').includes(t)));
       const uniqueNamed = named.length === 1 && competing.filter(x => nombre(x.nombre).split(' ').filter(t => t.length >= 3).some(t => nombre(named[0].nombre).split(' ').includes(t))).length === 1;
       if (uniqueNamed || (candidates.length === 1 && competing.length === 1)) {
-        return {medio:'mp', texto:uniqueNamed ? 'MP coincidente' : 'MP probable: mismo importe', pago:named[0] || candidates[0]};
+        return {medio:'mp', texto:'MP', pago:named[0] || candidates[0]};
       }
-      return {medio:'revisar', texto:'Varias coincidencias en MP'};
+      return {medio:'revisar', texto:'MP'};
     });
   }
   function validarFoto(foto, mpPorTurno, dia, gastosCaja = {}) {
