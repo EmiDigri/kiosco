@@ -2220,6 +2220,9 @@ body{
 .hist-foto-dia{margin:14px 0}
 .hist-foto-dia .hist-foto-label{font-size:12.5px;color:var(--text-soft);font-weight:800;margin-bottom:8px}
 .hist-foto-dia img{width:100%;max-height:440px;object-fit:contain;border:1px solid var(--glass-border);border-radius:12px;background:#0a0a0a;cursor:zoom-in}
+.hist-foto-attach{padding:11px 16px;border:1px dashed var(--glass-border);border-radius:12px;background:var(--glass);color:var(--text-mid);font-size:13px;font-weight:700;cursor:pointer;width:100%}
+.hist-foto-attach:hover{background:var(--glass-hover);color:var(--text)}
+.hist-foto-cambiar{margin-left:8px;font-size:11px;font-weight:700;color:var(--accent);background:none;border:0;cursor:pointer;padding:0}
 .hist-gasto-line{
   display:flex;
   justify-content:space-between;
@@ -5838,15 +5841,35 @@ async function marcarDevuelta(pagoId,valor){
 // guardó al confirmar el cierre por foto (endpoint /api/cierre-foto-guardar).
 async function histCargarFotoDia(dia){
   const cont=document.getElementById('histFotoDia');if(!cont)return;
-  cont.hidden=true;cont.innerHTML='';
+  cont.hidden=false;cont.innerHTML='';
+  let url=null;
   try{
     const r=await fetch(`/api/cierre-foto-guardar?fecha=${encodeURIComponent(dia)}`,{headers:await sbAuthHeaders()});
-    if(!r.ok)return;
-    const d=await r.json().catch(()=>null);
-    if(!d||!d.url)return;
-    cont.innerHTML=`<div class="hist-foto-label">📷 Foto del cierre</div><img src="${d.url}" alt="Foto del cuaderno del ${cmEsc?cmEsc(dia):dia}" loading="lazy" onclick="window.open(this.src,'_blank')">`;
-    cont.hidden=false;
+    if(r.ok){const d=await r.json().catch(()=>null);url=d&&d.url;}
   }catch(e){}
+  const subir=()=>{
+    const inp=document.createElement('input');inp.type='file';inp.accept='image/*';
+    inp.onchange=async e=>{
+      const f=e.target.files&&e.target.files[0];if(!f)return;
+      const foto=window.__snapComprimir?await window.__snapComprimir(f):null;
+      if(!foto){if(typeof showToast==='function')showToast('No pude leer la imagen');return;}
+      const b=cont.querySelector('.hist-foto-attach');if(b){b.disabled=true;b.textContent='Subiendo…';}
+      try{
+        const rr=await fetch('/api/cierre-foto-guardar',{method:'POST',headers:await sbAuthHeaders({'Content-Type':'application/json'}),body:JSON.stringify({fecha:dia,image:foto.image,mime:foto.mime})});
+        if(!rr.ok)throw new Error();
+        histCargarFotoDia(dia);
+      }catch(err){if(typeof showToast==='function')showToast('No se pudo subir la foto');if(b){b.disabled=false;b.textContent='📷 Adjuntar foto del cierre';}}
+    };
+    inp.click();
+  };
+  if(url){
+    cont.innerHTML=`<div class="hist-foto-label">📷 Foto del cierre <button type="button" class="hist-foto-cambiar">cambiar</button></div><img src="${url}" alt="Foto del cuaderno del ${dia}" loading="lazy">`;
+    cont.querySelector('img').addEventListener('click',()=>window.open(url,'_blank'));
+    cont.querySelector('.hist-foto-cambiar').addEventListener('click',subir);
+  }else{
+    cont.innerHTML=`<button type="button" class="hist-foto-attach">📷 Adjuntar foto del cierre</button>`;
+    cont.querySelector('.hist-foto-attach').addEventListener('click',subir);
+  }
 }
 async function mostrarDetalleDia(dia){
   document.getElementById('histVistaLista').style.display='none';
@@ -9661,6 +9684,7 @@ initEasterEggs();
       rd.onerror=()=>res(null);rd.readAsDataURL(file);
     });
   }
+  window.__snapComprimir=comprimir; // lo reutiliza el historial para adjuntar/backfillear fotos
   const input=document.getElementById('cmFotoInput');
   if(input)input.addEventListener('change',async e=>{const f=e.target.files&&e.target.files[0];snapFoto=f?await comprimir(f):null;});
   const btn=document.getElementById('cmFotoConfirmar');
