@@ -135,8 +135,9 @@ test('pending closings and expenses appear even when the day already has remote 
 test('photo API authenticates and preserves unreadable values without storing images', async () => {
   const source=fs.readFileSync(require('node:path').join(__dirname,'../api/cierre-foto.js'),'utf8').replace("import CierreCuentas from '../cierre-cuentas.js';",'').replace('export default async function handler','async function handler');
   let calls=[];
+  let lectura={...foto(),turnos:[{cierre:null,mp:100,once:0,mpo:0}],gastos:[{nombre:'Arcor',monto:null}]};
   const ctx={process:{env:{ANTHROPIC_API_KEY:'fixture'}},AbortSignal,CierreCuentas:C,
-    fetch:async(url,opts)=>{calls.push({url,opts});if(url.includes('/auth/'))return {ok:true,json:async()=>({id:'fixture-user'})};return {ok:true,json:async()=>({content:[{type:'tool_use',input:{...foto(),turnos:[{cierre:null,mp:100,once:0,mpo:0}],gastos:[{nombre:'Arcor',monto:null}]} }]})};}};
+    fetch:async(url,opts)=>{calls.push({url,opts});if(url.includes('/auth/'))return {ok:true,json:async()=>({id:'fixture-user'})};return {ok:true,json:async()=>({content:[{type:'tool_use',input:lectura}]})};}};
   vm.createContext(ctx);vm.runInContext(source,ctx);
   const res={setHeader(){},status(code){this.code=code;return this;},json(body){this.body=body;return this;}};
   await ctx.handler({method:'POST',headers:{},body:{}},res);
@@ -154,6 +155,15 @@ test('photo API authenticates and preserves unreadable values without storing im
     assert.equal(ctx.importeLeido(raw,true),expected);
   }
   assert.equal(ctx.importeLeido('-'),null,'a missing closing is not turned into zero');
+  for(const dash of ['----','\u2014\u2014\u2014','\u2015','\u2212','\u2500\u2500\u2500',' - - - ','\u2014 \u2014']) {
+    assert.equal(ctx.importeLeido(dash,true),0,'standalone dashes mean no movement');
+  }
+  for(const unclear of ['',' ','12-000','-8000','???']) assert.equal(ctx.importeLeido(unclear,true),null);
+  lectura=foto();lectura.turnos[0].once='\u2014\u2014';lectura.turnos[2].once='\u2500\u2500';
+  await ctx.handler({method:'POST',headers:{authorization:'Bearer fixture-user'},body:{image:'a'.repeat(100),mime:'image/jpeg'}},res);
+  assert.deepEqual(Array.from(res.body.turnos,t=>t.once),[0,8000,0],'Vale and Marta long dashes become zero without changing Ani');
+  assert.deepEqual(Array.from(res.body.turnos,t=>t.mpo),[36000,3500,12000],'Once dashes never overwrite MPO');
+  assert.deepEqual(C.validarFoto(res.body,mp,'2026-09-08').errores,[]);
 });
 
 test('contradictory OCR amounts cannot be accepted just by acknowledging MP differences', () => {

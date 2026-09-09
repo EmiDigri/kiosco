@@ -41,7 +41,7 @@ const TOOL = {
             cierre: { type: ['string', 'null'], description: 'Transcripcion literal del importe en el renglon Cierre, sin calcular ni cambiar digitos.' },
             mp: { type: ['string', 'null'], description: 'Transcripcion literal bajo MP, PRIMERA columna de la derecha. Incluye MPO.' },
             mpo: { type: ['string', 'null'], description: 'Transcripcion literal bajo MPO, columna INTERMEDIA entre MP y O. NO es Once.' },
-            once: { type: ['string', 'null'], description: 'Transcripcion literal bajo O, ULTIMA columna a la derecha. NO es MPO. Copia un guion visible como "-"; vacio o ilegible = null.' },
+            once: { type: ['string', 'null'], description: 'Transcripcion literal bajo O, ULTIMA columna a la derecha. NO es MPO. Un guion corto, largo o repetido dentro de la celda significa SIN MOVIMIENTO: transcribi "-", nunca null. Solo vacio o ilegible = null.' },
           },
           required: ['cierre', 'mp', 'mpo', 'once'],
         },
@@ -70,7 +70,7 @@ Estructura de la planilla:
 - Arriba está la fecha (ej. "6/8").
 - Después vienen los turnos, EN ORDEN de arriba hacia abajo (hasta 3; domingos 2). Ignora completamente "Apertura": es fondo fijo, NO es venta y NO se suma ni se resta. Lee "Cierre" exactamente como esta escrito: es el TOTAL de ventas del turno, efectivo mas MP. El nombre puede ser un suplente (ej. Luis): guiate por el ORDEN, no por el nombre.
 - Las columnas, de IZQUIERDA A DERECHA, son: Cierre y nombre | MP | MPO | O. O significa Once. MPO es la columna del MEDIO, O la del EXTREMO DERECHO. Primero ubica los encabezados y divisorias; despues segui cada renglon aunque la hoja este inclinada. NO asignes por el orden de las letras del nombre, ni intercambies MPO y O. Si los encabezados reales tienen otro orden, segui esos encabezados.
-- MPO esta YA INCLUIDO EN MP; O esta YA INCLUIDO EN EL CIERRE. Copia cada celda por separado. Un guion horizontal en una celda representa ausencia de movimiento: transcribi "-". Un espacio vacio o importe ilegible es null. Las lineas de tabla y subrayados NO son tachaduras; solo considera tachado un importe si el trazo cruza sus digitos.
+- MPO esta YA INCLUIDO EN MP; O esta YA INCLUIDO EN EL CIERRE. Copia cada celda por separado. Un guion horizontal dentro de una celda, aunque sea LARGO o REPETIDO, representa SIN MOVIMIENTO: transcribi "-" (la app lo convierte en 0). Aplica tambien a O/Once de cualquier turno. No lo marques como ilegible ni null. Un espacio realmente vacio o importe ilegible es null. No confundas el guion dentro de la celda con una linea divisoria de la tabla. Las lineas de tabla y subrayados NO son tachaduras; solo considera tachado un importe si el trazo cruza sus digitos.
 - Abajo de los tres cierres hay un total subrayado: es la suma de los tres. Extraelo como total_dia.
 - Después hay una sección "GASTOS" con una lista de concepto + monto (puede estar en dos columnas). Extraé cada gasto.
 
@@ -83,7 +83,7 @@ Reglas:
 - Devolvé los turnos en el mismo orden en que aparecen de arriba hacia abajo.`;
 
 function importeLeido(value, admiteGuion = false) {
-  if (admiteGuion && typeof value === 'string' && /^[-\u2013\u2014]+$/.test(value.trim())) return 0;
+  if (admiteGuion && typeof value === 'string' && /^[-\u2010-\u2015\u2212\u23af\u2500\u2501\ufe58\ufe63\uff0d]+$/.test(value.replace(/\s/g, ''))) return 0;
   return CierreCuentas.monto(value);
 }
 
