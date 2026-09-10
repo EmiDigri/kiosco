@@ -85,7 +85,17 @@ Reglas:
 - Devolvé los turnos en el mismo orden en que aparecen de arriba hacia abajo.`;
 
 function importeLeido(value, admiteGuion = false) {
-  if (admiteGuion && typeof value === 'string' && /^[-\u2010-\u2015\u2212\u23af\u2500\u2501\ufe58\ufe63\uff0d]+$/.test(value.replace(/\s/g, ''))) return 0;
+  if (typeof value === 'string') {
+    let v = value.trim().replace(/^\$\s*/, '');
+    // Celda con SOLO guion(es) = sin movimiento = 0.
+    if (admiteGuion && /^[-\u2010-\u2015\u2212\u23af\u2500\u2501\ufe58\ufe63\uff0d]+$/.test(v.replace(/\s/g, ''))) return 0;
+    // Sacar el "cierre de importe" manuscrito: punto/coma/guion al final (ej "$12.000.-", "12,000-").
+    v = v.replace(/[.,\-\u2010-\u2015\u2212\s]+$/, '');
+    // Coma usada como separador de MILES (grupos de 3 digitos): "12,000" -> "12.000", "1,500,000" -> "1.500.000".
+    // (Si la coma es decimal, "12,50", tiene 1-2 digitos y no entra aca: lo maneja CierreCuentas.monto.)
+    if (/^\d{1,3}(,\d{3})+$/.test(v)) v = v.replace(/,/g, '.');
+    return CierreCuentas.monto(v);
+  }
   return CierreCuentas.monto(value);
 }
 
