@@ -99,6 +99,28 @@ function importeLeido(value, admiteGuion = false) {
   return CierreCuentas.monto(value);
 }
 
+// "Memoria" de proveedores: los nombres de gastos que el kiosco ya cargó en la base
+// son sus proveedores reales. Se los pasamos a la IA como vocabulario para que lea
+// bien la letra (ej. "Ancon" escrito -> reconoce que es "Arcor"). Aprende solo: cada
+// gasto que se corrige y guarda pasa a formar parte de la lista la próxima vez.
+async function traerProveedoresHabituales(authHeader) {
+  try {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/gastos_caja?select=nombre&limit=1500`, {
+      headers: { apikey: SUPABASE_ANON, Authorization: authHeader },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!r.ok) return [];
+    const filas = await r.json().catch(() => []);
+    const cuenta = new Map();
+    for (const f of filas) {
+      const n = String(f?.nombre || '').trim();
+      if (n.length < 2) continue;
+      cuenta.set(n, (cuenta.get(n) || 0) + 1);
+    }
+    return [...cuenta.entries()].sort((a, b) => b[1] - a[1]).slice(0, 60).map(([n]) => n);
+  } catch { return []; }
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -120,6 +142,11 @@ export default async function handler(req, res) {
       return res.status(413).json({ error: 'La foto es demasiado pesada: probá de nuevo' });
     }
 
+    const proveedores = await traerProveedoresHabituales(req.headers.authorization || '');
+    const vocab = proveedores.length
+      ? `\n\nProveedores/gastos habituales de este kiosco (nombres reales ya cargados): ${proveedores.join(', ')}.\nEn la seccion GASTOS: si un concepto escrito se PARECE claramente a uno de esta lista aunque la letra sea dudosa (ej "Ancon" -> "Arcor"), usa EXACTAMENTE ese nombre de la lista. Si el proveedor no esta en la lista, transcribilo tal como se lee; no inventes ni fuerces coincidencias lejanas. Esto NO aplica a los importes: los numeros se leen siempre de la foto.`
+      : '';
+
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       signal: AbortSignal.timeout(45000),
@@ -134,7 +161,7 @@ export default async function handler(req, res) {
         // Sonnet 5 rechaza `temperature`; y con tool_use forzado el thinking debe ir
         // apagado (no son compatibles). La validacion de la app queda como red igual.
         thinking: { type: 'disabled' },
-        system: PROMPT,
+        system: PROMPT + vocab,
         tools: [TOOL],
         tool_choice: { type: 'tool', name: 'registrar_cierre' },
         messages: [{
