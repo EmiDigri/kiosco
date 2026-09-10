@@ -11,7 +11,9 @@
 import CierreCuentas from '../cierre-cuentas.js';
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
-const MODEL = process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5-20251001';
+// Sonnet 5 lee bastante mejor la letra manuscrita que Haiku (menos errores de
+// digitos tipo 2/6 leidos como 9). Se puede sobreescribir con ANTHROPIC_MODEL.
+const MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-5';
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://pilfeptwylgufhbmmday.supabase.co';
 const SUPABASE_ANON = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_AE6T1LMQuY2T8mf0uD_ANA_Bh4nk_ej';
 
@@ -76,7 +78,7 @@ Estructura de la planilla:
 
 Reglas:
 - Devolve los importes como TEXTO literal, conservando el orden de todos los digitos y los separadores de miles. La app los convierte a numeros. No agregues digitos ni copies importes de otro renglon.
-- Antes de responder, contrasta visualmente los digitos parecidos (1, 2, 5, 7, 9) usando la escritura de la misma hoja. Si no podes decidir, devuelve null y menciona la celda en nota.
+- Antes de responder, contrasta visualmente los digitos parecidos (1, 2, 5, 6, 7, 9) usando la escritura de la misma hoja. OJO: en esta letra el 2 y el 6 suelen tener un bucle que se confunde con un 9; no leas 9 salvo que estes seguro. Si no podes decidir, devuelve null y menciona la celda en nota.
 - Revisa que la suma de los cierres coincida con el total escrito, y que MP no supere el cierre. Si hay contradiccion, relee las celdas en ESTA MISMA respuesta. No fuerces importes para cuadrar cuentas: si la duda sigue, usa null o avisa en nota.
 - Los gastos no se restan del Cierre que extraes; la app los registra por separado. Conserva los gastos con nombre pero sin importe usando monto null.
 - Nota: breve, solo las celdas dudosas; no describas generica ni largamente la calidad de la foto.
@@ -119,7 +121,9 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         model: MODEL,
         max_tokens: 3000,
-        temperature: 0,
+        // Sonnet 5 rechaza `temperature`; y con tool_use forzado el thinking debe ir
+        // apagado (no son compatibles). La validacion de la app queda como red igual.
+        thinking: { type: 'disabled' },
         system: PROMPT,
         tools: [TOOL],
         tool_choice: { type: 'tool', name: 'registrar_cierre' },
