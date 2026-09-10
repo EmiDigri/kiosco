@@ -2220,6 +2220,85 @@ body{
   font-weight:800;
   color:var(--text);
 }
+.hist-radiografia-card{
+  position:relative;
+  isolation:isolate;
+  overflow:hidden;
+  border-radius:12px;
+  padding:1px;
+  margin-bottom:18px;
+  background:var(--glass-border);
+  box-shadow:0 14px 34px rgba(0,0,0,.13);
+}
+.hist-radiografia-card::before{
+  content:'';
+  position:absolute;
+  z-index:0;
+  inset:-155%;
+  background:conic-gradient(from 0deg,transparent 0 77%,rgba(124,144,255,.06) 80%,rgba(124,144,255,.96) 84%,rgba(95,214,138,.88) 87%,transparent 92%);
+  animation:histRadBeam 8s linear infinite;
+}
+@keyframes histRadBeam{to{transform:rotate(360deg)}}
+.hist-radiografia-inner{position:relative;z-index:1;background:var(--surface);border-radius:11px;overflow:hidden}
+.hist-rad-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 17px;border-bottom:1px solid var(--glass-border)}
+.hist-rad-status{display:flex;align-items:center;gap:9px;font-size:11px;font-weight:850;letter-spacing:.09em;text-transform:uppercase;color:var(--text)}
+.hist-rad-dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 0 5px rgba(95,214,138,.12),0 0 14px rgba(95,214,138,.38);flex:0 0 auto}
+.hist-radiografia-card.is-partial .hist-rad-dot{background:var(--amber);box-shadow:0 0 0 5px rgba(240,184,96,.12),0 0 14px rgba(240,184,96,.32)}
+.hist-rad-date{font-size:11px;font-weight:650;color:var(--text-soft);text-transform:capitalize}
+.hist-rad-main{display:grid;grid-template-columns:minmax(310px,.78fr) minmax(0,1.22fr)}
+.hist-rad-summary{display:flex;align-items:center;justify-content:center;gap:24px;padding:22px;border-right:1px solid var(--glass-border);background:linear-gradient(135deg,rgba(124,144,255,.07),transparent 58%)}
+.hist-rad-ring{--hist-rad-cash:0deg;--hist-rad-mp:0deg;--hist-rad-once:0deg;width:154px;aspect-ratio:1;border-radius:50%;flex:0 0 auto;position:relative;background:conic-gradient(var(--green) 0 var(--hist-rad-cash),var(--accent) var(--hist-rad-cash) var(--hist-rad-mp),var(--amber) var(--hist-rad-mp) var(--hist-rad-once),var(--glass-border) var(--hist-rad-once) 360deg);box-shadow:0 0 24px rgba(124,144,255,.09)}
+.hist-rad-ring::after{content:'';position:absolute;inset:13px;border-radius:50%;background:var(--surface);box-shadow:inset 0 0 0 1px var(--glass-border)}
+.hist-rad-ring-center{position:absolute;z-index:1;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center}
+.hist-rad-ring-center strong{font-family:'Inter',sans-serif;font-size:27px;line-height:1;font-weight:850;color:var(--text);font-variant-numeric:tabular-nums}
+.hist-rad-ring-center span{font-size:10px;color:var(--text-soft);margin-top:4px}
+.hist-rad-total{min-width:0}
+.hist-rad-kicker{font-size:9.5px;font-weight:800;letter-spacing:.11em;text-transform:uppercase;color:var(--text-soft)}
+.hist-rad-total-value{font-family:'Inter',sans-serif;font-size:32px;line-height:1.08;font-weight:850;color:var(--text);font-variant-numeric:tabular-nums;margin:7px 0 13px;white-space:nowrap}
+.hist-rad-method{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--text-soft);margin-top:7px;white-space:nowrap}
+.hist-rad-method i{width:7px;height:7px;border-radius:50%;flex:0 0 auto}
+.hist-rad-method i.cash{background:var(--green)}
+.hist-rad-method i.mp{background:var(--accent)}
+.hist-rad-method i.once{background:var(--amber)}
+.hist-rad-method b{color:var(--text);font-weight:800}
+.hist-rad-turnos{padding:16px 19px}
+.hist-rad-cols,.hist-rad-row{display:grid;grid-template-columns:1.14fr repeat(3,minmax(78px,.72fr));align-items:center;gap:11px}
+.hist-rad-cols{font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--text-soft);padding-bottom:7px}
+.hist-rad-row{font-size:11.5px;color:var(--text-mid);padding:12px 0;border-top:1px solid var(--glass-border)}
+.hist-rad-person{display:flex;align-items:center;gap:8px;font-weight:750;color:var(--text);min-width:0}
+.hist-rad-person-dot{width:7px;height:7px;border-radius:50%;background:var(--turn-color,var(--accent));box-shadow:0 0 9px var(--turn-color,var(--accent));flex:0 0 auto}
+.hist-rad-num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.hist-rad-row .hist-rad-num.total{font-size:13px;font-weight:850;color:var(--text)}
+.hist-rad-foot{display:flex;align-items:center;gap:18px;flex-wrap:wrap;padding-top:12px;margin-top:2px;border-top:1px solid var(--glass-border);font-size:10.5px;color:var(--text-soft)}
+.hist-rad-foot b{font-weight:800;color:var(--text)}
+body.light .hist-radiografia-card{box-shadow:0 10px 28px rgba(43,55,78,.1)}
+body.light .hist-radiografia-inner{background:#fff}
+body.light .hist-rad-ring::after{background:#fff}
+@media(prefers-reduced-motion:reduce){.hist-radiografia-card::before{animation:none}}
+@media(max-width:720px){
+  .hist-rad-main{grid-template-columns:1fr}
+  .hist-rad-summary{justify-content:flex-start;border-right:0;border-bottom:1px solid var(--glass-border);padding:18px 15px;gap:16px}
+  .hist-rad-ring{width:116px}
+  .hist-rad-ring-center strong{font-size:22px}
+  .hist-rad-total-value{font-size:27px}
+  .hist-rad-turnos{padding:13px 11px}
+  .hist-rad-cols,.hist-rad-row{grid-template-columns:1.08fr repeat(3,minmax(62px,.72fr));gap:5px}
+  .hist-rad-row{font-size:10.5px}
+  .hist-rad-row .hist-rad-num.total{font-size:11.5px}
+  .hist-rad-foot{gap:10px 14px}
+}
+@media(max-width:390px){
+  .hist-rad-date{display:none}
+  .hist-rad-summary{gap:12px;padding:16px 11px}
+  .hist-rad-ring{width:102px}
+  .hist-rad-total-value{font-size:23px}
+  .hist-rad-method{font-size:10px}
+  .hist-rad-cols{display:none}
+  .hist-rad-row{grid-template-columns:1fr 1fr;gap:5px 8px}
+  .hist-rad-row .hist-rad-num.total{grid-column:2;grid-row:1}
+  .hist-rad-row .hist-rad-num.cash::before{content:'Ef. '}
+  .hist-rad-row .hist-rad-num.mp::before{content:'MP '}
+}
 .hist-cierre-badge{padding:5px 10px;border-radius:7px;font-weight:700;font-size:10.5px;white-space:nowrap}
 .hist-cierre-badge.done{background:rgba(95,214,138,.15);color:var(--green,#5FD68A);border:1px solid rgba(95,214,138,.32)}
 .hist-cierre-block{
@@ -2715,6 +2794,36 @@ body.light .pulse-grid-line{background:rgba(20,20,40,.07)}
 body.light .pulse-now,body.light .pulse-now::before{background:#334155}
 body.light .pulse-tabs{background:rgba(37,76,232,.025)}
 body.light .pulse-tab.is-active{background:#fff;box-shadow:0 1px 5px rgba(20,20,40,.12)}
+.home-yesterday-access{
+  position:relative;
+  width:min(100%,310px);
+  min-height:54px;
+  margin:-8px 0 18px auto;
+  padding:8px 10px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  overflow:hidden;
+  border:1px solid var(--glass-border);
+  border-radius:10px;
+  background:var(--surface);
+  color:var(--text);
+  font-family:'Inter',sans-serif;
+  text-align:left;
+  cursor:pointer;
+  box-shadow:var(--shadow-sm);
+  transition:border-color .18s ease,background .18s ease,transform .18s ease;
+}
+.home-yesterday-access::after{content:'';position:absolute;inset:-80% auto -80% -55%;width:38%;transform:rotate(18deg);background:linear-gradient(90deg,transparent,rgba(124,144,255,.16),transparent);transition:left .55s cubic-bezier(.16,1,.3,1);pointer-events:none}
+.home-yesterday-access:hover,.home-yesterday-access:focus-visible{border-color:rgba(124,144,255,.5);background:var(--glass-hover);transform:translateY(-1px);outline:none}
+.home-yesterday-access:hover::after,.home-yesterday-access:focus-visible::after{left:115%}
+.home-yesterday-icon{width:36px;height:36px;border-radius:8px;display:grid;place-items:center;flex:0 0 auto;color:var(--accent);background:var(--accent-soft);border:1px solid rgba(124,144,255,.24);box-shadow:0 0 16px rgba(124,144,255,.1)}
+.home-yesterday-icon svg{width:18px;height:18px}
+.home-yesterday-copy{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.home-yesterday-copy strong{font-size:12px;font-weight:850;color:var(--text)}
+.home-yesterday-copy small{font-size:10px;font-weight:650;color:var(--text-soft);text-transform:capitalize;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.home-yesterday-arrow{font-size:18px;color:var(--accent);padding:0 3px;transition:transform .18s ease}
+.home-yesterday-access:hover .home-yesterday-arrow,.home-yesterday-access:focus-visible .home-yesterday-arrow{transform:translateX(2px)}
 @media(max-width:720px){
   .kiosk-pulse{margin:2px -2px 14px;padding:15px 10px 13px}
   .pulse-head{gap:10px;margin-bottom:14px}.pulse-status{display:none}
@@ -2729,7 +2838,9 @@ body.light .pulse-tab.is-active{background:#fff;box-shadow:0 1px 5px rgba(20,20,
   .pulse-axis{font-size:7px}
   .pulse-event{width:3px;height:3px;margin-left:-1.5px;margin-bottom:-1.5px}
   .pulse-foot{font-size:9px;align-items:flex-start}.pulse-foot span:last-child{text-align:right}
+  .home-yesterday-access{width:100%;margin:-5px 0 14px;min-height:58px}
 }
+@media(prefers-reduced-motion:reduce){.home-yesterday-access,.home-yesterday-access::after,.home-yesterday-arrow{transition:none!important}}
 
 /* Referencia de precios */
 #btnPrecios{color:#61d6c0!important;border-color:rgba(97,214,192,.25)!important;background:rgba(97,214,192,.08)!important}
@@ -3445,6 +3556,14 @@ body.light .tg-lock{background:rgba(255,255,255,.96)}
     <div id="pulseContent"><div class="pulse-loading">Leyendo el movimiento de hoy…</div></div>
   </section>
 
+  <button class="home-yesterday-access" id="homeYesterdayAccess" type="button" aria-label="Abrir la radiografía completa de ayer">
+    <span class="home-yesterday-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4M16 2v4M3 10h18"/><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 15h.01M12 15h.01M16 15h.01"/></svg>
+    </span>
+    <span class="home-yesterday-copy"><strong>Radiografía de ayer</strong><small id="homeYesterdayDate">Cierre, efectivo y Mercado Pago</small></span>
+    <span class="home-yesterday-arrow" aria-hidden="true">›</span>
+  </button>
+
   <!-- cursor glow desactivado para mejor rendimiento -->
   <div class="otros-turnos-row" id="otrosTurnosRow"></div>
   <div id="turnosHoyPortada" style="margin-top:24px"></div>
@@ -3609,11 +3728,7 @@ body.light .tg-lock{background:rgba(255,255,255,.96)}
         Todos los días
       </button>
       <div class="hist-dia-titulo" id="histDiaTitulo"></div>
-      <div class="hist-detalle-total-card">
-        <div class="hist-detalle-total-label">Total del día</div>
-        <div class="hist-detalle-total-val" id="histTotalGlobal">$0</div>
-        <div class="hist-detalle-total-sub" id="histTotalSub"></div>
-      </div>
+      <div id="histRadiografiaDia"><div class="hist-loading">Armando la radiografía del día…</div></div>
       <div id="histFotoDia" class="hist-foto-dia" hidden></div>
       <div id="histTurnosDetalle"></div>
     </div>
@@ -5025,6 +5140,29 @@ let histRowsPagosMes=[];
 let histRowsCierresMes=[];
 let histRowsGastosMes=[];
 
+function histAyerIso(){
+  const d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()-1);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function histAbrirDia(dia){
+  const [y,m]=dia.split('-').map(Number);
+  histMesActual=new Date(y,m-1,1);
+  histResumenMes={};
+  histRowsPagosMes=[];
+  histRowsCierresMes=[];
+  histRowsGastosMes=[];
+  lockBody();
+  document.getElementById('historialOverlay').classList.add('open');
+  mostrarDetalleDia(dia);
+}
+const homeYesterdayAccess=document.getElementById('homeYesterdayAccess');
+if(homeYesterdayAccess){
+  const dia=histAyerIso();
+  const fecha=document.getElementById('homeYesterdayDate');
+  if(fecha)fecha.textContent=formatFechaCorta(dia)+' · efectivo, MP y turnos';
+  homeYesterdayAccess.addEventListener('click',()=>histAbrirDia(histAyerIso()));
+}
+
 function histMoney(n){return '$'+(Number(n)||0).toLocaleString('es-AR');}
 function histMoneyCompact(n){const v=Number(n)||0;if(v===0)return'';if(v>=1e6)return'$'+(v/1e6).toLocaleString('es-AR',{maximumFractionDigits:1})+'M';if(v>=1e3)return'$'+(v/1e3).toLocaleString('es-AR',{maximumFractionDigits:1})+'k';return'$'+v.toLocaleString('es-AR');}
 function histTickCorto(v){
@@ -5931,6 +6069,78 @@ async function histCargarFotoDia(dia){
     cont.querySelector('.hist-foto-attach').addEventListener('click',subir);
   }
 }
+function histRadAnimarMonto(el,total){
+  if(!el)return;
+  if(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches||total<=0){el.textContent=histMoney(total);return;}
+  const inicio=performance.now(),duracion=720;
+  const cuadro=ahora=>{
+    const t=Math.min(1,(ahora-inicio)/duracion),e=1-Math.pow(1-t,4);
+    el.textContent=histMoney(Math.round(total*e));
+    if(t<1)requestAnimationFrame(cuadro);
+  };
+  requestAnimationFrame(cuadro);
+}
+function histRenderRadiografiaDia(dia,cierres,gastos,pagosValidos,totalDia){
+  const cont=document.getElementById('histRadiografiaDia');if(!cont)return;
+  const rows=turnosDelDia(dia).map(t=>{
+    const cierre=(cierres||[]).find(c=>c.turno===t.nombre);
+    const mpVivo=(pagosValidos||[]).filter(p=>p.turno===t.nombre).reduce((a,p)=>a+(Number(p.monto)||0),0);
+    const mp=cierre&&cierre.mp!==null&&cierre.mp!==undefined?Number(cierre.mp)||0:mpVivo;
+    const efectivo=cierre?Number(cierre.efectivo)||0:0;
+    const once=cierre?Number(cierre.once_monto)||0:0;
+    const mpo=cierre?Number(cierre.mpo)||0:0;
+    const total=cierre?CierreCuentas.totalCierre(cierre,Number(cierre.gastos_caja)||0):mpVivo;
+    return {t,cierre,mp,efectivo,once,mpo,total};
+  });
+  const totalEfectivo=rows.reduce((a,r)=>a+r.efectivo,0);
+  const totalMP=rows.reduce((a,r)=>a+r.mp,0);
+  const totalOnce=rows.reduce((a,r)=>a+r.once,0);
+  const totalMPO=rows.reduce((a,r)=>a+r.mpo,0);
+  const totalGastos=(gastos||[]).reduce((a,g)=>a+(Number(g.monto)||0),0);
+  const mezcla=totalEfectivo+totalMP+totalOnce;
+  const efectivoPct=mezcla?Math.round(totalEfectivo/mezcla*100):0;
+  const cashDeg=mezcla?totalEfectivo/mezcla*360:0;
+  const mpDeg=mezcla?(totalEfectivo+totalMP)/mezcla*360:0;
+  const onceDeg=mezcla?360:0;
+  const masFuerte=rows.reduce((best,row)=>row.total>(best?.total||-1)?row:best,null);
+  const fuertePct=masFuerte&&totalDia?Math.round(masFuerte.total/totalDia*100):0;
+  const completo=CierreCuentas.completo({cierres},dia);
+  const conCierre=rows.filter(r=>r.cierre).length;
+  const estado=completo?'Cierre completo':conCierre?'Cierre parcial':'Movimiento del día';
+  const estadoClase=completo?'':' is-partial';
+  const filas=rows.map(({t,total,efectivo,mp})=>`<div class="hist-rad-row">
+    <span class="hist-rad-person" style="--turn-color:${t.color}"><span class="hist-rad-person-dot"></span>${cmEsc(t.nombre)}</span>
+    <span class="hist-rad-num total">${histMoney(total)}</span>
+    <span class="hist-rad-num cash">${histMoney(efectivo)}</span>
+    <span class="hist-rad-num mp">${histMoney(mp)}</span>
+  </div>`).join('');
+  cont.innerHTML=`<article class="hist-radiografia-card${estadoClase}" aria-label="Radiografía del día: total ${histMoney(totalDia)}">
+    <div class="hist-radiografia-inner">
+      <div class="hist-rad-head"><span class="hist-rad-status"><span class="hist-rad-dot"></span>${estado}</span><span class="hist-rad-date">${formatFecha(dia)}</span></div>
+      <div class="hist-rad-main">
+        <div class="hist-rad-summary">
+          <div class="hist-rad-ring" style="--hist-rad-cash:${cashDeg.toFixed(2)}deg;--hist-rad-mp:${mpDeg.toFixed(2)}deg;--hist-rad-once:${onceDeg.toFixed(2)}deg" role="img" aria-label="Efectivo ${efectivoPct} por ciento, Mercado Pago ${mezcla?Math.round(totalMP/mezcla*100):0} por ciento, Once ${mezcla?Math.round(totalOnce/mezcla*100):0} por ciento">
+            <div class="hist-rad-ring-center"><strong>${efectivoPct}%</strong><span>en efectivo</span></div>
+          </div>
+          <div class="hist-rad-total"><div class="hist-rad-kicker">Total del día</div><div class="hist-rad-total-value" data-hist-rad-total>${histMoney(totalDia)}</div>
+            <div class="hist-rad-method"><i class="cash"></i><b>${histMoney(totalEfectivo)}</b> efectivo</div>
+            <div class="hist-rad-method"><i class="mp"></i><b>${histMoney(totalMP)}</b> Mercado Pago</div>
+            ${totalOnce?`<div class="hist-rad-method"><i class="once"></i><b>${histMoney(totalOnce)}</b> Once</div>`:''}
+          </div>
+        </div>
+        <div class="hist-rad-turnos">
+          <div class="hist-rad-cols"><span>Turno</span><span class="hist-rad-num">Total</span><span class="hist-rad-num">Efectivo</span><span class="hist-rad-num">MP</span></div>
+          ${filas}
+          <div class="hist-rad-foot">
+            ${masFuerte&&masFuerte.total?`<span>Más fuerte <b>${cmEsc(masFuerte.t.nombre)} · ${fuertePct}%</b></span>`:''}
+            <span>MPO <b>${histMoney(totalMPO)}</b></span><span>Once <b>${histMoney(totalOnce)}</b></span><span>Gastos <b>${histMoney(totalGastos)}</b></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </article>`;
+  histRadAnimarMonto(cont.querySelector('[data-hist-rad-total]'),totalDia);
+}
 async function mostrarDetalleDia(dia){
   document.getElementById('histVistaLista').style.display='none';
   document.getElementById('histVistaDetalle').style.display='block';
@@ -5953,17 +6163,10 @@ async function mostrarDetalleDia(dia){
     const numEl=cell.querySelector('.hist-day-num');
     if(numEl&&tieneFueraHorario&&!numEl.querySelector('.hist-day-moon'))numEl.insertAdjacentHTML('beforeend','<span class="hist-day-marker" tabindex="0" role="img" aria-label="Transferencias fuera de horario: antes de las 7 o después de las 22:30" data-tooltip="Transferencias fuera de horario · antes de las 7 o después de las 22:30"><span class="hist-day-emoji hist-day-moon" aria-hidden="true">🌙</span></span>');
   }
-  document.getElementById('histTotalGlobal').textContent=histMoney(totalDia);
-  document.getElementById('histTotalSub').textContent=`Caja ${histMoney(totalCaja)} · MercadoPago ${histMoney(totalMP)} · ${totalMovs} movimientos`;
+  histRenderRadiografiaDia(dia,cierres,gastos,pagosValidos,totalDia);
   const esPasado=dia<fechaHoy();
   const sinDatos=totalMP===0&&totalCaja===0;
   let html=(esPasado&&sinDatos)?`<div style="margin-bottom:12px"><button id="btnRecuperarMP" style="padding:8px 14px;background:rgba(61,90,254,.15);color:var(--accent);border:1px solid rgba(61,90,254,.3);border-radius:8px;font-weight:600;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg>Recuperar de MercadoPago</button></div>`:'';
-  html+=`<div class="hist-detail-grid">
-    <div class="hist-detail-card"><div class="hist-detail-label">Cierre de caja</div><div class="hist-detail-value">${histMoney(totalCaja)}</div></div>
-    <div class="hist-detail-card"><div class="hist-detail-label">MercadoPago</div><div class="hist-detail-value">${histMoney(totalMP)}</div></div>
-    <div class="hist-detail-card"><div class="hist-detail-label">Efectivo</div><div class="hist-detail-value">${histMoney(cierres.reduce((a,c)=>a+(Number(c.efectivo)||0),0))}</div></div>
-    <div class="hist-detail-card"><div class="hist-detail-label">Gastos</div><div class="hist-detail-value">${histMoney(gastos.reduce((a,g)=>a+(Number(g.monto)||0),0))}</div></div>
-  </div>`;
   if(gastos.length){
     const medios=CierreCuentas.conciliarGastos(gastos,pagos,remoto);
     html+=`<div class="hist-cierre-block"><div class="hist-cierre-title">Gastos del día</div>${gastos.map((g,i)=>`<div class="hist-gasto-line"><span>${cmEsc(g.nombre)}${g.caja?` · ${cmEsc(g.caja)}`:''}<small class="hist-gasto-meta">${cmEsc(medios[i].texto)}</small></span><strong>${histMoney(g.monto)}</strong></div>`).join('')}</div>`;
