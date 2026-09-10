@@ -2249,11 +2249,14 @@ body{
 .hist-cierre-row:last-child{border-bottom:none}
 .hist-cierre-row strong{color:var(--text)}
 .hist-foto-dia{margin:14px 0}
-.hist-foto-dia .hist-foto-label{font-size:12.5px;color:var(--text-soft);font-weight:800;margin-bottom:8px}
-.hist-foto-dia img{width:100%;max-height:440px;object-fit:contain;border:1px solid var(--glass-border);border-radius:12px;background:#0a0a0a;cursor:zoom-in}
+.hist-foto-documento{width:fit-content;max-width:100%;margin-inline:auto}
+.hist-foto-dia .hist-foto-label{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--text-mid);font-weight:800;margin-bottom:8px}
+.hist-foto-abrir{display:block;width:fit-content;max-width:100%;border-radius:8px;cursor:zoom-in}
+.hist-foto-abrir:focus-visible{outline:2px solid var(--accent);outline-offset:4px}
+.hist-foto-dia img{display:block;width:auto;height:auto;max-width:100%;max-height:440px;object-fit:contain;border:1px solid var(--glass-border);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.12)}
 .hist-foto-attach{padding:11px 16px;border:1px dashed var(--glass-border);border-radius:12px;background:var(--glass);color:var(--text-mid);font-size:13px;font-weight:700;cursor:pointer;width:100%}
 .hist-foto-attach:hover{background:var(--glass-hover);color:var(--text)}
-.hist-foto-cambiar{margin-left:8px;font-size:11px;font-weight:700;color:var(--accent);background:none;border:0;cursor:pointer;padding:0}
+.hist-foto-cambiar{font-size:12px;font-weight:700;color:var(--accent);background:none;border:0;cursor:pointer;padding:6px 0;min-height:32px}
 .hist-gasto-line{
   display:flex;
   justify-content:space-between;
@@ -5919,8 +5922,9 @@ async function histCargarFotoDia(dia){
     inp.click();
   };
   if(url){
-    cont.innerHTML=`<div class="hist-foto-label">📷 Foto del cierre <button type="button" class="hist-foto-cambiar">cambiar</button></div><img src="${url}" alt="Foto del cuaderno del ${dia}" loading="lazy">`;
-    cont.querySelector('img').addEventListener('click',()=>window.open(url,'_blank'));
+    cont.innerHTML=`<div class="hist-foto-documento"><div class="hist-foto-label"><span>📷 Foto del cierre</span><button type="button" class="hist-foto-cambiar">cambiar</button></div><a class="hist-foto-abrir" target="_blank" rel="noopener noreferrer" aria-label="Ampliar foto del cierre"><img alt="Foto del cuaderno del ${dia}" loading="lazy"></a></div>`;
+    cont.querySelector('.hist-foto-abrir').href=url;
+    cont.querySelector('img').src=url;
     cont.querySelector('.hist-foto-cambiar').addEventListener('click',subir);
   }else{
     cont.innerHTML=`<button type="button" class="hist-foto-attach">📷 Adjuntar foto del cierre</button>`;
