@@ -6102,8 +6102,6 @@ function histRenderRadiografiaDia(dia,cierres,gastos,pagosValidos,totalDia){
   const cashDeg=mezcla?totalEfectivo/mezcla*360:0;
   const mpDeg=mezcla?(totalEfectivo+totalMP)/mezcla*360:0;
   const onceDeg=mezcla?360:0;
-  const masFuerte=rows.reduce((best,row)=>row.total>(best?.total||-1)?row:best,null);
-  const fuertePct=masFuerte&&totalDia?Math.round(masFuerte.total/totalDia*100):0;
   const completo=CierreCuentas.completo({cierres},dia);
   const conCierre=rows.filter(r=>r.cierre).length;
   const estado=completo?'Cierre completo':conCierre?'Cierre parcial':'Movimiento del día';
@@ -6132,7 +6130,6 @@ function histRenderRadiografiaDia(dia,cierres,gastos,pagosValidos,totalDia){
           <div class="hist-rad-cols"><span>Turno</span><span class="hist-rad-num">Total</span><span class="hist-rad-num">Efectivo</span><span class="hist-rad-num">MP</span></div>
           ${filas}
           <div class="hist-rad-foot">
-            ${masFuerte&&masFuerte.total?`<span>Más fuerte <b>${cmEsc(masFuerte.t.nombre)} · ${fuertePct}%</b></span>`:''}
             <span>MPO <b>${histMoney(totalMPO)}</b></span><span>Once <b>${histMoney(totalOnce)}</b></span><span>Gastos <b>${histMoney(totalGastos)}</b></span>
           </div>
         </div>

@@ -80,7 +80,8 @@ const server = http.createServer((req, res) => {
       await page.waitForTimeout(800);
       assert.equal(await page.locator('.hist-rad-row').count(),3);
       const text=await page.locator('#histRadiografiaDia').innerText();
-      for(const expected of ['$1.305.100','$857.400','$438.700','Marta · 43%','MPO $35.000','Once $9.000','Gastos $764.665'])assert(text.includes(expected),expected);
+      for(const expected of ['$1.305.100','$857.400','$438.700','MPO $35.000','Once $9.000','Gastos $764.665'])assert(text.includes(expected),expected);
+      assert(!text.includes('Más fuerte'));
       assert(!text.includes('Lectura rápida'));
       assert((await page.locator('.hist-rad-ring').getAttribute('aria-label')).includes('Efectivo 66 por ciento'));
       const layout=await page.locator('.hist-radiografia-card').evaluate(el=>({right:el.getBoundingClientRect().right,width:el.getBoundingClientRect().width,scroll:document.documentElement.scrollWidth,viewport:innerWidth,animation:getComputedStyle(el,'::before').animationName}));
