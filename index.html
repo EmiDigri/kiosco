@@ -5363,6 +5363,12 @@ function histRenderMetricas(y,m,last){
   }
   const promDiario=diasConMP>0?totalMP/diasConMP:0;
   const ticketMP=totalMovs>0?totalMP/totalMovs:0;
+  // Metricas del mes en TOTAL (efectivo + MP): dailyVals ya trae histTotalDia por dia,
+  // que incluye el efectivo donde hay cierre cargado. El promedio y el mejor dia se
+  // muestran en total (no solo MP) porque mas de la mitad del ingreso es efectivo.
+  const totalDelMes=dailyVals.reduce((a,b)=>a+b,0);
+  const promDiarioTotal=diasActivos>0?totalDelMes/diasActivos:0;
+  const mejorDia=Math.max(0,...dailyVals);
   // Semanas (Lun-Dom) del mes + dias "completos" (con el cierre de caja de todos los
   // turnos cargado) para no mezclar dias que solo tienen MercadoPago sincronizado
   // con dias donde ya se cargo el efectivo a mano.
@@ -5400,15 +5406,6 @@ function histRenderMetricas(y,m,last){
   const persMes={Vale:0,Ani:0,Marta:0},byDowMP={0:[],1:[],2:[],3:[],4:[],5:[],6:[]};
   let mpDelMes=0,domMes=0;
   const hoyD=esMesActual?Math.min(hoyReal.getDate(),last):last;
-  const diasTranscurridos=Array.from({length:hoyD},(_,i)=>i+1);
-  const comparacion={
-    calendarDays:hoyD,
-    regularDays:diasTranscurridos.filter(d=>new Date(y,m-1,d).getDay()!==0).length,
-    sundayDays:diasTranscurridos.filter(d=>new Date(y,m-1,d).getDay()===0).length,
-    cutoffTime:esMesActual?`${String(hoyReal.getHours()).padStart(2,'0')}:${String(hoyReal.getMinutes()).padStart(2,'0')}`:null,
-    currentDow:new Date(y,m-1,hoyD).getDay(),
-    partial:esMesActual
-  };
   for(let d=1;d<=last;d++){const data=histResumenMes[histIso(y,m,d)];if(!data)continue;const mp=data.mpTotal||0;mpDelMes+=mp;if(mp>0)byDowMP[new Date(y,m-1,d).getDay()].push(mp);const tt=data.turnos||{};persNames.forEach(p=>{if(tt[p])persMes[p]+=tt[p].mp||0;});
     // Los domingos usan otros turnos (Turno 1 y Turno 2); los sumo aparte.
     const dom=(tt['Turno 1']?tt['Turno 1'].mp:0)+(tt['Turno 2']?tt['Turno 2'].mp:0);domMes+=dom;}
@@ -5425,7 +5422,7 @@ function histRenderMetricas(y,m,last){
   const faltanCierres=contable.esperados-contable.cerrados;
   const projBloque=!esMesActual
     ?`<div class="hk-proj-top"><span>Cierre del mes</span></div><div class="hk-proj-val">${histMoney(mpDelMes)}</div><div class="hk-proj-note">mes cerrado</div>`
-    :`<div class="hk-proj-top"><span>Proyección de cierre del mes</span><span class="hk-learn-pill">✨ aprende</span></div><div class="hk-proj-val">${histMoneyCompact(projLow)} – ${histMoneyCompact(projHigh)}</div><div class="hk-proj-note">${nCierresMes>=2?`afinada con ${nCierresMes} cierre${nCierresMes===1?'':'s'} · `:'todavía aprendiendo · '}margen ±${Math.round(projErr*100)}%</div><div class="hk-proj-goal" id="hkVsMejor"></div>`;
+    :`<div class="hk-proj-top"><span>Proyección de cierre del mes</span><span class="hk-learn-pill">✨ aprende</span></div><div class="hk-proj-val">${histMoneyCompact(projLow)} – ${histMoneyCompact(projHigh)}</div><div class="hk-proj-note">${nCierresMes>=2?`afinada con ${nCierresMes} cierre${nCierresMes===1?'':'s'} · `:'todavía aprendiendo · '}margen ±${Math.round(projErr*100)}%</div>`;
   const kioscoHtml=`<div class="hist-kiosco">
     <div class="hk-head"><span class="hk-title">Nuestro kiosco</span><span class="hk-sub">${mesCorto}${esMesActual?` · día ${hoyD} de ${last}`:''}</span></div>
     <div class="hk-proj-card"><div class="hk-proj-top"><span>Recaudación registrada</span></div><div class="hk-proj-val">${histMoney(contable.total)}</div><div class="hk-proj-note">Efectivo + Mercado Pago · ${contable.cerrados}/${contable.esperados} turnos con cierre${faltanCierres>0?' · falta efectivo por cargar':''}</div></div>
@@ -5435,31 +5432,27 @@ function histRenderMetricas(y,m,last){
       <div class="hk-metric"><div class="hk-metric-lbl">Gastos registrados</div><div class="hk-metric-val">${histMoney(contable.gastos)}</div></div>
       <div class="hk-metric"><div class="hk-metric-lbl">Resultado registrado${faltanCierres?' · parcial':''}</div><div class="hk-metric-val">${histMoney(contable.resultado)}</div></div>
     </div>
-    <div class="hk-meta" id="hkMeta" hidden>
-      <div class="hk-meta-head"><span>Meta MP: superar tu mejor mes</span><span id="hkMetaFalta"></span></div>
-      <div class="hk-meta-track"><div class="hk-meta-fill" id="hkMetaFill"></div></div>
-    </div>
     <div class="hk-ritmo">
       <div class="hk-ritmo-title">Mercado Pago por turno</div>
-      ${persNames.map(p=>`<div class="hk-persona"><span class="hk-persona-emoji">${persEmoji[p]}</span><span class="hk-persona-main"><span class="hk-persona-name">${p} · ${persRole[p]}</span><span class="hk-persona-desc">${persMes[p]>0?histMoneyCompact(persMes[p])+' este mes':'sin datos aún'}</span></span><span class="hk-persona-chip flat" data-chip="${p}">···</span></div>`).join('')}
-      <div class="hk-persona"><span class="hk-persona-emoji">📅</span><span class="hk-persona-main"><span class="hk-persona-name">Domingos</span><span class="hk-persona-desc">${domMes>0?histMoneyCompact(domMes)+' este mes':'sin datos aún'}</span></span><span class="hk-persona-chip flat" data-chip="Domingos">···</span></div>
+      ${persNames.map(p=>`<div class="hk-persona"><span class="hk-persona-emoji">${persEmoji[p]}</span><span class="hk-persona-main"><span class="hk-persona-name">${p} · ${persRole[p]}</span><span class="hk-persona-desc">${persMes[p]>0?histMoneyCompact(persMes[p])+' este mes':'sin datos aún'}</span></span></div>`).join('')}
+      <div class="hk-persona"><span class="hk-persona-emoji">📅</span><span class="hk-persona-main"><span class="hk-persona-name">Domingos</span><span class="hk-persona-desc">${domMes>0?histMoneyCompact(domMes)+' este mes':'sin datos aún'}</span></span></div>
     </div>
     <div class="hk-foot">Resultado = recaudación menos gastos cargados. ${faltanCierres>0?`Faltan ${faltanCierres} cierres: el efectivo y el resultado están incompletos.`:'Cierres completos; los gastos pueden tener pendientes.'}</div>
   </div>`;
   el.innerHTML=`
     ${kioscoHtml}
     <div class="hist-met-kpis">
-      <div class="hist-met-kpi"><div class="hist-met-kpi-label">Promedio diario MP</div><div class="hist-met-kpi-val">${histMoneyCompact(promDiario)||'—'}</div></div>
-      <div class="hist-met-kpi"><div class="hist-met-kpi-label">Ticket MP</div><div class="hist-met-kpi-val">${ticketMP>0?histMoneyCompact(ticketMP):'—'}</div></div>
+      <div class="hist-met-kpi"><div class="hist-met-kpi-label">Promedio diario</div><div class="hist-met-kpi-val">${promDiarioTotal>0?histMoneyCompact(promDiarioTotal):'—'}</div></div>
+      <div class="hist-met-kpi"><div class="hist-met-kpi-label">Mejor día</div><div class="hist-met-kpi-val">${mejorDia>0?histMoneyCompact(mejorDia):'—'}</div></div>
       <div class="hist-met-kpi"><div class="hist-met-kpi-label">Días activos</div><div class="hist-met-kpi-val">${diasActivos}</div></div>
-      <div class="hist-met-kpi" id="histVsMesAnt"><div class="hist-met-kpi-label">MP vs mes anterior</div><div class="hist-met-kpi-val" style="font-size:13px;opacity:.35">···</div></div>
+      <div class="hist-met-kpi"><div class="hist-met-kpi-label">Ticket promedio MP</div><div class="hist-met-kpi-val">${ticketMP>0?histMoneyCompact(ticketMP):'—'}</div></div>
     </div>
     <div class="hist-met-chart-card" id="histChartCard"><div class="hist-met-chart-title"><span>Evolución diaria del mes</span>${histTendenciaPill(dailyVals,last,y,m)}</div>${histSvgBarsDias(dailyVals,last,y,m)}</div>
     <div class="hist-met-chart-card" style="margin-top:12px"><div class="hist-met-chart-title">Proyección de facturación</div>${proyeccionHtml}</div>
     <div class="hist-met-chart-card" style="margin-top:12px"><div class="hist-met-chart-title">Totales por semana</div>${semanasHtml}</div>`;
   const chartCard=el.querySelector('#histChartCard');
   if(chartCard){histAnimarGraficoDias(chartCard);histTooltipGraficoDias(chartCard,y,m);}
-  histKioscoEnriquecer({y,m,last,esMesActual,mpDelMes,persMes,domMes,comparacion,projMes,hoyD});
+  histKioscoEnriquecer({y,m,last,esMesActual,projMes,hoyD});
 }
 // Total MP de un mes, opcionalmente cortado hasta cierto día (para comparar el
 // MISMO tramo: p. ej. julio hasta el 2 vs agosto hasta el 2, no julio entero).
@@ -5530,68 +5523,13 @@ function histMesLearnWrite(v){try{localStorage.setItem(HIST_MES_LEARN,JSON.strin
 // Enriquece la tarjeta con lo que necesita red: ritmo del mes, meta, chips por
 // persona (cada una vs si misma el mes pasado) y la calificacion del modelo.
 async function histKioscoEnriquecer(ctx){
-  const {y,m,last,esMesActual,mpDelMes,persMes,domMes,comparacion,projMes,hoyD}=ctx;
+  // Las comparaciones cruzadas entre meses (vs mes anterior, vs mejor mes, chips por
+  // turno, meta) se sacaron: eran solo MP y la app captura MP completo pero el efectivo
+  // solo cuando se carga el cierre, asi que meses viejos quedan sin efectivo y la
+  // comparacion daba "crecimiento" falso. Se muestran solo los numeros del mes en total.
+  // Queda unicamente el autoaprendizaje, que alimenta la proyeccion "✨ aprende".
+  const {y,m,last,esMesActual,projMes,hoyD}=ctx;
   const prevM=m===1?12:m-1,prevY=m===1?y-1:y;
-  const prevMes=new Date(prevY,prevM-1,1).toLocaleDateString('es-AR',{month:'long'});
-  const prevPromise=esMesActual?histFetchMesProporcional(prevY,prevM,comparacion):histFetchMesPersonas(prevY,prevM);
-  const [prev,mejor]=await Promise.all([prevPromise,histMejorMesTotal(y,m)]);
-  const prevTot=prev&&prev.total||0;
-  const tramoTotal=esMesActual&&prev?`${prev.calendarDays} día${prev.calendarDays===1?'':'s'} de ${prevMes}`:prevMes;
-  // Ritmo del mes: el importe visible y el porcentaje usan exactamente el mismo tramo.
-  const vs=document.getElementById('hkVsAnt');
-  if(vs){
-    const val=vs.querySelector('.hk-metric-val');
-    if(prevTot>0){
-      const pct=(mpDelMes-prevTot)/prevTot*100;
-      const col=pct>=0?'#5fd68a':'var(--text-soft)';
-      if(val)val.innerHTML=`<span style="color:${col};font-weight:800">${pct>=0?'+':''}${pct.toFixed(0)}%</span><div style="font-size:9px;color:var(--text-soft);margin-top:2px;font-weight:600">vs ${tramoTotal}</div>`;
-    }else if(val){val.style.opacity='1';val.innerHTML='<span style="font-size:12px;color:var(--text-soft)">todavía aprendiendo</span>';}
-  }
-  const kpi=document.getElementById('histVsMesAnt'),kpiVal=kpi&&kpi.querySelector('.hist-met-kpi-val');
-  if(kpiVal){
-    kpiVal.style.opacity='1';
-    if(prevTot>0){const pct=(mpDelMes-prevTot)/prevTot*100,col=pct>=0?'#5FD68A':'#f87171';kpiVal.innerHTML=`<span style="color:${col};font-size:20px;font-weight:800">${pct>=0?'+':''}${pct.toFixed(1)}%</span><div style="font-size:9px;color:var(--text-soft);margin-top:3px;font-weight:600">${histMoneyCompact(prevTot)} · ${tramoTotal}</div>`;}
-    else kpiVal.textContent='—';
-  }
-  // Meta: superar el mejor mes.
-  if(esMesActual&&mejor.val>0){
-    const meta=document.getElementById('hkMeta');
-    const fill=document.getElementById('hkMetaFill'),falta=document.getElementById('hkMetaFalta'),vsMejor=document.getElementById('hkVsMejor');
-    const pct=Math.min(100,Math.round(mpDelMes/mejor.val*100));
-    if(meta)meta.hidden=false;
-    if(fill)requestAnimationFrame(()=>{fill.style.width=pct+'%';});
-    const resta=mejor.val-mpDelMes;
-    if(falta)falta.textContent=resta>0?`faltan ${histMoneyCompact(resta)}`:'¡récord superado! 🎉';
-    if(vsMejor){
-      if(projMes>=mejor.val)vsMejor.innerHTML=`<span style="color:#f0b860">🏆 va para romper tu récord (${histMoneyCompact(mejor.val)})</span>`;
-      else vsMejor.innerHTML=`<span style="color:var(--text-soft)">tu mejor mes fue ${histMoneyCompact(mejor.val)}</span>`;
-    }
-  }
-  // Cada persona se compara con la misma cantidad de días no domingo del mes
-  // anterior. Así un domingo al comienzo del mes no la deja artificialmente abajo.
-  ['Vale','Ani','Marta'].forEach(p=>{
-    const chip=document.querySelector(`[data-chip="${p}"]`);if(!chip)return;
-    const prevP=prev&&prev.personas[p]||0;
-    const dias=esMesActual&&prev?prev.regularDays:0,referencia=esMesActual?`${dias} día${dias===1?'':'s'} de ${prevMes}`:prevMes;
-    if(prevP>0){
-      const pct=(persMes[p]-prevP)/prevP*100;
-      if(pct>=3){chip.textContent=`+${pct.toFixed(0)}% vs ${referencia}`;chip.className='hk-persona-chip up';}
-      else if(pct<=-3){chip.textContent=`${pct.toFixed(0)}% vs ${referencia}`;chip.className='hk-persona-chip down';}
-      else{chip.textContent=`igual vs ${referencia}`;chip.className='hk-persona-chip flat';}
-    }else{chip.textContent=persMes[p]>0?`sin base en ${prevMes}`:'—';chip.className='hk-persona-chip flat';}
-  });
-  // Domingos se compara primero contra primero, segundo contra los dos primeros, etc.
-  const chipDom=document.querySelector('[data-chip="Domingos"]');
-  if(chipDom){
-    const prevDom=prev&&prev.domingos||0;
-    const domingos=esMesActual&&prev?prev.sundayDays:0,referencia=esMesActual?`${domingos} domingo${domingos===1?'':'s'} de ${prevMes}`:prevMes;
-    if(prevDom>0){
-      const pct=(domMes-prevDom)/prevDom*100;
-      if(pct>=3){chipDom.textContent=`+${pct.toFixed(0)}% vs ${referencia}`;chipDom.className='hk-persona-chip up';}
-      else if(pct<=-3){chipDom.textContent=`${pct.toFixed(0)}% vs ${referencia}`;chipDom.className='hk-persona-chip down';}
-      else{chipDom.textContent=`igual vs ${referencia}`;chipDom.className='hk-persona-chip flat';}
-    }else{chipDom.textContent=comparacion.sundayDays<1?'todavía sin domingos':domMes>0?`sin base en ${prevMes}`:'—';chipDom.className='hk-persona-chip flat';}
-  }
   // Autoaprendizaje: califica la proyeccion del mes pasado (contra su total
   // COMPLETO, no el tramo) y registra la de este mes.
   if(esMesActual){
