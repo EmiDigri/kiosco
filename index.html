@@ -9949,7 +9949,11 @@ initEasterEggs();
   if(input)input.addEventListener('change',async e=>{const f=e.target.files&&e.target.files[0];snapFoto=f?await comprimir(f):null;});
   const btn=document.getElementById('cmFotoConfirmar');
   if(btn)btn.addEventListener('click',async()=>{
-    if(btn.disabled||!snapFoto)return;
+    // Ojo: NO chequear btn.disabled aca. El handler de Codex (cmConfirmarCuaderno)
+    // corre antes y deshabilita el boton sincronicamente, asi que aca ya figura
+    // disabled aunque el click haya sido valido. Un boton realmente deshabilitado
+    // no dispara click, asi que con que llegue aca alcanza.
+    if(!snapFoto)return;
     const fecha=(document.getElementById('cmFotoFecha')?.value||'').trim();
     if(!/^\d{4}-\d{2}-\d{2}$/.test(fecha))return;
     const foto=snapFoto;
