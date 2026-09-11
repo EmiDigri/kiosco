@@ -2359,6 +2359,38 @@ body.light .hist-rad-ring::after{background:#fff}
   margin:10px 4px 0;
 }
 .hist-metricas-section{display:flex;flex-direction:column;gap:12px;margin-top:20px}
+/* Panel "Métricas del negocio" (rentabilidad, ritmo por día de la semana, mejor/peor día) */
+.hist-negocio-section{display:flex;flex-direction:column;gap:12px;margin-top:20px}
+.hist-negocio-title{font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--text-soft);margin:0 4px 2px}
+.hist-neg-card{background:rgba(255,255,255,.04);border:1px solid var(--glass-border);border-radius:16px;padding:16px 14px}
+.hist-neg-card-title{font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--text-soft);margin-bottom:12px}
+.hist-neg-fin{display:flex;flex-direction:column;gap:8px}
+.hist-neg-fin-row{display:flex;align-items:baseline;justify-content:space-between;gap:10px;font-size:13px;color:var(--text-mid)}
+.hist-neg-fin-row b{font-family:'Inter',sans-serif;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums}
+.hist-neg-fin-row b.neg{color:#f87171}
+.hist-neg-fin-row.util{border-top:1px solid var(--glass-border);padding-top:9px;margin-top:2px;font-size:14px;font-weight:750;color:var(--text)}
+.hist-neg-fin-row.util b{font-size:19px}
+.hist-neg-fin-row.util b.pos{color:#5fd68a}
+.hist-neg-note{margin-top:12px;font-size:11.5px;line-height:1.55;color:var(--text-soft)}
+.hist-neg-note b{color:var(--text);font-weight:800}
+.hist-neg-warn{display:block;margin-top:6px;color:#f0b860}
+.hist-neg-bars{display:flex;flex-direction:column;gap:9px}
+.hist-neg-bar-row{display:grid;grid-template-columns:66px 1fr auto;align-items:center;gap:10px;font-size:12px}
+.hist-neg-bar-lbl{color:var(--text-mid);font-weight:600}
+.hist-neg-bar-row.top .hist-neg-bar-lbl{color:var(--text);font-weight:800}
+.hist-neg-bar-track{height:8px;background:rgba(255,255,255,.07);border-radius:20px;overflow:hidden}
+.hist-neg-bar-fill{display:block;height:100%;background:linear-gradient(90deg,rgba(124,144,255,.45),rgba(124,144,255,.85));border-radius:20px}
+.hist-neg-bar-row.top .hist-neg-bar-fill{background:linear-gradient(90deg,#5fd68a,#61d6c0)}
+.hist-neg-bar-val{font-family:'Inter',sans-serif;font-weight:750;color:var(--text);font-variant-numeric:tabular-nums;font-size:12px}
+.hist-neg-day{display:flex;align-items:center;gap:11px;padding:7px 0}
+.hist-neg-day+.hist-neg-day{border-top:1px solid var(--glass-border)}
+.hist-neg-day-emoji{font-size:20px;flex:0 0 auto;line-height:1}
+.hist-neg-day-main{flex:1;min-width:0}
+.hist-neg-day-lbl{display:block;font-size:13.5px;font-weight:750;color:var(--text)}
+.hist-neg-day-tag{display:block;font-size:11px;color:var(--text-soft);margin-top:1px}
+.hist-neg-day b{font-family:'Inter',sans-serif;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums}
+body.light .hist-neg-card{background:#FFFFFF!important;border-color:var(--glass-border)!important;box-shadow:var(--shadow-sm)!important}
+body.light .hist-neg-bar-track{background:rgba(15,23,42,.06)}
 .hist-met-kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
 .hist-met-kpi{background:rgba(255,255,255,.04);border:1px solid var(--glass-border);border-radius:14px;padding:14px 10px;text-align:center}
 .hist-met-kpi-label{font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-soft);margin-bottom:6px}
@@ -3716,6 +3748,7 @@ body.light .tg-lock{background:rgba(255,255,255,.96)}
         <div id="histMetricas" class="hist-metricas-section"></div>
         <div id="histGastosMes" class="hist-gastos-mes"></div>
         <div id="histSalidasMes" class="hist-salidas-section"></div>
+        <div id="histNegocio" class="hist-negocio-section"></div>
       </div>
     </div>
 
@@ -5829,6 +5862,7 @@ function renderCalendarioMes(){
   histRenderMetricas(y,m,last);
   histRenderSalidasMes();
   histRenderGastosMes();
+  histRenderNegocio(y,m,last);
   histAnimarEmojis();
 }
 // Desglose de las SALIDAS del mes (plata que salió de la cuenta) agrupadas por
@@ -5839,6 +5873,70 @@ function histRenderSalidasMes(){
   // Las salidas de MP ahora se muestran unificadas dentro de "Egresos del mes"
   // (histRenderGastosMes: dona + columnas Efectivo/MP). Este contenedor queda vacío.
   const cont=document.getElementById('histSalidasMes');if(cont)cont.innerHTML='';
+}
+// Panel "Métricas del negocio": insights del mes con los datos que YA tenemos
+// (recaudación total efectivo+MP donde hay cierre, y gastos). NO usa "qué se vende"
+// (eso necesita registrar cada venta del Mostrador, pendiente P4). Tres tarjetas:
+// rentabilidad del mes, ritmo por día de la semana y mejor/peor día.
+function histRenderNegocio(y,m,last){
+  const el=document.getElementById('histNegocio');if(!el)return;
+  const hoyReal=new Date();
+  const esMesActual=y===hoyReal.getFullYear()&&m===hoyReal.getMonth()+1;
+  const hoyD=esMesActual?Math.min(hoyReal.getDate(),last):last;
+  const DOW=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+  const byDow={0:[],1:[],2:[],3:[],4:[],5:[],6:[]};
+  let mejor=null,peor=null,diasConDato=0;
+  for(let d=1;d<=hoyD;d++){
+    const dia=histIso(y,m,d);
+    const t=histTotalDia(histResumenMes[dia]);
+    if(t>0){
+      diasConDato++;
+      byDow[new Date(y,m-1,d).getDay()].push(t);
+      if(!mejor||t>mejor.t)mejor={t,dia};
+      if(!peor||t<peor.t)peor={t,dia};
+    }
+  }
+  if(!diasConDato){el.innerHTML='';return;}
+  const prom=a=>a.length?a.reduce((s,x)=>s+x,0)/a.length:0;
+  const ranking=[0,1,2,3,4,5,6].map(dw=>({dw,prom:prom(byDow[dw]),n:byDow[dw].length})).filter(r=>r.n>0).sort((a,b)=>b.prom-a.prom);
+  const maxProm=ranking.length?ranking[0].prom:0;
+  const ritmoHtml=ranking.map((r,i)=>`
+    <div class="hist-neg-bar-row${i===0?' top':''}">
+      <span class="hist-neg-bar-lbl">${DOW[r.dw]}</span>
+      <span class="hist-neg-bar-track"><span class="hist-neg-bar-fill" style="width:${maxProm>0?Math.max(6,Math.round(r.prom/maxProm*100)):0}%"></span></span>
+      <span class="hist-neg-bar-val">${histMoneyCompact(r.prom)}</span>
+    </div>`).join('');
+  // Rentabilidad del mes: recaudación registrada − gastos = utilidad. OJO: si faltan
+  // cierres, la recaudación (y la utilidad) quedan por debajo de lo real, porque el
+  // efectivo solo entra al cargar el cierre; lo avisamos abajo.
+  const contable=CierreCuentas.resumenMes(histResumenMes,histIso(y,m,1),histIso(y,m,hoyD));
+  const faltan=Math.max(0,contable.esperados-contable.cerrados);
+  const margen=contable.total>0?contable.resultado/contable.total*100:0;
+  const pctCompras=contable.total>0?contable.gastos/contable.total*100:0;
+  const utilPos=contable.resultado>=0;
+  const fmtDiaLbl=dia=>new Date(dia+'T12:00:00').toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'});
+  const cap=s=>s.charAt(0).toUpperCase()+s.slice(1);
+  el.innerHTML=`
+    <div class="hist-negocio-title">Métricas del negocio</div>
+    <div class="hist-neg-card">
+      <div class="hist-neg-card-title">Rentabilidad del mes</div>
+      <div class="hist-neg-fin">
+        <div class="hist-neg-fin-row"><span>Recaudación${faltan>0?' registrada':''}</span><b>${histMoney(contable.total)}</b></div>
+        <div class="hist-neg-fin-row"><span>Compras y gastos</span><b class="neg">−${histMoney(contable.gastos)}</b></div>
+        <div class="hist-neg-fin-row util"><span>Utilidad</span><b class="${utilPos?'pos':'neg'}">${histMoney(contable.resultado)}</b></div>
+      </div>
+      <div class="hist-neg-note">De cada $100 que entran, <b>$${Math.round(Math.max(0,margen))}</b> te quedan de ganancia y <b>$${Math.round(Math.max(0,pctCompras))}</b> se van en compras y gastos.${faltan>0?`<span class="hist-neg-warn">Ojo: faltan ${faltan} cierre${faltan===1?'':'s'} con el efectivo cargado, así que la recaudación y la utilidad reales son más altas.</span>`:''}</div>
+    </div>
+    <div class="hist-neg-card">
+      <div class="hist-neg-card-title">Ritmo por día de la semana</div>
+      <div class="hist-neg-bars">${ritmoHtml}</div>
+      ${ranking.length>1?`<div class="hist-neg-note">Tu día más fuerte es el <b>${DOW[ranking[0].dw].toLowerCase()}</b> (promedia ${histMoneyCompact(ranking[0].prom)}); el más flojo, el <b>${DOW[ranking[ranking.length-1].dw].toLowerCase()}</b>.</div>`:''}
+    </div>
+    <div class="hist-neg-card">
+      <div class="hist-neg-card-title">Mejor y peor día del mes</div>
+      <div class="hist-neg-day best"><span class="hist-neg-day-emoji">🔥</span><span class="hist-neg-day-main"><span class="hist-neg-day-lbl">${cap(fmtDiaLbl(mejor.dia))}</span><span class="hist-neg-day-tag">el día que más entró</span></span><b>${histMoney(mejor.t)}</b></div>
+      ${peor&&peor.dia!==mejor.dia?`<div class="hist-neg-day worst"><span class="hist-neg-day-emoji">📉</span><span class="hist-neg-day-main"><span class="hist-neg-day-lbl">${cap(fmtDiaLbl(peor.dia))}</span><span class="hist-neg-day-tag">el más flojo</span></span><b>${histMoney(peor.t)}</b></div>`:''}
+    </div>`;
 }
 let _histEmojiRaf=null;
 function histAnimarEmojis(){
