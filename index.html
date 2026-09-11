@@ -3717,8 +3717,6 @@ body.light .tg-lock{background:rgba(255,255,255,.96)}
         <div id="histGastosMes" class="hist-gastos-mes"></div>
         <div id="histSalidasMes" class="hist-salidas-section"></div>
       </div>
-      <div class="hist-month-list-title">Días del mes</div>
-      <div id="historialDias"></div>
     </div>
 
     <!-- Vista detalle de un día -->
@@ -5705,7 +5703,6 @@ async function histCargarMes(){
   const title=document.getElementById('histMonthTitle');
   if(title)title.textContent=histMesNombre(histMesActual);
   document.getElementById('histCalendarGrid').innerHTML='<div class="hist-loading" style="grid-column:1/-1">Cargando calendario…</div>';
-  document.getElementById('historialDias').innerHTML='';
   let fuente='Supabase';
   let pagos=[],cierres=[],gastos=[];
   try{
@@ -5864,33 +5861,12 @@ function histAnimarEmojis(){
   }
   _histEmojiRaf=requestAnimationFrame(step);
 }
+// La lista "Días del mes" se saco (no sumaba: el calendario ya deja abrir cada dia
+// y no aportaba metricas). Queda solo la nota de fuente de datos, que va arriba del
+// calendario. El detalle de un dia se abre haciendo clic en la celda del calendario.
 function renderListaDiasMes(fuente){
-  const cont=document.getElementById('historialDias');
   const note=document.getElementById('histSourceNote');
   if(note)note.textContent=fuente==='Supabase'?'Leyendo pagos, cierres y gastos desde Supabase. Si un cierre no aparece, guardalo desde Cierre manual.':'Mostrando respaldo local de este navegador. Para histórico completo, creá las tablas de cierres/gastos en Supabase.';
-  const dias=Object.keys(histResumenMes).filter(d=>histResumenMes[d].mpTotal>0||histResumenMes[d].cajaTotal>0||histResumenMes[d].gastos.length).sort((a,b)=>b.localeCompare(a));
-  if(!dias.length){cont.innerHTML='<div class="hist-empty">Este mes todavía no tiene movimientos ni cierres guardados.</div>';return;}
-  cont.innerHTML='';
-  dias.forEach(dia=>{
-    const data=histResumenMes[dia];
-    const totalMostrar=histTotalDia(data);
-    let chipsHTML='';
-    turnosDelDia(dia).forEach(t=>{
-      const cierre=data.cierres.find(c=>c.turno===t.nombre);
-      const mp=data.turnos[t.nombre]?.mp||0;
-      if(!cierre&&!mp)return;
-      const val=cierre?(Number(cierre.total_turno)||0):mp;
-      chipsHTML+=`<div class="hist-turno-chip"><span class="hist-turno-chip-dot" style="background:${t.color}"></span>${t.nombre} · ${histMoney(val)}</div>`;
-    });
-    const card=document.createElement('div');
-    card.className='hist-dia-card';
-    card.innerHTML=`<div class="hist-dia-fecha">${formatFecha(dia)}</div>
-      <div class="hist-dia-sub">MP ${histMoney(data.mpTotal)} · ${data.movs} movimiento${data.movs!==1?'s':''}${data.cajaTotal>0?` · caja ${histMoney(data.cajaTotal)}`:''}</div>
-      <div class="hist-dia-turnos-preview">${chipsHTML}</div>
-      <div class="hist-dia-total-row"><span class="hist-dia-total-lbl">Total del día</span><span class="hist-dia-total">${histMoney(totalMostrar)}</span></div>`;
-    card.addEventListener('click',()=>mostrarDetalleDia(dia));
-    cont.appendChild(card);
-  });
 }
 async function mostrarListaDias(skipFetch=false){
   document.getElementById('histVistaDetalle').style.display='none';
