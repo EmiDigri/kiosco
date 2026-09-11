@@ -2408,6 +2408,19 @@ body.light .hist-neg-bar-track,body.light .hist-neg-split{background:rgba(15,23,
 body.light .hist-neg-daytile{background:rgba(15,23,42,.03)}
 body.light .hist-neg-daytile.best{background:rgba(95,214,138,.1)}
 body.light .hist-neg-margen-pill{background:rgba(15,23,42,.04)}
+/* Secciones colapsables de la vista mensual del historial (Resumen / Egresos /
+   Métricas del negocio). El detalle de un DÍA lo maneja Codex con .hist-section-head;
+   acá uso .hist-mes-* para el MES, mismo look pero sin pisar sus clases. */
+.hist-mes-head{display:flex;align-items:center;gap:10px;cursor:pointer;list-style:none;font-size:13px;font-weight:800;color:var(--text);padding:8px 4px;user-select:none;-webkit-user-select:none}
+.hist-mes-head::-webkit-details-marker{display:none}
+.hist-mes-head-txt{flex:1;min-width:0}
+.hist-mes-head-tot{font-family:'Inter',sans-serif;font-weight:800;color:var(--text-soft);font-variant-numeric:tabular-nums;font-size:12.5px}
+.hist-mes-head::after{content:'';width:8px;height:8px;border-right:2px solid var(--text-soft);border-bottom:2px solid var(--text-soft);transform:rotate(45deg);transition:transform .2s ease;flex:0 0 auto;margin-left:2px}
+.hist-mes-sec[open]>.hist-mes-head::after{transform:rotate(-135deg)}
+.hist-mes-head:hover{color:var(--accent)}
+.hist-mes-head:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;border-radius:6px}
+.hist-mes-body{margin-top:10px}
+@media(prefers-reduced-motion:reduce){.hist-mes-head::after{transition:none}}
 .hist-met-kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
 .hist-met-kpi{background:rgba(255,255,255,.04);border:1px solid var(--glass-border);border-radius:14px;padding:14px 10px;text-align:center}
 .hist-met-kpi-label{font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-soft);margin-bottom:6px}
@@ -5488,6 +5501,7 @@ function histRenderMetricas(y,m,last){
     <div class="hk-foot">Resultado = recaudación menos gastos cargados. ${faltanCierres>0?`Faltan ${faltanCierres} cierres: el efectivo y el resultado están incompletos.`:'Cierres completos; los gastos pueden tener pendientes.'}</div>
   </div>`;
   el.innerHTML=`
+    <details class="hist-mes-sec" data-mes-sec="resumen" open><summary class="hist-mes-head"><span class="hist-mes-head-txt">Resumen del mes</span></summary><div class="hist-mes-body">
     ${kioscoHtml}
     <div class="hist-met-kpis">
       <div class="hist-met-kpi"><div class="hist-met-kpi-label">Promedio diario</div><div class="hist-met-kpi-val">${promDiarioTotal>0?histMoneyCompact(promDiarioTotal):'—'}</div></div>
@@ -5497,7 +5511,7 @@ function histRenderMetricas(y,m,last){
     </div>
     <div class="hist-met-chart-card" id="histChartCard"><div class="hist-met-chart-title"><span>Evolución diaria del mes</span>${histTendenciaPill(dailyVals,last,y,m)}</div>${histSvgBarsDias(dailyVals,last,y,m)}</div>
     <div class="hist-met-chart-card" style="margin-top:12px"><div class="hist-met-chart-title">Proyección de facturación</div>${proyeccionHtml}</div>
-    <div class="hist-met-chart-card" style="margin-top:12px"><div class="hist-met-chart-title">Totales por semana</div>${semanasHtml}</div>`;
+    <div class="hist-met-chart-card" style="margin-top:12px"><div class="hist-met-chart-title">Totales por semana</div>${semanasHtml}</div></div></details>`;
   const chartCard=el.querySelector('#histChartCard');
   if(chartCard){histAnimarGraficoDias(chartCard);histTooltipGraficoDias(chartCard,y,m);}
   histKioscoEnriquecer({y,m,last,esMesActual,projMes,hoyD});
@@ -5732,7 +5746,7 @@ function histRenderGastosMes(){
   const R=42,SW=16,CC=2*Math.PI*R;let off=0;
   const arcs=segs.map(s=>{const len=total?s.val/total*CC:0;const a=`<circle cx="60" cy="60" r="${R}" fill="none" stroke="${s.color}" stroke-width="${SW}" stroke-dasharray="${len} ${CC-len}" stroke-dashoffset="${-off}" transform="rotate(-90 60 60)"></circle>`;off+=len;return a;}).join('');
   const legend=segs.map(s=>`<div class="hist-egr-leg"><span class="hist-egr-dot" style="background:${s.color}"></span><span class="hist-egr-leg-nom">${cmEsc(s.label)}</span><span class="hist-egr-leg-pct">${Math.round(s.val/total*100)}%</span></div>`).join('');
-  el.innerHTML=`<div class="hist-egresos"><div class="hist-egresos-head"><span>↗ Egresos del mes</span><strong>-${histMoney(total)}</strong></div><div class="hist-egresos-top"><svg class="hist-egr-donut" viewBox="0 0 120 120" width="116" height="116" role="img" aria-label="Composición de egresos por proveedor">${arcs}<text x="60" y="56" text-anchor="middle" class="hist-egr-c1">total</text><text x="60" y="72" text-anchor="middle" class="hist-egr-c2">${histMoneyCompact(total)}</text></svg><div class="hist-egr-legend">${legend}</div></div><div class="hist-egresos-cols"><div class="hist-egresos-col"><div class="hist-egr-colhead"><span>Efectivo</span><span>${histMoney(totalEfectivo)}</span></div>${histGrupoFilasHtml(efectivo)}</div><div class="hist-egresos-col"><div class="hist-egr-colhead"><span>MercadoPago</span><span>${histMoney(totalMp)}</span></div>${histGrupoFilasHtml(mp)}</div></div></div>`;
+  el.innerHTML=`<details class="hist-egresos hist-mes-sec" data-mes-sec="egresos" open><summary class="hist-egresos-head hist-mes-head"><span class="hist-mes-head-txt">↗ Egresos del mes</span><strong>-${histMoney(total)}</strong></summary><div class="hist-egresos-top"><svg class="hist-egr-donut" viewBox="0 0 120 120" width="116" height="116" role="img" aria-label="Composición de egresos por proveedor">${arcs}<text x="60" y="56" text-anchor="middle" class="hist-egr-c1">total</text><text x="60" y="72" text-anchor="middle" class="hist-egr-c2">${histMoneyCompact(total)}</text></svg><div class="hist-egr-legend">${legend}</div></div><div class="hist-egresos-cols"><div class="hist-egresos-col"><div class="hist-egr-colhead"><span>Efectivo</span><span>${histMoney(totalEfectivo)}</span></div>${histGrupoFilasHtml(efectivo)}</div><div class="hist-egresos-col"><div class="hist-egr-colhead"><span>MercadoPago</span><span>${histMoney(totalMp)}</span></div>${histGrupoFilasHtml(mp)}</div></div></details>`;
   el.querySelectorAll('.hist-egr-grp').forEach(g=>g.querySelector('.hist-egr-row').addEventListener('click',()=>g.classList.toggle('open')));
 }
 function histTotalDia(data){
@@ -5880,6 +5894,7 @@ function renderCalendarioMes(){
   histRenderSalidasMes();
   histRenderGastosMes();
   histRenderNegocio(y,m,last);
+  histAplicarColapsoMes();
   histAnimarEmojis();
 }
 // Desglose de las SALIDAS del mes (plata que salió de la cuenta) agrupadas por
@@ -5935,7 +5950,7 @@ function histRenderNegocio(y,m,last){
   const cap=s=>s.charAt(0).toUpperCase()+s.slice(1);
   const soloUnDia=!peor||peor.dia===mejor.dia;
   el.innerHTML=`
-    <div class="hist-negocio-title">Métricas del negocio</div>
+    <details class="hist-mes-sec" data-mes-sec="negocio" open><summary class="hist-mes-head"><span class="hist-mes-head-txt">Métricas del negocio</span></summary><div class="hist-mes-body">
     <div class="hist-neg-card">
       <div class="hist-neg-card-title">Rentabilidad del mes</div>
       <div class="hist-neg-hero-top">
@@ -5964,7 +5979,18 @@ function histRenderNegocio(y,m,last){
         <div class="hist-neg-daytile best${soloUnDia?' solo':''}"><span class="hist-neg-daytile-emoji">🔥</span><span class="hist-neg-daytile-tag">Mejor día</span><span class="hist-neg-daytile-val">${histMoney(mejor.t)}</span><span class="hist-neg-daytile-day">${cap(fmtDiaCorta(mejor.dia))}</span></div>
         ${soloUnDia?'':`<div class="hist-neg-daytile worst"><span class="hist-neg-daytile-emoji">📉</span><span class="hist-neg-daytile-tag">Peor día</span><span class="hist-neg-daytile-val">${histMoney(peor.t)}</span><span class="hist-neg-daytile-day">${cap(fmtDiaCorta(peor.dia))}</span></div>`}
       </div>
-    </div>`;
+    </div></div></details>`;
+}
+// Estado de las secciones colapsables del MES (Resumen / Egresos / Métricas del
+// negocio). Persiste al navegar entre meses; se re-aplica en cada render porque el
+// innerHTML recrea los <details>. El detalle de un DÍA lo maneja Codex por su lado.
+const histMesSecCerradas=new Set();
+function histAplicarColapsoMes(){
+  document.querySelectorAll('details[data-mes-sec]').forEach(d=>{
+    const k=d.dataset.mesSec;
+    d.open=!histMesSecCerradas.has(k);
+    d.addEventListener('toggle',()=>{if(d.open)histMesSecCerradas.delete(k);else histMesSecCerradas.add(k);});
+  });
 }
 let _histEmojiRaf=null;
 function histAnimarEmojis(){
