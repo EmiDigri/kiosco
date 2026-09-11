@@ -2362,35 +2362,52 @@ body.light .hist-rad-ring::after{background:#fff}
 /* Panel "Métricas del negocio" (rentabilidad, ritmo por día de la semana, mejor/peor día) */
 .hist-negocio-section{display:flex;flex-direction:column;gap:12px;margin-top:20px}
 .hist-negocio-title{font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--text-soft);margin:0 4px 2px}
-.hist-neg-card{background:rgba(255,255,255,.04);border:1px solid var(--glass-border);border-radius:16px;padding:16px 14px}
-.hist-neg-card-title{font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--text-soft);margin-bottom:12px}
-.hist-neg-fin{display:flex;flex-direction:column;gap:8px}
-.hist-neg-fin-row{display:flex;align-items:baseline;justify-content:space-between;gap:10px;font-size:13px;color:var(--text-mid)}
-.hist-neg-fin-row b{font-family:'Inter',sans-serif;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums}
-.hist-neg-fin-row b.neg{color:#f87171}
-.hist-neg-fin-row.util{border-top:1px solid var(--glass-border);padding-top:9px;margin-top:2px;font-size:14px;font-weight:750;color:var(--text)}
-.hist-neg-fin-row.util b{font-size:19px}
-.hist-neg-fin-row.util b.pos{color:#5fd68a}
-.hist-neg-note{margin-top:12px;font-size:11.5px;line-height:1.55;color:var(--text-soft)}
-.hist-neg-note b{color:var(--text);font-weight:800}
-.hist-neg-warn{display:block;margin-top:6px;color:#f0b860}
-.hist-neg-bars{display:flex;flex-direction:column;gap:9px}
-.hist-neg-bar-row{display:grid;grid-template-columns:66px 1fr auto;align-items:center;gap:10px;font-size:12px}
+.hist-neg-card{background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.018));border:1px solid var(--glass-border);border-radius:18px;padding:18px 16px}
+.hist-neg-card-title{font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--text-soft);margin-bottom:14px}
+/* Hero rentabilidad */
+.hist-neg-hero-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:15px}
+.hist-neg-hero-lbl{font-size:11.5px;font-weight:600;color:var(--text-soft);margin-bottom:5px}
+.hist-neg-hero-val{font-family:'Inter',sans-serif;font-size:30px;font-weight:850;letter-spacing:-.6px;line-height:1;color:var(--text);font-variant-numeric:tabular-nums}
+.hist-neg-hero-val.pos{color:#5fd68a}
+.hist-neg-hero-val.neg{color:#f87171}
+.hist-neg-margen-pill{flex:0 0 auto;font-size:12px;font-weight:800;color:var(--text-soft);background:rgba(255,255,255,.06);border:1px solid var(--glass-border);padding:6px 11px;border-radius:20px;white-space:nowrap}
+.hist-neg-margen-pill.pos{color:#5fd68a;background:rgba(95,214,138,.12);border-color:rgba(95,214,138,.28)}
+.hist-neg-split{display:flex;height:15px;border-radius:20px;overflow:hidden;background:rgba(255,255,255,.06);gap:2px}
+.hist-neg-split-gan{background:linear-gradient(90deg,#5fd68a,#61d6c0);border-radius:20px 4px 4px 20px;transition:width .8s cubic-bezier(.34,1.4,.64,1)}
+.hist-neg-split-gas{background:linear-gradient(90deg,#f0728a,#f5936b);opacity:.9;border-radius:4px 20px 20px 4px}
+.hist-neg-split-legend{display:flex;flex-wrap:wrap;gap:5px 18px;margin-top:11px;font-size:11.5px;color:var(--text-mid);font-weight:600}
+.hist-neg-split-legend .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:middle}
+.hist-neg-split-legend .dot.gan{background:#5fd68a}
+.hist-neg-split-legend .dot.gas{background:#f0728a}
+.hist-neg-hero-base{margin-top:12px;font-size:11.5px;color:var(--text-soft);line-height:1.5}
+.hist-neg-hero-base b{color:var(--text);font-weight:800}
+.hist-neg-warn{margin-top:11px;padding:9px 11px;font-size:11px;line-height:1.5;color:#f0b860;background:rgba(240,184,96,.09);border:1px solid rgba(240,184,96,.22);border-radius:11px}
+/* Ritmo por día */
+.hist-neg-bars{display:flex;flex-direction:column;gap:10px}
+.hist-neg-bar-row{display:grid;grid-template-columns:72px 1fr auto;align-items:center;gap:12px;font-size:12px}
 .hist-neg-bar-lbl{color:var(--text-mid);font-weight:600}
 .hist-neg-bar-row.top .hist-neg-bar-lbl{color:var(--text);font-weight:800}
-.hist-neg-bar-track{height:8px;background:rgba(255,255,255,.07);border-radius:20px;overflow:hidden}
-.hist-neg-bar-fill{display:block;height:100%;background:linear-gradient(90deg,rgba(124,144,255,.45),rgba(124,144,255,.85));border-radius:20px}
+.hist-neg-bar-track{height:10px;background:rgba(255,255,255,.06);border-radius:20px;overflow:hidden}
+.hist-neg-bar-fill{display:block;height:100%;background:linear-gradient(90deg,rgba(124,144,255,.5),rgba(124,144,255,.9));border-radius:20px;transition:width .8s cubic-bezier(.34,1.4,.64,1)}
 .hist-neg-bar-row.top .hist-neg-bar-fill{background:linear-gradient(90deg,#5fd68a,#61d6c0)}
-.hist-neg-bar-val{font-family:'Inter',sans-serif;font-weight:750;color:var(--text);font-variant-numeric:tabular-nums;font-size:12px}
-.hist-neg-day{display:flex;align-items:center;gap:11px;padding:7px 0}
-.hist-neg-day+.hist-neg-day{border-top:1px solid var(--glass-border)}
-.hist-neg-day-emoji{font-size:20px;flex:0 0 auto;line-height:1}
-.hist-neg-day-main{flex:1;min-width:0}
-.hist-neg-day-lbl{display:block;font-size:13.5px;font-weight:750;color:var(--text)}
-.hist-neg-day-tag{display:block;font-size:11px;color:var(--text-soft);margin-top:1px}
-.hist-neg-day b{font-family:'Inter',sans-serif;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums}
+.hist-neg-bar-val{font-family:'Inter',sans-serif;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums;font-size:12.5px}
+.hist-neg-note{margin-top:14px;font-size:11.5px;line-height:1.55;color:var(--text-soft)}
+.hist-neg-note b{color:var(--text);font-weight:800}
+/* Mejor / peor día */
+.hist-neg-days{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.hist-neg-daytile{display:flex;flex-direction:column;gap:3px;padding:14px 14px 13px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid var(--glass-border)}
+.hist-neg-daytile.best{background:rgba(95,214,138,.08);border-color:rgba(95,214,138,.22)}
+.hist-neg-daytile.solo{grid-column:1/-1}
+.hist-neg-daytile-emoji{font-size:19px;line-height:1}
+.hist-neg-daytile-tag{font-size:9.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--text-soft);margin-top:7px}
+.hist-neg-daytile-val{font-family:'Inter',sans-serif;font-size:19px;font-weight:850;color:var(--text);font-variant-numeric:tabular-nums;letter-spacing:-.3px;margin-top:1px}
+.hist-neg-daytile.best .hist-neg-daytile-val{color:#5fd68a}
+.hist-neg-daytile-day{font-size:11.5px;color:var(--text-soft);font-weight:600}
 body.light .hist-neg-card{background:#FFFFFF!important;border-color:var(--glass-border)!important;box-shadow:var(--shadow-sm)!important}
-body.light .hist-neg-bar-track{background:rgba(15,23,42,.06)}
+body.light .hist-neg-bar-track,body.light .hist-neg-split{background:rgba(15,23,42,.06)}
+body.light .hist-neg-daytile{background:rgba(15,23,42,.03)}
+body.light .hist-neg-daytile.best{background:rgba(95,214,138,.1)}
+body.light .hist-neg-margen-pill{background:rgba(15,23,42,.04)}
 .hist-met-kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
 .hist-met-kpi{background:rgba(255,255,255,.04);border:1px solid var(--glass-border);border-radius:14px;padding:14px 10px;text-align:center}
 .hist-met-kpi-label{font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-soft);margin-bottom:6px}
@@ -5912,20 +5929,29 @@ function histRenderNegocio(y,m,last){
   const contable=CierreCuentas.resumenMes(histResumenMes,histIso(y,m,1),histIso(y,m,hoyD));
   const faltan=Math.max(0,contable.esperados-contable.cerrados);
   const margen=contable.total>0?contable.resultado/contable.total*100:0;
-  const pctCompras=contable.total>0?contable.gastos/contable.total*100:0;
+  const margenClamp=Math.max(0,Math.min(100,margen));
   const utilPos=contable.resultado>=0;
-  const fmtDiaLbl=dia=>new Date(dia+'T12:00:00').toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'});
+  const fmtDiaCorta=dia=>new Date(dia+'T12:00:00').toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'short'}).replace(/\./g,'');
   const cap=s=>s.charAt(0).toUpperCase()+s.slice(1);
+  const soloUnDia=!peor||peor.dia===mejor.dia;
   el.innerHTML=`
     <div class="hist-negocio-title">Métricas del negocio</div>
     <div class="hist-neg-card">
       <div class="hist-neg-card-title">Rentabilidad del mes</div>
-      <div class="hist-neg-fin">
-        <div class="hist-neg-fin-row"><span>Recaudación${faltan>0?' registrada':''}</span><b>${histMoney(contable.total)}</b></div>
-        <div class="hist-neg-fin-row"><span>Compras y gastos</span><b class="neg">−${histMoney(contable.gastos)}</b></div>
-        <div class="hist-neg-fin-row util"><span>Utilidad</span><b class="${utilPos?'pos':'neg'}">${histMoney(contable.resultado)}</b></div>
+      <div class="hist-neg-hero-top">
+        <div><div class="hist-neg-hero-lbl">Utilidad del mes</div><div class="hist-neg-hero-val ${utilPos?'pos':'neg'}">${histMoney(contable.resultado)}</div></div>
+        <div class="hist-neg-margen-pill ${utilPos?'pos':''}">${Math.round(margen)}% de margen</div>
       </div>
-      <div class="hist-neg-note">De cada $100 que entran, <b>$${Math.round(Math.max(0,margen))}</b> te quedan de ganancia y <b>$${Math.round(Math.max(0,pctCompras))}</b> se van en compras y gastos.${faltan>0?`<span class="hist-neg-warn">Ojo: faltan ${faltan} cierre${faltan===1?'':'s'} con el efectivo cargado, así que la recaudación y la utilidad reales son más altas.</span>`:''}</div>
+      <div class="hist-neg-split" role="img" aria-label="Ganancia ${Math.round(margenClamp)} por ciento, gastos ${Math.round(100-margenClamp)} por ciento">
+        <span class="hist-neg-split-gan" style="width:${margenClamp}%"></span>
+        <span class="hist-neg-split-gas" style="width:${100-margenClamp}%"></span>
+      </div>
+      <div class="hist-neg-split-legend">
+        <span><i class="dot gan"></i>Ganancia · ${histMoneyCompact(Math.max(0,contable.resultado))} (${Math.round(margenClamp)}%)</span>
+        <span><i class="dot gas"></i>Compras y gastos · ${histMoneyCompact(contable.gastos)} (${Math.round(100-margenClamp)}%)</span>
+      </div>
+      <div class="hist-neg-hero-base">Sobre una recaudación de <b>${histMoney(contable.total)}</b>.</div>
+      ${faltan>0?`<div class="hist-neg-warn">Ojo: faltan ${faltan} cierre${faltan===1?'':'s'} con el efectivo cargado, así que la recaudación y la utilidad reales son más altas.</div>`:''}
     </div>
     <div class="hist-neg-card">
       <div class="hist-neg-card-title">Ritmo por día de la semana</div>
@@ -5934,8 +5960,10 @@ function histRenderNegocio(y,m,last){
     </div>
     <div class="hist-neg-card">
       <div class="hist-neg-card-title">Mejor y peor día del mes</div>
-      <div class="hist-neg-day best"><span class="hist-neg-day-emoji">🔥</span><span class="hist-neg-day-main"><span class="hist-neg-day-lbl">${cap(fmtDiaLbl(mejor.dia))}</span><span class="hist-neg-day-tag">el día que más entró</span></span><b>${histMoney(mejor.t)}</b></div>
-      ${peor&&peor.dia!==mejor.dia?`<div class="hist-neg-day worst"><span class="hist-neg-day-emoji">📉</span><span class="hist-neg-day-main"><span class="hist-neg-day-lbl">${cap(fmtDiaLbl(peor.dia))}</span><span class="hist-neg-day-tag">el más flojo</span></span><b>${histMoney(peor.t)}</b></div>`:''}
+      <div class="hist-neg-days">
+        <div class="hist-neg-daytile best${soloUnDia?' solo':''}"><span class="hist-neg-daytile-emoji">🔥</span><span class="hist-neg-daytile-tag">Mejor día</span><span class="hist-neg-daytile-val">${histMoney(mejor.t)}</span><span class="hist-neg-daytile-day">${cap(fmtDiaCorta(mejor.dia))}</span></div>
+        ${soloUnDia?'':`<div class="hist-neg-daytile worst"><span class="hist-neg-daytile-emoji">📉</span><span class="hist-neg-daytile-tag">Peor día</span><span class="hist-neg-daytile-val">${histMoney(peor.t)}</span><span class="hist-neg-daytile-day">${cap(fmtDiaCorta(peor.dia))}</span></div>`}
+      </div>
     </div>`;
 }
 let _histEmojiRaf=null;
