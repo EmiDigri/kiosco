@@ -5943,9 +5943,17 @@ function histRenderNegocio(y,m,last){
   // efectivo solo entra al cargar el cierre; lo avisamos abajo.
   const contable=CierreCuentas.resumenMes(histResumenMes,histIso(y,m,1),histIso(y,m,hoyD));
   const faltan=Math.max(0,contable.esperados-contable.cerrados);
-  const margen=contable.total>0?contable.resultado/contable.total*100:0;
+  // Egresos = MISMO total que la tarjeta "Egresos del mes": gastos del cuaderno
+  // (gastos_caja) + salidas por MP (transferencias/pagos de servicio enviados). Antes
+  // la utilidad restaba solo contable.gastos (los del cuaderno) e ignoraba las salidas
+  // de MP, por eso Egresos decía $7,7M y la utilidad calculaba sobre $6,5M.
+  const gastosCaja=(histRowsGastosMes||[]).reduce((s,g)=>s+(Number(g.monto)||0),0);
+  const salidasMp=(histRowsPagosMes||[]).filter(p=>(p.es_enviada===true||String(p.es_enviada)==='true')&&!(p.devuelta===true||String(p.devuelta)==='true')&&(!p.status||p.status==='approved')).reduce((s,p)=>s+(Number(p.monto)||0),0);
+  const egresosMes=gastosCaja+salidasMp;
+  const resultadoReal=contable.total-egresosMes;
+  const margen=contable.total>0?resultadoReal/contable.total*100:0;
   const margenClamp=Math.max(0,Math.min(100,margen));
-  const utilPos=contable.resultado>=0;
+  const utilPos=resultadoReal>=0;
   const fmtDiaCorta=dia=>new Date(dia+'T12:00:00').toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'short'}).replace(/\./g,'');
   const cap=s=>s.charAt(0).toUpperCase()+s.slice(1);
   const soloUnDia=!peor||peor.dia===mejor.dia;
@@ -5954,7 +5962,7 @@ function histRenderNegocio(y,m,last){
     <div class="hist-neg-card">
       <div class="hist-neg-card-title">Rentabilidad del mes</div>
       <div class="hist-neg-hero-top">
-        <div><div class="hist-neg-hero-lbl">Utilidad del mes</div><div class="hist-neg-hero-val ${utilPos?'pos':'neg'}">${histMoney(contable.resultado)}</div></div>
+        <div><div class="hist-neg-hero-lbl">Utilidad del mes</div><div class="hist-neg-hero-val ${utilPos?'pos':'neg'}">${histMoney(resultadoReal)}</div></div>
         <div class="hist-neg-margen-pill ${utilPos?'pos':''}">${Math.round(margen)}% de margen</div>
       </div>
       <div class="hist-neg-split" role="img" aria-label="Ganancia ${Math.round(margenClamp)} por ciento, gastos ${Math.round(100-margenClamp)} por ciento">
@@ -5962,8 +5970,8 @@ function histRenderNegocio(y,m,last){
         <span class="hist-neg-split-gas" style="width:${100-margenClamp}%"></span>
       </div>
       <div class="hist-neg-split-legend">
-        <span><i class="dot gan"></i>Ganancia · ${histMoneyCompact(Math.max(0,contable.resultado))} (${Math.round(margenClamp)}%)</span>
-        <span><i class="dot gas"></i>Compras y gastos · ${histMoneyCompact(contable.gastos)} (${Math.round(100-margenClamp)}%)</span>
+        <span><i class="dot gan"></i>Ganancia · ${histMoneyCompact(Math.max(0,resultadoReal))} (${Math.round(margenClamp)}%)</span>
+        <span><i class="dot gas"></i>Compras y gastos · ${histMoneyCompact(egresosMes)} (${Math.round(100-margenClamp)}%)</span>
       </div>
       <div class="hist-neg-hero-base">Sobre una recaudación de <b>${histMoney(contable.total)}</b>.</div>
       ${faltan>0?`<div class="hist-neg-warn">Ojo: faltan ${faltan} cierre${faltan===1?'':'s'} con el efectivo cargado, así que la recaudación y la utilidad reales son más altas.</div>`:''}
