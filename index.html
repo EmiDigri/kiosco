@@ -3556,11 +3556,11 @@ body.light .tg-lock{background:rgba(255,255,255,.96)}
     <div id="pulseContent"><div class="pulse-loading">Leyendo el movimiento de hoy…</div></div>
   </section>
 
-  <button class="home-yesterday-access" id="homeYesterdayAccess" type="button" aria-label="Abrir la radiografía completa de ayer">
+  <button class="home-yesterday-access" id="homeYesterdayAccess" type="button" aria-label="Abrir el resumen completo de ayer">
     <span class="home-yesterday-icon" aria-hidden="true">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4M16 2v4M3 10h18"/><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 15h.01M12 15h.01M16 15h.01"/></svg>
     </span>
-    <span class="home-yesterday-copy"><strong>Radiografía de ayer</strong><small id="homeYesterdayDate">Cierre, efectivo y Mercado Pago</small></span>
+    <span class="home-yesterday-copy"><strong>Resumen de ayer</strong><small id="homeYesterdayDate">Cierre, efectivo y Mercado Pago</small></span>
     <span class="home-yesterday-arrow" aria-hidden="true">›</span>
   </button>
 
@@ -3728,7 +3728,7 @@ body.light .tg-lock{background:rgba(255,255,255,.96)}
         Todos los días
       </button>
       <div class="hist-dia-titulo" id="histDiaTitulo"></div>
-      <div id="histRadiografiaDia"><div class="hist-loading">Armando la radiografía del día…</div></div>
+      <div id="histRadiografiaDia"><div class="hist-loading">Armando el resumen del día…</div></div>
       <div id="histFotoDia" class="hist-foto-dia" hidden></div>
       <div id="histTurnosDetalle"></div>
     </div>
@@ -6112,7 +6112,7 @@ function histRenderRadiografiaDia(dia,cierres,gastos,pagosValidos,totalDia){
     <span class="hist-rad-num cash">${histMoney(efectivo)}</span>
     <span class="hist-rad-num mp">${histMoney(mp)}</span>
   </div>`).join('');
-  cont.innerHTML=`<article class="hist-radiografia-card${estadoClase}" aria-label="Radiografía del día: total ${histMoney(totalDia)}">
+  cont.innerHTML=`<article class="hist-radiografia-card${estadoClase}" aria-label="Resumen del día: total ${histMoney(totalDia)}">
     <div class="hist-radiografia-inner">
       <div class="hist-rad-head"><span class="hist-rad-status"><span class="hist-rad-dot"></span>${estado}</span><span class="hist-rad-date">${formatFecha(dia)}</span></div>
       <div class="hist-rad-main">
