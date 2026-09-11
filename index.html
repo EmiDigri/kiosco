@@ -5659,7 +5659,10 @@ function histGrupoFilasHtml(grupos){
     const multi=g.items.length>1;
     const fechas=g.items.map(it=>String(it.fecha||'')).filter(Boolean).sort();
     const fmt=f=>f.slice(8,10)+'/'+f.slice(5,7);
-    const fechaLbl=fechas.length?(fechas[0]===fechas[fechas.length-1]?fmt(fechas[0]):fmt(fechas[0])+'–'+fmt(fechas[fechas.length-1])):'';
+    // Muestro la fecha MAS RECIENTE del proveedor (la misma con la que se ordena la
+    // lista): asi la columna de fechas lee de arriba a abajo del ultimo al primero,
+    // sin rangos que confundan. El detalle desplegable trae cada fecha por separado.
+    const fechaLbl=fechas.length?fmt(fechas[fechas.length-1]):'';
     return `<div class="hist-egr-grp" data-egr="${i}"><div class="hist-egr-row"><span class="hist-egr-nom">${fechaLbl?`<span class="hist-egr-fecha">${fechaLbl}</span>`:''}<span class="hist-egr-nomtxt">${cmEsc(g.nombre)}</span>${multi?`<span class="hist-egr-n">${g.items.length}</span>`:''}</span><span class="hist-egr-tot">${histMoney(g.total)}</span></div><div class="hist-egr-det">${det}</div></div>`;
   }).join('');
 }
