@@ -1,0 +1,70 @@
+.cal-icon{display:inline-block;width:18px;height:18px;flex:none;background:currentColor;mask:var(--cal-icon) center/contain no-repeat;vertical-align:middle}
+.cal-entry{margin-left:8px}
+#calDialog{box-sizing:border-box;width:min(1100px,calc(100% - 24px));max-width:none;max-height:calc(100dvh - 24px);margin:auto;padding:0;border:1px solid #46464b;border-radius:8px;background:#202022;color:#eee;overflow:auto;font-family:inherit;letter-spacing:0;color-scheme:dark}
+#calDialog::backdrop{background:rgb(0 0 0 / 65%)}
+#calDialog *{box-sizing:border-box;letter-spacing:0}
+.cal-head{display:flex;justify-content:space-between;align-items:center;padding:20px 24px;border-bottom:1px solid #3a3a40}
+.cal-eyebrow{color:#72d5c5;font-size:11px;font-weight:700}
+#calDialog h2{font-size:24px;margin:3px 0 0}
+#calDialog h3{font-size:14px;margin:0 0 12px}
+.cal-body{padding:20px 24px}
+.cal-fields{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:14px;margin-bottom:18px}
+#calDialog label{display:grid;gap:7px;font-size:13px;color:#c5c5ce}
+#calDialog input:not([type=checkbox]),#calDialog select{font:inherit;width:100%;min-width:0;height:42px;padding:9px 10px;background:#29292e;border:1px solid #505059;border-radius:5px;color:#fff}
+#calDialog input:focus-visible,#calDialog button:focus-visible,#calDialog summary:focus-visible,#calDialog select:focus-visible{outline:2px solid #72d5c5;outline-offset:2px}
+#calDialog button{font:inherit;font-size:13px;font-weight:600;display:inline-flex;gap:7px;align-items:center;justify-content:center;min-height:40px;padding:8px 12px;background:#343439;border:1px solid #505059;color:#eee;border-radius:5px;cursor:pointer;white-space:normal}
+#calDialog button:disabled{opacity:.5;cursor:wait}
+#calDialog button:hover:not(:disabled){background:#43434a}
+#calDialog .cal-tool{width:40px;height:40px;min-width:40px;padding:8px}
+.cal-workspace{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:24px}
+.cal-source{min-width:0}
+.cal-toolbar{display:flex;gap:6px;align-items:center;margin-bottom:10px;min-width:0}
+#calFilename{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:#a9a9b5}
+.cal-canvas{height:420px;position:relative;background:#151517;display:flex;align-items:center;justify-content:center;overflow:hidden;border:1px solid #3e3e44;border-radius:5px}
+#calPhoto{display:block;max-width:100%}
+#calPhoto[hidden],#calEmpty[hidden]{display:none}
+#calEmpty{color:#9696a4;font-size:13px}
+.cal-canvas .cropper-view-box{outline-color:#67d1bd}
+.cal-canvas .cropper-line,.cal-canvas .cropper-point{background-color:#67d1bd}
+.cal-canvas .cropper-point{width:12px;height:12px;opacity:1}
+.cal-coordinates{margin-top:12px;font-size:12px;color:#aaaab6}
+.cal-coordinates summary{cursor:pointer}
+.cal-coordinates>div{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:10px}
+.cal-check{min-width:0;border-left:1px solid #3a3a40;padding-left:24px}
+.cal-preview{height:105px;width:100%;overflow:hidden;background:#151517;border:1px solid #43434b;margin-bottom:16px;border-radius:5px}
+#calDialog .cal-checkbox{display:flex;align-items:flex-start;gap:9px;line-height:1.5;font-size:12px;margin:14px 0}
+.cal-checkbox input{flex:none;width:16px;height:16px;margin:2px 0 0;accent-color:#67d1bd}
+#calSave,#calCompare{width:100%}
+#calDialog #calSave{background:#305349;border-color:#4c8b79}
+.cal-comparison{border-top:1px solid #414149;margin-top:18px;padding-top:3px}
+#calDialog #calCompare{background:#51482f;border-color:#948351;color:#fff0c9}
+#calStatus{font-size:13px;color:#8adccc;line-height:1.5;min-height:20px;margin:16px 0}
+#calDialog .error{color:#ffaeae}
+.cal-section-head{display:flex;align-items:baseline;justify-content:space-between}
+#calCount,.cal-muted{font-size:12px;color:#a8a8b5}
+.cal-memory,.cal-history{border-top:1px solid #3a3a40;margin-top:18px;padding-top:18px}
+#calExamples{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 20px}
+.cal-example{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #36363c;min-width:0}
+.cal-example img{width:100px;height:55px;object-fit:contain;background:#161618;border-radius:3px}
+.cal-example>div{flex:1;min-width:0;overflow-wrap:anywhere}
+.cal-example small{display:block;color:#a8a8b5;font-size:12px;margin-top:5px}
+.cal-example b{font-size:14px}
+#calStats{color:#a8a8b5;font-size:13px;line-height:1.5;margin-bottom:10px}
+.cal-run{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid #36363c;font-size:12px;overflow-wrap:anywhere}
+.cal-run>span{flex:1}
+#calResult{margin-top:20px;font-size:13px;overflow-wrap:anywhere}
+#calResult:empty{display:none}
+.cal-result-item{display:grid;gap:6px;padding:10px 0;border-top:1px solid #414149}
+.cal-result-item span,.cal-result-item small,#calResult>small{color:#b5b5c1;font-size:12px}
+.cal-result-item strong{font-size:18px;font-variant-numeric:tabular-nums}
+@media(max-width:720px){
+  #calDialog{width:calc(100% - 12px);max-height:calc(100dvh - 12px)}
+  .cal-head{padding:16px}.cal-body{padding:16px}
+  .cal-fields{grid-template-columns:1fr 1fr;gap:12px}.cal-fields>label:first-child{grid-column:1/-1}
+  .cal-workspace{grid-template-columns:minmax(0,1fr);gap:20px}.cal-canvas{height:330px}
+  .cal-check{border-left:0;border-top:1px solid #414149;padding:18px 0 0}
+  #calFilename{display:none}.cal-toolbar{justify-content:space-between}
+  .cal-toolbar #calChoose{flex:1}
+  #calExamples{grid-template-columns:1fr}.cal-run{flex-wrap:wrap}.cal-run>span{flex-basis:40%}
+  .cal-entry{margin-left:0}
+}

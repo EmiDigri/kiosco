@@ -1,5 +1,8 @@
 {
   "functions": {
+    "api/caligrafia.js": {
+      "maxDuration": 120
+    },
     "api/cierre-foto.js": {
       "memory": 128,
       "maxDuration": 60
