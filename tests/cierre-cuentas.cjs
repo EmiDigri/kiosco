@@ -137,7 +137,7 @@ test('photo API authenticates and preserves unreadable values without storing im
   let calls=[];
   let lectura={...foto(),turnos:[{cierre:null,mp:100,once:0,mpo:0}],gastos:[{nombre:'Arcor',monto:null}]};
   const ctx={process:{env:{ANTHROPIC_API_KEY:'fixture'}},AbortSignal,CierreCuentas:C,
-    fetch:async(url,opts)=>{calls.push({url,opts});if(url.includes('/auth/'))return {ok:true,json:async()=>({id:'fixture-user'})};return {ok:true,json:async()=>({content:[{type:'tool_use',input:lectura}]})};}};
+    fetch:async(url,opts)=>{calls.push({url,opts});if(url.includes('/auth/'))return {ok:true,json:async()=>({id:'fixture-user'})};if(url.includes('/rest/v1/gastos_caja'))return {ok:true,json:async()=>[{nombre:'Arcor'}]};return {ok:true,json:async()=>({content:[{type:'tool_use',input:lectura}]})};}};
   vm.createContext(ctx);vm.runInContext(source,ctx);
   const res={setHeader(){},status(code){this.code=code;return this;},json(body){this.body=body;return this;}};
   await ctx.handler({method:'POST',headers:{},body:{}},res);
@@ -145,10 +145,14 @@ test('photo API authenticates and preserves unreadable values without storing im
   await ctx.handler({method:'POST',headers:{authorization:'Bearer fixture-user'},body:{image:'a'.repeat(100),mime:'image/jpeg'}},res);
   assert.equal(res.code,200);assert.equal(res.body.turnos[0].cierre,null);assert.equal(res.body.turnos[0].once,0);
   assert.equal(res.body.gastos[0].monto,null);assert.equal(res.body.turnos[0].apertura,undefined);
-  assert.equal(calls.length,2);assert.equal(res.body.image,undefined);
-  const request=JSON.parse(calls[1].opts.body);
-  assert.equal(request.model,'claude-haiku-4-5-20251001');
-  assert.equal(request.temperature,0);
+  assert.equal(calls.length,3);assert.equal(res.body.image,undefined);
+  const request=JSON.parse(calls.find(c=>c.url==='https://api.anthropic.com/v1/messages').opts.body);
+  assert.equal(request.model,'claude-sonnet-5');
+  assert.deepEqual(request.thinking,{type:'disabled'});
+  assert.equal(request.temperature,undefined);
+  assert.ok(request.system.includes('Arcor'));
+  assert.ok(request.system.includes('DOS turnos los domingos'));
+  assert.ok(request.tools[0].input_schema.properties.turnos.description.includes('domingos 2'));
   assert.ok(request.system.includes('MPO es la columna del MEDIO'));
   assert.deepEqual(Object.keys(request.tools[0].input_schema.properties.turnos.items.properties),['cierre','mp','mpo','once']);
   for(const [raw,expected] of [['521450',521450],['221.450',221450],['3.500',3500],['8.000',8000],['12.000',12000],['-',0],['\u2014',0],[null,null],['',null],['25?403',null]]) {
@@ -164,6 +168,16 @@ test('photo API authenticates and preserves unreadable values without storing im
   assert.deepEqual(Array.from(res.body.turnos,t=>t.once),[0,8000,0],'Vale and Marta long dashes become zero without changing Ani');
   assert.deepEqual(Array.from(res.body.turnos,t=>t.mpo),[36000,3500,12000],'Once dashes never overwrite MPO');
   assert.deepEqual(C.validarFoto(res.body,mp,'2026-09-08').errores,[]);
+  lectura={fecha:'13/9',total_dia:'1.024.050',turnos:[
+    {cierre:'521.450',mp:'221.450',mpo:'36.000',once:'\u2014'},
+    {cierre:'502.600',mp:'201.600',mpo:'3.500',once:'8.000'}
+  ],gastos:[{nombre:'Arcor',monto:'254.403'}]};
+  await ctx.handler({method:'POST',headers:{authorization:'Bearer fixture-user'},body:{image:'a'.repeat(100),mime:'image/jpeg'}},res);
+  assert.equal(res.code,200);
+  assert.equal(res.body.turnos.length,2,'Sunday total must not become a third closing');
+  const sunday=C.fecha(res.body.fecha,'2026-09-13');
+  assert.equal(sunday,'2026-09-13');
+  assert.deepEqual(C.validarFoto(res.body,{'Turno 1':221450,'Turno 2':201600},sunday),{errores:[],diferencias:[],suma:1024050});
 });
 
 test('contradictory OCR amounts cannot be accepted just by acknowledging MP differences', () => {

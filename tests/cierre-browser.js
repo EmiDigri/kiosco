@@ -59,11 +59,11 @@
     renderMonth();
     check(document.querySelector('.hist-kiosco').textContent.includes('$1.681.800'),'monthly headline includes cash');
     check(document.getElementById('histGastosMes').textContent.includes('Arcor'),'expense appears in monthly history');
-    check(document.querySelector('#histGastosMes .hist-gasto-meta').textContent.endsWith('Efectivo'),'expense initially assumed cash');
+    check(CierreCuentas.conciliarGastos(db.gastos,db.pagos)[0].medio==='efectivo','photo expense initially classified as cash');
     await loadExample();await cmConfirmarCuaderno();
     check(db.cierres.length===3&&db.gastos.length===1,'reimport does not duplicate shifts or expenses');
     db.pagos.push({id:9,fecha:fixed,es_enviada:true,monto:254403,nombre:'Arcor SA',status:'approved'});renderMonth();
-    check(document.querySelector('#histGastosMes .hist-gasto-meta').textContent.endsWith('MP'),'later MP outgoing reclassifies expense');
+    check(CierreCuentas.conciliarGastos(db.gastos,db.pagos)[0].medio==='mp','later MP outgoing reclassifies photo expense');
     check(document.querySelector('.hist-kiosco').textContent.includes('$254.403'),'outgoing is not counted as a second expense');
     db.failRead=true;await loadExample();
     check(document.getElementById('cmFotoConfirmar').disabled,'read outage cannot invent MP zero');
@@ -71,12 +71,42 @@
     check(cmContarPendientes()===4,'failed writes remain pending without claiming sync');
     db.failWrite=false;await cmSyncLocales();
     check(cmContarPendientes()===0&&db.cierres.length===3&&db.gastos.length===1,'retry synchronizes without duplicates');
-    resetFixture();const sunday='2026-09-06';
-    db.pagos=example().turnos.slice(0,2).map((t,i)=>({id:i+1,fecha:sunday,turno:'Turno '+(i+1),monto:t.mp,es_enviada:false,status:'approved'}));
-    cmFotoData={...example(),fecha:sunday,turnos:example().turnos.slice(0,2),total_dia:1024050};
-    cmRenderFotoReview();await cmFotoConsultar(cmFotoData);await cmConfirmarCuaderno();
-    check(db.cierres.length===2&&db.cierres.every(c=>c.fecha===sunday&&c.turno.startsWith('Turno ')),'past Sunday saves two shifts to the correct date');
-    check(db.gastos[0].fecha===sunday,'photo expense uses the past date too');
+    fixtureToday='2026-09-13';
+    for(const sunday of ['2026-09-06','2026-09-13']){
+      resetFixture();sessionStorage.removeItem(CM_FOTO_CACHE);cmFotoLecturas=[];
+      const sundayPhoto={...example(),fecha:sunday,turnos:example().turnos.slice(0,2),total_dia:1024050};
+      db.pagos=sundayPhoto.turnos.map((t,i)=>({id:i+1,fecha:sunday,turno:'Turno '+(i+1),monto:t.mp,es_enviada:false,status:'approved'}));
+      // Outgoing and returned transfers are not income, on Sundays either.
+      db.pagos.push({id:90,fecha:sunday,turno:'Turno 1',monto:254403,nombre:'Arcor SA',es_enviada:true,status:'approved'},
+        {id:91,fecha:sunday,turno:'Turno 2',monto:10000,devuelta:true,status:'approved'});
+      const fixtureFetch=window.fetch;
+      let sundayReads=0;
+      window.fetch=async(url,opts)=>url==='/api/cierre-foto'?(sundayReads++,new Response(JSON.stringify(sundayPhoto),{status:200})):fixtureFetch(url,opts);
+      try{await cmLeerCuaderno(photo);}finally{window.fetch=fixtureFetch;}
+      check(sundayReads===1,'Sunday upload makes one mocked AI read: '+sunday);
+      check(document.querySelectorAll('#cmFotoTurnos .cm-foto-turno').length===2,'Sunday review renders exactly two shifts: '+sunday);
+      check([...document.querySelectorAll('.cm-foto-turno-nombre')].map(el=>el.textContent).join(',')==='Turno 1,Turno 2','Sunday uses order, not weekday employee names');
+      check(!document.getElementById('cmFotoConfirmar').disabled,'complete Sunday can be confirmed');
+      await cmConfirmarCuaderno();
+      check(db.cierres.length===2&&db.cierres.every(c=>c.fecha===sunday&&c.turno.startsWith('Turno ')),'Sunday saves two shifts to the photo date: '+sunday);
+      check(db.gastos.length===1&&db.gastos[0].fecha===sunday,'Sunday expense saved once on its own date');
+      check(document.getElementById('cmTotalDiaSub').textContent==='2 de 2 turnos cerrados','Sunday is complete without a third shift');
+      check(document.querySelectorAll('#cmTurnoRow button').length===2&&document.querySelector('.cm-caja-btn[data-caja="CN"]').style.display==='none','Sunday editor hides the third shift and third cash box');
+      const days=histAgruparPorDia(db.pagos,db.cierres,db.gastos),totals=CierreCuentas.resumenMes(days,sunday,sunday);
+      check(totals.total===1024050&&totals.mp===423050&&totals.efectivo===601000,'Sunday totals count cash, MP and Once once');
+      check(totals.cerrados===2&&totals.esperados===2&&totals.completos===1&&totals.gastos===254403,'history and monthly totals recognize a complete Sunday');
+      cmFotoData=structuredClone(sundayPhoto);cmRenderFotoReview();await cmFotoConsultar(cmFotoData);await cmConfirmarCuaderno();
+      check(db.cierres.length===2&&db.gastos.length===1,'reimporting Sunday creates no duplicate closings or expenses');
+      cmFotoData={...structuredClone(sundayPhoto),turnos:[...sundayPhoto.turnos,example().turnos[2]]};cmRenderFotoReview();await cmFotoConsultar(cmFotoData);
+      check(document.getElementById('cmFotoConfirmar').disabled&&cmFotoEstado().errores.some(e=>e.includes('2 turnos')),'invented third Sunday shift blocks saving');
+      cmFotoData={...structuredClone(sundayPhoto),turnos:sundayPhoto.turnos.slice(0,1)};cmRenderFotoReview();await cmFotoConsultar(cmFotoData);
+      check(document.getElementById('cmFotoConfirmar').disabled,'incomplete Sunday photo blocks saving');
+      cmCerrarFotoReview();
+    }
+    resetFixture();const saturday='2026-09-12';
+    db.pagos=example().turnos.map((t,i)=>({id:i+1,fecha:saturday,turno:['Vale','Ani','Marta'][i],monto:t.mp,status:'approved'}));
+    cmFotoData={...example(),fecha:saturday};cmRenderFotoReview();await cmFotoConsultar(cmFotoData);await cmConfirmarCuaderno();
+    check(db.cierres.length===3&&document.getElementById('cmTotalDiaSub').textContent==='3 de 3 turnos cerrados','Saturday still uses three shifts after importing a Sunday');
     resetFixture();
     await loadExample();report();
   }catch(e){results.push('FAIL '+e.stack);document.getElementById('qaResults').textContent=results.join('\n');document.body.dataset.qa='failed';}

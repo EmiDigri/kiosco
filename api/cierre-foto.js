@@ -1,6 +1,6 @@
 // Lectura del cuaderno del cierre diario con IA (Claude, visión).
 //
-// El kiosquero saca UNA foto a la planilla escrita a mano del día (con los tres
+// El kiosquero saca UNA foto a la planilla escrita a mano del día (con dos o tres
 // turnos y los gastos) y este endpoint devuelve los números estructurados para
 // autocompletar el cierre. MP escrito se lee para contrastar con la base.
 // Apertura es fondo fijo: no se suma, resta ni extrae. MPO esta dentro de MP;
@@ -36,7 +36,7 @@ const TOOL = {
       nota: { type: ['string', 'null'], description: 'Dudas, numeros tachados, foto incompleta o datos ilegibles. No inventes.' },
       turnos: {
         type: 'array',
-        description: 'Los turnos EN ORDEN de arriba hacia abajo (1° = mañana, 2° = tarde, 3° = noche). Máximo 3.',
+        description: 'Los cierres EN ORDEN de arriba hacia abajo: domingos 2 (Turno 1 y Turno 2); lunes a sabados 3. No agregues un turno ausente ni una fila para el total del dia.',
         items: {
           type: 'object',
           properties: {
@@ -73,7 +73,7 @@ Estructura de la planilla:
 - Después vienen los turnos, EN ORDEN de arriba hacia abajo (hasta 3; domingos 2). Ignora completamente "Apertura": es fondo fijo, NO es venta y NO se suma ni se resta. Lee "Cierre" exactamente como esta escrito: es el TOTAL de ventas del turno, efectivo mas MP. El nombre puede ser un suplente (ej. Luis): guiate por el ORDEN, no por el nombre.
 - Las columnas, de IZQUIERDA A DERECHA, son: Cierre y nombre | MP | MPO | O. O significa Once. MPO es la columna del MEDIO, O la del EXTREMO DERECHO. Primero ubica los encabezados y divisorias; despues segui cada renglon aunque la hoja este inclinada. NO asignes por el orden de las letras del nombre, ni intercambies MPO y O. Si los encabezados reales tienen otro orden, segui esos encabezados.
 - MPO esta YA INCLUIDO EN MP; O esta YA INCLUIDO EN EL CIERRE. Copia cada celda por separado. Un guion horizontal dentro de una celda, aunque sea LARGO o REPETIDO, representa SIN MOVIMIENTO: transcribi "-" (la app lo convierte en 0). Aplica tambien a O/Once de cualquier turno. No lo marques como ilegible ni null. Un espacio realmente vacio o importe ilegible es null. No confundas el guion dentro de la celda con una linea divisoria de la tabla. Las lineas de tabla y subrayados NO son tachaduras; solo considera tachado un importe si el trazo cruza sus digitos.
-- Abajo de los tres cierres hay un total subrayado: es la suma de los tres. Extraelo como total_dia.
+- Abajo de los cierres puede haber un total subrayado: suma los DOS turnos los domingos y los TRES de lunes a sabados. Extraelo como total_dia, nunca como otro turno. Si no esta escrito, usa null. No inventes un tercer cierre cuando la hoja tiene solo dos.
 - Después hay una sección "GASTOS" con una lista de concepto + monto (puede estar en dos columnas). Extraé cada gasto.
 
 Reglas:

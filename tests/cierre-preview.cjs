@@ -18,7 +18,8 @@ let histResumenMes={},histRowsGastosMes=[],histRowsPagosMes=[];
 const fixed='2026-09-08',db={pagos:[],cierres:[],gastos:[],writes:[]};
 let fixtureOwner='fixture@kiosco.test';
 const authRead=()=>({email:fixtureOwner});
-const fechaHoy=()=>fixed,histIso=(y,m,d)=>y+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+let fixtureToday=fixed;
+const fechaHoy=()=>fixtureToday,histIso=(y,m,d)=>y+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0');
 const histMoney=n=>'$'+Number(n||0).toLocaleString('es-AR'),histMoneyCompact=histMoney,formatFecha=d=>d;
 const histMediana=a=>a.length?a[Math.floor(a.length/2)]:0,histMesLearnRead=()=>({bias:[],errs:[]});
 const histTendenciaPill=()=>'',histSvgBarsDias=()=>'',histAnimarGraficoDias=()=>{},histTooltipGraficoDias=()=>{},histKioscoEnriquecer=()=>{},learnSbPush=()=>{};
@@ -50,4 +51,4 @@ const server=http.createServer((req,res)=>{
   if(files[url.pathname]){res.setHeader('Content-Type','text/javascript; charset=utf-8');return res.end(fs.readFileSync(path.join(root,files[url.pathname])));}
   res.writeHead(404).end();
 });
-server.listen(Number(process.argv[2])||4191,'127.0.0.1',()=>console.log('Local-only closing preview: http://127.0.0.1:'+server.address().port));
+server.listen(process.argv[2]===undefined?4191:Number(process.argv[2]),'127.0.0.1',()=>console.log('Local-only closing preview: http://127.0.0.1:'+server.address().port));
