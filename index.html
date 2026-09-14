@@ -5467,9 +5467,14 @@ function histRenderMetricas(y,m,last){
   const persMes={Vale:0,Ani:0,Marta:0},byDowMP={0:[],1:[],2:[],3:[],4:[],5:[],6:[]};
   let mpDelMes=0,domMes=0;
   const hoyD=esMesActual?Math.min(hoyReal.getDate(),last):last;
-  for(let d=1;d<=last;d++){const data=histResumenMes[histIso(y,m,d)];if(!data)continue;const mp=data.mpTotal||0;mpDelMes+=mp;if(mp>0)byDowMP[new Date(y,m-1,d).getDay()].push(mp);const tt=data.turnos||{};persNames.forEach(p=>{if(tt[p])persMes[p]+=tt[p].mp||0;});
+  for(let d=1;d<=last;d++){const data=histResumenMes[histIso(y,m,d)];if(!data)continue;const mp=data.mpTotal||0;mpDelMes+=mp;if(mp>0)byDowMP[new Date(y,m-1,d).getDay()].push(mp);const tt=data.turnos||{};
+    // Facturacion por turno = total del cierre del turno (efectivo+MP) si esta cargado;
+    // si no hay cierre, solo tenemos el MP de ese turno. mpDelMes/byDowMP siguen siendo
+    // MP (la proyeccion se calcula sobre MP).
+    const cierreDe=t=>(data.cierres||[]).find(c=>c.turno===t);
+    persNames.forEach(p=>{const c=cierreDe(p);if(c)persMes[p]+=CierreCuentas.totalCierre(c,Number(c.gastos_caja)||0);else if(tt[p])persMes[p]+=tt[p].mp||0;});
     // Los domingos usan otros turnos (Turno 1 y Turno 2); los sumo aparte.
-    const dom=(tt['Turno 1']?tt['Turno 1'].mp:0)+(tt['Turno 2']?tt['Turno 2'].mp:0);domMes+=dom;}
+    ['Turno 1','Turno 2'].forEach(t=>{const c=cierreDe(t);if(c)domMes+=CierreCuentas.totalCierre(c,Number(c.gastos_caja)||0);else if(tt[t])domMes+=tt[t].mp||0;});}
   let projMes=mpDelMes;
   if(esMesActual)for(let d=hoyD+1;d<=last;d++){const w=new Date(y,m-1,d).getDay();projMes+=histMediana(byDowMP[w])||promDiario;}
   const mesLearn=histMesLearnRead();
@@ -5494,7 +5499,7 @@ function histRenderMetricas(y,m,last){
       <div class="hk-metric"><div class="hk-metric-lbl">Resultado registrado${faltanCierres?' · parcial':''}</div><div class="hk-metric-val">${histMoney(contable.resultado)}</div></div>
     </div>
     <div class="hk-ritmo">
-      <div class="hk-ritmo-title">Mercado Pago por turno</div>
+      <div class="hk-ritmo-title">Facturación por turno</div>
       ${persNames.map(p=>`<div class="hk-persona"><span class="hk-persona-emoji">${persEmoji[p]}</span><span class="hk-persona-main"><span class="hk-persona-name">${p} · ${persRole[p]}</span><span class="hk-persona-desc">${persMes[p]>0?histMoneyCompact(persMes[p])+' este mes':'sin datos aún'}</span></span></div>`).join('')}
       <div class="hk-persona"><span class="hk-persona-emoji">📅</span><span class="hk-persona-main"><span class="hk-persona-name">Domingos</span><span class="hk-persona-desc">${domMes>0?histMoneyCompact(domMes)+' este mes':'sin datos aún'}</span></span></div>
     </div>
