@@ -86,6 +86,35 @@
       return {medio:'revisar', texto:'MP'};
     });
   }
+  function resumenGastosDia(gastos, pagos, disponible = true) {
+    const unicos = (rows, keyOf) => {
+      const seen = new Set();
+      return (rows || []).filter(row => {
+        const key = keyOf(row);
+        if (key == null) return true;
+        if (seen.has(String(key))) return false;
+        seen.add(String(key)); return true;
+      });
+    };
+    const registrados = unicos(gastos, g => g.uid ?? g.id).filter(g => monto(g.monto) !== null);
+    const salidas = unicos((pagos || []).filter(salida), p => p.pago_id ?? p.id)
+      .filter(p => monto(Math.abs(Number(p.monto))) !== null);
+    const medios = conciliarGastos(registrados, salidas);
+    const usados = new Set();
+    let porRevisar = false;
+    const filas = registrados.map((g, i) => {
+      const medio = medios[i];
+      if (medio.medio === 'revisar' || (medio.pago && usados.has(medio.pago))) porRevisar = true;
+      if (medio.pago) usados.add(medio.pago);
+      return {...g, monto:monto(g.monto), medio:medio.medio, origen:'cuaderno'};
+    });
+    salidas.filter(p => !usados.has(p)).forEach(p => {
+      filas.push({...p, monto:Math.abs(Number(p.monto)), medio:'mp', origen:'mp'});
+    });
+    // An ambiguous match cannot produce a reliable total without counting a payment twice.
+    const total = porRevisar ? null : filas.reduce((sum, g) => sum + Math.round(g.monto * 100), 0) / 100;
+    return {total, filas, porRevisar, local:!disponible};
+  }
   function validarFoto(foto, mpPorTurno, dia, gastosCaja = {}) {
     const errores = [], diferencias = [];
     if (!fecha(dia, dia)) errores.push('Falta una fecha valida.');
@@ -137,5 +166,5 @@
     }
     return {total, mp, efectivo, gastos, resultado:total - gastos, cerrados, esperados, completos, totalCompletos};
   }
-  return {monto, fecha, ingreso, salida, totalCierre, totalDia, completo, turnos, nombre, idGastoFoto, conciliarGastos, validarFoto, resumenMes};
+  return {monto, fecha, ingreso, salida, totalCierre, totalDia, completo, turnos, nombre, idGastoFoto, conciliarGastos, resumenGastosDia, validarFoto, resumenMes};
 });

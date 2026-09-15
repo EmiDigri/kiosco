@@ -3326,6 +3326,7 @@ body.light .tg-lock{background:rgba(255,255,255,.96)}
 
 </style>
 <link rel="stylesheet" href="./login.css?v=20260905-motion">
+<link rel="stylesheet" href="./historial-gastos.css?v=20260915">
 <script src="./login.js?v=20260905-motion" defer></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flipclock@1.0.1/dist/themes/flipclock.min.css">
 <script src="https://cdn.jsdelivr.net/npm/tsparticles-slim@2.12.0/tsparticles.slim.bundle.min.js" defer></script>
@@ -3788,7 +3789,10 @@ body.light .tg-lock{background:rgba(255,255,255,.96)}
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
         Todos los días
       </button>
-      <div class="hist-dia-titulo" id="histDiaTitulo"></div>
+      <div class="hist-dia-encabezado">
+        <div class="hist-dia-titulo" id="histDiaTitulo"></div>
+        <button class="hist-dia-gastos" id="histDiaGastos" type="button" aria-controls="histGastosDiaDetalle" disabled><span>Gastos:</span><strong>...</strong><small hidden></small></button>
+      </div>
       <div id="histRadiografiaDia"><div class="hist-loading">Armando el resumen del día…</div></div>
       <div id="histFotoDia" class="hist-foto-dia" hidden></div>
       <div id="histTurnosDetalle"></div>
@@ -6212,7 +6216,7 @@ function histRenderRadiografiaDia(dia,cierres,gastos,pagosValidos,totalDia){
           <div class="hist-rad-cols"><span>Turno</span><span class="hist-rad-num">Total</span><span class="hist-rad-num">Efectivo</span><span class="hist-rad-num">MP</span></div>
           ${filas}
           <div class="hist-rad-foot">
-            <span>MPO <b>${histMoney(totalMPO)}</b></span><span>Once <b>${histMoney(totalOnce)}</b></span><span>Gastos <b>${histMoney(totalGastos)}</b></span>
+            <span>MPO <b>${histMoney(totalMPO)}</b></span><span>Once <b>${histMoney(totalOnce)}</b></span><span>Gastos <b data-hist-gasto-total>${histMoney(totalGastos)}</b></span>
           </div>
         </div>
       </div>
@@ -6221,6 +6225,7 @@ function histRenderRadiografiaDia(dia,cierres,gastos,pagosValidos,totalDia){
   histRadAnimarMonto(cont.querySelector('[data-hist-rad-total]'),totalDia);
 }
 async function mostrarDetalleDia(dia){
+  const gastosSolicitud=window.HistorialGastos?.cargando();
   document.getElementById('histVistaLista').style.display='none';
   document.getElementById('histVistaDetalle').style.display='block';
   document.getElementById('histTitleText').textContent=formatFechaCorta(dia);
@@ -6229,6 +6234,7 @@ async function mostrarDetalleDia(dia){
   cont.innerHTML='<div class="hist-loading">Cargando detalle del día…</div>';
   histCargarFotoDia(dia);
   const {pagos,cierres,gastos,remoto}=await histFetchDia(dia);
+  if(window.HistorialGastos&&!window.HistorialGastos.vigente(gastosSolicitud))return;
   const pagosValidos=pagos.filter(p=>!p.es_enviada&&!p.excluido);
   const totalMP=pagosValidos.reduce((a,p)=>a+(Number(p.monto)||0),0);
   const totalCaja=cierres.reduce((a,c)=>a+(Number(c.total_turno)||0),0);
@@ -6316,6 +6322,7 @@ async function mostrarDetalleDia(dia){
     html+=`<div class="hist-empty">No hay cierres ni movimientos guardados para este día.</div>`;
   }
   cont.innerHTML=html;
+  window.HistorialGastos?.render(gastos,pagos,remoto);
   cont.querySelectorAll('.hist-turno-card').forEach(card=>{
     const header=card.querySelector('.hist-turno-header'),body=card.querySelector('.hist-turno-body');
     header.addEventListener('click',()=>{card.classList.toggle('open');body.style.maxHeight=card.classList.contains('open')?body.scrollHeight+'px':'0';});
@@ -10016,6 +10023,7 @@ initEasterEggs();
 <script src="./caligrafia-ui.js?v=20260913"></script>
 -->
 <script src="./catalogo-ui.js"></script>
+<script src="./historial-gastos.js?v=20260915"></script>
 <script>
 // Snapshot del cierre por foto (opción A, automático). NO toca cierre-foto-ui.js de
 // Codex: agrega listeners EXTRA al input de la foto y al botón "Cargar todo al cierre".

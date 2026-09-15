@@ -1,0 +1,18 @@
+.hist-dia-encabezado{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px 24px;margin:8px 0 18px}
+.hist-dia-encabezado .hist-dia-titulo{margin:0;letter-spacing:0;min-width:0}
+.hist-dia-gastos{display:flex;align-items:baseline;flex-wrap:wrap;gap:6px;min-height:44px;max-width:100%;padding:6px 0;border:0;background:none;font:inherit;font-size:15px;color:var(--amber);cursor:pointer;text-align:left}
+.hist-dia-gastos strong{font-size:20px;font-weight:750;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.hist-dia-gastos:hover:not(:disabled) strong{text-decoration:underline;text-underline-offset:4px}
+.hist-dia-gastos:focus-visible,.hist-gastos-detalle>summary:focus-visible{outline:2px solid var(--accent);outline-offset:4px;border-radius:4px}
+.hist-dia-gastos:disabled{cursor:default;color:var(--text-soft)}
+.hist-dia-gastos small{font-size:12px;flex-basis:100%;color:var(--text-soft)}
+.hist-gastos-detalle{scroll-margin-top:20px}
+.hist-gastos-detalle>summary{display:flex;align-items:center;flex-wrap:wrap;gap:8px 16px;min-height:44px;cursor:pointer;list-style:none;color:var(--text);font-size:15px;font-weight:700}
+.hist-gastos-detalle>summary::-webkit-details-marker{display:none}
+.hist-gastos-detalle>summary::after{content:'';width:7px;height:7px;flex-shrink:0;margin-left:auto;margin-right:3px;border-right:2px solid var(--text-soft);border-bottom:2px solid var(--text-soft);transform:rotate(45deg)}
+.hist-gastos-detalle[open]>summary::after{transform:rotate(225deg)}
+.hist-gastos-detalle .hist-gastos-importe{color:var(--amber);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.hist-gastos-nota{margin:8px 0 12px;font-size:14px;line-height:1.5;color:var(--text-soft)}
+.hist-gastos-detalle .hist-gasto-line{font-size:15px}
+body.light .hist-dia-gastos:not(:disabled),body.light .hist-gastos-importe{color:#965b0b}
+@media(max-width:600px){.hist-dia-encabezado{display:block;margin-bottom:14px}.hist-dia-gastos{margin-top:4px}.hist-dia-gastos strong{font-size:19px}}
