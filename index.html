@@ -10032,14 +10032,20 @@ initEasterEggs();
   let snapFoto=null; // {image, mime}
   function comprimir(file){
     return new Promise(res=>{
-      const rd=new FileReader();
-      rd.onload=()=>{const img=new Image();img.onload=()=>{try{
-        const max=1400,esc=Math.min(1,max/Math.max(img.width,img.height));
-        const c=document.createElement('canvas');c.width=Math.round(img.width*esc);c.height=Math.round(img.height*esc);
-        c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+      const dibujar=(src,w,h)=>{try{
+        const max=1400,esc=Math.min(1,max/Math.max(w,h));
+        const c=document.createElement('canvas');c.width=Math.round(w*esc);c.height=Math.round(h*esc);
+        c.getContext('2d').drawImage(src,0,0,c.width,c.height);
         res({image:c.toDataURL('image/jpeg',.7).split(',')[1],mime:'image/jpeg'});
-      }catch(e){res(null);}};img.onerror=()=>res(null);img.src=rd.result;};
-      rd.onerror=()=>res(null);rd.readAsDataURL(file);
+      }catch(e){res(null);}};
+      // Las fotos del celu traen la orientacion en EXIF; al pasarlas por canvas se
+      // perdia y quedaban de costado. createImageBitmap con imageOrientation:'from-image'
+      // aplica esa orientacion antes de dibujar, asi la foto queda derecha. Si el
+      // navegador no lo soporta, cae al metodo viejo (FileReader + Image).
+      const fallback=()=>{const rd=new FileReader();rd.onload=()=>{const img=new Image();img.onload=()=>dibujar(img,img.width,img.height);img.onerror=()=>res(null);img.src=rd.result;};rd.onerror=()=>res(null);rd.readAsDataURL(file);};
+      if(window.createImageBitmap){
+        createImageBitmap(file,{imageOrientation:'from-image'}).then(bmp=>{dibujar(bmp,bmp.width,bmp.height);if(bmp.close)bmp.close();}).catch(fallback);
+      }else fallback();
     });
   }
   window.__snapComprimir=comprimir; // lo reutiliza el historial para adjuntar/backfillear fotos
