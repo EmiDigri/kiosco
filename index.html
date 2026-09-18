@@ -6146,13 +6146,40 @@ async function histCargarFotoDia(dia){
     inp.click();
   };
   if(url){
-    cont.innerHTML=`<div class="hist-foto-documento"><div class="hist-foto-label"><span>📷 Foto del cierre</span><button type="button" class="hist-foto-cambiar">cambiar</button></div><a class="hist-foto-abrir" target="_blank" rel="noopener noreferrer" aria-label="Ampliar foto del cierre"><img alt="Foto del cuaderno del ${dia}" loading="lazy"></a></div>`;
+    cont.innerHTML=`<div class="hist-foto-documento"><div class="hist-foto-label"><span>📷 Foto del cierre</span><span class="hist-foto-acciones" style="display:flex;gap:8px;align-items:center"><button type="button" class="hist-foto-cambiar hist-foto-girar">⟳ girar</button><button type="button" class="hist-foto-cambiar">cambiar</button></span></div><a class="hist-foto-abrir" target="_blank" rel="noopener noreferrer" aria-label="Ampliar foto del cierre"><img alt="Foto del cuaderno del ${dia}" loading="lazy"></a></div>`;
     cont.querySelector('.hist-foto-abrir').href=url;
     cont.querySelector('img').src=url;
-    cont.querySelector('.hist-foto-cambiar').addEventListener('click',subir);
+    cont.querySelector('.hist-foto-cambiar:not(.hist-foto-girar)').addEventListener('click',subir);
+    cont.querySelector('.hist-foto-girar').addEventListener('click',()=>histRotarFoto(dia,url));
   }else{
     cont.innerHTML=`<button type="button" class="hist-foto-attach">📷 Adjuntar foto del cierre</button>`;
     cont.querySelector('.hist-foto-attach').addEventListener('click',subir);
+  }
+}
+// Girar 90° la foto YA guardada (para las que quedaron torcidas antes del arreglo de
+// orientacion). Baja la imagen del Storage, la rota en canvas y la re-sube al mismo dia.
+// La imagen guardada no tiene EXIF (es un JPEG de canvas), asi que la rotacion es directa.
+async function histRotarFoto(dia,url){
+  const cont=document.getElementById('histFotoDia');if(!cont)return;
+  const btn=cont.querySelector('.hist-foto-girar');if(btn){btn.disabled=true;btn.textContent='girando…';}
+  try{
+    const dataUrl=await new Promise((res,rej)=>{
+      const img=new Image();img.crossOrigin='anonymous';img.style.imageOrientation='none';
+      img.onload=()=>{try{
+        const w=img.naturalWidth,h=img.naturalHeight;
+        const c=document.createElement('canvas');c.width=h;c.height=w;
+        const ctx=c.getContext('2d');ctx.translate(h,0);ctx.rotate(Math.PI/2);ctx.drawImage(img,0,0); // 90° horario
+        res(c.toDataURL('image/jpeg',.72));
+      }catch(e){rej(e);}};
+      img.onerror=()=>rej(new Error('load'));
+      img.src=url;
+    });
+    const rr=await fetch('/api/cierre-foto-guardar',{method:'POST',headers:await sbAuthHeaders({'Content-Type':'application/json'}),body:JSON.stringify({fecha:dia,image:dataUrl.split(',')[1],mime:'image/jpeg'})});
+    if(!rr.ok)throw new Error('save');
+    histCargarFotoDia(dia);
+  }catch(e){
+    if(typeof showToast==='function')showToast('No pude girar la foto. Probá de nuevo.');
+    if(btn){btn.disabled=false;btn.textContent='⟳ girar';}
   }
 }
 function histRadAnimarMonto(el,total){
@@ -10069,6 +10096,7 @@ initEasterEggs();
       rd.onload=()=>{
         const orient=leerOrientacion(rd.result);
         const url=URL.createObjectURL(file),img=new Image();
+        img.style.imageOrientation='none'; // que el navegador NO rote: la rotamos con EXIF (evita doble rotacion = foto al reves)
         img.onload=()=>{procesar(img,orient);URL.revokeObjectURL(url);};
         img.onerror=()=>{URL.revokeObjectURL(url);res(null);};
         img.src=url;
