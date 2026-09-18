@@ -7,23 +7,68 @@ function cmFotoEsImagen(file) {
   const type = (file?.type || '').toLowerCase();
   return /^image\//.test(type) || ((!type || type === 'application/octet-stream') && /\.(jpe?g|jfif|png|webp|gif|avif|bmp|heic|heif)$/i.test(file?.name || ''));
 }
+// OJO CODEX (cambio de Claude 17/9/2026, con OK de digra: "toca lo de codex, avisando
+// dentro del codigo"): antes esto dibujaba la foto en canvas IGNORANDO la orientacion
+// EXIF del celu, asi que la imagen llegaba DE COSTADO al modelo y leia el cuaderno
+// rotado 90 -> transcribia casi todo mal. Ahora se lee el tag EXIF Orientation a mano y
+// se rota el canvas (patron canonico 1-8), determinista en cualquier navegador
+// (createImageBitmap({imageOrientation}) lo ignoraba en algunos). Si tocas esta funcion,
+// CONSERVA la correccion de orientacion. Se mantienen tus valores: max 1600 px, calidad .9.
+function cmLeerOrientacionExif(buf) {
+  try {
+    const v = new DataView(buf);
+    if (v.getUint16(0, false) !== 0xFFD8) return 1; // no es JPEG
+    let off = 2; const len = v.byteLength;
+    while (off < len) {
+      const marker = v.getUint16(off, false); off += 2;
+      if (marker === 0xFFE1) {
+        if (v.getUint32(off + 2, false) !== 0x45786966) return 1; // "Exif"
+        const tiff = off + 8, little = v.getUint16(tiff, false) === 0x4949;
+        let dir = tiff + v.getUint32(tiff + 4, little);
+        const n = v.getUint16(dir, little); dir += 2;
+        for (let i = 0; i < n; i++) { const e = dir + i * 12; if (v.getUint16(e, little) === 0x0112) return v.getUint16(e + 8, little); }
+        return 1;
+      } else if ((marker & 0xFF00) !== 0xFF00) { break; }
+      else { off += v.getUint16(off, false); }
+    }
+    return 1;
+  } catch (e) { return 1; }
+}
 function cmComprimirFoto(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onerror = () => reject(new Error('No pude leer la foto'));
     reader.onload = () => {
+      const orient = cmLeerOrientacionExif(reader.result);
       const img = new Image();
-      img.onerror = () => reject(new Error('No pude abrir esta imagen. Proba con una copia en JPG, PNG o WebP; no alcanza con cambiarle el nombre.'));
+      const url = URL.createObjectURL(file);
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('No pude abrir esta imagen. Proba con una copia en JPG, PNG o WebP; no alcanza con cambiarle el nombre.')); };
       img.onload = () => {
-        const scale = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight));
-        const c = document.createElement('canvas');
-        c.width = Math.round(img.naturalWidth * scale); c.height = Math.round(img.naturalHeight * scale);
-        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-        resolve({image:c.toDataURL('image/jpeg', .9).split(',')[1], mime:'image/jpeg'});
+        try {
+          const nW = img.naturalWidth, nH = img.naturalHeight;
+          const swap = orient >= 5 && orient <= 8, oW = swap ? nH : nW, oH = swap ? nW : nH;
+          const oc = document.createElement('canvas'); oc.width = oW; oc.height = oH;
+          const ox = oc.getContext('2d');
+          switch (orient) {
+            case 2: ox.transform(-1, 0, 0, 1, nW, 0); break;
+            case 3: ox.transform(-1, 0, 0, -1, nW, nH); break;
+            case 4: ox.transform(1, 0, 0, -1, 0, nH); break;
+            case 5: ox.transform(0, 1, 1, 0, 0, 0); break;
+            case 6: ox.transform(0, 1, -1, 0, nH, 0); break;
+            case 7: ox.transform(0, -1, -1, 0, nH, nW); break;
+            case 8: ox.transform(0, -1, 1, 0, 0, nW); break;
+          }
+          ox.drawImage(img, 0, 0);
+          const scale = Math.min(1, 1600 / Math.max(oW, oH));
+          let out = oc;
+          if (scale < 1) { const c = document.createElement('canvas'); c.width = Math.round(oW * scale); c.height = Math.round(oH * scale); c.getContext('2d').drawImage(oc, 0, 0, c.width, c.height); out = c; }
+          resolve({ image: out.toDataURL('image/jpeg', .9).split(',')[1], mime: 'image/jpeg' });
+        } catch (e) { reject(new Error('No pude procesar la foto')); }
+        URL.revokeObjectURL(url);
       };
-      img.src = reader.result;
+      img.src = url;
     };
-    reader.readAsDataURL(file);
+    reader.readAsArrayBuffer(file);
   });
 }
 // Only extracted numbers and a file fingerprint survive a reload, never the photo.
