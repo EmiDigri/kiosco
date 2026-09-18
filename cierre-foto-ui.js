@@ -41,6 +41,7 @@ function cmComprimirFoto(file) {
     reader.onload = () => {
       const orient = cmLeerOrientacionExif(reader.result);
       const img = new Image();
+      img.style.imageOrientation = 'none'; // que el navegador NO rote: rotamos nosotros con EXIF (evita doble rotacion = foto al reves)
       const url = URL.createObjectURL(file);
       img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('No pude abrir esta imagen. Proba con una copia en JPG, PNG o WebP; no alcanza con cambiarle el nombre.')); };
       img.onload = () => {
