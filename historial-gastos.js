@@ -47,7 +47,7 @@
         ${note || local ? `<p class="hist-gastos-nota">${cmEsc([note, local].filter(Boolean).join(' '))}</p>` : ''}
         ${data.filas.length ? data.filas.map(g => {
           const medio = g.medio === 'revisar' ? 'Medio de pago por revisar' : g.medio === 'mp' ? 'MP' : data.local ? 'Medio de pago sin verificar' : 'Efectivo';
-          return `<div class="hist-gasto-line"><span>${cmEsc(g.nombre || 'Transferencia enviada')}${g.caja ? ' \u00b7 ' + cmEsc(g.caja) : ''}<small class="hist-gasto-meta">${medio}</small></span><strong>${histMoney(g.monto)}</strong></div>`;
+          return `<div class="hist-gasto-line"><span>${cmEsc(CierreCuentas.conceptoGasto(g.nombre || 'Transferencia enviada'))}${g.caja ? ' \u00b7 ' + cmEsc(g.caja) : ''}<small class="hist-gasto-meta">${medio}</small></span><strong>${histMoney(g.monto)}</strong></div>`;
         }).join('') : '<p class="hist-gastos-nota">Sin gastos registrados para este d\u00eda.</p>'}`;
       if (previous) previous.replaceWith(section);
       else container.prepend(section);

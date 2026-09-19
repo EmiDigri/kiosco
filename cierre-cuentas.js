@@ -52,6 +52,11 @@
     return turnos(dia).every(t => (data?.cierres || []).some(c => c.turno === t && monto(c.total_turno) !== null));
   }
   const nombre = text => String(text || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  function conceptoGasto(value) {
+    const text = String(value || '').trim();
+    if (/^pago\s+(?:de|producto\s+de)$/i.test(text) || /^pago\s+f[a\u00e1]cil(?:\s|$)/i.test(text)) return text;
+    return text.replace(/^pago\s+(?:producto\s+de\s+|de\s+)?/i, '') || text;
+  }
   async function idGastoFoto(dia, gasto, occurrence) {
     const key = JSON.stringify([dia, nombre(gasto.nombre), monto(gasto.monto), occurrence]);
     const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(key));
@@ -166,5 +171,5 @@
     }
     return {total, mp, efectivo, gastos, resultado:total - gastos, cerrados, esperados, completos, totalCompletos};
   }
-  return {monto, fecha, ingreso, salida, totalCierre, totalDia, completo, turnos, nombre, idGastoFoto, conciliarGastos, resumenGastosDia, validarFoto, resumenMes};
+  return {monto, fecha, ingreso, salida, totalCierre, totalDia, completo, turnos, nombre, conceptoGasto, idGastoFoto, conciliarGastos, resumenGastosDia, validarFoto, resumenMes};
 });
