@@ -3327,6 +3327,7 @@ body.light .tg-lock{background:rgba(255,255,255,.96)}
 </style>
 <link rel="stylesheet" href="./login.css?v=20260905-motion">
 <link rel="stylesheet" href="./historial-gastos.css?v=20260915">
+<link rel="stylesheet" href="./historial-egresos-mapa.css?v=20260918">
 <script src="./login.js?v=20260905-motion" defer></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flipclock@1.0.1/dist/themes/flipclock.min.css">
 <script src="https://cdn.jsdelivr.net/npm/tsparticles-slim@2.12.0/tsparticles.slim.bundle.min.js" defer></script>
@@ -5739,6 +5740,10 @@ function histGrupoFilasHtml(grupos){
 }
 function histRenderGastosMes(){
   const el=document.getElementById('histGastosMes');if(!el)return;
+  if(window.HistorialEgresosMapa){
+    HistorialEgresosMapa.render({container:el,gastos:histRowsGastosMes,pagos:histRowsPagosMes,money:histMoney,compact:histMoneyCompact,cleanName:CierreCuentas.conceptoGasto});
+    return;
+  }
   const efectivo=histAgruparPorNombre(histRowsGastosMes||[]);
   const totalEfectivo=(histRowsGastosMes||[]).reduce((s,g)=>s+(Number(g.monto)||0),0);
   const salidas=(histRowsPagosMes||[]).filter(p=>(p.es_enviada===true||String(p.es_enviada)==='true')&&!(p.devuelta===true||String(p.devuelta)==='true')&&(!p.status||p.status==='approved'));
@@ -10043,6 +10048,7 @@ initEasterEggs();
 <script src="./cierre-foto-ui.js?v=20260909-lectura"></script>
 <script src="./catalogo-ui.js"></script>
 <script src="./historial-gastos.js?v=20260918-conceptos"></script>
+<script src="./historial-egresos-mapa.js?v=20260918"></script>
 <script>
 // Snapshot del cierre por foto (opción A, automático). NO toca cierre-foto-ui.js de
 // Codex: agrega listeners EXTRA al input de la foto y al botón "Cargar todo al cierre".
