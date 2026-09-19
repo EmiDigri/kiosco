@@ -1,5 +1,17 @@
 # Third-party notices
 
+## Photo cropping
+
+- Project: Cropper.js 1.6.2
+- Source: https://github.com/fengyuanchen/cropperjs/tree/v1.6.2
+- License: MIT; retained in `assets/vendor/cropper-1.6.2/LICENSE`.
+
+The photo crop editor uses a local copy of Cropper.js, loaded when opened.
+
+- Project: Lucide 0.468.0 (crop icon)
+- Source: https://github.com/lucide-icons/lucide/tree/0.468.0
+- License: ISC; retained in `assets/vendor/lucide/LICENSE`.
+
 ## Interface effects
 
 - Project: Fluent Emoji
