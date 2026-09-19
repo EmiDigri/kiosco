@@ -42,11 +42,12 @@ const server=http.createServer((req,res)=>{
     await page.locator('.hist-egr-leg[data-egr-more]').click();
     check((await page.locator('.hist-egr-c1').textContent())==='TOTAL EGRESOS','el desglose mantiene visible la base total');
     check((await page.locator('.hist-egr-drillbar').textContent()).includes('% sobre el total'),'explica la base de los porcentajes');
+    check(!(await page.locator('.hist-egr-legend').textContent()).includes('Principales')&&!(await page.locator('.hist-egr-legend').textContent()).includes('Ya vistos'),'no agrega categorias tecnicas a la leyenda');
     check(await page.locator('.hist-egr-leg[data-egr-more]').count()===1,'permite continuar cuando todavia quedan conceptos');
     const totalOtros=await page.locator('.hist-egr-c2').textContent();
     await page.screenshot({path:path.join(process.env.TEMP||root,'hist-egresos-otros-desktop.png'),fullPage:true});
     await page.locator('.hist-egr-leg[data-egr-more]').click();
-    check(await page.locator('.hist-egr-arc').count()===7,'el ultimo nivel conserva principales, lo ya visto y lo restante');
+    check(await page.locator('.hist-egr-arc').count()===5,'el ultimo nivel muestra solamente los conceptos restantes');
     check((await page.locator('.hist-egr-c2').textContent())===totalOtros,'la base total no cambia entre niveles');
     const flete=page.locator('.hist-egr-leg').filter({hasText:'Flete'});
     check((await flete.locator('.hist-egr-leg-pct').textContent())==='0,5%','cada concepto usa como base el total de gastos');

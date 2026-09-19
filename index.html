@@ -5779,11 +5779,9 @@ function histRenderGastosMes(){
     const previous=depth?source.slice(0,offset):[],remaining=depth?source.slice(offset+PAGE):source.slice(PAGE);
     const viewTotal=total,previousTotal=previous.reduce((sum,g)=>sum+g.total,0),moreTotal=remaining.reduce((sum,g)=>sum+g.total,0);
     const segs=[];
-    if(depth&&principalesTotal>0)segs.push({label:'Principales',val:principalesTotal,color:'#3f4148',count:principales.length});
-    if(previousTotal>0)segs.push({label:'Ya vistos',val:previousTotal,color:'#55555b',count:previous.length});
     visible.forEach((g,i)=>segs.push({label:g.nombre,val:g.total,color:HIST_EGRESOS_COLORS[i]}));
     if(moreTotal>0)segs.push({label:depth?'Más':'Otros',val:moreTotal,color:'#888780',more:true,count:remaining.length});
-    let off=0;
+    let off=depth?(principalesTotal+previousTotal)/viewTotal*CC:0;
     const arcs=segs.map((s,i)=>{const len=viewTotal?s.val/viewTotal*CC:0,gap=Math.min(4,Math.max(1,len*.1)),draw=Math.max(.4,len-gap),more=s.more?' data-egr-more role="button" tabindex="0"':'';const a=`<circle class="hist-egr-arc" data-egr-seg="${i}"${more} data-egr-dash="${draw} ${CC-draw}" cx="70" cy="70" r="${R}" fill="none" stroke="${s.color}" style="color:${s.color}" stroke-width="${SW}" stroke-dasharray="0 ${CC}" stroke-dashoffset="${-off}" transform="rotate(-90 70 70)"><title>${cmEsc(CierreCuentas.conceptoGasto(s.label))}: ${histMoney(s.val)}${s.more?` · ${s.count} conceptos`:''}</title></circle>`;off+=len;return a;}).join('');
     const pct=val=>(val/viewTotal*100).toLocaleString('es-AR',{maximumFractionDigits:1})+'%';
     const legend=segs.map((s,i)=>`<button type="button" class="hist-egr-leg" data-egr-seg="${i}"${s.more?' data-egr-more':''} title="${cmEsc(CierreCuentas.conceptoGasto(s.label))}: ${histMoney(s.val)} · ${pct(s.val)} del total"><span class="hist-egr-dot" style="background:${s.color};color:${s.color}"></span><span class="hist-egr-leg-nom">${cmEsc(CierreCuentas.conceptoGasto(s.label))}${s.count?` <small>· ${s.count} conceptos</small>`:''}</span><span class="hist-egr-leg-pct">${pct(s.val)}</span>${s.more?'<span class="hist-egr-leg-arrow" aria-hidden="true">→</span>':''}</button>`).join('');
