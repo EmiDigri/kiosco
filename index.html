@@ -617,13 +617,20 @@ body.light .mostrador-status.error{color:#9a4600}
 .hist-egr-c1{fill:var(--text-soft);font-size:7.5px;font-weight:800;letter-spacing:.8px;text-transform:uppercase}
 .hist-egr-c2{fill:var(--text);font-size:14px;font-weight:850;letter-spacing:0}
 .hist-egr-c3{fill:var(--text-soft);font-size:7px;font-weight:700;letter-spacing:0}
+.hist-egr-drillbar{flex:1 0 100%;min-height:30px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 2px 3px;border-bottom:1px solid var(--glass-border)}
+.hist-egr-drillbar button{appearance:none;border:0;background:transparent;color:var(--accent);font:800 11px/1 Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;cursor:pointer;padding:6px 4px;border-radius:5px}
+.hist-egr-drillbar button:hover,.hist-egr-drillbar button:focus-visible{background:var(--glass-hover);outline:none}
+.hist-egr-drillbar span{min-width:0;color:var(--text-soft);font-size:10px;font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .hist-egr-legend{flex:1;min-width:180px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
 .hist-egr-leg{appearance:none;width:100%;min-width:0;display:flex;align-items:center;gap:8px;border:1px solid transparent;border-radius:7px;background:transparent;padding:6px 7px;color:inherit;font:inherit;text-align:left;cursor:pointer;transition:background .16s ease,border-color .16s ease,opacity .16s ease}
 .hist-egr-leg:hover,.hist-egr-leg:focus-visible,.hist-egr-leg.is-active{background:var(--glass-hover);border-color:var(--glass-border);outline:none}
+.hist-egr-leg[data-egr-more]{border-color:var(--glass-border);background:var(--glass)}
 .hist-egr-legend.has-active .hist-egr-leg:not(.is-active){opacity:.34}
 .hist-egr-dot{width:8px;height:18px;border-radius:4px;flex-shrink:0;box-shadow:0 0 8px color-mix(in srgb,currentColor 42%,transparent)}
 .hist-egr-leg-nom{color:var(--text-mid);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px}
+.hist-egr-leg-nom small{color:var(--text-soft);font-size:9px;font-weight:750}
 .hist-egr-leg-pct{margin-left:auto;color:var(--text-soft);font-weight:800;font-variant-numeric:tabular-nums}
+.hist-egr-leg-arrow{color:var(--text-mid);font-size:13px;font-weight:900}
 .hist-egresos-cols{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .hist-egresos-col{background:var(--glass);border:1px solid var(--glass-border);border-radius:12px;padding:10px 12px}
 .hist-egr-colhead{display:flex;justify-content:space-between;gap:8px;font-size:12px;font-weight:800;color:var(--text-soft);border-bottom:1px solid var(--glass-border);padding-bottom:7px;margin-bottom:4px}
@@ -5761,19 +5768,30 @@ function histRenderGastosMes(){
   const comb=new Map();
   [...efectivo,...mp].forEach(g=>comb.set(g.nombre,(comb.get(g.nombre)||0)+g.total));
   const todos=[...comb.entries()].map(([nombre,t])=>({nombre,total:t})).sort((a,b)=>b.total-a.total);
-  const top=todos.slice(0,6),otros=todos.slice(6).reduce((s,g)=>s+g.total,0);
-  const segs=top.map((g,i)=>({label:g.nombre,val:g.total,color:HIST_EGRESOS_COLORS[i]}));
-  if(otros>0)segs.push({label:'Otros',val:otros,color:'#888780'});
-  const R=49,SW=15,CC=2*Math.PI*R;let off=0;
-  const arcs=segs.map((s,i)=>{const len=total?s.val/total*CC:0,gap=Math.min(4,Math.max(1,len*.1)),draw=Math.max(.4,len-gap);const a=`<circle class="hist-egr-arc" data-egr-seg="${i}" data-egr-dash="${draw} ${CC-draw}" cx="70" cy="70" r="${R}" fill="none" stroke="${s.color}" style="color:${s.color}" stroke-width="${SW}" stroke-dasharray="0 ${CC}" stroke-dashoffset="${-off}" transform="rotate(-90 70 70)"><title>${cmEsc(CierreCuentas.conceptoGasto(s.label))}: ${histMoney(s.val)}</title></circle>`;off+=len;return a;}).join('');
-  const legend=segs.map((s,i)=>`<button type="button" class="hist-egr-leg" data-egr-seg="${i}" title="${cmEsc(CierreCuentas.conceptoGasto(s.label))}: ${histMoney(s.val)}"><span class="hist-egr-dot" style="background:${s.color};color:${s.color}"></span><span class="hist-egr-leg-nom">${cmEsc(CierreCuentas.conceptoGasto(s.label))}</span><span class="hist-egr-leg-pct">${Math.round(s.val/total*100)}%</span></button>`).join('');
-  el.innerHTML=`<details class="hist-egresos hist-mes-sec" data-mes-sec="egresos" open><summary class="hist-egresos-head hist-mes-head"><span class="hist-mes-head-txt">↗ Egresos del mes</span><strong>-${histMoney(total)}</strong></summary><div class="hist-egresos-top"><div class="hist-egr-donut-wrap"><svg class="hist-egr-donut" viewBox="0 0 140 140" role="img" aria-label="Composición de egresos por proveedor"><circle class="hist-egr-track" cx="70" cy="70" r="${R}" fill="none" stroke-width="${SW}"></circle>${arcs}<circle class="hist-egr-hole" cx="70" cy="70" r="36"></circle><text x="70" y="62" text-anchor="middle" class="hist-egr-c1">TOTAL EGRESOS</text><text x="70" y="79" text-anchor="middle" class="hist-egr-c2">${histMoneyCompact(total)}</text><text x="70" y="91" text-anchor="middle" class="hist-egr-c3">${todos.length} ${todos.length===1?'concepto':'conceptos'}</text></svg></div><div class="hist-egr-legend">${legend}</div></div><div class="hist-egresos-cols"><div class="hist-egresos-col"><div class="hist-egr-colhead"><span>Efectivo</span><span>${histMoney(totalEfectivo)}</span></div>${histGrupoFilasHtml(efectivo)}</div><div class="hist-egresos-col"><div class="hist-egr-colhead"><span>MercadoPago</span><span>${histMoney(totalMp)}</span></div>${histGrupoFilasHtml(mp)}</div></div></details>`;
+  el.innerHTML=`<details class="hist-egresos hist-mes-sec" data-mes-sec="egresos" open><summary class="hist-egresos-head hist-mes-head"><span class="hist-mes-head-txt">↗ Egresos del mes</span><strong>-${histMoney(total)}</strong></summary><div class="hist-egresos-top" data-egr-chart></div><div class="hist-egresos-cols"><div class="hist-egresos-col"><div class="hist-egr-colhead"><span>Efectivo</span><span>${histMoney(totalEfectivo)}</span></div>${histGrupoFilasHtml(efectivo)}</div><div class="hist-egresos-col"><div class="hist-egr-colhead"><span>MercadoPago</span><span>${histMoney(totalMp)}</span></div>${histGrupoFilasHtml(mp)}</div></div></details>`;
   el.querySelectorAll('.hist-egr-grp').forEach(g=>g.querySelector('.hist-egr-row').addEventListener('click',()=>g.classList.toggle('open')));
-  const donut=el.querySelector('.hist-egr-donut'),legendEl=el.querySelector('.hist-egr-legend');
-  const active=i=>{donut.classList.add('has-active');legendEl.classList.add('has-active');el.querySelectorAll(`[data-egr-seg="${i}"]`).forEach(node=>node.classList.add('is-active'));};
-  const clear=()=>{donut.classList.remove('has-active');legendEl.classList.remove('has-active');el.querySelectorAll('[data-egr-seg]').forEach(node=>node.classList.remove('is-active'));};
-  el.querySelectorAll('[data-egr-seg]').forEach(node=>{node.addEventListener('mouseenter',()=>active(node.dataset.egrSeg));node.addEventListener('mouseleave',clear);node.addEventListener('focus',()=>active(node.dataset.egrSeg));node.addEventListener('blur',clear);});
-  requestAnimationFrame(()=>requestAnimationFrame(()=>el.querySelectorAll('.hist-egr-arc').forEach(arc=>arc.setAttribute('stroke-dasharray',arc.dataset.egrDash))));
+  const chart=el.querySelector('[data-egr-chart]'),PAGE=6,R=49,SW=15,CC=2*Math.PI*R;
+  let depth=0;
+  function renderChart(){
+    const start=depth*PAGE,source=todos.slice(start),visible=source.slice(0,PAGE),remaining=source.slice(PAGE);
+    const viewTotal=source.reduce((sum,g)=>sum+g.total,0),moreTotal=remaining.reduce((sum,g)=>sum+g.total,0);
+    const segs=visible.map((g,i)=>({label:g.nombre,val:g.total,color:HIST_EGRESOS_COLORS[i]}));
+    if(moreTotal>0)segs.push({label:depth?'Más':'Otros',val:moreTotal,color:'#888780',more:true,count:remaining.length});
+    let off=0;
+    const arcs=segs.map((s,i)=>{const len=viewTotal?s.val/viewTotal*CC:0,gap=Math.min(4,Math.max(1,len*.1)),draw=Math.max(.4,len-gap),more=s.more?' data-egr-more role="button" tabindex="0"':'';const a=`<circle class="hist-egr-arc" data-egr-seg="${i}"${more} data-egr-dash="${draw} ${CC-draw}" cx="70" cy="70" r="${R}" fill="none" stroke="${s.color}" style="color:${s.color}" stroke-width="${SW}" stroke-dasharray="0 ${CC}" stroke-dashoffset="${-off}" transform="rotate(-90 70 70)"><title>${cmEsc(CierreCuentas.conceptoGasto(s.label))}: ${histMoney(s.val)}${s.more?` · ${s.count} conceptos`:''}</title></circle>`;off+=len;return a;}).join('');
+    const legend=segs.map((s,i)=>`<button type="button" class="hist-egr-leg" data-egr-seg="${i}"${s.more?' data-egr-more':''} title="${cmEsc(CierreCuentas.conceptoGasto(s.label))}: ${histMoney(s.val)}"><span class="hist-egr-dot" style="background:${s.color};color:${s.color}"></span><span class="hist-egr-leg-nom">${cmEsc(CierreCuentas.conceptoGasto(s.label))}${s.more?` <small>· ${s.count} conceptos</small>`:''}</span><span class="hist-egr-leg-pct">${Math.round(s.val/viewTotal*100)}%</span>${s.more?'<span class="hist-egr-leg-arrow" aria-hidden="true">→</span>':''}</button>`).join('');
+    const bar=depth?`<div class="hist-egr-drillbar"><button type="button" data-egr-back>← ${depth===1?'Volver al total':'Anteriores'}</button><span>Desglose de Otros · conceptos ${start+1}–${Math.min(start+PAGE,todos.length)} de ${todos.length}</span></div>`:'';
+    chart.innerHTML=`${bar}<div class="hist-egr-donut-wrap"><svg class="hist-egr-donut" viewBox="0 0 140 140" role="img" aria-label="${depth?'Desglose de Otros':'Composición de egresos por proveedor'}"><circle class="hist-egr-track" cx="70" cy="70" r="${R}" fill="none" stroke-width="${SW}"></circle>${arcs}<circle class="hist-egr-hole" cx="70" cy="70" r="36"></circle><text x="70" y="62" text-anchor="middle" class="hist-egr-c1">${depth?'OTROS':'TOTAL EGRESOS'}</text><text x="70" y="79" text-anchor="middle" class="hist-egr-c2">${histMoneyCompact(viewTotal)}</text><text x="70" y="91" text-anchor="middle" class="hist-egr-c3">${source.length} ${source.length===1?'concepto':'conceptos'}</text></svg></div><div class="hist-egr-legend">${legend}</div>`;
+    const donut=chart.querySelector('.hist-egr-donut'),legendEl=chart.querySelector('.hist-egr-legend');
+    const active=i=>{donut.classList.add('has-active');legendEl.classList.add('has-active');chart.querySelectorAll(`[data-egr-seg="${i}"]`).forEach(node=>node.classList.add('is-active'));};
+    const clear=()=>{donut.classList.remove('has-active');legendEl.classList.remove('has-active');chart.querySelectorAll('[data-egr-seg]').forEach(node=>node.classList.remove('is-active'));};
+    chart.querySelectorAll('[data-egr-seg]').forEach(node=>{node.addEventListener('mouseenter',()=>active(node.dataset.egrSeg));node.addEventListener('mouseleave',clear);node.addEventListener('focus',()=>active(node.dataset.egrSeg));node.addEventListener('blur',clear);});
+    const drill=()=>{depth++;renderChart();};
+    chart.querySelectorAll('[data-egr-more]').forEach(node=>{node.addEventListener('click',drill);if(node.tagName.toLowerCase()==='circle')node.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();drill();}});});
+    chart.querySelector('[data-egr-back]')?.addEventListener('click',()=>{depth=Math.max(0,depth-1);renderChart();});
+    requestAnimationFrame(()=>requestAnimationFrame(()=>chart.querySelectorAll('.hist-egr-arc').forEach(arc=>arc.setAttribute('stroke-dasharray',arc.dataset.egrDash))));
+  }
+  renderChart();
 }
 function histTotalDia(data){
   return CierreCuentas.totalDia(data);
