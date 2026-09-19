@@ -606,15 +606,24 @@ body.light .mostrador-status.error{color:#9a4600}
 .hist-egresos-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:12px}
 .hist-egresos-head span{font-size:13px;font-weight:900;color:var(--text)}
 .hist-egresos-head strong{font-size:18px;font-weight:900;color:var(--amber);font-variant-numeric:tabular-nums;white-space:nowrap}
-.hist-egresos-top{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:14px}
-.hist-egr-donut{flex-shrink:0}
-.hist-egr-c1{fill:var(--text-soft);font-size:8px;letter-spacing:.5px;text-transform:uppercase}
-.hist-egr-c2{fill:var(--text);font-size:14px;font-weight:800}
-.hist-egr-legend{flex:1;min-width:160px;display:flex;flex-direction:column;gap:5px}
-.hist-egr-leg{display:flex;align-items:center;gap:8px;font-size:12px}
-.hist-egr-dot{width:9px;height:9px;border-radius:2px;flex-shrink:0}
+.hist-egresos-top{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-bottom:14px}
+.hist-egr-donut-wrap{position:relative;width:140px;height:140px;display:grid;place-items:center;flex:0 0 140px;border:1px solid var(--glass-border);border-radius:50%;background:var(--bg1);box-shadow:inset 0 0 0 6px var(--glass),0 8px 26px rgba(0,0,0,.18)}
+.hist-egr-donut{width:132px;height:132px;overflow:visible;filter:drop-shadow(0 4px 8px rgba(0,0,0,.2))}
+.hist-egr-track{stroke:var(--glass-border)}
+.hist-egr-hole{fill:var(--surface,var(--glass));stroke:var(--glass-border);stroke-width:1}
+.hist-egr-arc{cursor:pointer;stroke-linecap:round;transition:stroke-dasharray .75s cubic-bezier(.22,1,.36,1),stroke-width .18s ease,opacity .18s ease,filter .18s ease}
+.hist-egr-donut.has-active .hist-egr-arc:not(.is-active){opacity:.18}
+.hist-egr-arc.is-active{stroke-width:19;filter:drop-shadow(0 0 5px currentColor)}
+.hist-egr-c1{fill:var(--text-soft);font-size:7.5px;font-weight:800;letter-spacing:.8px;text-transform:uppercase}
+.hist-egr-c2{fill:var(--text);font-size:14px;font-weight:850;letter-spacing:0}
+.hist-egr-c3{fill:var(--text-soft);font-size:7px;font-weight:700;letter-spacing:0}
+.hist-egr-legend{flex:1;min-width:180px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
+.hist-egr-leg{appearance:none;width:100%;min-width:0;display:flex;align-items:center;gap:8px;border:1px solid transparent;border-radius:7px;background:transparent;padding:6px 7px;color:inherit;font:inherit;text-align:left;cursor:pointer;transition:background .16s ease,border-color .16s ease,opacity .16s ease}
+.hist-egr-leg:hover,.hist-egr-leg:focus-visible,.hist-egr-leg.is-active{background:var(--glass-hover);border-color:var(--glass-border);outline:none}
+.hist-egr-legend.has-active .hist-egr-leg:not(.is-active){opacity:.34}
+.hist-egr-dot{width:8px;height:18px;border-radius:4px;flex-shrink:0;box-shadow:0 0 8px color-mix(in srgb,currentColor 42%,transparent)}
 .hist-egr-leg-nom{color:var(--text-mid);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px}
-.hist-egr-leg-pct{color:var(--text-soft);font-weight:700;font-variant-numeric:tabular-nums}
+.hist-egr-leg-pct{margin-left:auto;color:var(--text-soft);font-weight:800;font-variant-numeric:tabular-nums}
 .hist-egresos-cols{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .hist-egresos-col{background:var(--glass);border:1px solid var(--glass-border);border-radius:12px;padding:10px 12px}
 .hist-egr-colhead{display:flex;justify-content:space-between;gap:8px;font-size:12px;font-weight:800;color:var(--text-soft);border-bottom:1px solid var(--glass-border);padding-bottom:7px;margin-bottom:4px}
@@ -631,7 +640,10 @@ body.light .mostrador-status.error{color:#9a4600}
 .hist-egr-grp.open .hist-egr-det{max-height:600px}
 .hist-egr-item{display:flex;justify-content:space-between;font-size:11.5px;color:var(--text-soft);padding:3px 0 3px 8px}
 .hist-egresos-empty{font-size:12px;color:var(--text-soft);padding:8px 0}
-@media(max-width:640px){.hist-egresos-cols{grid-template-columns:1fr}}
+@media(max-width:640px){.hist-egresos-cols{grid-template-columns:1fr}.hist-egresos-top{justify-content:center}.hist-egr-legend{width:100%;flex-basis:100%}}
+@media(max-width:370px){.hist-egr-legend{grid-template-columns:1fr}.hist-egr-donut-wrap{width:132px;height:132px;flex-basis:132px}.hist-egr-donut{width:124px;height:124px}}
+@media(prefers-reduced-motion:reduce){.hist-egr-arc{transition:none}}
+
 
 /* ─── HISTORIAL ─── */
 .btn-historial{display:inline-flex;align-items:center;gap:6px;background:var(--glass);border:1px solid var(--glass-border);border-radius:999px;color:var(--text-mid);font-size:12px;font-weight:500;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;padding:5px 12px;cursor:pointer;backdrop-filter:blur(10px);transition:all .2s ease}
@@ -3327,7 +3339,6 @@ body.light .tg-lock{background:rgba(255,255,255,.96)}
 </style>
 <link rel="stylesheet" href="./login.css?v=20260905-motion">
 <link rel="stylesheet" href="./historial-gastos.css?v=20260915">
-<link rel="stylesheet" href="./historial-egresos-mapa.css?v=20260918">
 <script src="./login.js?v=20260905-motion" defer></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flipclock@1.0.1/dist/themes/flipclock.min.css">
 <script src="https://cdn.jsdelivr.net/npm/tsparticles-slim@2.12.0/tsparticles.slim.bundle.min.js" defer></script>
@@ -5740,10 +5751,6 @@ function histGrupoFilasHtml(grupos){
 }
 function histRenderGastosMes(){
   const el=document.getElementById('histGastosMes');if(!el)return;
-  if(window.HistorialEgresosMapa){
-    HistorialEgresosMapa.render({container:el,gastos:histRowsGastosMes,pagos:histRowsPagosMes,money:histMoney,compact:histMoneyCompact,cleanName:CierreCuentas.conceptoGasto});
-    return;
-  }
   const efectivo=histAgruparPorNombre(histRowsGastosMes||[]);
   const totalEfectivo=(histRowsGastosMes||[]).reduce((s,g)=>s+(Number(g.monto)||0),0);
   const salidas=(histRowsPagosMes||[]).filter(p=>(p.es_enviada===true||String(p.es_enviada)==='true')&&!(p.devuelta===true||String(p.devuelta)==='true')&&(!p.status||p.status==='approved'));
@@ -5757,11 +5764,16 @@ function histRenderGastosMes(){
   const top=todos.slice(0,6),otros=todos.slice(6).reduce((s,g)=>s+g.total,0);
   const segs=top.map((g,i)=>({label:g.nombre,val:g.total,color:HIST_EGRESOS_COLORS[i]}));
   if(otros>0)segs.push({label:'Otros',val:otros,color:'#888780'});
-  const R=42,SW=16,CC=2*Math.PI*R;let off=0;
-  const arcs=segs.map(s=>{const len=total?s.val/total*CC:0;const a=`<circle cx="60" cy="60" r="${R}" fill="none" stroke="${s.color}" stroke-width="${SW}" stroke-dasharray="${len} ${CC-len}" stroke-dashoffset="${-off}" transform="rotate(-90 60 60)"></circle>`;off+=len;return a;}).join('');
-  const legend=segs.map(s=>`<div class="hist-egr-leg"><span class="hist-egr-dot" style="background:${s.color}"></span><span class="hist-egr-leg-nom">${cmEsc(CierreCuentas.conceptoGasto(s.label))}</span><span class="hist-egr-leg-pct">${Math.round(s.val/total*100)}%</span></div>`).join('');
-  el.innerHTML=`<details class="hist-egresos hist-mes-sec" data-mes-sec="egresos" open><summary class="hist-egresos-head hist-mes-head"><span class="hist-mes-head-txt">↗ Egresos del mes</span><strong>-${histMoney(total)}</strong></summary><div class="hist-egresos-top"><svg class="hist-egr-donut" viewBox="0 0 120 120" width="116" height="116" role="img" aria-label="Composición de egresos por proveedor">${arcs}<text x="60" y="56" text-anchor="middle" class="hist-egr-c1">total</text><text x="60" y="72" text-anchor="middle" class="hist-egr-c2">${histMoneyCompact(total)}</text></svg><div class="hist-egr-legend">${legend}</div></div><div class="hist-egresos-cols"><div class="hist-egresos-col"><div class="hist-egr-colhead"><span>Efectivo</span><span>${histMoney(totalEfectivo)}</span></div>${histGrupoFilasHtml(efectivo)}</div><div class="hist-egresos-col"><div class="hist-egr-colhead"><span>MercadoPago</span><span>${histMoney(totalMp)}</span></div>${histGrupoFilasHtml(mp)}</div></div></details>`;
+  const R=49,SW=15,CC=2*Math.PI*R;let off=0;
+  const arcs=segs.map((s,i)=>{const len=total?s.val/total*CC:0,gap=Math.min(4,Math.max(1,len*.1)),draw=Math.max(.4,len-gap);const a=`<circle class="hist-egr-arc" data-egr-seg="${i}" data-egr-dash="${draw} ${CC-draw}" cx="70" cy="70" r="${R}" fill="none" stroke="${s.color}" style="color:${s.color}" stroke-width="${SW}" stroke-dasharray="0 ${CC}" stroke-dashoffset="${-off}" transform="rotate(-90 70 70)"><title>${cmEsc(CierreCuentas.conceptoGasto(s.label))}: ${histMoney(s.val)}</title></circle>`;off+=len;return a;}).join('');
+  const legend=segs.map((s,i)=>`<button type="button" class="hist-egr-leg" data-egr-seg="${i}" title="${cmEsc(CierreCuentas.conceptoGasto(s.label))}: ${histMoney(s.val)}"><span class="hist-egr-dot" style="background:${s.color};color:${s.color}"></span><span class="hist-egr-leg-nom">${cmEsc(CierreCuentas.conceptoGasto(s.label))}</span><span class="hist-egr-leg-pct">${Math.round(s.val/total*100)}%</span></button>`).join('');
+  el.innerHTML=`<details class="hist-egresos hist-mes-sec" data-mes-sec="egresos" open><summary class="hist-egresos-head hist-mes-head"><span class="hist-mes-head-txt">↗ Egresos del mes</span><strong>-${histMoney(total)}</strong></summary><div class="hist-egresos-top"><div class="hist-egr-donut-wrap"><svg class="hist-egr-donut" viewBox="0 0 140 140" role="img" aria-label="Composición de egresos por proveedor"><circle class="hist-egr-track" cx="70" cy="70" r="${R}" fill="none" stroke-width="${SW}"></circle>${arcs}<circle class="hist-egr-hole" cx="70" cy="70" r="36"></circle><text x="70" y="62" text-anchor="middle" class="hist-egr-c1">TOTAL EGRESOS</text><text x="70" y="79" text-anchor="middle" class="hist-egr-c2">${histMoneyCompact(total)}</text><text x="70" y="91" text-anchor="middle" class="hist-egr-c3">${todos.length} ${todos.length===1?'concepto':'conceptos'}</text></svg></div><div class="hist-egr-legend">${legend}</div></div><div class="hist-egresos-cols"><div class="hist-egresos-col"><div class="hist-egr-colhead"><span>Efectivo</span><span>${histMoney(totalEfectivo)}</span></div>${histGrupoFilasHtml(efectivo)}</div><div class="hist-egresos-col"><div class="hist-egr-colhead"><span>MercadoPago</span><span>${histMoney(totalMp)}</span></div>${histGrupoFilasHtml(mp)}</div></div></details>`;
   el.querySelectorAll('.hist-egr-grp').forEach(g=>g.querySelector('.hist-egr-row').addEventListener('click',()=>g.classList.toggle('open')));
+  const donut=el.querySelector('.hist-egr-donut'),legendEl=el.querySelector('.hist-egr-legend');
+  const active=i=>{donut.classList.add('has-active');legendEl.classList.add('has-active');el.querySelectorAll(`[data-egr-seg="${i}"]`).forEach(node=>node.classList.add('is-active'));};
+  const clear=()=>{donut.classList.remove('has-active');legendEl.classList.remove('has-active');el.querySelectorAll('[data-egr-seg]').forEach(node=>node.classList.remove('is-active'));};
+  el.querySelectorAll('[data-egr-seg]').forEach(node=>{node.addEventListener('mouseenter',()=>active(node.dataset.egrSeg));node.addEventListener('mouseleave',clear);node.addEventListener('focus',()=>active(node.dataset.egrSeg));node.addEventListener('blur',clear);});
+  requestAnimationFrame(()=>requestAnimationFrame(()=>el.querySelectorAll('.hist-egr-arc').forEach(arc=>arc.setAttribute('stroke-dasharray',arc.dataset.egrDash))));
 }
 function histTotalDia(data){
   return CierreCuentas.totalDia(data);
@@ -10048,7 +10060,6 @@ initEasterEggs();
 <script src="./cierre-foto-ui.js?v=20260909-lectura"></script>
 <script src="./catalogo-ui.js"></script>
 <script src="./historial-gastos.js?v=20260918-conceptos"></script>
-<script src="./historial-egresos-mapa.js?v=20260918"></script>
 <script>
 // Snapshot del cierre por foto (opción A, automático). NO toca cierre-foto-ui.js de
 // Codex: agrega listeners EXTRA al input de la foto y al botón "Cargar todo al cierre".
