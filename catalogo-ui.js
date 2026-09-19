@@ -577,7 +577,42 @@
     return item.id || `pc:${item.ean || item.code || item.name}`;
   }
 
-  function sourceOffer(item, selected, score) {
+  function samePriceProduct(left, right) {
+    const normalize = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+    function barcode(item) {
+      const value = String(item.ean || item.gtin || item.barcode || '').trim();
+      if (!/^(?:\d{8}|\d{12,14})$/.test(value) || /^0+$/.test(value)) return null;
+      let sum = 0;
+      for (let i = value.length - 2, weight = 3; i >= 0; i--, weight = 4 - weight) sum += Number(value[i]) * weight;
+      return (10 - sum % 10) % 10 === Number(value.at(-1)) ? value.padStart(14, '0') : null;
+    }
+    function identity(item) {
+      let text = normalize([item.brand, item.title || item.name || item.nombre, item.presentation || item.presentacion, item.saleFormat].filter(Boolean).join(' '));
+      const sizes = [];
+      text = text.replace(/\b(?:x\s*)?(\d+(?:[.,]\d+)?)\s*(kilogramos?|kg|gramos?|grs?|g|mililitros?|ml|cc|litros?|lts?|l)\b/g, (_, amount, unit) => {
+        const volume = /^(?:mililitro|ml|cc|litro|lt|l)/.test(unit);
+        const factor = /^(?:kilogramo|kg|litro|lt|l$)/.test(unit) ? 1000 : 1;
+        const size = String(Math.round(Number(amount.replace(',', '.')) * factor * 1000) / 1000) + (volume ? 'ml' : 'g');
+        sizes.push(size);
+        return ' ' + size + ' ';
+      });
+      text = text.replace(/\bx\s*(\d+)\s*(hojas?)\b/g, '$1 $2');
+      const tokens = new Set(text.replace(/[^a-z0-9.]+/g, ' ').split(/\s+/).filter(token => token && !['de', 'con', 'por', 'el', 'la', 'unidad', 'unidades', 'individual', '1u'].includes(token)));
+      return { tokens, sizes: [...new Set(sizes)].sort().join('|') };
+    }
+    // Only barcode fields are identifiers; supplier SKU/code values are not EANs.
+    const a = identity(left), b = identity(right);
+    if (a.sizes && b.sizes && a.sizes !== b.sizes) return false;
+    for (const field of ['packUnits', 'unitsPerPack']) {
+      if ((Number(left[field]) || 1) !== (Number(right[field]) || 1)) return false;
+    }
+    const aCode = barcode(left), bCode = barcode(right);
+    if (aCode && bCode) return aCode === bCode;
+    if (!normalize(left.brand) || !normalize(right.brand) || normalize(left.brand) !== normalize(right.brand)) return false;
+    return a.tokens.size >= 3 && a.tokens.size === b.tokens.size && [...a.tokens].every(token => b.tokens.has(token));
+  }
+
+  function sourceOffer(item, selected, score, sameProduct) {
     const source = comparisonSource(item);
     const isOfficial = source === 'precios-claros';
     const retailPrice = isOfficial ? Number(item.retail?.min) || null : (item.priceType === 'retail' ? Number(item.unitPrice) || null : null);
@@ -596,7 +631,7 @@
       packUnits: Number(item.packUnits) || null,
       permalink: item.permalink || '',
       selected,
-      matchType: selected ? 'selected' : (score >= 0.55 ? 'same' : 'similar'),
+      matchType: selected ? 'selected' : (sameProduct ? 'same' : 'similar'),
       score,
     };
   }
@@ -617,16 +652,17 @@
       const shared = [...selectedTokens].filter(token => tokens.has(token)).length;
       const score = shared / Math.max(selectedTokens.size, tokens.size, 1);
       const selected = comparisonId(item) === selectedId;
-      return { item, selected, score, shared };
-    }).filter(row => row.selected || row.shared > 0);
+      const sameProduct = samePriceProduct(selectedItem, item);
+      return { item, selected, score, shared, sameProduct };
+    }).filter(row => row.selected || row.sameProduct || row.shared > 0);
 
     const sourceOrder = ['precios-claros', 'open25', 'rappi', 'dulce-sur', 'casa-paso'];
     const offers = [];
     sourceOrder.forEach(source => {
       const rows = ranked.filter(row => comparisonSource(row.item) === source)
-        .sort((a, b) => Number(b.selected) - Number(a.selected) || b.score - a.score || (Number(a.item.unitPrice) || Infinity) - (Number(b.item.unitPrice) || Infinity));
+        .sort((a, b) => Number(b.selected) - Number(a.selected) || Number(b.sameProduct) - Number(a.sameProduct) || b.score - a.score || (Number(a.item.unitPrice) || Infinity) - (Number(b.item.unitPrice) || Infinity));
       const visible = source === selectedSource ? rows.filter(row => row.selected).slice(0, 1) : rows.slice(0, 3);
-      visible.forEach(row => offers.push(sourceOffer(row.item, row.selected, row.score)));
+      visible.forEach(row => offers.push(sourceOffer(row.item, row.selected, row.score, row.sameProduct)));
     });
     return offers;
   }
@@ -768,8 +804,9 @@
   function sourceOffersHtml(offers) {
     if (!Array.isArray(offers) || offers.length < 2) return '';
     const labels = { selected: 'Producto elegido', same: 'Mismo producto', similar: 'Alternativa similar' };
+    function renderGroups(rows) {
     const groups = new Map();
-    offers.forEach(offer => {
+    rows.forEach(offer => {
       if (!groups.has(offer.source)) groups.set(offer.source, { label: offer.sourceLabel, offers: [] });
       groups.get(offer.source).offers.push(offer);
     });
@@ -787,11 +824,15 @@
             : `<div class="price-source-offer">${content}</div>`;
         }).join('')}
       </div>`).join('');
+    return `<div class="price-source-columns">${columns}</div>`;
+    }
+    const exact = offers.filter(offer => offer.matchType !== 'similar');
+    const alternatives = offers.filter(offer => offer.matchType === 'similar');
     return `
       <section class="price-source-comparison">
-        <div class="price-source-comparison-head"><div><strong>Precios por fuente</strong><small>Reunidos automáticamente para el producto elegido</small></div></div>
-        <div class="price-source-columns">${columns}</div>
-        <div class="price-source-warning">Las alternativas similares pueden cambiar de marca, gramaje o presentación. No se usan solas para calcular tu margen.</div>
+        <div class="price-source-comparison-head"><div><strong>Precios del producto elegido</strong><small>${exact.length > 1 ? 'Coincidencias por código de barras o descripción y presentación' : 'Una referencia disponible'}</small></div></div>
+        ${renderGroups(exact)}
+        ${alternatives.length ? `<details class="price-shop-details"><summary><span>Otras opciones (${alternatives.length})</span></summary><div class="price-source-warning">No se confirmó que sean el mismo producto. No forman parte de la referencia del producto elegido.</div>${renderGroups(alternatives)}</details>` : ''}
       </section>`;
   }
 
