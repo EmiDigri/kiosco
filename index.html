@@ -5403,7 +5403,7 @@ function metRender(){
     <div class="met-card">
       <div class="met-card-title">Resultado de ${mesCorto}</div>
       ${H('Utilidad neta',`<b class="${utilidad>=0?'met-pos':'met-neg'}">${histMoney(utilidad)}</b>`,'Es el resultado neto del mes: la facturación menos todos los egresos —mercadería, costos fijos e inversiones—. Las inversiones (como el toldo o el lector) se descuentan en el mes en que se pagaron: aunque sean bienes que duran, el dinero ya salió de la caja y no queda como ganancia del período.','hero')}
-      <div class="met-sub">Margen neto ${Math.round(margenNetoPct)}% · de cada $100 facturados, ${Math.round(Math.max(0,margenNetoPct))} son ganancia neta</div>
+      <div class="met-sub">Margen neto ${Math.round(margenNetoPct)}% · quedan $${Math.round(Math.max(0,margenNetoPct))} de cada $100 que facturás</div>
       ${faltan>0?`<div class="met-warn">Faltan ${faltan} cierre${faltan===1?'':'s'} con el efectivo cargado, así que la recaudación y la utilidad reales son más altas.</div>`:''}
     </div>
     <div class="met-card">
