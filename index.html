@@ -5425,6 +5425,12 @@ async function metDibujarGraficos(v){
         ]}
       ]
     });
+    try{
+      const cx=i=>_metCasc.convertToPixel({xAxisIndex:0},i),vy=val=>_metCasc.convertToPixel({yAxisIndex:0},val);
+      const hb=Math.abs(cx(1)-cx(0))*0.28, niv=[v.recaud, v.recaud-v.variable, v.utilidad], ln=[];
+      for(let i=0;i<3;i++){const y=vy(niv[i]),x1=cx(i)+hb,x2=cx(i+1)-hb;if(y==null||x1==null||x2==null)continue;ln.push({type:'line',silent:true,shape:{x1,y1:y,x2,y2:y},style:{stroke:dark?'rgba(255,255,255,.32)':'rgba(0,0,0,.22)',lineWidth:1.5,lineDash:[4,3]}});}
+      if(ln.length)_metCasc.setOption({graphic:ln});
+    }catch(e){}
   }catch(e){}}
 }
 document.getElementById('btnMetricas')?.addEventListener('click',metAbrir);
