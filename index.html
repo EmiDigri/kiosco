@@ -2468,6 +2468,9 @@ body.light .hist-neg-margen-pill{background:rgba(15,23,42,.04)}
 .met-bar>span{height:100%}
 .met-warn{margin-top:11px;padding:9px 11px;font-size:11px;line-height:1.5;color:#f0b860;background:rgba(240,184,96,.09);border:1px solid rgba(240,184,96,.22);border-radius:11px}
 .met-empty{padding:28px 14px;text-align:center;color:var(--text-soft);font-size:13px}
+.met-chart{width:100%}
+.met-cap{margin-top:10px;font-size:11.5px;line-height:1.5;color:var(--text-soft)}
+.met-cap b{color:var(--text-mid);font-weight:800}
 body.light .met-card{background:#FFFFFF!important;border-color:var(--glass-border)!important;box-shadow:var(--shadow-sm)!important}
 body.light .met-mes-btn,body.light .met-bar{background:rgba(15,23,42,.05)}
 .hist-met-kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
@@ -5283,6 +5286,14 @@ const MET_FIJOS=new Set(['Alquiler','Monotributo','Edenor','Contadora','Telecent
 const MET_INVERSION=new Set(['Toldo']);
 const MET_PENDIENTE=new Set(['M.A']);
 function metTipoGasto(nombre){const n=(nombre||'').trim();if(MET_INVERSION.has(n))return'inversion';if(MET_FIJOS.has(n))return'fijo';if(MET_PENDIENTE.has(n))return'pendiente';return'variable';}
+// Nombre lindo para cada concepto (el usuario ve "Luz", no "Edenor"); el proveedor real
+// se aclara en el tooltip del gráfico. Sólo para los que no se explican solos.
+const MET_LABEL={Edenor:'Luz',AYSA:'Agua',Telecentro:'Internet',Fotocopiadora:'Insumos fotocopiadora','Mercado Pago':'Comisión MP',Toldo:'Toldo (mejora del local)','M.A':'M.A (sin identificar)'};
+const MET_PROVEEDOR={Edenor:'Edenor',AYSA:'AYSA',Telecentro:'Telecentro'};
+function metLabel(n){n=(n||'').trim();return MET_LABEL[n]||n;}
+// ECharts se carga on-demand (sólo al abrir Métricas, para no pesar el home).
+let _metEchProm=null,_metCasc=null,_metTree=null,_metResizeReady=false;
+function metCargarECharts(){if(window.echarts)return Promise.resolve();if(_metEchProm)return _metEchProm;_metEchProm=new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.1/echarts.min.js';s.onload=()=>res();s.onerror=()=>rej(new Error('echarts'));document.head.appendChild(s);});return _metEchProm;}
 let metMes=new Date();metMes.setDate(1);
 function metActualizarNav(){
   const hoy=new Date();hoy.setDate(1);hoy.setHours(0,0,0,0);
@@ -5309,38 +5320,99 @@ function metRender(){
   const contable=CierreCuentas.resumenMes(histResumenMes,histIso(y,m,1),histIso(y,m,hoyD));
   const recaud=contable.total||0;
   const faltan=Math.max(0,contable.esperados-contable.cerrados);
+  // Sumar por concepto y agrupar por tipo (para el treemap y los totales).
+  const porNombre={};
+  (histRowsGastosMes||[]).forEach(g=>{const n=(g.nombre||'').trim()||'(sin nombre)';porNombre[n]=(porNombre[n]||0)+(Number(g.monto)||0);});
   let fijo=0,variable=0,inversion=0,pendiente=0;
-  (histRowsGastosMes||[]).forEach(g=>{const mo=Number(g.monto)||0;const t=metTipoGasto(g.nombre);if(t==='fijo')fijo+=mo;else if(t==='inversion')inversion+=mo;else if(t==='pendiente')pendiente+=mo;else variable+=mo;});
-  if(recaud<=0&&(fijo+variable+inversion+pendiente)<=0){body.innerHTML='<div class="met-empty">Todavía no hay datos cargados de este mes.</div>';return;}
+  const grupos={variable:[],fijo:[],inversion:[],pendiente:[]};
+  Object.entries(porNombre).forEach(([n,v])=>{const t=metTipoGasto(n);grupos[t].push({nombre:n,monto:v});if(t==='fijo')fijo+=v;else if(t==='inversion')inversion+=v;else if(t==='pendiente')pendiente+=v;else variable+=v;});
+  if(recaud<=0&&(fijo+variable+inversion+pendiente)<=0){body.innerHTML='<div class="met-empty">Todavía no hay datos cargados de este mes.</div>';if(_metCasc){_metCasc.dispose();_metCasc=null;}if(_metTree){_metTree.dispose();_metTree=null;}return;}
+  const gastFijos=fijo+pendiente; // lo que se resta para llegar a la utilidad (fijos + aún sin imputar)
   const margenBruto=recaud-variable, margenBrutoPct=recaud>0?margenBruto/recaud*100:0;
-  const utilidad=recaud-variable-fijo-pendiente, margenNetoPct=recaud>0?utilidad/recaud*100:0;
+  const utilidad=recaud-variable-gastFijos, margenNetoPct=recaud>0?utilidad/recaud*100:0;
   const pe=margenBrutoPct>0?fijo/(margenBrutoPct/100):0;
   const ventaDiaria=hoyD>0?recaud/hoyD:0, diasCubrir=(pe>0&&ventaDiaria>0)?Math.ceil(pe/ventaDiaria):0;
-  const opTot=fijo+variable, pctVar=opTot>0?Math.round(variable/opTot*100):0, pctFijo=opTot>0?100-pctVar:0;
   const H=(lbl,valHtml,help,cls)=>`<div class="met-row ${cls||''}"><span class="met-lbl">${lbl} <button class="met-help-btn" type="button" aria-label="Qué es esto">?</button></span>${valHtml}</div><div class="met-help">${help}</div>`;
   const money=v=>`<b class="${v<0?'met-neg':''}">${histMoney(v)}</b>`;
   body.innerHTML=`
     <div class="met-card">
-      <div class="met-card-title">Utilidad de ${mesCorto}</div>
-      ${H('Utilidad neta',`<b class="${utilidad>=0?'met-pos':'met-neg'}">${histMoney(utilidad)}</b>`,'Lo que te queda al final del mes: todo lo que entró menos la mercadería y los gastos fijos. Es tu ganancia real. La inversión (ej: el toldo) va aparte y no la resta.','hero')}
-      <div class="met-sub">Margen neto ${Math.round(margenNetoPct)}% · de cada $100 que entran, te quedan $${Math.round(Math.max(0,margenNetoPct))}</div>
+      <div class="met-card-title">Resultado de ${mesCorto}</div>
+      ${H('Utilidad neta',`<b class="${utilidad>=0?'met-pos':'met-neg'}">${histMoney(utilidad)}</b>`,'Resultado neto del período: los ingresos totales menos el costo de la mercadería vendida y los costos fijos operativos. Es la ganancia real que deja el negocio una vez cubiertos todos los gastos corrientes. Las inversiones en bienes de uso (ej. el toldo) se excluyen porque se amortizan a lo largo de su vida útil y no deben imputarse a un solo mes.','hero')}
+      <div class="met-sub">Margen neto ${Math.round(margenNetoPct)}% · de cada $100 facturados, ${Math.round(Math.max(0,margenNetoPct))} son ganancia</div>
       ${faltan>0?`<div class="met-warn">Faltan ${faltan} cierre${faltan===1?'':'s'} con el efectivo cargado, así que la recaudación y la utilidad reales son más altas.</div>`:''}
     </div>
     <div class="met-card">
-      <div class="met-card-title">Gastos de ${mesCorto}</div>
-      <div class="met-bar"><span style="width:${pctVar}%;background:linear-gradient(90deg,#7c90ff,#61d6c0)"></span><span style="width:${pctFijo}%;background:#f0b860"></span></div>
-      ${H('<span class="met-dot" style="background:#7c90ff"></span>Mercadería (variable)',money(variable),'Todo lo que comprás para revender: proveedores, golosinas, bebidas, cigarrillos, etc. Sube y baja según cuánto vendés.')}
-      ${H('<span class="met-dot" style="background:#f0b860"></span>Fijos',money(fijo),'Los que pagás sí o sí, vendas mucho o poco: alquiler, luz (Edenor), agua (AYSA), internet, monotributo, contadora, fumigación.')}
-      ${inversion>0?H('Inversión (aparte)',money(inversion),'Compras que quedan y sirven por años (ej: el toldo). No es un gasto del día a día, por eso no te baja la utilidad del mes.'):''}
-      ${pendiente>0?H('Sin clasificar',money(pendiente),'Gastos que todavía no sabemos qué son (ej: M.A). Cuando los identifiquemos, se acomodan en fijos o mercadería.'):''}
+      <div class="met-card-title">Cómo se llega a la utilidad</div>
+      <div id="metCascada" class="met-chart" style="height:230px"></div>
+      <div class="met-cap">Estado de resultados en cascada: de la <b>facturación</b> se detrae el <b>costo de mercadería</b> (costo variable) y los <b>costos fijos</b>; el remanente es el <b>resultado neto</b>.</div>
     </div>
     <div class="met-card">
-      <div class="met-card-title">¿Cuánto deja el negocio?</div>
-      ${H('Recaudación',money(recaud),'Todo lo que entró en el mes: efectivo + Mercado Pago.')}
-      ${H('Margen bruto',`<b>${histMoney(margenBruto)} · ${Math.round(margenBrutoPct)}%</b>`,'Lo que deja la reventa <b>antes</b> de los gastos fijos: ventas menos la mercadería. De cada $100, te quedan $'+Math.round(Math.max(0,margenBrutoPct))+'.')}
-      ${H('Punto de equilibrio',pe>0?`<b>${histMoney(pe)}</b>`:'<b>—</b>','Cuánto tenés que vender en el mes para cubrir los gastos fijos, sin ganar ni perder. Todo lo que vendas por encima es ganancia.')}
-      ${H('Días para cubrir los fijos',diasCubrir>0?`<b>${diasCubrir} día${diasCubrir===1?'':'s'}</b>`:'<b>—</b>','A tu ritmo de ventas, cuántos días del mes trabajás sólo para pagar los fijos. El resto del mes ya es ganancia.')}
+      <div class="met-card-title">Estructura de egresos por concepto</div>
+      <div id="metTreemap" class="met-chart" style="height:340px"></div>
+      <div class="met-cap">Cada rectángulo es un concepto de gasto; su superficie es proporcional al importe. Tocá un bloque (Mercadería, Fijos…) para desagregar el detalle. Los servicios figuran por su función (ej. "Luz"); el proveedor se aclara al tocar cada bloque.</div>
+    </div>
+    <div class="met-card">
+      <div class="met-card-title">Indicadores de rentabilidad</div>
+      ${H('Facturación',money(recaud),'Ingresos totales del período: la suma de todo lo cobrado por efectivo y Mercado Pago. Es la primera línea del estado de resultados, antes de detraer costos.')}
+      ${H('Costo de mercadería',money(variable),'Costo variable: la mercadería adquirida para reventa (CMV). Se denomina variable porque acompaña el nivel de ventas —a mayor rotación, mayor reposición—. Es el costo principal y determina el margen bruto.')}
+      ${H('Costos fijos',money(fijo),'Costos de estructura: se devengan con independencia del volumen de ventas (alquiler, servicios, impuestos, honorarios). Constituyen el piso a cubrir todos los meses; cuanto mayor la facturación, más se diluyen por unidad vendida.')}
+      ${H('Margen bruto',`<b>${histMoney(margenBruto)} · ${Math.round(margenBrutoPct)}%</b>`,'Utilidad bruta = facturación − costo de mercadería vendida. Mide la rentabilidad de la actividad comercial (comprar y revender) antes de los costos de estructura. En porcentaje —el margen de contribución— indica cuántos centavos de cada peso vendido quedan para cubrir los costos fijos y generar utilidad.')}
+      ${H('Punto de equilibrio',pe>0?`<b>${histMoney(pe)}</b>`:'<b>—</b>','Nivel de facturación en el que los ingresos igualan a los costos totales: no hay ganancia ni pérdida. Se obtiene como costos fijos dividido el margen de contribución (%). Facturar por encima de este punto genera utilidad; por debajo, quebranto.')}
+      ${H('Días para cubrir los fijos',diasCubrir>0?`<b>${diasCubrir} día${diasCubrir===1?'':'s'}</b>`:'<b>—</b>','El punto de equilibrio expresado en tiempo: al ritmo de venta diario promedio, cuántos días del mes se destinan íntegramente a absorber los costos fijos. A partir de ese día, la operación empieza a arrojar resultado positivo.')}
+      ${inversion>0?H('Inversión (bien de uso)',money(inversion),'Erogación de capital no recurrente que incorpora un bien durable al negocio (ej. el toldo). No se computa como gasto del período; se activa y amortiza en su vida útil, por eso no incide en la utilidad del mes.'):''}
+      ${pendiente>0?H('Sin imputar',money(pendiente),'Erogaciones aún no clasificadas (ej. M.A). Quedan pendientes de imputación; una vez identificadas se asignan a costos fijos o variables según su naturaleza.'):''}
     </div>`;
+  metDibujarGraficos({recaud,variable,gastFijos,utilidad,grupos});
+}
+async function metDibujarGraficos(v){
+  const elC=document.getElementById('metCascada'),elT=document.getElementById('metTreemap');
+  try{await metCargarECharts();}catch(e){if(elC)elC.innerHTML='<div class="met-cap" style="text-align:center;padding:24px">No se pudo cargar el gráfico (sin conexión). Los indicadores de arriba y abajo son correctos igual.</div>';return;}
+  if(!window.echarts)return;
+  const dark=!document.body.classList.contains('light');
+  const txt=dark?'#d8d8dc':'#334155', sub=dark?'#9a9aa2':'#64748b', borde=dark?'#161620':'#ffffff';
+  if(!_metResizeReady){_metResizeReady=true;window.addEventListener('resize',()=>{try{_metCasc&&_metCasc.resize();_metTree&&_metTree.resize();}catch(e){}});}
+  // ── Cascada (estado de resultados) ──
+  if(elC){try{
+    if(_metCasc)_metCasc.dispose();
+    _metCasc=echarts.init(elC,null,{renderer:'svg'});
+    const base=[0, Math.max(0,v.recaud-v.variable), Math.max(0,v.utilidad), 0];
+    _metCasc.setOption({
+      grid:{left:4,right:4,top:28,bottom:20,containLabel:true},
+      xAxis:{type:'category',data:['Facturación','− Mercadería','− Fijos','Utilidad'],axisLabel:{color:sub,fontSize:10.5,interval:0},axisTick:{show:false},axisLine:{lineStyle:{color:dark?'rgba(255,255,255,.12)':'rgba(0,0,0,.12)'}}},
+      yAxis:{type:'value',show:false},
+      series:[
+        {type:'bar',stack:'t',silent:true,itemStyle:{color:'transparent'},data:base},
+        {type:'bar',stack:'t',barWidth:'56%',itemStyle:{borderRadius:4},label:{show:true,position:'top',color:txt,fontSize:11,fontWeight:'bold',formatter:p=>histMoneyCompact(p.value)},data:[
+          {value:v.recaud,itemStyle:{color:'#7c90ff'}},
+          {value:v.variable,itemStyle:{color:'#f0728a'}},
+          {value:v.gastFijos,itemStyle:{color:'#f0b860'}},
+          {value:Math.abs(v.utilidad),itemStyle:{color:v.utilidad>=0?'#5fd68a':'#f87171'}}
+        ]}
+      ]
+    });
+  }catch(e){}}
+  // ── Treemap (estructura de egresos) ──
+  if(elT){try{
+    if(_metTree)_metTree.dispose();
+    _metTree=echarts.init(elT,null,{renderer:'svg'});
+    const COL={variable:'#7c90ff',fijo:'#f0b860',inversion:'#61d6c0',pendiente:'#9aa0a6'};
+    const NOM={variable:'Mercadería',fijo:'Fijos',inversion:'Inversión',pendiente:'Sin imputar'};
+    const mkCh=arr=>arr.slice().sort((a,b)=>b.monto-a.monto).map(x=>({name:metLabel(x.nombre),value:Math.round(x.monto),_prov:MET_PROVEEDOR[(x.nombre||'').trim()]||''}));
+    const data=['variable','fijo','inversion','pendiente'].filter(t=>v.grupos[t]&&v.grupos[t].length).map(t=>({name:NOM[t],itemStyle:{color:COL[t]},children:mkCh(v.grupos[t])}));
+    const totalTree=data.reduce((s,g)=>s+g.children.reduce((a,c)=>a+c.value,0),0);
+    _metTree.setOption({
+      tooltip:{formatter:p=>{const prov=p.data&&p.data._prov?` · ${p.data._prov}`:'';const pct=totalTree?` · ${Math.round(p.value/totalTree*100)}%`:'';return `${p.name}${prov}<br><b>${histMoney(p.value)}</b>${pct}`;}},
+      series:[{
+        type:'treemap',roam:false,nodeClick:'zoomToNode',
+        breadcrumb:{show:true,height:22,bottom:0,itemStyle:{color:dark?'rgba(124,144,255,.22)':'rgba(124,144,255,.14)',textStyle:{color:txt,fontSize:11}}},
+        label:{show:true,color:'#12141a',fontSize:11,fontWeight:'bold',formatter:p=>`${p.name}\n${histMoneyCompact(p.value)}`},
+        upperLabel:{show:true,height:22,color:txt,fontSize:11,fontWeight:'bold'},
+        itemStyle:{borderColor:borde,borderWidth:2,gapWidth:2},
+        levels:[{itemStyle:{borderWidth:0,gapWidth:4,borderColor:borde}},{colorSaturation:[0.4,0.7],itemStyle:{gapWidth:2}}],
+        data
+      }]
+    });
+  }catch(e){}}
 }
 document.getElementById('btnMetricas')?.addEventListener('click',metAbrir);
 document.getElementById('btnCerrarMetricas')?.addEventListener('click',metCerrar);
