@@ -5293,7 +5293,7 @@ const MET_PROVEEDOR={Edenor:'Edenor',AYSA:'AYSA',Telecentro:'Telecentro'};
 function metLabel(n){n=(n||'').trim();return MET_LABEL[n]||n;}
 // ECharts se carga on-demand (sólo al abrir Métricas, para no pesar el home).
 let _metEchProm=null,_metCasc=null,_metTree=null,_metResizeReady=false;
-function metCargarECharts(){if(window.echarts)return Promise.resolve();if(_metEchProm)return _metEchProm;_metEchProm=new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.1/echarts.min.js';s.onload=()=>res();s.onerror=()=>rej(new Error('echarts'));document.head.appendChild(s);});return _metEchProm;}
+function metCargarECharts(){if(window.echarts)return Promise.resolve();if(_metEchProm)return _metEchProm;_metEchProm=new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js';s.onload=()=>res();s.onerror=()=>{_metEchProm=null;rej(new Error('echarts'));};document.head.appendChild(s);});return _metEchProm;}
 let metMes=new Date();metMes.setDate(1);
 function metActualizarNav(){
   const hoy=new Date();hoy.setDate(1);hoy.setHours(0,0,0,0);
