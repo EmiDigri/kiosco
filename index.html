@@ -5382,6 +5382,12 @@ function metRender(){
   const acum={variable:{},fijo:{},inversion:{},pendiente:{}};
   egr.forEach(e=>{const t=e.tipo;acum[t][e.nombre]=(acum[t][e.nombre]||0)+e.monto;if(t==='fijo')fijo+=e.monto;else if(t==='inversion')inversion+=e.monto;else if(t==='pendiente')pendiente+=e.monto;else variable+=e.monto;});
   const grupos={};['variable','fijo','inversion','pendiente'].forEach(t=>grupos[t]=Object.entries(acum[t]).map(([nombre,monto])=>({nombre,monto})));
+  // A los "sin imputar" les agrego la fecha del gasto en el cuaderno, para saber qué día
+  // ir a mirar y aclararlos.
+  const metDM=f=>{const p=String(f||'').split('-');return p.length>=3?p[2]+'/'+p[1]:'';};
+  const fechasPend={};
+  (histRowsGastosMes||[]).forEach(g=>{const nom=(g.nombre||'').trim();if(metTipoGasto(nom)==='pendiente'){const lbl=metLabel(nom);(fechasPend[lbl]=fechasPend[lbl]||new Set()).add(metDM(g.fecha));}});
+  grupos.pendiente=grupos.pendiente.map(x=>{const fs=fechasPend[x.nombre]?[...fechasPend[x.nombre]].filter(Boolean).sort():[];return{...x,nombre:x.nombre+(fs.length?' · '+fs.join(', '):'')};});
   if(recaud<=0&&(fijo+variable+inversion+pendiente)<=0){body.innerHTML='<div class="met-empty">Todavía no hay datos cargados de este mes.</div>';if(_metCasc){_metCasc.dispose();_metCasc=null;}if(_metTree){_metTree.dispose();_metTree=null;}return;}
   const gastFijos=fijo+pendiente; // lo que se resta para llegar a la utilidad (fijos + aún sin imputar)
   const margenBruto=recaud-variable, margenBrutoPct=recaud>0?margenBruto/recaud*100:0;
@@ -5402,7 +5408,7 @@ function metRender(){
   body.innerHTML=`
     <div class="met-card">
       <div class="met-card-title">Resultado de ${mesCorto}</div>
-      ${H('Utilidad neta',`<b class="${utilidad>=0?'met-pos':'met-neg'}">${histMoney(utilidad)}</b>`,'Es el resultado neto del mes: la facturación menos todos los egresos —mercadería, costos fijos e inversiones—. Las inversiones (como el toldo o el lector) se descuentan en el mes en que se pagaron: aunque sean bienes que duran, el dinero ya salió de la caja y no queda como ganancia del período.','hero')}
+      <div class="met-row hero"><span class="met-lbl">Utilidad neta</span><b class="${utilidad>=0?'met-pos':'met-neg'}">${histMoney(utilidad)}</b></div>
       <div class="met-sub">Margen neto ${Math.round(margenNetoPct)}% · quedan $${Math.round(Math.max(0,margenNetoPct))} de cada $100 que facturás</div>
       ${faltan>0?`<div class="met-warn">Faltan ${faltan} cierre${faltan===1?'':'s'} con el efectivo cargado, así que la recaudación y la utilidad reales son más altas.</div>`:''}
     </div>
