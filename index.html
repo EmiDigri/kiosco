@@ -6260,24 +6260,8 @@ function histRenderNegocio(y,m,last){
   const cap=s=>s.charAt(0).toUpperCase()+s.slice(1);
   const soloUnDia=!peor||peor.dia===mejor.dia;
   el.innerHTML=`
-    <details class="hist-mes-sec" data-mes-sec="negocio" open><summary class="hist-mes-head"><span class="hist-mes-head-txt">Métricas del negocio</span></summary><div class="hist-mes-body">
-    <div class="hist-neg-card">
-      <div class="hist-neg-card-title">Rentabilidad del mes</div>
-      <div class="hist-neg-hero-top">
-        <div><div class="hist-neg-hero-lbl">Utilidad del mes</div><div class="hist-neg-hero-val ${utilPos?'pos':'neg'}">${histMoney(resultadoReal)}</div></div>
-        <div class="hist-neg-margen-pill ${utilPos?'pos':''}">${Math.round(margen)}% de margen</div>
-      </div>
-      <div class="hist-neg-split" role="img" aria-label="Ganancia ${Math.round(margenClamp)} por ciento, gastos ${Math.round(100-margenClamp)} por ciento">
-        <span class="hist-neg-split-gan" style="width:${margenClamp}%"></span>
-        <span class="hist-neg-split-gas" style="width:${100-margenClamp}%"></span>
-      </div>
-      <div class="hist-neg-split-legend">
-        <span><i class="dot gan"></i>Ganancia · ${histMoneyCompact(Math.max(0,resultadoReal))} (${Math.round(margenClamp)}%)</span>
-        <span><i class="dot gas"></i>Compras y gastos · ${histMoneyCompact(egresosMes)} (${Math.round(100-margenClamp)}%)</span>
-      </div>
-      <div class="hist-neg-hero-base">Sobre una recaudación de <b>${histMoney(contable.total)}</b>.</div>
-      ${faltan>0?`<div class="hist-neg-warn">Ojo: faltan ${faltan} cierre${faltan===1?'':'s'} con el efectivo cargado, así que la recaudación y la utilidad reales son más altas.</div>`:''}
-    </div>
+    <details class="hist-mes-sec" data-mes-sec="negocio" open><summary class="hist-mes-head"><span class="hist-mes-head-txt">Ritmo del mes</span></summary><div class="hist-mes-body">
+    <div class="hist-neg-note" style="margin-top:0;margin-bottom:12px">La rentabilidad (utilidad, márgenes, punto de equilibrio) se mudó al botón <b>📊 Métricas</b> del inicio, con la cuenta conciliada con MercadoPago.</div>
     <div class="hist-neg-card">
       <div class="hist-neg-card-title">Ritmo por día de la semana</div>
       <div class="hist-neg-bars">${ritmoHtml}</div>
