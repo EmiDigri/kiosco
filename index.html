@@ -5360,7 +5360,11 @@ function metRender(){
   const mesCorto=new Date(y,m-1,1).toLocaleDateString('es-AR',{month:'long'});
   const contable=CierreCuentas.resumenMes(histResumenMes,histIso(y,m,1),histIso(y,m,hoyD));
   const recaud=contable.total||0;
-  const faltan=Math.max(0,contable.esperados-contable.cerrados);
+  // "Faltan cierres" cuenta SOLO los días ya terminados: hoy está en curso, sus turnos
+  // todavía no se cerraron y no son un faltante real (antes contaba hoy y avisaba de gusto).
+  let faltan=0;
+  {const hastaF=esMesActual?hoyD-1:last;
+   for(let dd=1;dd<=hastaF;dd++){const fd=histIso(y,m,dd),dat=histResumenMes[fd],cl=new Map(((dat&&dat.cierres)||[]).map(c=>[c.turno,c]));CierreCuentas.turnos(fd).forEach(t=>{if(!(cl.has(t)&&CierreCuentas.monto(cl.get(t).total_turno)!==null))faltan++;});}}
   // Egresos CONCILIADOS con MercadoPago: cada gasto se cuenta una sola vez y con el
   // monto real. Regla: se toman TODAS las salidas de MP (monto real, incluye MAPFRE,
   // ARCA, etc. que no se anotan en el cuaderno) + los gastos del cuaderno que NO están
