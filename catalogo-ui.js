@@ -261,7 +261,21 @@
       throw new Error('La consulta no devolvió datos válidos.');
     }
     if (!response.ok) throw new Error(data?.error || 'No se pudieron consultar los precios.');
+    if (data?.checkedAt) {
+      for (const key of ['items', 'supplierItems']) {
+        if (Array.isArray(data[key])) data[key] = data[key].map(item => item ? {...item, checkedAt:data.checkedAt} : item);
+      }
+    }
     return data;
+  }
+
+  function priceCheckedText(value) {
+    if (!value) return '';
+    const date = new Date(value);
+    if (!Number.isFinite(date.getTime())) return '';
+    return 'Consulta de la app: ' + new Intl.DateTimeFormat('es-AR', {
+      timeZone:'America/Argentina/Buenos_Aires', dateStyle:'short', timeStyle:'short', hourCycle:'h23',
+    }).format(date);
   }
 
   function radarDate(value) {
@@ -533,6 +547,7 @@
     renderMlResults();
     renderDetail({
       mlSource: true,
+      checkedAt: item.checkedAt,
       permalink: item.permalink,
       suggestedCategory: item.suggestedCategory || inferCategory(item.title, item.brand),
       product: {
@@ -667,6 +682,7 @@
     const updatedToday = item.updatedAt ? String(item.updatedAt).slice(0, 10) === new Date().toISOString().slice(0, 10) : false;
     return {
       supplierSource: item.source,
+      checkedAt: item.checkedAt,
       retailSource: item.source,
       sourceLabel: item.sourceLabel,
       permalink: item.permalink,
@@ -856,6 +872,7 @@
           <div class="price-reference-label">${escapeHtml(retailLabel)}</div>
           <div class="price-reference-value">${money(retailDisplayValue)}</div>
           <div class="price-reference-note">${escapeHtml(retailNote)}</div>
+          ${priceCheckedText(data.checkedAt) ? `<div class="price-reference-note price-checked-at">${escapeHtml(priceCheckedText(data.checkedAt))}</div>` : ''}
         </section>
       </div>
 
