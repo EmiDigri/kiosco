@@ -3145,6 +3145,7 @@ body.light .price-product-brand{color:#087f72}
 .price-product-name{font-size:23px;font-weight:760;line-height:1.12;letter-spacing:0;color:var(--text);word-break:break-word}
 .price-product-meta{display:flex;flex-wrap:wrap;gap:7px 13px;margin-top:9px;color:var(--text-soft);font-size:10.5px;font-weight:650}
 .price-reference-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;padding:18px 0;border-bottom:1px solid var(--glass-border)}
+.price-reference-grid.price-reference-single{grid-template-columns:1fr}
 .price-reference{min-width:0}
 .price-reference + .price-reference{border-left:1px solid var(--glass-border);padding-left:18px}
 .price-reference-label{font-size:10px;text-transform:uppercase;color:var(--text-soft);font-weight:820;letter-spacing:0}
@@ -3977,7 +3978,7 @@ body.light .tg-lock{background:rgba(255,255,255,.96)}
     <div class="price-header">
       <div>
         <div class="price-title">Referencia de precios</div>
-        <div class="price-subtitle"><span class="price-source-dot"></span><span>Precios Claros · Rappi Buenos Aires · mayoristas · versión beta</span></div>
+        <div class="price-subtitle"><span class="price-source-dot"></span><span>Precios por unidad · versión beta</span></div>
       </div>
       <button class="btn-cerrar-hist" id="btnCerrarPrecios" type="button" title="Cerrar" aria-label="Cerrar referencia de precios">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -4031,7 +4032,7 @@ body.light .tg-lock{background:rgba(255,255,255,.96)}
           </div>
         </aside>
         <main class="price-detail-pane" id="priceDetail" data-testid="price-detail">
-          <div class="price-detail-empty">Elegí una variante para ver la referencia minorista, el valor mayorista y tus márgenes.</div>
+          <div class="price-detail-empty">Elegí un producto para ver su precio por unidad y comparar con tu precio de venta.</div>
         </main>
       </div>
       <aside class="price-radar" aria-label="Radar de productos de kiosco" data-testid="price-radar">
@@ -10090,6 +10091,7 @@ initEasterEggs();
 </script>
 <script src="./mostrador.js"></script>
 <script src="./cierre-foto-ui.js?v=20260909-lectura"></script>
+<script src="./price-unit.js?v=20260919-unit2"></script>
 <script src="./catalogo-ui.js"></script>
 <script src="./historial-gastos.js?v=20260918-conceptos"></script>
 <script src="./historial-foto-recorte.js?v=20260919"></script>

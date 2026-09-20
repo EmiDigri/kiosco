@@ -18,13 +18,13 @@ window.showToast=text=>{const el=document.getElementById('toast');el.textContent
 const originalFetch=window.fetch.bind(window);
 window.fetch=(url,opts)=> {
   if(String(url).includes('pilfeptwylgufhbmmday.supabase.co'))return originalFetch('/fixture-api'+new URL(url).pathname+new URL(url).search,opts);
-  if(String(url).startsWith('/api/catalogo'))return Promise.resolve(new Response(JSON.stringify({items:[],now:[],ranking:[],alfajores:[],products:[]})));
+  if(String(url).includes('/api/catalogo'))return Promise.resolve(new Response(JSON.stringify(window.__priceFixture?.[new URL(url,location.origin).searchParams.get('action')]||{items:[],now:[],ranking:[],alfajores:[],products:[]})));
   if(String(url).startsWith('/')||String(url).startsWith(location.origin))return originalFetch(url,opts);
   return Promise.reject(new Error('External network blocked in test fixture'));
 };
 window.addEventListener('error',event=>{document.getElementById('qaResults').textContent+='ERROR: '+event.message+'\\n';});
 window.addEventListener('unhandledrejection',event=>{document.getElementById('qaResults').textContent+='REJECTION: '+event.reason+'\\n';});
-</script><script src="/mostrador.js"></script><script src="/catalogo-ui.js"></script>
+</script><script src="/mostrador.js"></script><script src="/price-unit.js"></script><script src="/catalogo-ui.js"></script>
 <script>if(new URLSearchParams(location.search).has('test')){const script=document.createElement('script');script.src='/fixture-tests.js';document.body.append(script);}</script>
 </body></html>`;
 async function start(port = 4186) {
@@ -42,7 +42,7 @@ async function start(port = 4186) {
     try {
       if(url.pathname==='/'){res.setHeader('Content-Type','text/html; charset=utf-8');res.end(html);return;}
       if(url.pathname==='/mobile') {res.setHeader('Content-Type','text/html; charset=utf-8');res.end('<!doctype html><title>Mobile 390px</title><body style="margin:0;background:#444"><iframe title="Mobile" src="/" style="display:block;width:390px;height:844px;border:0"></iframe>');return;}
-      if(['/catalogo-ui.js','/mostrador.js'].includes(url.pathname)) {res.setHeader('Content-Type','text/javascript; charset=utf-8');res.end(fs.readFileSync(path.join(root,url.pathname.slice(1))));return;}
+      if(['/catalogo-ui.js','/mostrador.js','/price-unit.js'].includes(url.pathname)) {res.setHeader('Content-Type','text/javascript; charset=utf-8');res.end(fs.readFileSync(path.join(root,url.pathname.slice(1))));return;}
       if(url.pathname==='/fixture-tests.js') {res.setHeader('Content-Type','text/javascript');res.end(fs.readFileSync(path.join(root,'tests/catalogo-browser.js')));return;}
       if(url.pathname.endsWith('/rpc/catalogo_aplicar')) {
         let body='';for await(const chunk of req)body+=chunk;

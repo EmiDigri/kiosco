@@ -22,6 +22,7 @@
   if (!overlay || !openButton || !searchForm) return;
 
   const API_URL = window.KIOSCO_CATALOG_API || '/api/catalogo';
+  const isIndividual = window.KioscoPriceUnit.isIndividual;
   const PRICE_STORAGE_KEY = 'kiosco_product_prices_v1';
   const LOCATION_STORAGE_KEY = 'kiosco_product_location_v1';
   const LOCATIONS = {
@@ -190,24 +191,21 @@
 
   function itemPriceSummary(item) {
     const retail = item.retail?.min;
-    const wholesale = item.wholesale?.unitWithVatMin;
     const parts = [];
-    if (retail) parts.push(`<span>Minor. <strong>${money(retail)}</strong></span>`);
-    if (wholesale) parts.push(`<span>Mayor. <strong>${money(wholesale)}</strong></span>`);
+    if (retail) parts.push(`<span>Por unidad <strong>${money(retail)}</strong></span>`);
     return parts.length ? parts.join('') : '<span>Sin precios en esta zona</span>';
   }
 
   function supplierPriceSummary(item) {
     const parts = [];
-    if (item.priceType === 'retail') {
-      if (item.unitPrice) parts.push(`<span>Minor. online <strong>${money(item.unitPrice)}</strong></span>`);
+    if (isIndividual(item) && Number(item.unitPrice) > 0) {
+      if (item.unitPrice) parts.push(`<span>Por unidad <strong>${money(item.unitPrice)}</strong></span>`);
       if (item.retailMin && item.retailMax && item.retailMin !== item.retailMax) parts.push(`<span>${money(item.retailMin)}–${money(item.retailMax)}</span>`);
       if (item.storeCount) parts.push(`<span>${Number(item.storeCount)} oferta${Number(item.storeCount) === 1 ? '' : 's'}</span>`);
       return parts.length ? parts.join('') : '<span>Consultar precio online</span>';
     }
     if (item.available === false) parts.push('<span style="color:#f87171">Sin stock</span>');
     else if (item.stock !== null && item.stock !== undefined && Number.isFinite(Number(item.stock))) parts.push(`<span>${Number(item.stock)} disponibles</span>`);
-    if (item.unitPrice) parts.push(`<span>Mayor. <strong>${money(item.unitPrice)}/u</strong></span>`);
     return parts.length ? parts.join('') : '<span>Consultar disponibilidad</span>';
   }
 
@@ -220,8 +218,7 @@
     const supplierGroups = [
       ['Open 25 · cadena de kioscos', state.supplierItems.filter(item => item.source === 'open25')],
       ['Rappi · minorista online', state.supplierItems.filter(item => item.source === 'rappi')],
-      ['Dulce Sur · kiosco', state.supplierItems.filter(item => item.source === 'dulce-sur')],
-      ['Casa Paso · librería', state.supplierItems.filter(item => item.source === 'casa-paso')],
+      ['Dulce Sur · venta individual', state.supplierItems.filter(item => item.source === 'dulce-sur')],
     ].filter(([, items]) => items.length);
     const total = state.items.length + state.supplierItems.length;
     if (paneTitle) paneTitle.textContent = supplierGroups.length ? 'Resultados combinados' : 'Variantes exactas';
@@ -252,6 +249,7 @@
     }
     const url = new URL(API_URL, location.href);
     Object.entries(params).forEach(([key, value]) => url.searchParams.set(key, value));
+    url.searchParams.set('scope', 'individual-v2');
     url.searchParams.set('lat', state.location.lat);
     url.searchParams.set('lng', state.location.lng);
     url.searchParams.set('zone', state.location.key || 'current');
@@ -397,10 +395,10 @@
     try {
       const data = await apiRequest({ action: 'suggest', q: query });
       if (requestId !== state.suggestionRequest || searchInput.value.trim() !== query) return;
-      const remote = Array.isArray(data.items) ? data.items : [];
+      const remote = Array.isArray(data.items) ? data.items.filter(isIndividual) : [];
       const merged = [];
       const seen = new Set();
-      [...local, ...remote].forEach(item => {
+      [...local, ...remote].filter(isIndividual).forEach(item => {
         const key = catalogText(item.title);
         if (!key || seen.has(key) || merged.length >= 8) return;
         seen.add(key);
@@ -411,7 +409,7 @@
       renderSuggestions();
     } catch {
       if (requestId !== state.suggestionRequest) return;
-      state.suggestions = local;
+      state.suggestions = local.filter(isIndividual);
       state.suggestionActive = -1;
       renderSuggestions();
     }
@@ -430,13 +428,13 @@
     const availableSuggestions = state.suggestions.slice();
     searchInput.value = item.title;
     hideSuggestions();
-    if (item.source === 'casa-paso' || item.source === 'dulce-sur' || item.source === 'rappi' || item.source === 'open25') {
+    if (['rappi', 'open25', 'dulce-sur'].includes(item.source)) {
       state.items = [];
       state.selectedEan = null;
       state.detail = null;
       state.mlItems = [];
       state.selectedMl = null;
-      state.supplierItems = availableSuggestions.filter(entry => ['casa-paso', 'dulce-sur', 'rappi', 'open25'].includes(entry.source));
+      state.supplierItems = availableSuggestions.filter(entry => ['rappi', 'open25', 'dulce-sur'].includes(entry.source) && isIndividual(entry));
       if (!state.supplierItems.some(entry => entry.id === item.id)) state.supplierItems.unshift(item);
       state.selectedSupplier = item.id;
       renderResults();
@@ -470,8 +468,8 @@
     try {
       const data = await apiRequest({ action: 'search', q: query });
       if (requestId !== state.searchRequest) return;
-      state.items = Array.isArray(data.items) ? data.items : [];
-      state.supplierItems = Array.isArray(data.supplierItems) ? data.supplierItems : [];
+      state.items = Array.isArray(data.items) ? data.items.filter(isIndividual) : [];
+      state.supplierItems = Array.isArray(data.supplierItems) ? data.supplierItems.filter(isIndividual) : [];
       if (!state.items.length && !state.supplierItems.length) {
         resultsElement.innerHTML = loadingHtml('Buscando una alternativa en Mercado Libre…');
         const rescued = await searchMercadoLibre(query, requestId);
@@ -506,7 +504,8 @@
       const data = await apiRequest({ action: 'ml', q: query });
       if (requestId !== state.searchRequest) return true;
       if (data.disabled || !Array.isArray(data.items) || !data.items.length) return false;
-      state.mlItems = data.items;
+      state.mlItems = data.items.filter(isIndividual);
+      if (!state.mlItems.length) return false;
       renderMlResults();
       return true;
     } catch (error) {
@@ -544,9 +543,7 @@
       },
       image: item.image,
       retailReference: item.reference || {},
-      wholesaleReference: {},
       retailStores: [],
-      wholesaleStores: [],
     });
   }
 
@@ -615,8 +612,7 @@
   function sourceOffer(item, selected, score, sameProduct) {
     const source = comparisonSource(item);
     const isOfficial = source === 'precios-claros';
-    const retailPrice = isOfficial ? Number(item.retail?.min) || null : (item.priceType === 'retail' ? Number(item.unitPrice) || null : null);
-    const wholesalePrice = isOfficial ? Number(item.wholesale?.unitWithVatMin) || null : (item.priceType === 'retail' ? null : Number(item.unitPrice) || null);
+    const retailPrice = isOfficial ? Number(item.retail?.min) || null : (isIndividual(item) ? Number(item.unitPrice) || null : null);
     return {
       id: comparisonId(item),
       source,
@@ -626,9 +622,6 @@
       retailPrice,
       retailMin: isOfficial ? Number(item.retail?.min) || null : Number(item.retailMin) || retailPrice,
       retailMax: isOfficial ? Number(item.retail?.max) || null : Number(item.retailMax) || retailPrice,
-      wholesalePrice,
-      packPrice: Number(item.packPrice) || (isOfficial ? Number(item.wholesale?.packWithVatMin) || null : null),
-      packUnits: Number(item.packUnits) || null,
       permalink: item.permalink || '',
       selected,
       matchType: selected ? 'selected' : (sameProduct ? 'same' : 'similar'),
@@ -656,7 +649,7 @@
       return { item, selected, score, shared, sameProduct };
     }).filter(row => row.selected || row.sameProduct || row.shared > 0);
 
-    const sourceOrder = ['precios-claros', 'open25', 'rappi', 'dulce-sur', 'casa-paso'];
+    const sourceOrder = ['precios-claros', 'open25', 'rappi', 'dulce-sur'];
     const offers = [];
     sourceOrder.forEach(source => {
       const rows = ranked.filter(row => comparisonSource(row.item) === source)
@@ -667,98 +660,40 @@
     return offers;
   }
 
-  function supplierCompanion(item, source) {
-    const target = new Set(supplierMatchTokens(item));
-    if (!target.size) return null;
-    return state.supplierItems.map(candidate => {
-      if (candidate.source !== source || candidate.id === item.id) return { candidate, score: 0 };
-      const tokens = new Set(supplierMatchTokens(candidate));
-      const matches = [...target].filter(token => tokens.has(token)).length;
-      const score = matches / Math.max(target.size, tokens.size, 1);
-      return { candidate, score };
-    }).sort((a, b) => b.score - a.score).find(row => row.score >= 0.55)?.candidate || null;
-  }
-
   function supplierDetailData(item) {
-    const retailItem = item.priceType === 'retail'
-      ? item
-      : (supplierCompanion(item, 'open25') || supplierCompanion(item, 'rappi'));
-    const wholesaleItem = item.priceType === 'retail'
-      ? (supplierCompanion(item, 'dulce-sur') || supplierCompanion(item, 'casa-paso'))
-      : item;
-    const units = Number(wholesaleItem?.packUnits) > 1 ? Math.round(Number(wholesaleItem.packUnits)) : null;
-    const unitPrice = Number(wholesaleItem?.unitPrice) || null;
-    const packPrice = Number(wholesaleItem?.packPrice) || (unitPrice && units ? unitPrice * units : null);
-    const retailPrice = Number(retailItem?.unitPrice) || null;
-    const updatedToday = retailItem?.updatedAt ? String(retailItem.updatedAt).slice(0, 10) === new Date().toISOString().slice(0, 10) : false;
-    const productItem = wholesaleItem || item;
-    const links = [retailItem, wholesaleItem].filter(Boolean).filter((entry, index, rows) => rows.findIndex(row => row.source === entry.source) === index)
-      .map(entry => ({ label: entry.sourceLabel, url: entry.permalink }));
+    const retailPrice = Number(item.unitPrice) || null;
+    const updatedToday = item.updatedAt ? String(item.updatedAt).slice(0, 10) === new Date().toISOString().slice(0, 10) : false;
     return {
       supplierSource: item.source,
-      retailSource: retailItem?.source || null,
-      supplierPriceType: retailItem && wholesaleItem ? 'combined' : (retailItem ? 'retail' : 'wholesale'),
-      sourceLabel: [retailItem?.sourceLabel, wholesaleItem?.sourceLabel].filter(Boolean).join(' + ') || item.sourceLabel,
+      retailSource: item.source,
+      sourceLabel: item.sourceLabel,
       permalink: item.permalink,
-      sourceLinks: links,
-      supplierPackPrice: packPrice,
-      supplierPackUnits: units,
-      supplierMinimum: Number(wholesaleItem?.minimum) || 1,
-      supplierAvailable: wholesaleItem ? wholesaleItem.available !== false : true,
-      suggestedCategory: productItem.category || inferCategory(productItem.title, productItem.brand),
+      sourceLinks: [{ label: item.sourceLabel, url: item.permalink }],
+      suggestedCategory: item.category || inferCategory(item.title, item.brand),
       product: {
-        ean: productItem.code || productItem.id,
-        name: productItem.title,
-        brand: productItem.brand || productItem.sourceLabel || '',
-        presentation: productItem.presentation || 'Unidad',
+        ean: item.code || item.id,
+        name: item.title,
+        brand: item.brand || item.sourceLabel || '',
+        presentation: item.presentation || 'Unidad',
       },
-      image: productItem.image || retailItem?.image,
-      retailReference: retailItem ? {
+      image: item.image,
+      retailReference: {
         median: retailPrice,
-        min: Number(retailItem.retailMin) || retailPrice,
-        max: Number(retailItem.retailMax) || retailPrice,
-        count: Number(retailItem.storeCount) || 1,
+        min: Number(item.retailMin) || retailPrice,
+        max: Number(item.retailMax) || retailPrice,
+        count: Number(item.storeCount) || 1,
         updatedToday,
-      } : {},
-      wholesaleReference: wholesaleItem ? {
-        unitWithVatMedian: unitPrice,
-        unitWithVatMin: unitPrice,
-        unitWithVatMax: unitPrice,
-        packWithVatMedian: packPrice,
-        unitsPerPackMedian: units,
-        count: unitPrice ? 1 : 0,
-        updatedToday: wholesaleItem.updatedAt ? String(wholesaleItem.updatedAt).slice(0, 10) === new Date().toISOString().slice(0, 10) : false,
-      } : {},
+      },
       retailStores: [],
-      wholesaleStores: wholesaleItem && unitPrice ? [{
-        store: wholesaleItem.sourceLabel,
-        address: wholesaleItem.source === 'casa-paso' ? 'CABA' : 'Longchamps, Buenos Aires',
-        locality: 'Buenos Aires',
-        unitWithVat: unitPrice,
-        packWithVat: packPrice,
-        unitsPerPack: units,
-      }] : [],
       sourceOffers: sourceOffersFor(item),
     };
   }
 
   async function showSupplierDetail(id) {
-    let item = state.supplierItems.find(entry => entry.id === id);
-    if (!item) return;
+    const item = state.supplierItems.find(entry => entry.id === id);
+    if (!item || !isIndividual(item)) return;
     state.selectedSupplier = id;
     renderResults();
-    if (item.source === 'casa-paso' && !item.packUnits) {
-      detailElement.innerHTML = loadingHtml('Consultando precio por unidad en Casa Paso…');
-      try {
-        const data = await apiRequest({ action: 'supplier-detail', source: item.source, code: item.code });
-        if (state.selectedSupplier !== id || !data.item) return;
-        item = { ...item, ...data.item };
-        state.supplierItems = state.supplierItems.map(entry => entry.id === id ? item : entry);
-        renderResults();
-      } catch (error) {
-        notify('Casa Paso no informó el detalle; usamos el precio visible');
-      }
-    }
     renderDetail(supplierDetailData(item));
   }
 
@@ -768,25 +703,17 @@
     return `${reference.count} comercios · rango ${money(reference.min)} a ${money(reference.max)}${reference.updatedToday ? ' · actualizado hoy' : ''}`;
   }
 
-  function wholesaleRange(reference) {
-    if (!reference?.count) return 'Sin valor mayorista con IVA en esta zona';
-    const range = reference.unitWithVatMin === reference.unitWithVatMax
-      ? ''
-      : ` · rango ${money(reference.unitWithVatMin)} a ${money(reference.unitWithVatMax)}`;
-    return `${reference.count} mayorista${reference.count === 1 ? '' : 's'}${range}${reference.updatedToday ? ' · actualizado hoy' : ''}`;
-  }
-
-  function shopRows(stores, wholesale) {
+  function shopRows(stores) {
     return stores.map(store => {
       const distance = Number.isFinite(store.distanceKm) ? ` · ${store.distanceKm.toLocaleString('es-AR', { maximumFractionDigits: 1 })} km` : '';
-      const value = wholesale ? store.unitWithVat : store.price;
+      const value = store.price;
       return `<div class="price-shop-row"><div><span>${escapeHtml(store.store)}</span><small>${escapeHtml(store.address || store.locality)}${escapeHtml(distance)}</small></div><strong>${money(value)}</strong></div>`;
     }).join('');
   }
 
-  function shopDetails(title, stores, wholesale) {
+  function shopDetails(title, stores) {
     if (!stores.length) return '';
-    return `<details class="price-shop-details"><summary><span>${escapeHtml(title)} (${stores.length})</span></summary><div class="price-shop-list">${shopRows(stores, wholesale)}</div></details>`;
+    return `<details class="price-shop-details"><summary><span>${escapeHtml(title)} (${stores.length})</span></summary><div class="price-shop-list">${shopRows(stores)}</div></details>`;
   }
 
   function sourceOfferValues(offer) {
@@ -795,9 +722,8 @@
       const range = offer.retailMin && offer.retailMax && offer.retailMin !== offer.retailMax
         ? `<small>${money(offer.retailMin)} a ${money(offer.retailMax)}</small>`
         : '';
-      values.push(`<span><small>Minorista</small><strong>${money(offer.retailPrice)}</strong>${range}</span>`);
+      values.push(`<span><small>Por unidad</small><strong>${money(offer.retailPrice)}</strong>${range}</span>`);
     }
-    if (offer.wholesalePrice) values.push(`<span><small>Mayorista / u.</small><strong>${money(offer.wholesalePrice)}</strong></span>`);
     return values.length ? values.join('') : '<span><small>Precio</small><strong>Consultar</strong></span>';
   }
 
@@ -838,24 +764,16 @@
 
   function renderDetail(data) {
     let retail = data.retailReference || {};
-    const wholesale = data.wholesaleReference || {};
-    let retailLabel = 'Referencia minorista';
+    let retailLabel = 'Referencia minorista por unidad';
     let retailNote = referenceRange(retail);
     let retailDisplayValue = retail.median;
-    let wholesaleLabel = 'Referencia mayorista por unidad · c/IVA';
-    if (data.supplierSource && (data.supplierPriceType === 'retail' || data.supplierPriceType === 'combined')) {
-      retailLabel = data.supplierPriceType === 'combined' ? 'Referencia minorista online' : `Precio publicado en ${data.sourceLabel}`;
+    if (data.supplierSource) {
+      retailLabel = `Precio por unidad en ${data.sourceLabel}`;
       retailDisplayValue = retail.median;
       const range = retail.min && retail.max && retail.min !== retail.max ? ` · rango ${money(retail.min)} a ${money(retail.max)}` : '';
-      retailNote = data.retailSource === 'open25'
-        ? `Precio de venta al público en la tienda online de Open 25${range}`
-        : `${retail.count || 1} oferta${retail.count === 1 ? '' : 's'} en Buenos Aires${range} · puede incluir promoción o recargo de delivery`;
-      if (data.supplierPriceType === 'combined') wholesaleLabel = 'Costo mayorista por unidad · c/IVA';
-    } else if (data.supplierSource) {
-      retailLabel = `Precio por unidad en ${data.sourceLabel}`;
-      retailDisplayValue = wholesale.unitWithVatMedian;
-      retailNote = `Por unidad · ${data.supplierAvailable ? 'disponible' : 'sin stock'}`;
-      wholesaleLabel = 'Costo orientativo por unidad · c/IVA';
+      retailNote = data.retailSource === 'rappi'
+        ? `${retail.count || 1} oferta${retail.count === 1 ? '' : 's'} en Buenos Aires${range} · puede incluir promoción o recargo de delivery`
+        : `Precio publicado para comprar una unidad en ${data.sourceLabel}${range}`;
     } else if (data.mlSource) {
       retailLabel = 'Precio ganador Mercado Libre';
       retailNote = retail.count
@@ -877,9 +795,7 @@
     const image = /^https:\/\//.test(data.image || '')
       ? `<img id="priceProductImage" src="${escapeHtml(data.image)}" alt="${escapeHtml(product.name)}">`
       : '<div class="price-product-placeholder">$</div>';
-    const costHint = wholesale.unitWithVatMedian
-      ? `Vacío: usa ${money(wholesale.unitWithVatMedian)} mayorista c/IVA.`
-      : 'Sin referencia mayorista: cargá tu costo real.';
+    const costHint = 'Cargá lo que pagaste por una unidad para calcular tu margen.';
     const sourceLinks = Array.isArray(data.sourceLinks) && data.sourceLinks.length
       ? data.sourceLinks.map(link => `<a class="price-ml-link" href="${escapeHtml(link.url)}" target="_blank" rel="noopener">${escapeHtml(link.label)} ↗</a>`).join('')
       : (data.permalink ? `<a class="price-ml-link" href="${escapeHtml(data.permalink)}" target="_blank" rel="noopener">Ver en ${escapeHtml(data.sourceLabel || 'Mercado Libre')} ↗</a>` : '');
@@ -897,23 +813,17 @@
         </div>
       </div>
 
-      <div class="price-reference-grid">
+      <div class="price-reference-grid price-reference-single">
         <section class="price-reference">
           <div class="price-reference-label">${escapeHtml(retailLabel)}</div>
           <div class="price-reference-value">${money(retailDisplayValue)}</div>
           <div class="price-reference-note">${escapeHtml(retailNote)}</div>
         </section>
-        <section class="price-reference">
-          <div class="price-reference-label">${escapeHtml(wholesaleLabel)}</div>
-          <div class="price-reference-value wholesale">${money(wholesale.unitWithVatMedian)}</div>
-          <div class="price-reference-note">${escapeHtml(wholesaleRange(wholesale))}</div>
-        </section>
       </div>
 
       ${sourceOffersHtml(data.sourceOffers)}
 
-      ${shopDetails('Precios minoristas considerados', data.retailStores || [], false)}
-      ${shopDetails('Precios mayoristas considerados', data.wholesaleStores || [], true)}
+      ${shopDetails('Precios minoristas considerados', data.retailStores || [])}
 
       <section class="price-own-section">
         <div class="price-own-head">
@@ -932,7 +842,7 @@
               <input class="price-input" id="priceMargenObj" type="number" min="1" max="94" step="1" inputmode="numeric" placeholder="30">
               <button type="button" class="cat-suggest-btn" id="priceSugerirBtn">Sugerir precio</button>
             </div>
-            <div class="price-field-hint">Usa tu costo real o la referencia mayorista.</div>
+            <div class="price-field-hint">Usa tu costo real por unidad.</div>
           </div>
         </div>
         <form class="price-calc-form" id="priceCalcForm" data-ean="${escapeHtml(product.ean)}">
@@ -1012,7 +922,6 @@
     const costInput = document.getElementById('priceOwnCost');
     const sale = Number(saleInput.value);
     const realCost = Number(costInput.value);
-    const estimatedCost = Number(state.detail.wholesaleReference?.unitWithVatMedian);
     if (!Number.isFinite(sale) || sale <= 0) {
       saleInput.focus();
       notify('Ingresá tu precio de venta');
@@ -1020,14 +929,13 @@
     }
 
     const hasRealCost = Number.isFinite(realCost) && realCost > 0;
-    const hasEstimatedCost = Number.isFinite(estimatedCost) && estimatedCost > 0;
-    const cost = hasRealCost ? realCost : (hasEstimatedCost ? estimatedCost : null);
+    const cost = hasRealCost ? realCost : null;
     const retail = Number(state.detail.retailReference?.median);
     const marketDelta = Number.isFinite(retail) && retail > 0 ? ((sale - retail) / retail) * 100 : null;
     const profit = cost ? sale - cost : null;
     const margin = cost ? (profit / sale) * 100 : null;
     const markup = cost ? (profit / cost) * 100 : null;
-    const costLabel = hasRealCost ? `Tu costo real: ${money(cost)}` : (hasEstimatedCost ? `Referencia mayorista c/IVA: ${money(cost)}` : 'Sin costo cargado');
+    const costLabel = hasRealCost ? `Tu costo real por unidad: ${money(cost)}` : 'Sin costo cargado';
 
     document.getElementById('priceCostUsed').textContent = costLabel;
     const marketNote = Number.isFinite(marketDelta)
@@ -1181,8 +1089,7 @@
     const marginTarget = Number(document.getElementById('priceMargenObj')?.value) || 30;
     if (marginTarget <= 0 || marginTarget >= 95) { notify('El margen tiene que estar entre 1 y 94%'); return; }
     const ownCost = Number(document.getElementById('priceOwnCost')?.value);
-    const estimated = Number(state.detail?.wholesaleReference?.unitWithVatMedian);
-    const cost = ownCost > 0 ? ownCost : (estimated > 0 ? estimated : null);
+    const cost = ownCost > 0 ? ownCost : null;
     if (!cost) { notify('Cargá tu costo real para sugerir el precio'); document.getElementById('priceOwnCost')?.focus(); return; }
     const suggested = suggestPrice(cost, marginTarget);
     document.getElementById('priceOwnSale').value = suggested;

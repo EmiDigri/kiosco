@@ -1,3 +1,5 @@
+import unitPrices from '../price-unit.js';
+
 const RETAIL_API = process.env.PRECIOS_CLAROS_RETAIL_API || 'https://d3e6htiiul5ek9.cloudfront.net/prod';
 const WHOLESALE_API = process.env.PRECIOS_CLAROS_WHOLESALE_API || 'https://d3e6htiiul5ek9.cloudfront.net/dev';
 
@@ -295,6 +297,8 @@ async function mlHydrate(token, product, signal) {
       brand: mlAttribute(detail, 'BRAND') || mlAttribute(product, 'BRAND'),
       ean: mlAttribute(detail, 'GTIN') || mlAttribute(product, 'GTIN') || null,
       presentation: mlPresentation(detail) || mlPresentation(product),
+      packUnits: Number(mlAttribute(detail, 'UNITS_PER_PACK') || mlAttribute(product, 'UNITS_PER_PACK')) || null,
+      saleFormat: mlAttribute(detail, 'SALE_FORMAT') || mlAttribute(product, 'SALE_FORMAT'),
       suggestedCategory: mlSuggestedCategory(detail) || mlSuggestedCategory(product),
       domainId: detail.domain_id || product.domain_id || '',
       relevance: Number(product._relevance) || 0,
@@ -324,7 +328,7 @@ async function mlSearch(query, limit = 8) {
       .map(product => ({ ...product, _relevance: mlRelevance(product, query) }))
       .sort((a, b) => b._relevance - a._relevance)
       .slice(0, Math.min(limit, 8));
-    const hydrated = (await Promise.all(products.map(product => mlHydrate(token, product, controller.signal)))).filter(Boolean);
+    const hydrated = (await Promise.all(products.map(product => mlHydrate(token, product, controller.signal)))).filter(unitPrices.isIndividual);
     return { disabled: false, items: hydrated.sort((a, b) => b.relevance - a.relevance) };
   } finally {
     clearTimeout(timeout);
@@ -482,6 +486,7 @@ function dulceSurSlug(title, id) {
 
 async function dulceSurJson(table, params) {
   const response = await fetch(`${DULCE_SUR_URL}/rest/v1/${table}?${params}`, {
+    signal: AbortSignal.timeout(4500),
     headers: {
       apikey: DULCE_SUR_PUBLIC_KEY,
       Authorization: `Bearer ${DULCE_SUR_PUBLIC_KEY}`,
@@ -524,29 +529,26 @@ async function dulceSurSearch(query, limit = 10) {
     const rows = byProduct.get(product.id) || [];
     const priced = rows.map(row => ({
       ...row,
-      quantity: Math.max(1, Number(row.cantidad) || 1),
+      quantity: Number(row.cantidad),
       effectivePrice: numberOrNull(row.precio_oferta) || numberOrNull(row.precio),
     })).filter(row => row.effectivePrice);
-    const unit = priced.find(row => row.quantity === 1);
-    const packs = priced.filter(row => row.quantity > 1).sort((a, b) => (a.effectivePrice / a.quantity) - (b.effectivePrice / b.quantity));
-    const bestPack = packs[0] || null;
-    const publicUnit = unit?.effectivePrice || numberOrNull(product.precio_oferta) || numberOrNull(product.precio);
-    const bestUnit = bestPack ? Math.min(publicUnit || Infinity, bestPack.effectivePrice / bestPack.quantity) : publicUnit;
+    const unit = priced.find(row => row.quantity === 1 && row.effectivePrice > 0 && unitPrices.isIndividual({title:row.nombre}));
+    if (!unit) return null;
     const brand = Array.isArray(product.marcas) ? product.marcas[0]?.nombre : product.marcas?.nombre;
     const category = Array.isArray(product.categorias) ? product.categorias[0]?.nombre : product.categorias?.nombre;
     return {
       id: `dulce:${product.id}`,
       source: 'dulce-sur',
       sourceLabel: 'Dulce Sur',
+      priceType: 'unit',
+      unitSaleVerified: true,
       code: product.codigo || unit?.sku || '',
       title: product.nombre,
       brand: brand || '',
-      presentation: bestPack?.nombre || unit?.nombre || 'Unidad',
+      presentation: unit.nombre || 'Unidad',
       category: category || 'Kiosco varios',
-      unitPrice: Number.isFinite(bestUnit) ? bestUnit : publicUnit,
-      shelfPrice: publicUnit,
-      packPrice: bestPack?.effectivePrice || null,
-      packUnits: bestPack?.quantity || null,
+      unitPrice: unit.effectivePrice,
+      packUnits: 1,
       minimum: 1,
       stock: Number(product.stock) || 0,
       available: Number(product.stock) > 0,
@@ -555,7 +557,8 @@ async function dulceSurSearch(query, limit = 10) {
       updatedAt: product.fecha_actualizacion || null,
       relevance: textRelevance(`${brand || ''} ${product.nombre}`, queryText),
     };
-  }).sort((a, b) => Number(b.available) - Number(a.available) || b.relevance - a.relevance).slice(0, limit);
+  }).filter(item => unitPrices.isIndividual(item) && item.available)
+    .sort((a, b) => b.relevance - a.relevance).slice(0, limit);
   return supplierCacheSet(cacheKey, items);
 }
 
@@ -651,7 +654,7 @@ async function rappiSearch(query, limit = 10) {
       updatedAt: new Date().toISOString(),
       relevance,
     };
-  }).filter(item => item.relevance >= 20).sort((a, b) => b.relevance - a.relevance || a.unitPrice - b.unitPrice).slice(0, 20);
+  }).filter(item => item.relevance >= 20 && unitPrices.isIndividual(item)).sort((a, b) => b.relevance - a.relevance || a.unitPrice - b.unitPrice).slice(0, 20);
   supplierCacheSet(cacheKey, items);
   return items.slice(0, limit);
 }
@@ -720,7 +723,7 @@ async function open25Search(query, limit = 10) {
       relevance: textRelevance(parsed.title, queryText),
     });
   }
-  const ranked = items.filter(item => item.relevance >= 20)
+  const ranked = items.filter(item => item.relevance >= 20 && unitPrices.isIndividual(item))
     .sort((a, b) => b.relevance - a.relevance || a.unitPrice - b.unitPrice)
     .slice(0, 20);
   supplierCacheSet(cacheKey, ranked);
@@ -1352,15 +1355,14 @@ async function handleRadar() {
 }
 
 async function supplierSearch(query, limit = 10) {
-  const [casa, dulce, rappi, open25] = await Promise.allSettled([casaPasoSearch(query, limit), dulceSurSearch(query, limit), rappiSearch(query, limit), open25Search(query, limit)]);
+  const [rappi, open25, dulce] = await Promise.allSettled([rappiSearch(query, limit), open25Search(query, limit), dulceSurSearch(query, limit)]);
   return {
     items: [
       ...(open25.status === 'fulfilled' ? open25.value : []),
       ...(rappi.status === 'fulfilled' ? rappi.value : []),
       ...(dulce.status === 'fulfilled' ? dulce.value : []),
-      ...(casa.status === 'fulfilled' ? casa.value : []),
-    ],
-    sources: { casaPaso: casa.status === 'fulfilled', dulceSur: dulce.status === 'fulfilled', rappi: rappi.status === 'fulfilled', open25: open25.status === 'fulfilled' },
+    ].filter(unitPrices.isIndividual),
+    sources: { rappi: rappi.status === 'fulfilled', open25: open25.status === 'fulfilled', dulceSur: dulce.status === 'fulfilled' },
   };
 }
 
@@ -1714,54 +1716,44 @@ async function productImage(ean) {
 }
 
 async function handleSearch(query, lat, lng, zone) {
-  const [retailSettled, wholesaleSettled, suppliersSettled] = await Promise.allSettled([
+  const [retailSettled, suppliersSettled] = await Promise.allSettled([
     searchSource('retail', query, lat, lng, zone),
-    searchSource('wholesale', query, lat, lng, zone),
     supplierSearch(query, 10),
   ]);
-  if (retailSettled.status === 'rejected' && wholesaleSettled.status === 'rejected' && suppliersSettled.status === 'rejected') {
+  if (retailSettled.status === 'rejected' && suppliersSettled.status === 'rejected') {
     throw retailSettled.reason;
   }
   const retail = retailSettled.status === 'fulfilled' ? retailSettled.value : null;
-  const wholesale = wholesaleSettled.status === 'fulfilled' ? wholesaleSettled.value : null;
   const suppliers = suppliersSettled.status === 'fulfilled' ? suppliersSettled.value : { items: [], sources: {} };
   return {
-    items: mergeSearchResults(retail, wholesale),
+    items: mergeSearchResults(retail, null).filter(unitPrices.isIndividual).map(({wholesale, ...item}) => item),
     supplierItems: suppliers.items,
     coverage: {
       retailBranches: retail?.branches?.length || 0,
-      wholesaleBranches: wholesale?.branches?.length || 0,
     },
     sources: {
       retail: retailSettled.status === 'fulfilled',
-      wholesale: wholesaleSettled.status === 'fulfilled',
-      casaPaso: suppliers.sources.casaPaso === true,
-      dulceSur: suppliers.sources.dulceSur === true,
+      open25: suppliers.sources.open25 === true,
       rappi: suppliers.sources.rappi === true,
+      dulceSur: suppliers.sources.dulceSur === true,
     },
   };
 }
 
 async function handleDetail(ean, lat, lng, zone) {
-  const [retailSettled, wholesaleSettled, imageSettled] = await Promise.allSettled([
+  const [retailSettled, imageSettled] = await Promise.allSettled([
     detailSource('retail', ean, lat, lng, zone),
-    detailSource('wholesale', ean, lat, lng, zone),
     productImage(ean),
   ]);
-  if (retailSettled.status === 'rejected' && wholesaleSettled.status === 'rejected') {
+  if (retailSettled.status === 'rejected') {
     throw retailSettled.reason;
   }
 
   const retail = retailSettled.status === 'fulfilled' ? retailSettled.value : { product: null, rows: [] };
-  const wholesale = wholesaleSettled.status === 'fulfilled' ? wholesaleSettled.value : { product: null, rows: [] };
   const retailReference = reference(retail.rows, 'price');
-  const unitWithVat = reference(wholesale.rows, 'unitWithVat');
-  const unitWithoutVat = reference(wholesale.rows, 'unitWithoutVat');
-  const packWithVat = reference(wholesale.rows, 'packWithVat');
-  const packWithoutVat = reference(wholesale.rows, 'packWithoutVat');
-  const unitsPerPack = reference(wholesale.rows, 'unitsPerPack');
 
-  const product = retail.product || wholesale.product || { ean, name: 'Producto', brand: '', presentation: '' };
+  const product = retail.product || { ean, name: 'Producto', brand: '', presentation: '' };
+  if (!unitPrices.isIndividual(product)) throw new Error('Esta publicación no corresponde a una venta individual.');
   let image = imageSettled.status === 'fulfilled' ? imageSettled.value : null;
   let mlRef = null;
   // MercadoLibre entra como respaldo: cuando falta la foto o no hay precio
@@ -1773,9 +1765,9 @@ async function handleDetail(ean, lat, lng, zone) {
         found = (await mlSearch(`${product.brand || ''} ${product.name}`.trim(), 3)).items;
       }
       if (found.length) {
-        const exact = found.find(item => item.ean && String(item.ean) === String(ean)) || found[0];
-        mlRef = exact.reference || null;
-        if (!image) image = exact.image || found.find(item => item.image)?.image || null;
+        const exact = found.find(item => item.ean && String(item.ean) === String(ean));
+        mlRef = exact?.reference || null;
+        if (!image) image = exact?.image || null;
       }
     } catch { /* ML es un extra: si falla seguimos sin él */ }
   }
@@ -1785,22 +1777,9 @@ async function handleDetail(ean, lat, lng, zone) {
     image,
     mlReference: mlRef,
     retailReference,
-    wholesaleReference: {
-      unitWithVatMedian: unitWithVat.median,
-      unitWithVatMin: unitWithVat.min,
-      unitWithVatMax: unitWithVat.max,
-      unitWithoutVatMedian: unitWithoutVat.median,
-      packWithVatMedian: packWithVat.median,
-      packWithoutVatMedian: packWithoutVat.median,
-      unitsPerPackMedian: unitsPerPack.median,
-      count: unitWithVat.count,
-      updatedToday: unitWithVat.updatedToday,
-    },
     retailStores: retail.rows.slice(0, 12),
-    wholesaleStores: wholesale.rows.slice(0, 12),
     sources: {
       retail: retailSettled.status === 'fulfilled',
-      wholesale: wholesaleSettled.status === 'fulfilled',
     },
   };
 }
@@ -1827,9 +1806,7 @@ export default async function handler(req, res) {
     } else if (action === 'radar') {
       payload = await handleRadar();
     } else if (action === 'supplier-detail') {
-      const source = String(req.query.source || '');
-      if (source !== 'casa-paso') return res.status(400).json({ error: 'Proveedor inválido' });
-      payload = { item: await casaPasoDetail(req.query.code) };
+      return res.status(400).json({ error: 'El buscador solo consulta ofertas con venta individual confirmada.' });
     } else if (action === 'suggest') {
       const query = normalizeQuery(req.query.q);
       if (query.length < 2) return res.status(400).json({ error: 'Ingresá al menos 2 caracteres' });
@@ -1862,7 +1839,7 @@ export default async function handler(req, res) {
       ...payload,
       location: { lat, lng, zone },
       checkedAt: new Date().toISOString(),
-      source: 'Precios Claros + Open 25 + Rappi + proveedores mayoristas',
+      source: 'Precios Claros + Open 25 + Rappi + Dulce Sur · venta individual',
     });
   } catch (error) {
     const message = error?.name === 'AbortError'
