@@ -620,6 +620,8 @@
       title: item.title || item.name || 'Producto',
       presentation: item.presentation || '',
       retailPrice,
+      referencePrice: isOfficial ? (Number(item.retail?.min) === Number(item.retail?.max) ? retailPrice : null) : retailPrice,
+      available: item.available !== false,
       retailMin: isOfficial ? Number(item.retail?.min) || null : Number(item.retailMin) || retailPrice,
       retailMax: isOfficial ? Number(item.retail?.max) || null : Number(item.retailMax) || retailPrice,
       permalink: item.permalink || '',
@@ -752,17 +754,45 @@
       </div>`).join('');
     return `<div class="price-source-columns">${columns}</div>`;
     }
-    const exact = offers.filter(offer => offer.matchType !== 'similar');
+    const exact = offers.filter(offer => offer.matchType !== 'similar' && offer.source !== 'rappi');
+    const delivery = offers.filter(offer => offer.matchType !== 'similar' && offer.source === 'rappi');
     const alternatives = offers.filter(offer => offer.matchType === 'similar');
     return `
       <section class="price-source-comparison">
-        <div class="price-source-comparison-head"><div><strong>Precios del producto elegido</strong><small>${exact.length > 1 ? 'Coincidencias por código de barras o descripción y presentación' : 'Una referencia disponible'}</small></div></div>
-        ${renderGroups(exact)}
+        <div class="price-source-comparison-head"><div><strong>Precios del producto elegido</strong><small>${exact.length > 1 ? 'Coincidencias por código de barras o descripción y presentación' : exact.length ? 'Una referencia disponible' : 'Sin referencias de venta directa'}</small></div></div>
+        ${exact.length ? renderGroups(exact) : ''}
+        ${delivery.length ? `<details class="price-shop-details"><summary><span>Delivery · Rappi</span></summary>${renderGroups(delivery)}</details>` : ''}
         ${alternatives.length ? `<details class="price-shop-details"><summary><span>Otras opciones (${alternatives.length})</span></summary><div class="price-source-warning">No se confirmó que sean el mismo producto. No forman parte de la referencia del producto elegido.</div>${renderGroups(alternatives)}</details>` : ''}
       </section>`;
   }
 
+  function combinedUnitReference(data) {
+    const bySource = new Map(), seen = new Set();
+    for (const offer of data.sourceOffers || []) {
+      if (!['selected', 'same'].includes(offer.matchType) || offer.available === false) continue;
+      if (!['precios-claros', 'open25', 'dulce-sur'].includes(offer.source)) continue;
+      // A search-result minimum is not a representative price for Precios Claros.
+      const price = offer.selected && offer.source === 'precios-claros'
+        ? Number(data.retailReference?.median) : Number(offer.referencePrice);
+      if (!Number.isFinite(price) || price <= 0) continue;
+      const key = `${offer.source}:${offer.id || offer.title}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      if (!bySource.has(offer.source)) bySource.set(offer.source, {label:offer.sourceLabel, prices:[]});
+      bySource.get(offer.source).prices.push(price);
+    }
+    if (!bySource.size) return null;
+    const median = values => {
+      const sorted = [...values].sort((a,b)=>a-b), middle = Math.floor(sorted.length/2);
+      return sorted.length%2 ? sorted[middle] : (sorted[middle-1]+sorted[middle])/2;
+    };
+    const sources = [...bySource.values()];
+    const values = sources.map(source=>median(source.prices));
+    return {median:median(values), min:Math.min(...values), max:Math.max(...values), count:values.length, labels:sources.map(source=>source.label)};
+  }
+
   function renderDetail(data) {
+    const combined = combinedUnitReference(data);
     let retail = data.retailReference || {};
     let retailLabel = 'Referencia minorista por unidad';
     let retailNote = referenceRange(retail);
@@ -786,6 +816,14 @@
       data.retailReference = retail; // así "vs. mercado" compara contra esta referencia
       retailLabel = 'Referencia MercadoLibre';
       retailNote = `Sin minoristas oficiales · ${retail.count} publicaciones ML, rango ${money(retail.min)} a ${money(retail.max)}`;
+    }
+    data.comparisonReference = combined || (data.retailSource === 'rappi' ? null : retail);
+    if (combined && (combined.count > 1 || data.retailSource === 'rappi')) {
+      retailLabel = 'Referencia por unidad · sin delivery';
+      retailDisplayValue = combined.median;
+      retailNote = combined.count > 1
+        ? `Mediana de ${combined.count} fuentes: ${combined.labels.join(' · ')}. Rango ${money(combined.min)} a ${money(combined.max)}`
+        : `Una referencia disponible: ${combined.labels[0]}`;
     }
     state.detail = data;
     const product = data.product || {};
@@ -930,7 +968,7 @@
 
     const hasRealCost = Number.isFinite(realCost) && realCost > 0;
     const cost = hasRealCost ? realCost : null;
-    const retail = Number(state.detail.retailReference?.median);
+    const retail = Number(state.detail.comparisonReference?.median);
     const marketDelta = Number.isFinite(retail) && retail > 0 ? ((sale - retail) / retail) * 100 : null;
     const profit = cost ? sale - cost : null;
     const margin = cost ? (profit / sale) * 100 : null;
@@ -939,11 +977,11 @@
 
     document.getElementById('priceCostUsed').textContent = costLabel;
     const marketNote = Number.isFinite(marketDelta)
-      ? `Tu precio ${money(sale)} · mercado ${money(retail)}`
-      : 'Sin referencia minorista para comparar';
+      ? `Tu precio ${money(sale)} · referencia ${money(retail)}`
+      : 'Sin referencia de venta directa para comparar';
     const costMissingNote = 'Ingresá tu costo real para calcularlo';
     document.getElementById('priceMetricGrid').innerHTML = [
-      metricCard('Vs. minorista', percentage(marketDelta), marketNote),
+      metricCard('Vs. referencia', percentage(marketDelta), marketNote),
       metricCard('Ganancia por unidad', profit === null ? '—' : money(profit), profit === null ? costMissingNote : `Venta ${money(sale)} − costo ${money(cost)}`, profit === null ? '' : (profit >= 0 ? 'good' : 'bad')),
       metricCard('Margen sobre venta', margin === null ? '—' : percentage(margin), margin === null ? costMissingNote : '(venta − costo) / venta', performanceClass(margin, 25, 12)),
       metricCard('Recargo sobre costo', markup === null ? '—' : percentage(markup), markup === null ? costMissingNote : '(venta − costo) / costo', performanceClass(markup, 35, 15)),

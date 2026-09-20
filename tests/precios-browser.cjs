@@ -23,7 +23,9 @@ const {start}=require('./catalogo-preview.cjs');
           {id:'dulce:3',source:'dulce-sur',title:'Rasta Negro 70g',unitPrice:1000},
           {id:'dulce:4',source:'dulce-sur',sourceLabel:'Dulce Sur',priceType:'unit',unitSaleVerified:true,minimum:1,title:'Rasta Negro 70g',unitPrice:1700},
           {id:'dulce:5',source:'dulce-sur',priceType:'unit',unitSaleVerified:true,minimum:6,title:'Rasta Negro 70g',unitPrice:900},
+          {id:'open25:6',source:'open25',sourceLabel:'Open 25',priceType:'retail',title:'Rasta Negro 70g',unitPrice:1500},
         ];
+        items.forEach(item=>{item.brand='Rasta';});
         window.__priceFixture={search:{items:[],supplierItems:items},suggest:{items}};
       });
       await page.goto(origin);
@@ -33,16 +35,17 @@ const {start}=require('./catalogo-preview.cjs');
       await page.locator('#priceSearchButton').click();
       const result=page.locator('#priceResults .price-result');
       await result.first().waitFor();
-      assert.equal(await result.count(),2);
+      assert.equal(await result.count(),3);
       await result.last().click();
-      assert((await page.locator('#priceDetail').innerText()).includes('comprar una unidad en Dulce Sur'));
-      assert((await page.locator('#priceDetail').innerText()).includes('1.700'));
+      assert((await page.locator('.price-reference-note').innerText()).includes('Mediana de 2 fuentes'));
+      assert((await page.locator('.price-reference-value').innerText()).includes('1.600'));
       await result.first().click();
       assert.equal(await page.locator('.price-reference').count(),1);
       assert(!/mayorista|bulto|pack x6/i.test(await page.locator('#priceDetail').innerText()));
       await page.locator('#priceOwnSale').fill('2000');
       await page.locator('#priceCalcForm button[type="submit"]').click();
       await page.locator('#priceMetrics').waitFor();
+      assert((await page.locator('.price-metric').first().innerText()).includes('25,0%'));
       assert((await page.locator('#priceCostUsed').innerText()).includes('Sin costo cargado'));
       assert.equal((await page.locator('.price-metric').nth(1).locator('.price-metric-value').innerText()).trim(),'—');
       await page.waitForFunction(()=>document.getElementById('priceSavedStatus').classList.contains('show'));
