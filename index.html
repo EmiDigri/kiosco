@@ -5311,6 +5311,27 @@ function metTipoGasto(nombre){const n=(nombre||'').trim();if(MET_INVERSION.has(n
 const MET_LABEL={Edenor:'Luz',AYSA:'Agua',Telecentro:'Internet',Fotocopiadora:'Insumos fotocopiadora','Mercado Pago':'Comisión MP',Toldo:'Toldo (mejora del local)','M.A':'M.A (sin identificar)'};
 const MET_PROVEEDOR={Edenor:'Edenor',AYSA:'AYSA',Telecentro:'Telecentro'};
 function metLabel(n){n=(n||'').trim();return MET_LABEL[n]||n;}
+// Conciliación con MercadoPago: clasificar/etiquetar una salida de MP por su nombre.
+const metNorm=s=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+const MET_STOP=new Set(['pago','producto','de','del','la','las','los','el','transferencia','enviada','sa','sac','srl','s','a','buenos','aires','con','y','varios']);
+const metToks=s=>metNorm(s).split(' ').filter(t=>t.length>=3&&!MET_STOP.has(t));
+function metTipoSalidaMp(nombre){const n=metNorm(nombre);
+  if(/\b(edenor|telecentro|aysa|arca|afip|agip|rentas|mapfre|seguro|monotributo|impuest|luz|metrogas|gas natural|internet|alquiler)\b/.test(n))return 'fijo';
+  if(/\b(lector|toldo|heladera|mostrador|freezer|estanteria|cartel)\b/.test(n))return 'inversion';
+  return 'variable';}
+function metLabelSalida(nombre){const n=metNorm(nombre);
+  if(/edenor/.test(n))return 'Luz (Edenor)';
+  if(/telecentro/.test(n))return 'Internet (Telecentro)';
+  if(/aysa/.test(n))return 'Agua (AYSA)';
+  if(/arca|afip/.test(n))return 'Impuestos (ARCA)';
+  if(/mapfre|seguro/.test(n))return 'Seguro (MAPFRE)';
+  if(/monotributo/.test(n))return 'Monotributo';
+  if(/lector/.test(n))return 'Lector de código';
+  if(/coca/.test(n))return 'Coca-Cola';
+  if(/barracas/.test(n))return 'Barracas Logística';
+  const nom=(nombre||'').replace(/^pago\s+(producto\s+de\s+)?/i,'').trim();
+  if(!nom||/^transferencia/i.test(nom))return 'Transferencia (proveedor)';
+  return nom.length>26?nom.slice(0,26)+'…':nom;}
 // ECharts se carga on-demand (sólo al abrir Métricas, para no pesar el home).
 let _metEchProm=null,_metCasc=null,_metTree=null,_metResizeReady=false;
 function metCargarECharts(){if(window.echarts)return Promise.resolve();if(_metEchProm)return _metEchProm;_metEchProm=new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js';s.onload=()=>res();s.onerror=()=>{_metEchProm=null;rej(new Error('echarts'));};document.head.appendChild(s);});return _metEchProm;}
@@ -5340,12 +5361,23 @@ function metRender(){
   const contable=CierreCuentas.resumenMes(histResumenMes,histIso(y,m,1),histIso(y,m,hoyD));
   const recaud=contable.total||0;
   const faltan=Math.max(0,contable.esperados-contable.cerrados);
-  // Sumar por concepto y agrupar por tipo (para el treemap y los totales).
-  const porNombre={};
-  (histRowsGastosMes||[]).forEach(g=>{const n=(g.nombre||'').trim()||'(sin nombre)';porNombre[n]=(porNombre[n]||0)+(Number(g.monto)||0);});
+  // Egresos CONCILIADOS con MercadoPago: cada gasto se cuenta una sola vez y con el
+  // monto real. Regla: se toman TODAS las salidas de MP (monto real, incluye MAPFRE,
+  // ARCA, etc. que no se anotan en el cuaderno) + los gastos del cuaderno que NO están
+  // cubiertos por una salida de MP (los pagados en efectivo). Un gasto del cuaderno se
+  // considera "cubierto" si comparte nombre o monto con una salida de MP (así no se
+  // doble-cuenta Edenor/proveedores pagados por MP, y el monto que vale es el de MP).
+  const metSalidas=(histRowsPagosMes||[]).filter(p=>(p.es_enviada===true||String(p.es_enviada)==='true')&&!(p.devuelta===true||String(p.devuelta)==='true')&&(!p.status||p.status==='approved')).map(p=>({nombre:(p.nombre||'').trim(),monto:Math.abs(Number(p.monto)||0)})).filter(p=>p.monto>0);
+  const metSalTok=new Set(); metSalidas.forEach(s=>metToks(s.nombre).forEach(t=>metSalTok.add(t)));
+  const metSalMonto=metSalidas.map(s=>s.monto);
+  const metCubierto=g=>{const gt=metToks(g.nombre);if(gt.length&&gt.some(t=>metSalTok.has(t)))return true;return metSalMonto.some(m=>Math.abs(m-g.monto)<1);};
+  const egr=[];
+  (histRowsGastosMes||[]).forEach(g=>{const mo=Number(g.monto)||0;if(mo<=0)return;const nom=(g.nombre||'').trim();if(!metCubierto({nombre:nom,monto:mo}))egr.push({nombre:metLabel(nom),monto:mo,tipo:metTipoGasto(nom)});});
+  metSalidas.forEach(s=>egr.push({nombre:metLabelSalida(s.nombre),monto:s.monto,tipo:metTipoSalidaMp(s.nombre)}));
   let fijo=0,variable=0,inversion=0,pendiente=0;
-  const grupos={variable:[],fijo:[],inversion:[],pendiente:[]};
-  Object.entries(porNombre).forEach(([n,v])=>{const t=metTipoGasto(n);grupos[t].push({nombre:n,monto:v});if(t==='fijo')fijo+=v;else if(t==='inversion')inversion+=v;else if(t==='pendiente')pendiente+=v;else variable+=v;});
+  const acum={variable:{},fijo:{},inversion:{},pendiente:{}};
+  egr.forEach(e=>{const t=e.tipo;acum[t][e.nombre]=(acum[t][e.nombre]||0)+e.monto;if(t==='fijo')fijo+=e.monto;else if(t==='inversion')inversion+=e.monto;else if(t==='pendiente')pendiente+=e.monto;else variable+=e.monto;});
+  const grupos={};['variable','fijo','inversion','pendiente'].forEach(t=>grupos[t]=Object.entries(acum[t]).map(([nombre,monto])=>({nombre,monto})));
   if(recaud<=0&&(fijo+variable+inversion+pendiente)<=0){body.innerHTML='<div class="met-empty">Todavía no hay datos cargados de este mes.</div>';if(_metCasc){_metCasc.dispose();_metCasc=null;}if(_metTree){_metTree.dispose();_metTree=null;}return;}
   const gastFijos=fijo+pendiente; // lo que se resta para llegar a la utilidad (fijos + aún sin imputar)
   const margenBruto=recaud-variable, margenBrutoPct=recaud>0?margenBruto/recaud*100:0;
@@ -5359,7 +5391,7 @@ function metRender(){
     if(!arr||!arr.length)return '';
     const s=arr.slice().sort((a,b)=>b.monto-a.monto),top=s.slice(0,12),rest=s.slice(12);
     const fila=(nom,mo,op)=>{const pct=total>0?mo/total*100:0;return `<div class="met-brk-row"><span class="met-brk-nom">${nom}</span><span class="met-brk-track"><span class="met-brk-fill" style="width:${Math.max(2,Math.round(pct))}%;background:${color}${op?';opacity:.5':''}"></span></span><span class="met-brk-val">${histMoneyCompact(mo)}<small>${Math.round(pct)}%</small></span></div>`;};
-    let filas=top.map(x=>fila(metLabel(x.nombre),x.monto,false)).join('');
+    let filas=top.map(x=>fila(x.nombre,x.monto,false)).join('');
     if(rest.length)filas+=fila(`Otros (${rest.length})`,rest.reduce((a,x)=>a+x.monto,0),true);
     return `<div class="met-brk-group"><div class="met-brk-head"><span>${titulo}</span><b>${histMoneyCompact(total)}</b></div>${filas}</div>`;
   };
