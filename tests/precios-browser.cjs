@@ -42,6 +42,8 @@ const {start}=require('./catalogo-preview.cjs');
       const checked=await page.locator('.price-checked-at').innerText();
       assert(checked.includes('18/9/26') && checked.includes('22:30'),checked);
       assert((await page.locator('.price-reference-value').innerText()).includes('1.600'));
+      assert.equal(await page.locator('.price-lowest').count(),1);
+      assert((await page.locator('.price-source-offer').filter({has:page.locator('.price-lowest')}).innerText()).includes('1.500'));
       await result.first().click();
       assert.equal(await page.locator('.price-reference').count(),1);
       assert(!/mayorista|bulto|pack x6/i.test(await page.locator('#priceDetail').innerText()));

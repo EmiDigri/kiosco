@@ -748,6 +748,11 @@
   function sourceOffersHtml(offers) {
     if (!Array.isArray(offers) || offers.length < 2) return '';
     const labels = { selected: 'Producto elegido', same: 'Mismo producto', similar: 'Alternativa similar' };
+    const comparable = offers.filter(offer => ['selected','same'].includes(offer.matchType)
+      && offer.source !== 'rappi' && offer.available !== false
+      && Number.isFinite(Number(offer.retailPrice)) && Number(offer.retailPrice) > 0);
+    const lowest = new Set(comparable.map(offer => offer.source)).size > 1
+      ? Math.min(...comparable.map(offer => Number(offer.retailPrice))) : null;
     function renderGroups(rows) {
     const groups = new Map();
     rows.forEach(offer => {
@@ -760,6 +765,7 @@
         ${group.offers.map(offer => {
           const content = `
             <span class="price-source-match ${offer.matchType}">${escapeHtml(labels[offer.matchType])}</span>
+            ${lowest !== null && comparable.includes(offer) && Number(offer.retailPrice) === lowest ? '<span class="price-source-match same price-lowest">Menor precio directo</span>' : ''}
             <span class="price-source-product">${escapeHtml(offer.title)}</span>
             ${offer.presentation ? `<span class="price-source-presentation">${escapeHtml(offer.presentation)}</span>` : ''}
             <span class="price-source-values">${sourceOfferValues(offer)}</span>`;

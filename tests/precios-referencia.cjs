@@ -31,3 +31,15 @@ test('does not treat the minimum from Precios Claros as its median',()=>{
   assert.equal(result.median,1500);
   assert.equal(result.count,2);
 });
+test('lowest-price label excludes delivery, unavailable products and alternatives; handles ties',()=>{
+  ctx.escapeHtml=value=>String(value||'');
+  ctx.sourceOfferValues=()=>'';
+  vm.runInContext(source.slice(source.indexOf('  function sourceOffersHtml('),source.indexOf('  function combinedUnitReference(')),ctx);
+  const row=(source,price,extra={})=>({source,sourceLabel:source,title:source,retailPrice:price,matchType:'same',...extra});
+  const a=row('open25',1500),b=row('dulce-sur',1700);
+  const excluded=[row('rappi',500),row('other',100,{available:false}),row('alternative',200,{matchType:'similar'}),row('invalid',0)];
+  const count=rows=>(ctx.sourceOffersHtml(rows).match(/class="price-source-match same price-lowest"/g)||[]).length;
+  assert.equal(count([a,b,...excluded]),1);
+  assert.equal(count([a,...excluded]),0);
+  assert.equal(count([a,{...b,retailPrice:1500},...excluded]),2);
+});
