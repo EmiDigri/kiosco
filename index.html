@@ -5381,7 +5381,7 @@ function metRender(){
   if(recaud<=0&&(fijo+variable+inversion+pendiente)<=0){body.innerHTML='<div class="met-empty">Todavía no hay datos cargados de este mes.</div>';if(_metCasc){_metCasc.dispose();_metCasc=null;}if(_metTree){_metTree.dispose();_metTree=null;}return;}
   const gastFijos=fijo+pendiente; // lo que se resta para llegar a la utilidad (fijos + aún sin imputar)
   const margenBruto=recaud-variable, margenBrutoPct=recaud>0?margenBruto/recaud*100:0;
-  const utilidad=recaud-variable-gastFijos, margenNetoPct=recaud>0?utilidad/recaud*100:0;
+  const utilidad=recaud-variable-gastFijos-inversion, margenNetoPct=recaud>0?utilidad/recaud*100:0;
   const pe=margenBrutoPct>0?fijo/(margenBrutoPct/100):0;
   const ventaDiaria=hoyD>0?recaud/hoyD:0, diasCubrir=(pe>0&&ventaDiaria>0)?Math.ceil(pe/ventaDiaria):0;
   const H=(lbl,valHtml,help,cls)=>`<div class="met-row ${cls||''}"><span class="met-lbl">${lbl} <button class="met-help-btn" type="button" aria-label="Qué es esto">?</button></span>${valHtml}</div><div class="met-help">${help}</div>`;
@@ -5398,8 +5398,8 @@ function metRender(){
   body.innerHTML=`
     <div class="met-card">
       <div class="met-card-title">Resultado de ${mesCorto}</div>
-      ${H('Utilidad neta',`<b class="${utilidad>=0?'met-pos':'met-neg'}">${histMoney(utilidad)}</b>`,'Resultado neto del período: los ingresos totales menos el costo de la mercadería vendida y los costos fijos operativos. Es la ganancia real que deja el negocio una vez cubiertos todos los gastos corrientes. Las inversiones en bienes de uso (ej. el toldo) se excluyen porque se amortizan a lo largo de su vida útil y no deben imputarse a un solo mes.','hero')}
-      <div class="met-sub">Margen neto ${Math.round(margenNetoPct)}% · de cada $100 facturados, ${Math.round(Math.max(0,margenNetoPct))} son ganancia</div>
+      ${H('Utilidad neta',`<b class="${utilidad>=0?'met-pos':'met-neg'}">${histMoney(utilidad)}</b>`,'La plata que queda para repartir entre los socios después de TODO lo que salió del negocio este mes: mercadería, costos fijos y también las inversiones (toldo, lector). Aunque una inversión dure años, la guita salió de la caja este mes, así que se descuenta igual de lo que hay para repartir.','hero')}
+      <div class="met-sub">Margen neto ${Math.round(margenNetoPct)}% · de cada $100 facturados, ${Math.round(Math.max(0,margenNetoPct))} quedan para repartir</div>
       ${faltan>0?`<div class="met-warn">Faltan ${faltan} cierre${faltan===1?'':'s'} con el efectivo cargado, así que la recaudación y la utilidad reales son más altas.</div>`:''}
     </div>
     <div class="met-card">
@@ -5429,7 +5429,7 @@ function metRender(){
       </div>
       <div class="met-kpi-help" id="metKpiHelp" hidden></div>
     </div>`;
-  metDibujarGraficos({recaud,variable,gastFijos,utilidad});
+  metDibujarGraficos({recaud,variable,gastFijos,inversion,utilidad});
 }
 async function metDibujarGraficos(v){
   const elC=document.getElementById('metCascada'),elT=document.getElementById('metTreemap');
@@ -5442,25 +5442,25 @@ async function metDibujarGraficos(v){
   if(elC){try{
     if(_metCasc)_metCasc.dispose();
     _metCasc=echarts.init(elC,null,{renderer:'svg'});
-    const base=[0, Math.max(0,v.recaud-v.variable), Math.max(0,v.utilidad), 0];
+    // Pasos dinámicos: Facturación → −Mercadería → −Fijos → (−Inversión si hay) → Utilidad.
+    const pasos=[{n:'Facturación',v:v.recaud,c:'#7c90ff'},{n:'− Mercadería',v:v.variable,c:'#f0728a'},{n:'− Fijos',v:v.gastFijos,c:'#f0b860'}];
+    if(v.inversion>0)pasos.push({n:'− Inversión',v:v.inversion,c:'#61d6c0'});
+    pasos.push({n:'Utilidad',v:Math.abs(v.utilidad),c:v.utilidad>=0?'#5fd68a':'#f87171'});
+    const base=[],niveles=[];let cum=0;
+    pasos.forEach((s,i)=>{if(i===0){base.push(0);cum=s.v;niveles.push(cum);}else if(i===pasos.length-1){base.push(0);}else{cum=cum-s.v;base.push(Math.max(0,cum));niveles.push(cum);}});
     _metCasc.setOption({
       grid:{left:4,right:4,top:28,bottom:20,containLabel:true},
-      xAxis:{type:'category',data:['Facturación','− Mercadería','− Fijos','Utilidad'],axisLabel:{color:sub,fontSize:10.5,interval:0},axisTick:{show:false},axisLine:{lineStyle:{color:dark?'rgba(255,255,255,.12)':'rgba(0,0,0,.12)'}}},
+      xAxis:{type:'category',data:pasos.map(s=>s.n),axisLabel:{color:sub,fontSize:10.5,interval:0},axisTick:{show:false},axisLine:{lineStyle:{color:dark?'rgba(255,255,255,.12)':'rgba(0,0,0,.12)'}}},
       yAxis:{type:'value',show:false},
       series:[
         {type:'bar',stack:'t',silent:true,itemStyle:{color:'transparent'},data:base},
-        {type:'bar',stack:'t',barWidth:'56%',itemStyle:{borderRadius:4},label:{show:true,position:'top',color:txt,fontSize:11,fontWeight:'bold',formatter:p=>histMoneyCompact(p.value)},data:[
-          {value:v.recaud,itemStyle:{color:'#7c90ff'}},
-          {value:v.variable,itemStyle:{color:'#f0728a'}},
-          {value:v.gastFijos,itemStyle:{color:'#f0b860'}},
-          {value:Math.abs(v.utilidad),itemStyle:{color:v.utilidad>=0?'#5fd68a':'#f87171'}}
-        ]}
+        {type:'bar',stack:'t',barWidth:'56%',itemStyle:{borderRadius:4},label:{show:true,position:'top',color:txt,fontSize:11,fontWeight:'bold',formatter:p=>histMoneyCompact(p.value)},data:pasos.map(s=>({value:s.v,itemStyle:{color:s.c}}))}
       ]
     });
     try{
       const cx=i=>_metCasc.convertToPixel({xAxisIndex:0},i),vy=val=>_metCasc.convertToPixel({yAxisIndex:0},val);
-      const hb=Math.abs(cx(1)-cx(0))*0.28, niv=[v.recaud, v.recaud-v.variable, v.utilidad], ln=[];
-      for(let i=0;i<3;i++){const y=vy(niv[i]),x1=cx(i)+hb,x2=cx(i+1)-hb;if(y==null||x1==null||x2==null)continue;ln.push({type:'line',silent:true,shape:{x1,y1:y,x2,y2:y},style:{stroke:dark?'rgba(255,255,255,.32)':'rgba(0,0,0,.22)',lineWidth:1.5,lineDash:[4,3]}});}
+      const hb=Math.abs(cx(1)-cx(0))*0.28, ln=[];
+      for(let i=0;i<niveles.length;i++){const y=vy(niveles[i]),x1=cx(i)+hb,x2=cx(i+1)-hb;if(y==null||x1==null||x2==null)continue;ln.push({type:'line',silent:true,shape:{x1,y1:y,x2,y2:y},style:{stroke:dark?'rgba(255,255,255,.32)':'rgba(0,0,0,.22)',lineWidth:1.5,lineDash:[4,3]}});}
       if(ln.length)_metCasc.setOption({graphic:ln});
     }catch(e){}
   }catch(e){}}
