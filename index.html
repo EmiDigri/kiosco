@@ -5396,7 +5396,7 @@ function metRender(){
   const ventaDiaria=hoyD>0?recaud/hoyD:0, diasCubrir=(pe>0&&ventaDiaria>0)?Math.ceil(pe/ventaDiaria):0;
   const H=(lbl,valHtml,help,cls)=>`<div class="met-row ${cls||''}"><span class="met-lbl">${lbl} <button class="met-help-btn" type="button" aria-label="Qué es esto">?</button></span>${valHtml}</div><div class="met-help">${help}</div>`;
   const money=v=>`<b class="${v<0?'met-neg':''}">${histMoney(v)}</b>`;
-  const KPI=(lbl,val,sub,help,accent)=>`<div class="met-kpi${accent?' accent':''}"><div class="met-kpi-top">${lbl} <button class="met-help-btn met-kpi-q" type="button" data-h="${help}" aria-label="Qué es esto">?</button></div><div class="met-kpi-val">${val}${sub?`<span class="met-kpi-sub">${sub}</span>`:''}</div></div>`;
+  const KPI=(lbl,val,sub,help,accent)=>`<div class="met-kpi${accent?' accent':''}"><div class="met-kpi-top">${lbl}${help?` <button class="met-help-btn met-kpi-q" type="button" data-h="${help}" aria-label="Qué es esto">?</button>`:''}</div><div class="met-kpi-val">${val}${sub?`<span class="met-kpi-sub">${sub}</span>`:''}</div></div>`;
   const brkGroup=(titulo,arr,color,total)=>{
     if(!arr||!arr.length)return '';
     const s=arr.slice().sort((a,b)=>b.monto-a.monto),top=s.slice(0,12),rest=s.slice(12);
@@ -5426,7 +5426,7 @@ function metRender(){
         ${KPI('Margen bruto',Math.round(margenBrutoPct)+'%',histMoneyCompact(margenBruto),'Utilidad bruta = facturación − costo de mercadería. Mide la rentabilidad de comprar y revender antes de los costos de estructura. El porcentaje es el margen de contribución: cuántos centavos de cada peso quedan para cubrir los fijos y generar utilidad.',true)}
         ${KPI('Punto de equilibrio',pe>0?histMoney(Math.round(pe)):'—','',pe>0?`Es cuánto tenés que vender en el mes para no ganar ni perder. Parece alto y no coincide con los fijos porque de cada $100 que vendés, unos $${Math.round(100-margenBrutoPct)} se van en reponer la mercadería y sólo te quedan $${Math.round(margenBrutoPct)} (tu margen del ${Math.round(margenBrutoPct)}%) para cubrir los fijos. Por eso hay que vender los fijos dividido el margen: ${histMoneyCompact(fijo)} ÷ ${Math.round(margenBrutoPct)}% ≈ ${histMoneyCompact(pe)}. Todo lo que vendas por encima ya es ganancia; por debajo, pérdida.`:'Nivel de facturación donde los ingresos igualan a los costos totales. Se calcula como costos fijos ÷ margen de contribución.')}
         ${KPI('Días para cubrir fijos',diasCubrir>0?diasCubrir+(diasCubrir===1?' día':' días'):'—','','El punto de equilibrio expresado en tiempo: al ritmo de venta diario, cuántos días del mes se destinan a absorber los costos fijos. A partir de ese día, la operación arroja resultado positivo.')}
-        ${inversion>0?KPI('Inversión',histMoney(inversion),'','Erogación de capital no recurrente que incorpora un bien durable (ej. el toldo). No se computa como gasto del período; se activa y amortiza en su vida útil.'):''}
+        ${inversion>0?KPI('Inversión',histMoney(inversion),'',''):''}
         ${pendiente>0?KPI('Sin imputar',histMoney(pendiente),'','Erogaciones aún no clasificadas (ej. M.A). Una vez identificadas se asignan a costos fijos o variables según su naturaleza.'):''}
       </div>
       <div class="met-kpi-help" id="metKpiHelp" hidden></div>
