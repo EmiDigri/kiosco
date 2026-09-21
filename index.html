@@ -5418,13 +5418,6 @@ function metRender(){
       <div class="met-cap">Estado de resultados en cascada: de la <b>facturación</b> se detrae el <b>costo de mercadería</b> (costo variable) y los <b>costos fijos</b>; el remanente es el <b>resultado neto</b>.</div>
     </div>
     <div class="met-card">
-      <div class="met-card-title">Estructura de egresos por concepto</div>
-      ${brkGroup('Costos variables (mercadería)',grupos.variable,'#7c90ff',variable)}
-      ${brkGroup('Costos fijos',grupos.fijo,'#f0b860',fijo)}
-      ${inversion>0?brkGroup('Inversión',grupos.inversion,'#61d6c0',inversion):''}
-      ${pendiente>0?brkGroup('Sin imputar',grupos.pendiente,'#9aa0a6',pendiente):''}
-    </div>
-    <div class="met-card">
       <div class="met-card-title">Indicadores de rentabilidad</div>
       <div class="met-kpis">
         ${KPI('Facturación',histMoney(recaud),'','Ingresos totales del período: todo lo cobrado por efectivo y Mercado Pago. Es la primera línea del estado de resultados, antes de detraer costos.')}
@@ -5437,6 +5430,13 @@ function metRender(){
         ${pendiente>0?KPI('Sin imputar',histMoney(pendiente),'','Erogaciones aún no clasificadas (ej. M.A). Una vez identificadas se asignan a costos fijos o variables según su naturaleza.'):''}
       </div>
       <div class="met-kpi-help" id="metKpiHelp" hidden></div>
+    </div>
+    <div class="met-card">
+      <div class="met-card-title">Estructura de egresos por concepto</div>
+      ${brkGroup('Costos variables (mercadería)',grupos.variable,'#7c90ff',variable)}
+      ${brkGroup('Costos fijos',grupos.fijo,'#f0b860',fijo)}
+      ${inversion>0?brkGroup('Inversión',grupos.inversion,'#61d6c0',inversion):''}
+      ${pendiente>0?brkGroup('Sin imputar',grupos.pendiente,'#9aa0a6',pendiente):''}
     </div>`;
   metDibujarGraficos({recaud,variable,gastFijos,inversion,utilidad});
 }
