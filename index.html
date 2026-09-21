@@ -5488,7 +5488,10 @@ async function metDibujarGraficos(v){
           const sub=(i===0)?'total del mes':(isLast&&v.utilidad<0)?'pérdida del mes':(pct+'% de las ventas');
           const it={value:s.v,itemStyle:{color:metGrad(s.c)}};
           const numFont='"Space Grotesk", Inter, -apple-system, sans-serif';
-          if(rt>=0.18){it.label={show:true,position:'inside',align:'center',verticalAlign:'middle',lineHeight:17,formatter:()=>`{v|${histMoneyCompact(s.v)}}\n{p|${sub}}`,rich:{v:{color:'#f5f7ff',fontFamily:numFont,fontSize:16,fontWeight:600,textShadowColor:'rgba(0,0,0,.30)',textShadowBlur:4},p:{color:'rgba(255,255,255,.68)',fontFamily:numFont,fontSize:10.5,fontWeight:500,textShadowColor:'rgba(0,0,0,.25)',textShadowBlur:2}}};}
+          // Texto OSCURO (mismo tono de la barra, bien oscurecido) + fino borde claro
+          // alrededor: resalta en vez de fundirse; el blanco puro se veía lavado.
+          const inkV=metShade(s.c,-72), inkP=metShade(s.c,-58);
+          if(rt>=0.18){it.label={show:true,position:'inside',align:'center',verticalAlign:'middle',lineHeight:17,formatter:()=>`{v|${histMoneyCompact(s.v)}}\n{p|${sub}}`,rich:{v:{color:inkV,fontFamily:numFont,fontSize:16,fontWeight:700,textBorderColor:'rgba(255,255,255,.55)',textBorderWidth:2},p:{color:inkP,fontFamily:numFont,fontSize:10.5,fontWeight:600,textBorderColor:'rgba(255,255,255,.4)',textBorderWidth:1.2}}};}
           else{it.label={show:true,position:'top',color:txt,fontFamily:numFont,fontSize:12,fontWeight:600,formatter:()=>histMoneyCompact(s.v)};}
           return it;
         })}
