@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Kiosco</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Press+Start+2P&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Press+Start+2P&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -5455,6 +5455,9 @@ async function metDibujarGraficos(v){
   const elC=document.getElementById('metCascada'),elT=document.getElementById('metTreemap');
   try{await metCargarECharts();}catch(e){if(elC)elC.innerHTML='<div class="met-cap" style="text-align:center;padding:24px">No se pudo cargar el gráfico (sin conexión). Los indicadores de arriba y abajo son correctos igual.</div>';return;}
   if(!window.echarts)return;
+  // Espero a que cargue Space Grotesk (numerales) para que el render SVG la use y no
+  // caiga a la fuente de sistema en la primera pintada.
+  try{await Promise.all([document.fonts.load('600 15px "Space Grotesk"'),document.fonts.load('500 10px "Space Grotesk"')]);}catch(e){}
   const dark=!document.body.classList.contains('light');
   const txt=dark?'#d8d8dc':'#334155', sub=dark?'#9a9aa2':'#64748b', borde=dark?'#161620':'#ffffff';
   if(!_metResizeReady){_metResizeReady=true;window.addEventListener('resize',()=>{try{_metCasc&&_metCasc.resize();_metTree&&_metTree.resize();}catch(e){}});}
@@ -5484,8 +5487,9 @@ async function metDibujarGraficos(v){
           const rt=pasos[0].v>0?s.v/pasos[0].v:0, pct=Math.round(rt*100), isLast=i===pasos.length-1;
           const sub=(i===0)?'total del mes':(isLast&&v.utilidad<0)?'pérdida del mes':(pct+'% de las ventas');
           const it={value:s.v,itemStyle:{color:metGrad(s.c)}};
-          if(rt>=0.18){it.label={show:true,position:'inside',align:'center',verticalAlign:'middle',lineHeight:14,formatter:()=>`{v|${histMoneyCompact(s.v)}}\n{p|${sub}}`,rich:{v:{color:'#fff',fontSize:13,fontWeight:'bold',textShadowColor:'rgba(0,0,0,.4)',textShadowBlur:3},p:{color:'rgba(255,255,255,.85)',fontSize:9.5,textShadowColor:'rgba(0,0,0,.35)',textShadowBlur:2}}};}
-          else{it.label={show:true,position:'top',color:txt,fontSize:11,fontWeight:'bold',formatter:()=>histMoneyCompact(s.v)};}
+          const numFont='"Space Grotesk", Inter, -apple-system, sans-serif';
+          if(rt>=0.18){it.label={show:true,position:'inside',align:'center',verticalAlign:'middle',lineHeight:17,formatter:()=>`{v|${histMoneyCompact(s.v)}}\n{p|${sub}}`,rich:{v:{color:'#f5f7ff',fontFamily:numFont,fontSize:16,fontWeight:600,textShadowColor:'rgba(0,0,0,.30)',textShadowBlur:4},p:{color:'rgba(255,255,255,.68)',fontFamily:numFont,fontSize:10.5,fontWeight:500,textShadowColor:'rgba(0,0,0,.25)',textShadowBlur:2}}};}
+          else{it.label={show:true,position:'top',color:txt,fontFamily:numFont,fontSize:12,fontWeight:600,formatter:()=>histMoneyCompact(s.v)};}
           return it;
         })}
       ]
