@@ -14,5 +14,16 @@
 .hist-gastos-detalle .hist-gastos-importe{color:var(--amber);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
 .hist-gastos-nota{margin:8px 0 12px;font-size:14px;line-height:1.5;color:var(--text-soft)}
 .hist-gastos-detalle .hist-gasto-line{font-size:15px}
+.hist-gasto-r{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.hist-gasto-edit{background:none;border:none;color:var(--text-soft);cursor:pointer;font-size:14px;padding:0 2px;line-height:1}
+.hist-gasto-edit:hover{color:var(--accent)}
+.hist-gasto-line.editando{gap:8px;align-items:center}
+.hist-gasto-line.editando input{min-width:0;background:var(--glass);border:1px solid var(--glass-border);color:var(--text);border-radius:var(--radius-sm);padding:8px 10px;font-size:14px;font-family:inherit}
+.hist-gasto-line.editando .hist-gasto-enom{flex:1 1 auto}
+.hist-gasto-line.editando .hist-gasto-emon{flex:0 0 96px;text-align:right;font-variant-numeric:tabular-nums}
+.hist-gasto-line.editando input:focus{border-color:var(--accent);outline:none}
+.hist-gasto-line.editando button{flex-shrink:0;background:none;border:none;cursor:pointer;font-size:17px;padding:0 2px;line-height:1}
+.hist-gasto-line.editando .hist-gasto-ok{color:#5fd68a}
+.hist-gasto-line.editando .hist-gasto-no{color:var(--text-soft)}
 body.light .hist-dia-gastos:not(:disabled),body.light .hist-gastos-importe{color:#965b0b}
 @media(max-width:600px){.hist-dia-encabezado{display:block;margin-bottom:14px}.hist-dia-gastos{margin-top:4px}.hist-dia-gastos strong{font-size:19px}}
