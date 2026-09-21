@@ -5455,6 +5455,9 @@ async function metDibujarGraficos(v){
     const pasos=[{n:'Facturación',v:v.recaud,c:'#7c90ff'},{n:'− Mercadería',v:v.variable,c:'#f0728a'},{n:'− Fijos',v:v.gastFijos,c:'#f0b860'}];
     if(v.inversion>0)pasos.push({n:'− Inversión',v:v.inversion,c:'#61d6c0'});
     pasos.push({n:'Utilidad',v:Math.abs(v.utilidad),c:v.utilidad>=0?'#5fd68a':'#f87171'});
+    // Degradé vertical: cada barra va de un tono más claro arriba al color base abajo (da profundidad).
+    const metShade=(hex,p)=>{const n=parseInt(hex.slice(1),16),f=x=>Math.max(0,Math.min(255,Math.round(p>=0?x+(255-x)*p/100:x*(1+p/100))));return `rgb(${f((n>>16)&255)},${f((n>>8)&255)},${f(n&255)})`;};
+    const metGrad=c=>new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:metShade(c,26)},{offset:1,color:c}]);
     const base=[],niveles=[];let cum=0;
     pasos.forEach((s,i)=>{if(i===0){base.push(0);cum=s.v;niveles.push(cum);}else if(i===pasos.length-1){base.push(0);}else{cum=cum-s.v;base.push(Math.max(0,cum));niveles.push(cum);}});
     _metCasc.setOption({
@@ -5463,13 +5466,13 @@ async function metDibujarGraficos(v){
       yAxis:{type:'value',show:false},
       series:[
         {type:'bar',stack:'t',silent:true,itemStyle:{color:'transparent'},data:base},
-        {type:'bar',stack:'t',barWidth:'56%',itemStyle:{borderRadius:4},label:{show:false},data:pasos.map((s,i)=>{
+        {type:'bar',stack:'t',barWidth:'56%',itemStyle:{borderRadius:4},label:{show:false},animationDuration:600,animationEasing:'cubicOut',animationDelay:idx=>idx*90,data:pasos.map((s,i)=>{
           // Análisis vertical (common-size): en las barras altas metemos adentro el monto
           // + qué % de la facturación representa (CMV, margen, etc). En las finitas (Fijos,
           // Inversión) no entra el texto → el monto queda arriba como antes.
           const rt=pasos[0].v>0?s.v/pasos[0].v:0, pct=Math.round(rt*100), isLast=i===pasos.length-1;
           const sub=(i===0)?'total del mes':(isLast&&v.utilidad<0)?'pérdida del mes':(pct+'% de las ventas');
-          const it={value:s.v,itemStyle:{color:s.c}};
+          const it={value:s.v,itemStyle:{color:metGrad(s.c)}};
           if(rt>=0.18){it.label={show:true,position:'inside',align:'center',verticalAlign:'middle',lineHeight:14,formatter:()=>`{v|${histMoneyCompact(s.v)}}\n{p|${sub}}`,rich:{v:{color:'#fff',fontSize:13,fontWeight:'bold',textShadowColor:'rgba(0,0,0,.4)',textShadowBlur:3},p:{color:'rgba(255,255,255,.85)',fontSize:9.5,textShadowColor:'rgba(0,0,0,.35)',textShadowBlur:2}}};}
           else{it.label={show:true,position:'top',color:txt,fontSize:11,fontWeight:'bold',formatter:()=>histMoneyCompact(s.v)};}
           return it;
