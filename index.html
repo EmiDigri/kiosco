@@ -5463,7 +5463,17 @@ async function metDibujarGraficos(v){
       yAxis:{type:'value',show:false},
       series:[
         {type:'bar',stack:'t',silent:true,itemStyle:{color:'transparent'},data:base},
-        {type:'bar',stack:'t',barWidth:'56%',itemStyle:{borderRadius:4},label:{show:true,position:'top',color:txt,fontSize:11,fontWeight:'bold',formatter:p=>histMoneyCompact(p.value)},data:pasos.map(s=>({value:s.v,itemStyle:{color:s.c}}))}
+        {type:'bar',stack:'t',barWidth:'56%',itemStyle:{borderRadius:4},label:{show:false},data:pasos.map((s,i)=>{
+          // Análisis vertical (common-size): en las barras altas metemos adentro el monto
+          // + qué % de la facturación representa (CMV, margen, etc). En las finitas (Fijos,
+          // Inversión) no entra el texto → el monto queda arriba como antes.
+          const rt=pasos[0].v>0?s.v/pasos[0].v:0, pct=Math.round(rt*100), isLast=i===pasos.length-1;
+          const sub=(i===0)?'total del mes':(isLast&&v.utilidad<0)?'pérdida del mes':(pct+'% de las ventas');
+          const it={value:s.v,itemStyle:{color:s.c}};
+          if(rt>=0.18){it.label={show:true,position:'inside',align:'center',verticalAlign:'middle',lineHeight:14,formatter:()=>`{v|${histMoneyCompact(s.v)}}\n{p|${sub}}`,rich:{v:{color:'#fff',fontSize:13,fontWeight:'bold',textShadowColor:'rgba(0,0,0,.4)',textShadowBlur:3},p:{color:'rgba(255,255,255,.85)',fontSize:9.5,textShadowColor:'rgba(0,0,0,.35)',textShadowBlur:2}}};}
+          else{it.label={show:true,position:'top',color:txt,fontSize:11,fontWeight:'bold',formatter:()=>histMoneyCompact(s.v)};}
+          return it;
+        })}
       ]
     });
     try{
