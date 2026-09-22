@@ -5356,7 +5356,7 @@ function metLabelSalida(nombre){const n=metNorm(nombre);
   if(!nom||/^transferencia/i.test(nom))return 'Transferencia (proveedor)';
   return nom.length>26?nom.slice(0,26)+'…':nom;}
 // ECharts se carga on-demand (sólo al abrir Métricas, para no pesar el home).
-let _metEchProm=null,_metCasc=null,_metTree=null,_metResizeReady=false;
+let _metEchProm=null,_metCasc=null,_metTree=null,_metResizeReady=false,_metHeat=null,_metHeatResize=false;
 function metCargarECharts(){if(window.echarts)return Promise.resolve();if(_metEchProm)return _metEchProm;_metEchProm=new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js';s.onload=()=>res();s.onerror=()=>{_metEchProm=null;rej(new Error('echarts'));};document.head.appendChild(s);});return _metEchProm;}
 let metMes=new Date();metMes.setDate(1);
 function metActualizarNav(){
@@ -5428,6 +5428,9 @@ function metRender(){
     if(rest.length)filas+=fila(`Otros (${rest.length})`,rest.reduce((a,x)=>a+x.monto,0),true);
     return `<div class="met-brk-group"><div class="met-brk-head"><span>${titulo}</span><b>${histMoneyCompact(total)}</b></div>${filas}</div>`;
   };
+  // Pagos-ingreso del mes (para el heatmap y las comisiones). Se recalcula solo cada
+  // vez que se abre Métricas, porque histRowsPagosMes se re-lee de Supabase en vivo.
+  const metIng=(histRowsPagosMes||[]).filter(p=>!(p.es_enviada===true||String(p.es_enviada)==='true')&&!(p.excluido===true||String(p.excluido)==='true')&&!(p.devuelta===true||String(p.devuelta)==='true')&&(!p.status||p.status==='approved')).map(p=>({hora:p.hora||'',monto:Math.abs(Number(p.monto)||0),fecha:p.fecha,tipo:p.tipo||''})).filter(p=>p.monto>0);
   body.innerHTML=`
     <div class="met-card">
       <div class="met-card-title">Resultado de ${mesCorto}</div>
@@ -5460,8 +5463,61 @@ function metRender(){
       ${brkGroup('Costos fijos',grupos.fijo,'#f0b860',fijo)}
       ${inversion>0?brkGroup('Inversión',grupos.inversion,'#61d6c0',inversion):''}
       ${pendiente>0?brkGroup('Sin imputar',grupos.pendiente,'#9aa0a6',pendiente):''}
-    </div>`;
+    </div>
+    <div class="met-card">
+      <div class="met-card-title">Cuándo entra la plata</div>
+      <div id="metHeatmap" class="met-chart" style="height:320px"></div>
+      <div class="met-cap">Más intenso = más facturación en esa hora y día del mes. Tocá una celda para ver el monto.</div>
+    </div>
+    ${metComisionesCard(metIng)}`;
   metDibujarGraficos({recaud,variable,gastFijos,inversion,utilidad});
+  metDibujarHeatmap(metIng);
+}
+// Tarjeta "Qué te cuesta cobrar": el usuario solo cobra por transferencia (gratis) y
+// débito por Point (3,25% + IVA). Estimamos la comisión sobre lo cobrado por Point.
+function metComisionesCard(ing){
+  const point=(ing||[]).filter(p=>/point/i.test(p.tipo));
+  const transf=(ing||[]).filter(p=>!/point/i.test(p.tipo));
+  const sumP=point.reduce((a,p)=>a+p.monto,0), sumT=transf.reduce((a,p)=>a+p.monto,0), tot=sumP+sumT;
+  if(tot<=0)return '';
+  const RATE=0.0325*1.21; // Point débito 3,25% + IVA 21%
+  const comision=Math.round(sumP*RATE);
+  const pctP=Math.round(sumP/tot*100), pctT=100-pctP;
+  return `<div class="met-card">
+    <div class="met-card-title">Qué te cuesta cobrar</div>
+    <div class="met-row"><span class="met-lbl"><span class="met-dot" style="background:#5fd68a"></span>Transferencias <small style="color:var(--text-soft);font-weight:600">gratis · ${transf.length} mov</small></span><b>${histMoney(sumT)}</b></div>
+    <div class="met-row"><span class="met-lbl"><span class="met-dot" style="background:#f0728a"></span>Débito por Point <small style="color:var(--text-soft);font-weight:600">${point.length} mov</small></span><b>${histMoney(sumP)}</b></div>
+    <div class="met-bar">${pctT>0?`<span style="width:${pctT}%;background:#5fd68a"></span>`:''}${pctP>0?`<span style="width:${pctP}%;background:#f0728a"></span>`:''}</div>
+    <div class="met-row hero" style="margin-top:10px"><span class="met-lbl">Comisión de MercadoPago</span><b class="met-neg">${comision>0?'−'+histMoney(comision):'$0'}</b></div>
+    <div class="met-sub">Estimada a 3,25% + IVA sobre lo cobrado por débito (Point); las transferencias no pagan nada. Por cada $100 que entren por transferencia en vez de débito, te quedan ~$3,9 más en el bolsillo.</div>
+  </div>`;
+}
+// Heatmap hora × día de la semana (ECharts). Muestra en qué franjas entra la plata.
+async function metDibujarHeatmap(ing){
+  const el=document.getElementById('metHeatmap');if(!el)return;
+  try{await metCargarECharts();}catch(e){el.innerHTML='<div class="met-cap" style="text-align:center;padding:24px">No se pudo cargar el gráfico (sin conexión).</div>';return;}
+  if(!window.echarts)return;
+  const dark=!document.body.classList.contains('light');
+  const sub=dark?'#9a9aa2':'#64748b';
+  const dias=['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+  const map={};let minH=23,maxH=8;
+  (ing||[]).forEach(p=>{const hh=parseInt(String(p.hora).slice(0,2),10);if(isNaN(hh))return;const d=new Date(p.fecha+'T12:00:00Z').getUTCDay();const xi=(d+6)%7;const key=xi+'_'+hh;map[key]=(map[key]||0)+p.monto;if(hh<minH)minH=hh;if(hh>maxH)maxH=hh;});
+  if(!Object.keys(map).length){if(_metHeat){_metHeat.dispose();_metHeat=null;}el.innerHTML='<div class="met-cap" style="text-align:center;padding:24px">Todavía no hay ventas de MercadoPago cargadas este mes.</div>';return;}
+  minH=Math.min(minH,8);maxH=Math.max(maxH,21);
+  const horas=[];for(let h=minH;h<=maxH;h++)horas.push(String(h).padStart(2,'0')+'h');
+  const data=[];let maxV=0;
+  Object.entries(map).forEach(([k,v])=>{const a=k.split('_'),xi=+a[0],yi=(+a[1])-minH;if(yi<0||yi>=horas.length)return;const val=Math.round(v);data.push([xi,yi,val]);if(val>maxV)maxV=val;});
+  if(_metHeat)_metHeat.dispose();
+  _metHeat=echarts.init(el,null,{renderer:'svg'});
+  _metHeat.setOption({
+    tooltip:{position:'top',formatter:p=>`${dias[p.value[0]]} ${horas[p.value[1]]} · ${histMoney(p.value[2])}`},
+    grid:{left:40,right:12,top:8,bottom:54,containLabel:false},
+    xAxis:{type:'category',data:dias,splitArea:{show:false},axisTick:{show:false},axisLine:{show:false},axisLabel:{color:sub,fontSize:11}},
+    yAxis:{type:'category',data:horas,splitArea:{show:false},axisTick:{show:false},axisLine:{show:false},axisLabel:{color:sub,fontSize:9.5}},
+    visualMap:{min:0,max:maxV||1,calculable:true,orient:'horizontal',left:'center',bottom:4,itemWidth:190,itemHeight:12,textStyle:{color:sub,fontSize:9},formatter:v=>histMoneyCompact(v),inRange:{color:dark?['#161a2e','#3b4c9e','#7c90ff','#c7b8ff']:['#eef1ff','#9db0ff','#5f76e6','#3b3f8f']}},
+    series:[{type:'heatmap',data,label:{show:false},itemStyle:{borderRadius:3,borderColor:dark?'#0f0f17':'#ffffff',borderWidth:2},emphasis:{itemStyle:{shadowBlur:8,shadowColor:'rgba(0,0,0,.45)'}}}]
+  });
+  if(!_metHeatResize){_metHeatResize=true;window.addEventListener('resize',()=>{try{_metHeat&&_metHeat.resize();}catch(e){}});}
 }
 async function metDibujarGraficos(v){
   const elC=document.getElementById('metCascada'),elT=document.getElementById('metTreemap');
