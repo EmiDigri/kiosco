@@ -2504,6 +2504,18 @@ body.light .met-brk-track{background:rgba(15,23,42,.06)}
 body.light .met-kpi{background:rgba(15,23,42,.03)}
 body.light .met-card{background:#FFFFFF!important;border-color:var(--glass-border)!important;box-shadow:var(--shadow-sm)!important}
 body.light .met-mes-btn,body.light .met-bar{background:rgba(15,23,42,.05)}
+@media(max-width:430px){
+  .met-card{padding:15px 13px}
+  .met-card-title{margin-bottom:10px}
+  .met-kpis{gap:8px}
+  .met-kpi{padding:11px 11px}
+  .met-kpi-top{font-size:9px}
+  .met-kpi-val{font-size:16px}
+  .met-row.hero b{font-size:25px}
+  .met-brk-row{grid-template-columns:minmax(66px,42%) 1fr auto;gap:8px;font-size:11.5px}
+  .met-head-nav{gap:10px}
+  .met-mes-lbl{min-width:120px;font-size:14px}
+}
 .hist-met-kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
 .hist-met-kpi{background:rgba(255,255,255,.04);border:1px solid var(--glass-border);border-radius:14px;padding:14px 10px;text-align:center}
 .hist-met-kpi-label{font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-soft);margin-bottom:6px}
@@ -5431,14 +5443,14 @@ function metRender(){
     <div class="met-card">
       <div class="met-card-title">Indicadores de rentabilidad</div>
       <div class="met-kpis">
-        ${KPI('Facturación',histMoney(recaud),'','Ingresos totales del período: todo lo cobrado por efectivo y Mercado Pago. Es la primera línea del estado de resultados, antes de detraer costos.')}
-        ${KPI('Costo de mercadería',histMoney(variable),'','Costo variable (CMV): la mercadería adquirida para reventa. Acompaña el nivel de ventas —a mayor rotación, mayor reposición—. Es el costo principal y determina el margen bruto.')}
-        ${KPI('Costos fijos',histMoney(fijo),'','Costos de estructura: se devengan con independencia del volumen de ventas (alquiler, servicios, impuestos, honorarios). Son el piso a cubrir todos los meses; cuanto mayor la facturación, más se diluyen.')}
+        ${KPI('Facturación',histMoneyCompact(recaud),'','Ingresos totales del período: todo lo cobrado por efectivo y Mercado Pago. Es la primera línea del estado de resultados, antes de detraer costos.')}
+        ${KPI('Costo de mercadería',histMoneyCompact(variable),'','Costo variable (CMV): la mercadería adquirida para reventa. Acompaña el nivel de ventas —a mayor rotación, mayor reposición—. Es el costo principal y determina el margen bruto.')}
+        ${KPI('Costos fijos',histMoneyCompact(fijo),'','Costos de estructura: se devengan con independencia del volumen de ventas (alquiler, servicios, impuestos, honorarios). Son el piso a cubrir todos los meses; cuanto mayor la facturación, más se diluyen.')}
         ${KPI('Margen bruto',Math.round(margenBrutoPct)+'%',histMoneyCompact(margenBruto),'Utilidad bruta = facturación − costo de mercadería. Mide la rentabilidad de comprar y revender antes de los costos de estructura. El porcentaje es el margen de contribución: cuántos centavos de cada peso quedan para cubrir los fijos y generar utilidad.',true)}
-        ${KPI('Punto de equilibrio',pe>0?histMoney(Math.round(pe)):'—','',pe>0?`Es cuánto tenés que vender en el mes para no ganar ni perder. Parece alto y no coincide con los fijos porque de cada $100 que vendés, unos $${Math.round(100-margenBrutoPct)} se van en reponer la mercadería y sólo te quedan $${Math.round(margenBrutoPct)} (tu margen del ${Math.round(margenBrutoPct)}%) para cubrir los fijos. Por eso hay que vender los fijos dividido el margen: ${histMoneyCompact(fijo)} ÷ ${Math.round(margenBrutoPct)}% ≈ ${histMoneyCompact(pe)}. Todo lo que vendas por encima ya es ganancia; por debajo, pérdida.`:'Nivel de facturación donde los ingresos igualan a los costos totales. Se calcula como costos fijos ÷ margen de contribución.')}
+        ${KPI('Punto de equilibrio',pe>0?histMoneyCompact(pe):'—','',pe>0?`Es cuánto tenés que vender en el mes para no ganar ni perder. Parece alto y no coincide con los fijos porque de cada $100 que vendés, unos $${Math.round(100-margenBrutoPct)} se van en reponer la mercadería y sólo te quedan $${Math.round(margenBrutoPct)} (tu margen del ${Math.round(margenBrutoPct)}%) para cubrir los fijos. Por eso hay que vender los fijos dividido el margen: ${histMoneyCompact(fijo)} ÷ ${Math.round(margenBrutoPct)}% ≈ ${histMoneyCompact(pe)}. Todo lo que vendas por encima ya es ganancia; por debajo, pérdida.`:'Nivel de facturación donde los ingresos igualan a los costos totales. Se calcula como costos fijos ÷ margen de contribución.')}
         ${KPI('Días para cubrir fijos',diasCubrir>0?diasCubrir+(diasCubrir===1?' día':' días'):'—','','El punto de equilibrio expresado en tiempo: al ritmo de venta diario, cuántos días del mes se destinan a absorber los costos fijos. A partir de ese día, la operación arroja resultado positivo.')}
-        ${inversion>0?KPI('Inversión',histMoney(inversion),'',''):''}
-        ${pendiente>0?KPI('Sin imputar',histMoney(pendiente),'','Erogaciones aún no clasificadas (ej. M.A). Una vez identificadas se asignan a costos fijos o variables según su naturaleza.'):''}
+        ${inversion>0?KPI('Inversión',histMoneyCompact(inversion),'',''):''}
+        ${pendiente>0?KPI('Sin imputar',histMoneyCompact(pendiente),'','Erogaciones aún no clasificadas (ej. M.A). Una vez identificadas se asignan a costos fijos o variables según su naturaleza.'):''}
       </div>
       <div class="met-kpi-help" id="metKpiHelp" hidden></div>
     </div>
