@@ -39,8 +39,28 @@ function ahoraAR() {
   return { yyyy, mm, dd, hh, min, fecha: `${yyyy}-${mm}-${dd}`, esDomingo: diaSemana === 0 };
 }
 
+// Comisión e impuestos que MP le descuenta al comercio en un cobro, con los datos
+// reales de charges_details: type "fee" = comisión (ya con IVA), type "tax" =
+// retenciones (ej. IIBB CABA). Solo cuenta lo que paga el que cobra (from collector);
+// neto = lo que efectivamente llega a la cuenta.
+function costosMP(pago) {
+  let comision = 0, impuestos = 0;
+  const charges = Array.isArray(pago.charges_details) ? pago.charges_details : [];
+  charges.forEach(c => {
+    if (c?.accounts?.from !== 'collector') return;
+    const v = (Number(c.amounts?.original) || 0) - (Number(c.amounts?.refunded) || 0);
+    if (c.type === 'fee') comision += v;
+    else if (c.type === 'tax') impuestos += v;
+  });
+  if (!charges.length) (pago.fee_details || []).forEach(f => { if (f.fee_payer === 'collector') comision += Number(f.amount) || 0; });
+  const neto = Number(pago.transaction_details?.net_received_amount);
+  const r2 = n => Math.round(n * 100) / 100;
+  return { comision: r2(comision), impuestos: r2(impuestos), neto: Number.isFinite(neto) ? r2(neto) : null };
+}
+
+let faltanColumnas = false;
 async function guardarEnSupabase(registro) {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/pagos?on_conflict=pago_id`, {
+  const post = body => fetch(`${SUPABASE_URL}/rest/v1/pagos?on_conflict=pago_id`, {
     method: 'POST',
     headers: {
       'apikey': SUPABASE_KEY,
@@ -48,8 +68,19 @@ async function guardarEnSupabase(registro) {
       'Content-Type': 'application/json',
       'Prefer': 'resolution=merge-duplicates,return=minimal'
     },
-    body: JSON.stringify(registro)
+    body: JSON.stringify(body)
   });
+  let res = await post(registro);
+  if (!res.ok && 'comision' in registro) {
+    const txt = await res.text();
+    // Si faltan las columnas nuevas (comision/impuestos/neto), guardo sin ellas para
+    // no cortar nunca la carga de pagos.
+    if (/comision|impuestos|neto|column/i.test(txt)) {
+      faltanColumnas = true;
+      const { comision, impuestos, neto, ...resto } = registro;
+      res = await post(resto);
+    }
+  }
   if (!res.ok) {
     throw new Error(`No se pudo guardar un movimiento en Supabase (${res.status})`);
   }
@@ -85,7 +116,8 @@ function parsearPago(pago, esDomingo) {
     turno: turnoDeHora(hNum, dAR.getUTCMinutes(), esDomingo),
     status: pago.status,
     operation_type: pago.operation_type,
-    es_enviada: false
+    es_enviada: false,
+    ...costosMP(pago)
   };
 }
 
@@ -121,7 +153,7 @@ async function buscarPagosMP(extraParams) {
 // Se reconcilia TODO el día (no las "últimas 2 horas") para que, aunque el cron
 // no haya corrido de madrugada, la primera corrida del día repesque lo de la
 // noche y la madrugada. Ver bug: transferencias fuera de horario no aparecían.
-async function fetchYGuardar(esDomingo, fecha) {
+async function fetchYGuardar(esDomingo, fecha, limpiar = true) {
   const now = new Date();
   const begin = inicioDiaAR(fecha);
   const end = new Date(Math.min(begin.getTime() + 24 * 60 * 60 * 1000 - 1, now.getTime()));
@@ -201,7 +233,7 @@ async function fetchYGuardar(esDomingo, fecha) {
   // reales, por eso el cron nunca los repisaba). Una salida real siempre vuelve
   // a aparecer en la búsqueda de MP, así que no se borra por error.
   let fantasmas = 0;
-  try {
+  if (limpiar) try {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/pagos?fecha=eq.${fecha}&es_enviada=eq.true&select=pago_id`, {
       headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` },
     });
@@ -237,10 +269,12 @@ export default async function handler(req, res) {
     // en tiempo real no es 100% confiable, así que el cron tiene que repescar
     // también de madrugada y de noche (antes estaba limitado a 7-23 h y por eso
     // los movimientos fuera de horario no aparecían).
-    const resultado = await fetchYGuardar(esDomingoPedido, pedido);
+    // ?noclean=1 (backfill): repasa el día sin la limpieza de salidas fantasma.
+    faltanColumnas = false;
+    const resultado = await fetchYGuardar(esDomingoPedido, pedido, req.query.noclean !== '1');
 
     console.log(`Cron ejecutado: ${resultado.procesados} pagos procesados, ${resultado.salidas} salidas`);
-    return res.status(200).json({ ok: true, ...resultado, fecha: pedido, hora: hh });
+    return res.status(200).json({ ok: true, ...resultado, fecha: pedido, hora: hh, faltanColumnas });
   } catch (err) {
     console.error('Cron error:', err.message);
     return res.status(502).json({ ok: false, error: err.message });

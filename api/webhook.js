@@ -34,6 +34,23 @@ function turnoDeHora(hora, esDomingo) {
   return 'Marta';
 }
 
+// Comisión e impuestos que MP le descuenta al comercio (charges_details reales:
+// "fee" = comisión con IVA, "tax" = retenciones como IIBB). Igual que en cron.js.
+function costosMP(pago) {
+  let comision = 0, impuestos = 0;
+  const charges = Array.isArray(pago.charges_details) ? pago.charges_details : [];
+  charges.forEach(c => {
+    if (c?.accounts?.from !== 'collector') return;
+    const v = (Number(c.amounts?.original) || 0) - (Number(c.amounts?.refunded) || 0);
+    if (c.type === 'fee') comision += v;
+    else if (c.type === 'tax') impuestos += v;
+  });
+  if (!charges.length) (pago.fee_details || []).forEach(f => { if (f.fee_payer === 'collector') comision += Number(f.amount) || 0; });
+  const neto = Number(pago.transaction_details?.net_received_amount);
+  const r2 = n => Math.round(n * 100) / 100;
+  return { comision: r2(comision), impuestos: r2(impuestos), neto: Number.isFinite(neto) ? r2(neto) : null };
+}
+
 // Estados terminales que vale la pena guardar. Se ignoran los intermedios
 // (pending, in_process, authorized, in_mediation) porque todavia pueden
 // cambiar de estado y generarian filas ruidosas o duplicadas.
@@ -76,7 +93,20 @@ async function procesarPago(pagoId) {
 
   const tipo = esEnviada ? 'Transferencia enviada' : pago.operation_type === 'pos_payment' ? 'Venta Point' : 'Transferencia recibida';
 
-  await fetch(`${SUPABASE_URL}/rest/v1/pagos`, {
+  const registro = {
+    pago_id: pago.id,
+    fecha,
+    hora,
+    nombre,
+    tipo,
+    monto: Math.abs(Number(pago.transaction_amount)),
+    turno: turnoDeHora(hora, esDomingo),
+    status: pago.status,
+    operation_type: pago.operation_type,
+    es_enviada: esEnviada,
+    ...(esEnviada ? {} : costosMP(pago))
+  };
+  const post = body => fetch(`${SUPABASE_URL}/rest/v1/pagos`, {
     method: 'POST',
     headers: {
       'apikey': SUPABASE_KEY,
@@ -84,19 +114,14 @@ async function procesarPago(pagoId) {
       'Content-Type': 'application/json',
       'Prefer': 'resolution=merge-duplicates'
     },
-    body: JSON.stringify({
-      pago_id: pago.id,
-      fecha,
-      hora,
-      nombre,
-      tipo,
-      monto: Math.abs(Number(pago.transaction_amount)),
-      turno: turnoDeHora(hora, esDomingo),
-      status: pago.status,
-      operation_type: pago.operation_type,
-      es_enviada: esEnviada
-    })
+    body: JSON.stringify(body)
   });
+  const res = await post(registro);
+  // Si faltan las columnas nuevas, guardo sin ellas para no perder el cobro.
+  if (!res.ok && 'comision' in registro && /comision|impuestos|neto|column/i.test(await res.text())) {
+    const { comision, impuestos, neto, ...resto } = registro;
+    await post(resto);
+  }
 }
 
 export default async function handler(req, res) {
