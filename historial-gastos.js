@@ -24,6 +24,26 @@
       btn.dataset.wired = '1';
       btn.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); abrirEdicionGasto(btn); });
     });
+    root.querySelectorAll('.hist-gasto-del').forEach(btn => {
+      if (btn.dataset.wired) return;
+      btn.dataset.wired = '1';
+      btn.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); borrarGasto(btn); });
+    });
+  }
+  function borrarGasto(btn) {
+    const uid = btn.dataset.guid, nombre = btn.dataset.nombre || '';
+    if (!uid) return;
+    if (!confirm(`¿Borrar el gasto "${nombre || 'sin nombre'}"? No se puede deshacer.`)) return;
+    const dia = document.getElementById('histVistaDetalle')?.dataset.dia || '';
+    const row = btn.closest('.hist-gasto-line');
+    if (row) { row.style.opacity = '.5'; row.querySelectorAll('button').forEach(b => b.disabled = true); }
+    cmEliminarGastoRemoto({uid}).then(() => {
+      showToast('Gasto borrado ✓');
+      if (dia && typeof window.mostrarDetalleDia === 'function') window.mostrarDetalleDia(dia);
+    }).catch(() => {
+      showToast('No se pudo borrar. Probá de nuevo.');
+      if (row) { row.style.opacity = ''; row.querySelectorAll('button').forEach(b => b.disabled = false); }
+    });
   }
   function abrirEdicionGasto(btn) {
     const row = btn.closest('.hist-gasto-line');
@@ -94,8 +114,9 @@
           const concepto = `<span>${cmEsc(CierreCuentas.conceptoGasto(g.nombre || 'Transferencia enviada'))}${g.caja ? ' · ' + cmEsc(g.caja) : ''}<small class="hist-gasto-meta">${medio}</small></span>`;
           // Solo los gastos del cuaderno (con uid) se editan; las salidas de MP no.
           if (g.origen === 'cuaderno' && g.uid) {
-            const btn = `<button class="hist-gasto-edit" data-guid="${cmEsc(g.uid)}" data-nombre="${cmEsc(g.nombre || '')}" data-monto="${Number(g.monto) || 0}" data-caja="${cmEsc(g.caja || '')}" data-turno="${cmEsc(g.turno || '')}" title="Editar" aria-label="Editar gasto">✎</button>`;
-            return `<div class="hist-gasto-line">${concepto}<span class="hist-gasto-r"><strong>${histMoney(g.monto)}</strong>${btn}</span></div>`;
+            const editBtn = `<button class="hist-gasto-edit" data-guid="${cmEsc(g.uid)}" data-nombre="${cmEsc(g.nombre || '')}" data-monto="${Number(g.monto) || 0}" data-caja="${cmEsc(g.caja || '')}" data-turno="${cmEsc(g.turno || '')}" title="Editar" aria-label="Editar gasto">✎</button>`;
+            const delBtn = `<button class="hist-gasto-del" data-guid="${cmEsc(g.uid)}" data-nombre="${cmEsc(g.nombre || '')}" title="Borrar" aria-label="Borrar gasto">✕</button>`;
+            return `<div class="hist-gasto-line">${concepto}<span class="hist-gasto-r"><strong>${histMoney(g.monto)}</strong>${editBtn}${delBtn}</span></div>`;
           }
           return `<div class="hist-gasto-line">${concepto}<strong>${histMoney(g.monto)}</strong></div>`;
         }).join('') : '<p class="hist-gastos-nota">Sin gastos registrados para este día.</p>'}`;

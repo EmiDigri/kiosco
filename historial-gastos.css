@@ -17,6 +17,8 @@
 .hist-gasto-r{display:flex;align-items:center;gap:10px;flex-shrink:0}
 .hist-gasto-edit{background:none;border:none;color:var(--text-soft);cursor:pointer;font-size:14px;padding:0 2px;line-height:1}
 .hist-gasto-edit:hover{color:var(--accent)}
+.hist-gasto-del{background:none;border:none;color:var(--text-soft);cursor:pointer;font-size:14px;padding:0 2px;line-height:1}
+.hist-gasto-del:hover{color:#f45555}
 .hist-gasto-line.editando{gap:8px;align-items:center}
 .hist-gasto-line.editando input{min-width:0;background:var(--glass);border:1px solid var(--glass-border);color:var(--text);border-radius:var(--radius-sm);padding:8px 10px;font-size:14px;font-family:inherit}
 .hist-gasto-line.editando .hist-gasto-enom{flex:1 1 auto}
