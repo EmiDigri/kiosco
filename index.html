@@ -5498,7 +5498,7 @@ function metProveedoresCard(egr){
   const filas=rank.slice(0,12).map(r=>{const share=Math.round(r.mo/total*100);return `<div class="met-prov-row"><span class="met-prov-nom">${r.lbl}</span><span class="met-prov-track"><span class="met-prov-fill" style="width:${Math.max(3,Math.round(r.mo/maxMo*100))}%"></span></span><span class="met-prov-val">${histMoneyCompact(r.mo)}<small>${share}%</small></span></div>`;}).join('');
   return `<div class="met-card">
     <div class="met-card-title">En quién comprás la mercadería</div>
-    <div class="met-prov-head">El <b>80%</b> de la mercadería se la comprás a <b>${n80}</b> proveedor${n80===1?'':'es'} de ${rank.length}. Son los que más te conviene cuidar y negociar.</div>
+    <div class="met-prov-head">El <b>80%</b> de la mercadería se la comprás a <b>${n80}</b> proveedor${n80===1?'':'es'} de ${rank.length}.</div>
     ${filas}
   </div>`;
 }
