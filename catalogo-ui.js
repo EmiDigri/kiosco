@@ -220,12 +220,14 @@
   const fotoCache = new Map();
   const fotoCola = [];
   let fotoActivas = 0;
-  function fotoPorNombre(query) {
-    const key = String(query || '').replace(/\s+/g, ' ').trim().toLowerCase().slice(0, 80);
-    if (key.length < 2) return Promise.resolve(null);
+  function fotoPorNombre(query, ean) {
+    const q = String(query || '').replace(/\s+/g, ' ').trim().toLowerCase().slice(0, 80);
+    if (q.length < 2) return Promise.resolve(null);
+    const codigo = /^\d{8,14}$/.test(String(ean || '')) ? String(ean) : '';
+    const key = `${codigo}|${q}`;
     if (!fotoCache.has(key)) {
       fotoCache.set(key, new Promise(resolve => {
-        fotoCola.push(() => apiRequest({ action: 'foto', q: key, estricto: '1' })
+        fotoCola.push(() => apiRequest({ action: 'foto', q, estricto: '1', ...(codigo ? { ean: codigo } : {}) })
           .then(data => resolve(/^https:\/\//.test(data?.image || '') ? data.image : null))
           .catch(() => resolve(null))
           .finally(() => { fotoActivas--; siguienteFoto(); }));
@@ -240,11 +242,12 @@
   function fotoCandidatas(list) {
     return (list || []).filter((url, index, all) => /^https:\/\//.test(url || '') && all.indexOf(url) === index);
   }
-  function thumbHtml(candidates, query) {
+  function thumbHtml(candidates, query, ean) {
     const list = fotoCandidatas(candidates);
     const q = escapeHtml(String(query || '').trim());
-    if (!list.length) return `<span class="price-result-thumb" data-foto-q="${q}" data-foto-need="1"><span class="price-thumb-ph" aria-hidden="true">🛒</span></span>`;
-    return `<span class="price-result-thumb" data-foto-q="${q}"><img src="${escapeHtml(list[0])}" data-alts="${escapeHtml(list.slice(1).join(' '))}" alt="" loading="lazy" decoding="async"></span>`;
+    const e = /^\d{8,14}$/.test(String(ean || '')) ? ` data-foto-ean="${escapeHtml(ean)}"` : '';
+    if (!list.length) return `<span class="price-result-thumb" data-foto-q="${q}"${e} data-foto-need="1"><span class="price-thumb-ph" aria-hidden="true">🛒</span></span>`;
+    return `<span class="price-result-thumb" data-foto-q="${q}"${e}><img src="${escapeHtml(list[0])}" data-alts="${escapeHtml(list.slice(1).join(' '))}" alt="" loading="lazy" decoding="async"></span>`;
   }
   function fotoPlaceholder(box) {
     box.innerHTML = box.id === 'priceProductImageBox'
@@ -258,14 +261,14 @@
     if (alts.length) { img.dataset.alts = alts.slice(1).join(' '); img.src = alts[0]; return; }
     if (img.dataset.mlTried) { fotoPlaceholder(box); return; }
     img.dataset.mlTried = '1';
-    const url = await fotoPorNombre(box.dataset.fotoQ || img.alt);
+    const url = await fotoPorNombre(box.dataset.fotoQ || img.alt, box.dataset.fotoEan);
     if (url && url !== img.getAttribute('src')) img.src = url;
     else fotoPlaceholder(box);
   }
   function llenarFotosFaltantes(root) {
     (root || document).querySelectorAll('[data-foto-need]').forEach(async box => {
       box.removeAttribute('data-foto-need');
-      const url = await fotoPorNombre(box.dataset.fotoQ);
+      const url = await fotoPorNombre(box.dataset.fotoQ, box.dataset.fotoEan);
       if (!url || !box.isConnected) return;
       const alt = box.id === 'priceProductImageBox' ? ` id="priceProductImage" alt="${escapeHtml(box.dataset.fotoQ || '')}"` : ' alt=""';
       box.innerHTML = `<img src="${escapeHtml(url)}"${alt} data-ml-tried="1" decoding="async">`;
@@ -294,7 +297,7 @@
     }
     const officialHtml = state.items.length ? sourceHeading('Precios Claros', state.items.length) + state.items.map(item => `
       <button class="price-result${item.ean === state.selectedEan ? ' active' : ''}" type="button" data-ean="${escapeHtml(item.ean)}" aria-pressed="${item.ean === state.selectedEan ? 'true' : 'false'}">
-        ${thumbHtml(item.images || [item.image], [item.brand, item.name].filter(Boolean).join(' '))}
+        ${thumbHtml(item.images || [item.image], [item.brand, item.name].filter(Boolean).join(' '), item.ean)}
         <div class="price-result-body">
           <div class="price-result-brand">${escapeHtml(item.brand || 'Sin marca')} · ${escapeHtml(item.presentation || 'Presentación sin informar')}</div>
           <div class="price-result-name">${escapeHtml(item.name)}</div>
@@ -321,7 +324,7 @@
     }
     const url = new URL(API_URL, location.href);
     Object.entries(params).forEach(([key, value]) => url.searchParams.set(key, value));
-    url.searchParams.set('scope', 'individual-v5-fotos');
+    url.searchParams.set('scope', 'individual-v6-fotos');
     url.searchParams.set('lat', state.location.lat);
     url.searchParams.set('lng', state.location.lng);
     url.searchParams.set('zone', state.location.key || 'current');
@@ -946,7 +949,7 @@
 
     detailElement.innerHTML = `
       <div class="price-product-head">
-        <div class="price-product-image" id="priceProductImageBox" data-foto-q="${escapeHtml(detailFotoQ)}"${detailImages.length ? '' : ' data-foto-need="1"'}>${image}</div>
+        <div class="price-product-image" id="priceProductImageBox" data-foto-q="${escapeHtml(detailFotoQ)}"${/^\d{8,14}$/.test(String(product.ean || '')) ? ` data-foto-ean="${escapeHtml(product.ean)}"` : ''}${detailImages.length ? '' : ' data-foto-need="1"'}>${image}</div>
         <div>
           <div class="price-product-brand">${escapeHtml(product.brand || 'Sin marca')}</div>
           <div class="price-product-name">${escapeHtml(product.name || 'Producto')}</div>

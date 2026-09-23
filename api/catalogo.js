@@ -1559,8 +1559,9 @@ function normalizeProduct(product) {
   return {
     ean: String(product.id),
     name: String(product.nombre || 'Producto sin nombre'),
-    brand: String(product.marca || ''),
-    presentation: String(product.presentacion || ''),
+    brand: /^sin marca$/i.test(String(product.marca || '').trim()) ? '' : String(product.marca || ''),
+    // Precios Claros a veces manda la presentación como el texto "None none".
+    presentation: /^(none|null|undefined)(\s+(none|null|undefined))?$/i.test(String(product.presentacion || '').trim()) ? '' : String(product.presentacion || ''),
   };
 }
 
@@ -1789,16 +1790,28 @@ async function imageExists(url) {
 // "Yoghurt frutilla" no. Se exige que el candidato tenga TODAS las palabras que
 // identifican al producto (sin pesos ni palabras genéricas) y, entre los que cumplen,
 // se prefiere el mismo tamaño y el título más parecido. Si ninguno cumple: null.
-const IMG_GENERICAS = new Set(['tableta', 'barra', 'bombon', 'de', 'del', 'la', 'el', 'los', 'las', 'con', 'y', 'x', 'en', 'sin', 'unidad', 'un', 'una', 'pack', 'paq', 'paquete', 'gr', 'grs', 'g', 'kg', 'ml', 'cc', 'lt', 'lts', 'l']);
+const IMG_GENERICAS = new Set(['tableta', 'barra', 'bombon', 'de', 'del', 'la', 'el', 'los', 'las', 'con', 'y', 'x', 'a', 'al', 'en', 'sin', 'marca', 'sabor', 'sabores', 'gusto', 'unidad', 'unidades', 'un', 'uni', 'una', 'pack', 'paq', 'paquete', 'gr', 'grs', 'g', 'kg', 'ml', 'cc', 'lt', 'lts', 'l']);
 function identityTokens(text) {
-  const clean = mlText(supplierQueryText(text)).replace(/\byogh?o?urt?\b/g, 'yogur');
+  const clean = mlText(supplierQueryText(text))
+    .replace(/\byogh?o?urt?\b/g, 'yogur')
+    .replace(/\bgomas? de mascar\b/g, 'chicle');
   return Array.from(new Set(clean.split(' ').filter(token => token.length >= 2 && !IMG_GENERICAS.has(token) && !/^\d+$/.test(token))));
 }
-function tokenPresente(token, tokens) {
-  return tokens.some(other => other === token
-    || (token.length >= 5 && other.length >= 5 && (other.startsWith(token.slice(0, -1)) || token.startsWith(other.slice(0, -1)))));
+// Dos palabras "son la misma" si son iguales, si una es abreviatura de la otra
+// (sand/sandia, frut/frutilla, chicle/chicles) o si una contiene a la otra (xtra/extra).
+function tokenCoincide(a, b) {
+  if (a === b) return true;
+  const [corto, largo] = a.length <= b.length ? [a, b] : [b, a];
+  return (corto.length >= 3 && largo.startsWith(corto)) || (corto.length >= 4 && largo.includes(corto));
 }
-function sameProductImage(name, candidates) {
+function tokenPresente(token, tokens) {
+  return tokens.some(other => tokenCoincide(token, other));
+}
+// parecido=false (nivel 1): el candidato tiene TODAS las palabras del producto.
+// parecido=true (nivel 2, último recurso): el candidato es la versión "base" del mismo
+// producto: le falta como mucho UNA palabra (ej. "Menta" para "Menta Fuerte") y no
+// agrega ninguna propia, así nunca entra otro sabor ("Intense" ≠ "Yoghurt Frutilla").
+function sameProductImage(name, candidates, parecido = false) {
   const want = identityTokens(name);
   if (!want.length) return null;
   const size = priceMeasures(name).map(normalizedMeasure);
@@ -1806,9 +1819,12 @@ function sameProductImage(name, candidates) {
   for (const candidate of candidates || []) {
     if (!/^https:\/\//.test(candidate.image || '')) continue;
     const have = identityTokens(candidate.title || candidate.name || '');
-    if (!want.every(token => tokenPresente(token, have))) continue;
+    const faltan = want.filter(token => !tokenPresente(token, have)).length;
+    let score;
+    if (!faltan) score = 1000 - (have.length - want.length);
+    else if (parecido && faltan === 1 && have.length >= 2 && have.every(token => tokenPresente(token, want))) score = 500;
+    else continue;
     const candidateSize = priceMeasures(`${candidate.title || candidate.name || ''} ${candidate.presentation || ''}`).map(normalizedMeasure);
-    let score = -(have.length - want.length);
     if (size.length && candidateSize.length) {
       if (size.every(s => candidateSize.includes(s))) score += 100;
       else {
@@ -1825,7 +1841,8 @@ function sameProductImage(name, candidates) {
 }
 
 function withImages(item, supplierItems) {
-  const images = [item.image, preciosClarosImage(item.ean), sameProductImage(`${item.brand || ''} ${item.name || ''}`, supplierItems)]
+  const nombre = `${item.brand || ''} ${item.name || ''}`;
+  const images = [item.image, preciosClarosImage(item.ean), sameProductImage(nombre, supplierItems), sameProductImage(nombre, supplierItems, true)]
     .filter((url, index, list) => /^https:\/\//.test(url || '') && list.indexOf(url) === index);
   return { ...item, image: images[0] || null, images };
 }
@@ -1947,12 +1964,26 @@ export default async function handler(req, res) {
       // foto importa el producto, no el tamaño) y elegida con sameProductImage.
       // estricto=1 (Precios): si ninguna publicación es ese producto, no se inventa.
       // Sin estricto (catálogo manual): como antes, cae a la primera foto.
+      // En Precios además se busca ese producto puntual en los proveedores (Rappi,
+      // Open 25, Dulce Sur: la mejor fuente para kiosco) y en ML por código de barras.
       const query = normalizeQuery(req.query.q);
       if (query.length < 2) return res.status(400).json({ error: 'Ingresá al menos 2 caracteres' });
-      const result = await mlSearch(supplierQueryText(query), 8);
-      const exacta = sameProductImage(query, result.items);
-      const suelta = req.query.estricto === '1' ? null : (result.items.find(item => item.image)?.image || null);
-      payload = { image: exacta || suelta, disabled: result.disabled === true };
+      const estricto = req.query.estricto === '1';
+      const ean = String(req.query.ean || '').replace(/\D/g, '').replace(/^0+(?=\d{8})/, '');
+      const nombre = supplierQueryText(query);
+      const [mlNombre, proveedores, mlCodigo] = await Promise.allSettled([
+        mlSearch(nombre, 8),
+        estricto ? supplierSearch(nombre, 10) : Promise.resolve({ items: [] }),
+        estricto && ean.length >= 8 ? mlSearch(ean, 3) : Promise.resolve({ items: [] }),
+      ]);
+      const valor = settled => (settled.status === 'fulfilled' && Array.isArray(settled.value?.items) ? settled.value.items : []);
+      const candidatos = [...valor(proveedores), ...valor(mlNombre)];
+      const porCodigo = valor(mlCodigo).find(item => item.image && String(item.ean || '').replace(/^0+/, '') === ean.replace(/^0+/, ''))?.image || null;
+      const suelta = estricto ? null : (valor(mlNombre).find(item => item.image)?.image || null);
+      payload = {
+        image: porCodigo || sameProductImage(query, candidatos) || (estricto ? sameProductImage(query, candidatos, true) : null) || suelta,
+        disabled: mlNombre.status === 'fulfilled' && mlNombre.value?.disabled === true,
+      };
     } else {
       const query = normalizeQuery(req.query.q);
       if (query.length < 2) return res.status(400).json({ error: 'Ingresá al menos 2 caracteres' });
