@@ -328,7 +328,7 @@ async function mlSearch(query, limit = 8) {
       .map(product => ({ ...product, _relevance: mlRelevance(product, query) }))
       .sort((a, b) => b._relevance - a._relevance)
       .slice(0, Math.min(limit, 8));
-    const hydrated = (await Promise.all(products.map(product => mlHydrate(token, product, controller.signal)))).filter(unitPrices.isIndividual);
+    const hydrated = (await Promise.all(products.map(product => mlHydrate(token, product, controller.signal)))).filter(item => unitPrices.isIndividual(item) && matchesRequestedSize(item, query));
     return { disabled: false, items: hydrated.sort((a, b) => b.relevance - a.relevance) };
   } finally {
     clearTimeout(timeout);
@@ -499,8 +499,8 @@ async function dulceSurJson(table, params) {
 }
 
 async function dulceSurSearch(query, limit = 10) {
-  const queryText = normalizeQuery(query);
-  const cacheKey = `dulce:${mlText(queryText)}:${limit}`;
+  const queryText = supplierQueryText(query);
+  const cacheKey = `dulce:size-v1:${mlText(query)}:${limit}`;
   const cached = supplierCacheGet(cacheKey);
   if (cached) return cached;
   const tokens = mlQueryTokens(queryText).slice(0, 4);
@@ -557,7 +557,7 @@ async function dulceSurSearch(query, limit = 10) {
       updatedAt: product.fecha_actualizacion || null,
       relevance: textRelevance(`${brand || ''} ${product.nombre}`, queryText),
     };
-  }).filter(item => unitPrices.isIndividual(item) && item.available)
+  }).filter(item => unitPrices.isIndividual(item) && item.available && matchesRequestedSize(item, query))
     .sort((a, b) => b.relevance - a.relevance).slice(0, limit);
   return supplierCacheSet(cacheKey, items);
 }
@@ -597,14 +597,59 @@ function productBrand(title) {
   return found.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
 }
 
+function priceMeasures(text) {
+  return Array.from(String(text || '').toLowerCase().matchAll(/\b(?:x\s*)?(\d+(?:[.,]\d+)?)\s*(kilogramos?|kg|gramos?|grs?|g|mililitros?|ml|cc|litros?|lts?|l)\b/g));
+}
+
+function normalizedMeasure(match) {
+  const unit = match[2], volume = /^(?:mililitro|ml|cc|litro|lt|l)/.test(unit);
+  const factor = /^(?:kilogramo|kg|litro|lt|l$)/.test(unit) ? 1000 : 1;
+  return `${Math.round(Number(match[1].replace(',', '.')) * factor * 1000) / 1000}${volume ? 'ml' : 'g'}`;
+}
+
+function supplierQueryText(query) {
+  let text = normalizeQuery(query);
+  for (const match of priceMeasures(text)) text = text.replace(new RegExp(match[0].replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'), ' ');
+  text = text.replace(/\s+/g, ' ').trim();
+  return /[a-záéíóúñ]/i.test(text) ? text : normalizeQuery(query);
+}
+
+function matchesRequestedSize(item, query) {
+  const requested = priceMeasures(query).map(normalizedMeasure);
+  const actual = priceMeasures(`${item.title || item.name || ''} ${item.presentation || ''}`).map(normalizedMeasure);
+  return requested.every(size => actual.includes(size));
+}
+
+function rappiPresentations(html) {
+  const result = new Map();
+  const script = html.match(/<script\b(?=[^>]*\bid=["']__NEXT_DATA__["'])[^>]*>([\s\S]*?)<\/script>/i);
+  if (!script) return result;
+  let data;
+  try { data = JSON.parse(script[1]); } catch { return result; }
+  const pending = [data];
+  while (pending.length) {
+    const node = pending.pop();
+    if (!node || typeof node !== 'object') continue;
+    const unit = {gr:'g',g:'g',kg:'kg',ml:'ml',cc:'ml',l:'l'}[String(node.unitType || '').toLowerCase()];
+    if (node.masterProductId && node.saleType === 'U' && unit && Number(node.quantity) > 0) {
+      const id = String(node.masterProductId), size = `${Number(node.quantity)} ${unit}`;
+      if (!result.has(id)) result.set(id, size);
+      else if (result.get(id) !== size) result.set(id, null);
+    }
+    Object.values(node).forEach(value => {if (value && typeof value === 'object') pending.push(value);});
+  }
+  return result;
+}
+
 async function rappiSearch(query, limit = 10) {
-  const translated = rappiQuery(query);
-  const cacheKey = `rappi:${mlText(translated)}`;
+  const translated = supplierQueryText(rappiQuery(query));
+  const cacheKey = `rappi:size-v1:${mlText(query)}`;
   const cached = supplierCacheGet(cacheKey);
   if (cached) return cached.slice(0, limit);
   const html = await supplierFetch(`${RAPPI_URL}/search?query=${encodeURIComponent(translated)}`, {
     headers: { ...BROWSER_HEADERS, accept: 'text/html,application/xhtml+xml' },
   }, 10000);
+  const presentations = rappiPresentations(html);
   const grouped = new Map();
   const scripts = html.matchAll(/<script([^>]*)type=["']application\/ld\+json["']([^>]*)>([\s\S]*?)<\/script>/gi);
   for (const match of scripts) {
@@ -629,7 +674,7 @@ async function rappiSearch(query, limit = 10) {
   const items = Array.from(grouped.entries()).map(([productId, product]) => {
     const relevance = textRelevance(product.title, translated);
     const prices = product.prices.filter(Number.isFinite);
-    const presentation = product.title.match(/\b\d+(?:[.,]\d+)?\s*(?:g|gr|kg|ml|cc|l)\b/i)?.[0] || 'Unidad';
+    const presentation = presentations.get(productId) || product.title.match(/\b\d+(?:[.,]\d+)?\s*(?:g|gr|kg|ml|cc|l)\b/i)?.[0] || 'Unidad';
     return {
       id: `rappi:${productId}`,
       source: 'rappi',
@@ -654,7 +699,7 @@ async function rappiSearch(query, limit = 10) {
       updatedAt: new Date().toISOString(),
       relevance,
     };
-  }).filter(item => item.relevance >= 20 && unitPrices.isIndividual(item)).sort((a, b) => b.relevance - a.relevance || a.unitPrice - b.unitPrice).slice(0, 20);
+  }).filter(item => item.relevance >= 20 && unitPrices.isIndividual(item) && matchesRequestedSize(item, query)).sort((a, b) => b.relevance - a.relevance || a.unitPrice - b.unitPrice).slice(0, 20);
   supplierCacheSet(cacheKey, items);
   return items.slice(0, limit);
 }
@@ -687,8 +732,8 @@ function open25Card(card) {
 }
 
 async function open25Search(query, limit = 10) {
-  const queryText = normalizeQuery(query);
-  const cacheKey = `open25:${mlText(queryText)}`;
+  const queryText = supplierQueryText(query);
+  const cacheKey = `open25:size-v1:${mlText(query)}`;
   const cached = supplierCacheGet(cacheKey);
   if (cached) return cached.slice(0, limit);
   const html = await supplierFetch(`https://tienda.open25.com.ar/search/?q=${encodeURIComponent(queryText)}`, {
@@ -723,7 +768,7 @@ async function open25Search(query, limit = 10) {
       relevance: textRelevance(parsed.title, queryText),
     });
   }
-  const ranked = items.filter(item => item.relevance >= 20 && unitPrices.isIndividual(item))
+  const ranked = items.filter(item => item.relevance >= 20 && unitPrices.isIndividual(item) && matchesRequestedSize(item, query))
     .sort((a, b) => b.relevance - a.relevance || a.unitPrice - b.unitPrice)
     .slice(0, 20);
   supplierCacheSet(cacheKey, ranked);
@@ -1726,7 +1771,7 @@ async function handleSearch(query, lat, lng, zone) {
   const retail = retailSettled.status === 'fulfilled' ? retailSettled.value : null;
   const suppliers = suppliersSettled.status === 'fulfilled' ? suppliersSettled.value : { items: [], sources: {} };
   return {
-    items: mergeSearchResults(retail, null).filter(unitPrices.isIndividual).map(({wholesale, ...item}) => item),
+    items: mergeSearchResults(retail, null).filter(item => unitPrices.isIndividual(item) && matchesRequestedSize(item, query)).map(({wholesale, ...item}) => item),
     supplierItems: suppliers.items,
     coverage: {
       retailBranches: retail?.branches?.length || 0,

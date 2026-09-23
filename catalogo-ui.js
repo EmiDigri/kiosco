@@ -249,7 +249,7 @@
     }
     const url = new URL(API_URL, location.href);
     Object.entries(params).forEach(([key, value]) => url.searchParams.set(key, value));
-    url.searchParams.set('scope', 'individual-v2');
+    url.searchParams.set('scope', 'individual-v3-size');
     url.searchParams.set('lat', state.location.lat);
     url.searchParams.set('lng', state.location.lng);
     url.searchParams.set('zone', state.location.key || 'current');
