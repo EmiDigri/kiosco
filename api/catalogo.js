@@ -1784,18 +1784,48 @@ async function imageExists(url) {
   }
 }
 
-function supplierImageFor(name, supplierItems) {
-  let best = null, bestScore = 20;
-  for (const item of supplierItems || []) {
-    if (!/^https:\/\//.test(item.image || '')) continue;
-    const score = textRelevance(item.title || item.name || '', name);
-    if (score > bestScore) { best = item.image; bestScore = score; }
+// Para elegir una FOTO importa el producto (marca + sabor/variante), no el tamaño: una
+// barra de 72 g y una de 82 g del mismo sabor se ven iguales, pero "Intense" y
+// "Yoghurt frutilla" no. Se exige que el candidato tenga TODAS las palabras que
+// identifican al producto (sin pesos ni palabras genéricas) y, entre los que cumplen,
+// se prefiere el mismo tamaño y el título más parecido. Si ninguno cumple: null.
+const IMG_GENERICAS = new Set(['tableta', 'barra', 'bombon', 'de', 'del', 'la', 'el', 'los', 'las', 'con', 'y', 'x', 'en', 'sin', 'unidad', 'un', 'una', 'pack', 'paq', 'paquete', 'gr', 'grs', 'g', 'kg', 'ml', 'cc', 'lt', 'lts', 'l']);
+function identityTokens(text) {
+  const clean = mlText(supplierQueryText(text)).replace(/\byogh?o?urt?\b/g, 'yogur');
+  return Array.from(new Set(clean.split(' ').filter(token => token.length >= 2 && !IMG_GENERICAS.has(token) && !/^\d+$/.test(token))));
+}
+function tokenPresente(token, tokens) {
+  return tokens.some(other => other === token
+    || (token.length >= 5 && other.length >= 5 && (other.startsWith(token.slice(0, -1)) || token.startsWith(other.slice(0, -1)))));
+}
+function sameProductImage(name, candidates) {
+  const want = identityTokens(name);
+  if (!want.length) return null;
+  const size = priceMeasures(name).map(normalizedMeasure);
+  let best = null, bestScore = -Infinity;
+  for (const candidate of candidates || []) {
+    if (!/^https:\/\//.test(candidate.image || '')) continue;
+    const have = identityTokens(candidate.title || candidate.name || '');
+    if (!want.every(token => tokenPresente(token, have))) continue;
+    const candidateSize = priceMeasures(`${candidate.title || candidate.name || ''} ${candidate.presentation || ''}`).map(normalizedMeasure);
+    let score = -(have.length - want.length);
+    if (size.length && candidateSize.length) {
+      if (size.every(s => candidateSize.includes(s))) score += 100;
+      else {
+        // Sin el mismo tamaño, gana el más cercano (una barrita de 25 g se parece más a
+        // una de 24 g que una tableta de 162 g).
+        const target = parseFloat(size[0]), unit = size[0].replace(/[\d.]/g, '');
+        const near = candidateSize.filter(s => s.replace(/[\d.]/g, '') === unit).map(s => Math.abs(Math.log(parseFloat(s) / target)));
+        if (near.length && target > 0) score += 50 - Math.min(50, Math.min(...near) * 20);
+      }
+    }
+    if (score > bestScore) { best = candidate.image; bestScore = score; }
   }
   return best;
 }
 
 function withImages(item, supplierItems) {
-  const images = [item.image, preciosClarosImage(item.ean), supplierImageFor(item.name, supplierItems)]
+  const images = [item.image, preciosClarosImage(item.ean), sameProductImage(`${item.brand || ''} ${item.name || ''}`, supplierItems)]
     .filter((url, index, list) => /^https:\/\//.test(url || '') && list.indexOf(url) === index);
   return { ...item, image: images[0] || null, images };
 }
@@ -1857,7 +1887,7 @@ async function handleDetail(ean, lat, lng, zone) {
       if (found.length) {
         const exact = found.find(item => item.ean && String(item.ean) === String(ean));
         mlRef = exact?.reference || null;
-        mlImage = exact?.image || found.find(item => item.image)?.image || null;
+        mlImage = exact?.image || sameProductImage(`${product.brand || ''} ${product.name || ''}`, found) || null;
         if (!image) image = mlImage;
       }
     } catch { /* ML es un extra: si falla seguimos sin él */ }
@@ -1913,11 +1943,16 @@ export default async function handler(req, res) {
       const result = await mlSearch(query, 10);
       payload = result;
     } else if (action === 'foto') {
-      // Solo la mejor foto para un producto cargado a mano en el catálogo.
+      // La mejor foto de MercadoLibre para un producto, buscada SIN el peso (para la
+      // foto importa el producto, no el tamaño) y elegida con sameProductImage.
+      // estricto=1 (Precios): si ninguna publicación es ese producto, no se inventa.
+      // Sin estricto (catálogo manual): como antes, cae a la primera foto.
       const query = normalizeQuery(req.query.q);
       if (query.length < 2) return res.status(400).json({ error: 'Ingresá al menos 2 caracteres' });
-      const result = await mlSearch(query, 3);
-      payload = { image: result.items.find(item => item.image)?.image || null, disabled: result.disabled === true };
+      const result = await mlSearch(supplierQueryText(query), 8);
+      const exacta = sameProductImage(query, result.items);
+      const suelta = req.query.estricto === '1' ? null : (result.items.find(item => item.image)?.image || null);
+      payload = { image: exacta || suelta, disabled: result.disabled === true };
     } else {
       const query = normalizeQuery(req.query.q);
       if (query.length < 2) return res.status(400).json({ error: 'Ingresá al menos 2 caracteres' });

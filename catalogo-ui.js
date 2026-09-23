@@ -225,7 +225,7 @@
     if (key.length < 2) return Promise.resolve(null);
     if (!fotoCache.has(key)) {
       fotoCache.set(key, new Promise(resolve => {
-        fotoCola.push(() => apiRequest({ action: 'foto', q: key })
+        fotoCola.push(() => apiRequest({ action: 'foto', q: key, estricto: '1' })
           .then(data => resolve(/^https:\/\//.test(data?.image || '') ? data.image : null))
           .catch(() => resolve(null))
           .finally(() => { fotoActivas--; siguienteFoto(); }));
@@ -321,7 +321,7 @@
     }
     const url = new URL(API_URL, location.href);
     Object.entries(params).forEach(([key, value]) => url.searchParams.set(key, value));
-    url.searchParams.set('scope', 'individual-v4-fotos');
+    url.searchParams.set('scope', 'individual-v5-fotos');
     url.searchParams.set('lat', state.location.lat);
     url.searchParams.set('lng', state.location.lng);
     url.searchParams.set('zone', state.location.key || 'current');
@@ -928,7 +928,10 @@
     const saved = readSavedPrices()[product.ean] || {};
     const catRecord = catByEan(product.ean);
     const savedCat = catRecord?.categoria || data.suggestedCategory || inferCategory(product.name, product.brand);
-    const detailImages = fotoCandidatas(Array.isArray(data.images) && data.images.length ? data.images : [data.image]);
+    // Candidatas del detalle + las que ya traía el resultado de la búsqueda (ej. la foto
+    // de Rappi del mismo producto), por si la oficial no existe.
+    const itemBusqueda = state.items.find(entry => entry.ean === product.ean);
+    const detailImages = fotoCandidatas([...(Array.isArray(data.images) && data.images.length ? data.images : [data.image]), ...(itemBusqueda?.images || [])]);
     const detailFotoQ = [product.brand, product.name].filter(Boolean).join(' ');
     const image = detailImages.length
       ? `<img id="priceProductImage" src="${escapeHtml(detailImages[0])}" data-alts="${escapeHtml(detailImages.slice(1).join(' '))}" alt="${escapeHtml(product.name)}">`
