@@ -67,3 +67,12 @@ test('arma las candidatas: oficial por EAN primero y proveedor de respaldo',()=>
   assert.equal(item.images[1],'https://img/intense-162.png');
   assert.equal(ctx.withImages({ean:'3-1-0000000021565',name:'X'},[]).images.length,0);
 });
+test('la foto exacta por codigo (Carrefour/Jumbo) va primero; el codigo se limpia',()=>{
+  const ctx=fixture();
+  assert.equal(ctx.eanLimpio('0000077998460'),'77998460');
+  assert.equal(ctx.eanLimpio('7622202218033'),'7622202218033');
+  assert.equal(ctx.eanLimpio('3-1-0000000021565'),null);
+  const item=ctx.withImages({ean:'7622202218033',brand:'BELDENT',name:'Chicle Beldent Twist Sand'},beldent,'https://carrefourar.vteximg.com.br/x.jpg');
+  assert.equal(item.images[0],'https://carrefourar.vteximg.com.br/x.jpg');
+  assert.equal(item.images[1],'https://imagenes.preciosclaros.gob.ar/productos/7622202218033.jpg');
+});

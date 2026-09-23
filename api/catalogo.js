@@ -1745,7 +1745,7 @@ async function productImage(ean) {
   const timeout = setTimeout(() => controller.abort(), 3500);
   try {
     const response = await fetch(
-      `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(ean)}.json?fields=image_front_small_url,image_front_url`,
+      `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(eanLimpio(ean) || ean)}.json?fields=image_front_small_url,image_front_url`,
       {
         headers: { 'user-agent': 'KioscoApp/1.0 (price reference)' },
         signal: controller.signal,
@@ -1840,25 +1840,63 @@ function sameProductImage(name, candidates, parecido = false) {
   return best;
 }
 
-function withImages(item, supplierItems) {
+// Foto EXACTA por código de barras desde los catálogos públicos (VTEX) de Carrefour y
+// Jumbo/Disco: responden rápido (~0,3 s) y cubren casi todo lo de súper y kiosco (con
+// Beldent cubrieron lo que Precios Claros, Rappi y ML no tenían). Cache de 12 h.
+const VTEX_TIENDAS = ['https://www.carrefour.com.ar', 'https://www.jumbo.com.ar'];
+const vtexCache = new Map();
+function eanLimpio(ean) {
+  const code = String(ean || '').replace(/\D/g, '').replace(/^0+(?=\d{8})/, '');
+  return /^\d{8,14}$/.test(code) ? code : null;
+}
+async function vtexImage(ean) {
+  const code = eanLimpio(ean);
+  if (!code) return null;
+  const hit = vtexCache.get(code);
+  if (hit && hit.hasta > Date.now()) return hit.url;
+  const urls = await Promise.all(VTEX_TIENDAS.map(async tienda => {
+    try {
+      const text = await supplierFetch(`${tienda}/api/catalog_system/pub/products/search?fq=alternateIds_Ean:${code}`, { headers: { ...BROWSER_HEADERS, accept: 'application/json' } }, 3000);
+      const url = JSON.parse(text)?.[0]?.items?.[0]?.images?.[0]?.imageUrl || '';
+      return /^https?:\/\//.test(url) ? url.replace(/^http:/, 'https:') : null;
+    } catch {
+      return null;
+    }
+  }));
+  const url = urls.find(Boolean) || null;
+  if (vtexCache.size > 3000) vtexCache.clear();
+  vtexCache.set(code, { url, hasta: Date.now() + 12 * 60 * 60 * 1000 });
+  return url;
+}
+
+function withImages(item, supplierItems, eanImage = null) {
   const nombre = `${item.brand || ''} ${item.name || ''}`;
-  const images = [item.image, preciosClarosImage(item.ean), sameProductImage(nombre, supplierItems), sameProductImage(nombre, supplierItems, true)]
+  const images = [item.image, eanImage, preciosClarosImage(item.ean), sameProductImage(nombre, supplierItems), sameProductImage(nombre, supplierItems, true)]
     .filter((url, index, list) => /^https:\/\//.test(url || '') && list.indexOf(url) === index);
   return { ...item, image: images[0] || null, images };
 }
 
 async function handleSearch(query, lat, lng, zone) {
-  const [retailSettled, suppliersSettled] = await Promise.allSettled([
-    searchSource('retail', query, lat, lng, zone),
+  const retailPromise = searchSource('retail', query, lat, lng, zone);
+  // Las fotos por código arrancan apenas llega Precios Claros, en paralelo con los proveedores.
+  const fotosPromise = retailPromise.then(async retail => {
+    const eans = Array.from(new Set((retail?.products || []).map(product => normalizeProduct(product)?.ean).filter(Boolean))).slice(0, 30);
+    const urls = await Promise.all(eans.map(ean => vtexImage(ean).catch(() => null)));
+    return new Map(eans.map((ean, index) => [ean, urls[index]]));
+  }).catch(() => new Map());
+  const [retailSettled, suppliersSettled, fotosSettled] = await Promise.allSettled([
+    retailPromise,
     supplierSearch(query, 10),
+    fotosPromise,
   ]);
+  const fotosPorEan = fotosSettled.status === 'fulfilled' ? fotosSettled.value : new Map();
   if (retailSettled.status === 'rejected' && suppliersSettled.status === 'rejected') {
     throw retailSettled.reason;
   }
   const retail = retailSettled.status === 'fulfilled' ? retailSettled.value : null;
   const suppliers = suppliersSettled.status === 'fulfilled' ? suppliersSettled.value : { items: [], sources: {} };
   return {
-    items: mergeSearchResults(retail, null).filter(item => unitPrices.isIndividual(item) && matchesRequestedSize(item, query)).map(({wholesale, ...item}) => withImages(item, suppliers.items)),
+    items: mergeSearchResults(retail, null).filter(item => unitPrices.isIndividual(item) && matchesRequestedSize(item, query)).map(({wholesale, ...item}) => withImages(item, suppliers.items, fotosPorEan.get(item.ean) || null)),
     supplierItems: suppliers.items,
     coverage: {
       retailBranches: retail?.branches?.length || 0,
@@ -1874,11 +1912,13 @@ async function handleSearch(query, lat, lng, zone) {
 
 async function handleDetail(ean, lat, lng, zone) {
   const pcImage = preciosClarosImage(ean);
-  const [retailSettled, imageSettled, pcSettled] = await Promise.allSettled([
+  const [retailSettled, imageSettled, pcSettled, vtexSettled] = await Promise.allSettled([
     detailSource('retail', ean, lat, lng, zone),
     productImage(ean),
     imageExists(pcImage),
+    vtexImage(ean),
   ]);
+  const vtexFoto = vtexSettled.status === 'fulfilled' ? vtexSettled.value : null;
   if (retailSettled.status === 'rejected') {
     throw retailSettled.reason;
   }
@@ -1890,7 +1930,7 @@ async function handleDetail(ean, lat, lng, zone) {
   if (!unitPrices.isIndividual(product)) throw new Error('Esta publicación no corresponde a una venta individual.');
   // Primero la foto oficial de Precios Claros (verificada); después OpenFoodFacts y ML.
   const offImage = imageSettled.status === 'fulfilled' ? imageSettled.value : null;
-  let image = (pcSettled.status === 'fulfilled' && pcSettled.value) ? pcImage : offImage;
+  let image = (pcSettled.status === 'fulfilled' && pcSettled.value) ? pcImage : (vtexFoto || offImage);
   let mlImage = null;
   let mlRef = null;
   // MercadoLibre entra como respaldo: cuando falta la foto o no hay precio
@@ -1909,7 +1949,7 @@ async function handleDetail(ean, lat, lng, zone) {
       }
     } catch { /* ML es un extra: si falla seguimos sin él */ }
   }
-  const images = [image, offImage, mlImage].filter((url, index, list) => /^https:\/\//.test(url || '') && list.indexOf(url) === index);
+  const images = [image, vtexFoto, offImage, mlImage].filter((url, index, list) => /^https:\/\//.test(url || '') && list.indexOf(url) === index);
 
   return {
     product,
@@ -1969,19 +2009,24 @@ export default async function handler(req, res) {
       const query = normalizeQuery(req.query.q);
       if (query.length < 2) return res.status(400).json({ error: 'Ingresá al menos 2 caracteres' });
       const estricto = req.query.estricto === '1';
-      const ean = String(req.query.ean || '').replace(/\D/g, '').replace(/^0+(?=\d{8})/, '');
-      const nombre = supplierQueryText(query);
-      const [mlNombre, proveedores, mlCodigo] = await Promise.allSettled([
+      const ean = estricto ? eanLimpio(req.query.ean) : null;
+      // Sin palabras repetidas: "BELDENT Chicle Beldent Twist" confunde a los buscadores.
+      const nombre = Array.from(new Set(supplierQueryText(query).split(' '))).join(' ');
+      const [mlNombre, proveedores, mlCodigo, vtexCodigo, offCodigo] = await Promise.allSettled([
         mlSearch(nombre, 8),
         estricto ? supplierSearch(nombre, 10) : Promise.resolve({ items: [] }),
-        estricto && ean.length >= 8 ? mlSearch(ean, 3) : Promise.resolve({ items: [] }),
+        ean ? mlSearch(ean, 3) : Promise.resolve({ items: [] }),
+        ean ? vtexImage(ean) : Promise.resolve(null),
+        ean ? productImage(ean) : Promise.resolve(null),
       ]);
       const valor = settled => (settled.status === 'fulfilled' && Array.isArray(settled.value?.items) ? settled.value.items : []);
+      const foto = settled => (settled.status === 'fulfilled' && /^https:\/\//.test(settled.value || '') ? settled.value : null);
       const candidatos = [...valor(proveedores), ...valor(mlNombre)];
-      const porCodigo = valor(mlCodigo).find(item => item.image && String(item.ean || '').replace(/^0+/, '') === ean.replace(/^0+/, ''))?.image || null;
+      const mlPorCodigo = ean ? (valor(mlCodigo).find(item => item.image && eanLimpio(item.ean) === ean)?.image || null) : null;
       const suelta = estricto ? null : (valor(mlNombre).find(item => item.image)?.image || null);
       payload = {
-        image: porCodigo || sameProductImage(query, candidatos) || (estricto ? sameProductImage(query, candidatos, true) : null) || suelta,
+        // Por código (el producto exacto) primero; después por nombre y la versión base.
+        image: foto(vtexCodigo) || foto(offCodigo) || mlPorCodigo || sameProductImage(query, candidatos) || (estricto ? sameProductImage(query, candidatos, true) : null) || suelta,
         disabled: mlNombre.status === 'fulfilled' && mlNombre.value?.disabled === true,
       };
     } else {
