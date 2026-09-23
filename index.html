@@ -3198,6 +3198,12 @@ body.light .price-suggestion-price{color:#087f72}
 .price-result-brand{font-size:9px;font-weight:850;text-transform:uppercase;color:#61d6c0;letter-spacing:0;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 body.light .price-result-brand{color:#087f72}
 .price-result-name{font-size:12px;font-weight:720;line-height:1.28;letter-spacing:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+/* Foto del producto en cada resultado (fondo blanco: la mayoría de las fotos de producto lo usan) */
+.price-result{display:flex;align-items:center;gap:10px}
+.price-result-body{flex:1;min-width:0}
+.price-result-thumb{flex:0 0 54px;width:54px;height:54px;border-radius:8px;background:#fff;border:1px solid var(--glass-border);display:grid;place-items:center;overflow:hidden}
+.price-result-thumb img{width:100%;height:100%;object-fit:contain;display:block}
+.price-thumb-ph{font-size:20px;opacity:.45}
 .price-result-meta{display:flex;align-items:center;flex-wrap:wrap;gap:5px 10px;margin-top:7px;color:var(--text-soft);font-size:9.5px;font-weight:650;font-variant-numeric:tabular-nums}
 .price-result-meta strong{color:var(--text-mid);font-weight:800}
 .price-radar{min-width:0;border-left:1px solid var(--glass-border);padding:17px 0 0 17px}

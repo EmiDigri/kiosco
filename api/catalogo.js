@@ -1760,6 +1760,46 @@ async function productImage(ean) {
   }
 }
 
+// ── Fotos garantizadas (pedido: que la foto aparezca sí o sí al buscar) ──
+// Candidatas en orden: la foto oficial de Precios Claros por código de barras (solo
+// EAN numérico; si no existe el CDN responde 403 y el cliente pasa a la siguiente) y
+// la foto del proveedor (Rappi/Open 25/Dulce Sur) que mejor coincide por nombre. Si
+// todas fallan, el cliente pide la foto a MercadoLibre por nombre (action=foto).
+function preciosClarosImage(ean) {
+  const code = String(ean || '');
+  return /^\d{8,14}$/.test(code) ? `https://imagenes.preciosclaros.gob.ar/productos/${code}.jpg` : null;
+}
+
+async function imageExists(url) {
+  if (!url) return false;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 2500);
+  try {
+    const response = await fetch(url, { method: 'HEAD', signal: controller.signal, headers: { 'user-agent': BROWSER_HEADERS['user-agent'] } });
+    return response.ok && /^image\//i.test(response.headers.get('content-type') || '');
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function supplierImageFor(name, supplierItems) {
+  let best = null, bestScore = 20;
+  for (const item of supplierItems || []) {
+    if (!/^https:\/\//.test(item.image || '')) continue;
+    const score = textRelevance(item.title || item.name || '', name);
+    if (score > bestScore) { best = item.image; bestScore = score; }
+  }
+  return best;
+}
+
+function withImages(item, supplierItems) {
+  const images = [item.image, preciosClarosImage(item.ean), supplierImageFor(item.name, supplierItems)]
+    .filter((url, index, list) => /^https:\/\//.test(url || '') && list.indexOf(url) === index);
+  return { ...item, image: images[0] || null, images };
+}
+
 async function handleSearch(query, lat, lng, zone) {
   const [retailSettled, suppliersSettled] = await Promise.allSettled([
     searchSource('retail', query, lat, lng, zone),
@@ -1771,7 +1811,7 @@ async function handleSearch(query, lat, lng, zone) {
   const retail = retailSettled.status === 'fulfilled' ? retailSettled.value : null;
   const suppliers = suppliersSettled.status === 'fulfilled' ? suppliersSettled.value : { items: [], sources: {} };
   return {
-    items: mergeSearchResults(retail, null).filter(item => unitPrices.isIndividual(item) && matchesRequestedSize(item, query)).map(({wholesale, ...item}) => item),
+    items: mergeSearchResults(retail, null).filter(item => unitPrices.isIndividual(item) && matchesRequestedSize(item, query)).map(({wholesale, ...item}) => withImages(item, suppliers.items)),
     supplierItems: suppliers.items,
     coverage: {
       retailBranches: retail?.branches?.length || 0,
@@ -1786,9 +1826,11 @@ async function handleSearch(query, lat, lng, zone) {
 }
 
 async function handleDetail(ean, lat, lng, zone) {
-  const [retailSettled, imageSettled] = await Promise.allSettled([
+  const pcImage = preciosClarosImage(ean);
+  const [retailSettled, imageSettled, pcSettled] = await Promise.allSettled([
     detailSource('retail', ean, lat, lng, zone),
     productImage(ean),
+    imageExists(pcImage),
   ]);
   if (retailSettled.status === 'rejected') {
     throw retailSettled.reason;
@@ -1799,7 +1841,10 @@ async function handleDetail(ean, lat, lng, zone) {
 
   const product = retail.product || { ean, name: 'Producto', brand: '', presentation: '' };
   if (!unitPrices.isIndividual(product)) throw new Error('Esta publicación no corresponde a una venta individual.');
-  let image = imageSettled.status === 'fulfilled' ? imageSettled.value : null;
+  // Primero la foto oficial de Precios Claros (verificada); después OpenFoodFacts y ML.
+  const offImage = imageSettled.status === 'fulfilled' ? imageSettled.value : null;
+  let image = (pcSettled.status === 'fulfilled' && pcSettled.value) ? pcImage : offImage;
+  let mlImage = null;
   let mlRef = null;
   // MercadoLibre entra como respaldo: cuando falta la foto o no hay precio
   // minorista en Precios Claros (pasa seguido con productos de kiosco).
@@ -1812,14 +1857,17 @@ async function handleDetail(ean, lat, lng, zone) {
       if (found.length) {
         const exact = found.find(item => item.ean && String(item.ean) === String(ean));
         mlRef = exact?.reference || null;
-        if (!image) image = exact?.image || null;
+        mlImage = exact?.image || found.find(item => item.image)?.image || null;
+        if (!image) image = mlImage;
       }
     } catch { /* ML es un extra: si falla seguimos sin él */ }
   }
+  const images = [image, offImage, mlImage].filter((url, index, list) => /^https:\/\//.test(url || '') && list.indexOf(url) === index);
 
   return {
     product,
-    image,
+    image: images[0] || null,
+    images,
     mlReference: mlRef,
     retailReference,
     retailStores: retail.rows.slice(0, 12),

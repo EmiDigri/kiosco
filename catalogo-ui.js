@@ -213,6 +213,71 @@
     return `<div class="price-source-group"><span>${escapeHtml(label)}</span><span>${count}</span></div>`;
   }
 
+  // ── Fotos de producto garantizadas (pedido: "que aparezca sí o sí la imagen") ──
+  // Cada foto prueba sus candidatas en orden (src y después data-alts). Si fallan todas,
+  // pide la foto a MercadoLibre por nombre (action=foto) y, como último recurso, muestra
+  // un ícono. Las búsquedas por nombre se cachean y van de a 3 para no saturar ML.
+  const fotoCache = new Map();
+  const fotoCola = [];
+  let fotoActivas = 0;
+  function fotoPorNombre(query) {
+    const key = String(query || '').replace(/\s+/g, ' ').trim().toLowerCase().slice(0, 80);
+    if (key.length < 2) return Promise.resolve(null);
+    if (!fotoCache.has(key)) {
+      fotoCache.set(key, new Promise(resolve => {
+        fotoCola.push(() => apiRequest({ action: 'foto', q: key })
+          .then(data => resolve(/^https:\/\//.test(data?.image || '') ? data.image : null))
+          .catch(() => resolve(null))
+          .finally(() => { fotoActivas--; siguienteFoto(); }));
+        siguienteFoto();
+      }));
+    }
+    return fotoCache.get(key);
+  }
+  function siguienteFoto() {
+    while (fotoActivas < 3 && fotoCola.length) { fotoActivas++; fotoCola.shift()(); }
+  }
+  function fotoCandidatas(list) {
+    return (list || []).filter((url, index, all) => /^https:\/\//.test(url || '') && all.indexOf(url) === index);
+  }
+  function thumbHtml(candidates, query) {
+    const list = fotoCandidatas(candidates);
+    const q = escapeHtml(String(query || '').trim());
+    if (!list.length) return `<span class="price-result-thumb" data-foto-q="${q}" data-foto-need="1"><span class="price-thumb-ph" aria-hidden="true">🛒</span></span>`;
+    return `<span class="price-result-thumb" data-foto-q="${q}"><img src="${escapeHtml(list[0])}" data-alts="${escapeHtml(list.slice(1).join(' '))}" alt="" loading="lazy" decoding="async"></span>`;
+  }
+  function fotoPlaceholder(box) {
+    box.innerHTML = box.id === 'priceProductImageBox'
+      ? '<div class="price-product-placeholder">$</div>'
+      : '<span class="price-thumb-ph" aria-hidden="true">🛒</span>';
+  }
+  async function fotoSiguiente(img) {
+    const box = img.closest('.price-result-thumb, #priceProductImageBox');
+    if (!box) return;
+    const alts = (img.dataset.alts || '').split(' ').filter(Boolean);
+    if (alts.length) { img.dataset.alts = alts.slice(1).join(' '); img.src = alts[0]; return; }
+    if (img.dataset.mlTried) { fotoPlaceholder(box); return; }
+    img.dataset.mlTried = '1';
+    const url = await fotoPorNombre(box.dataset.fotoQ || img.alt);
+    if (url && url !== img.getAttribute('src')) img.src = url;
+    else fotoPlaceholder(box);
+  }
+  function llenarFotosFaltantes(root) {
+    (root || document).querySelectorAll('[data-foto-need]').forEach(async box => {
+      box.removeAttribute('data-foto-need');
+      const url = await fotoPorNombre(box.dataset.fotoQ);
+      if (!url || !box.isConnected) return;
+      const alt = box.id === 'priceProductImageBox' ? ` id="priceProductImage" alt="${escapeHtml(box.dataset.fotoQ || '')}"` : ' alt=""';
+      box.innerHTML = `<img src="${escapeHtml(url)}"${alt} data-ml-tried="1" decoding="async">`;
+    });
+  }
+  // Los errores de <img> no burbujean: se escuchan en captura, una sola vez para toda la app.
+  document.addEventListener('error', event => {
+    const img = event.target;
+    if (!(img instanceof HTMLImageElement)) return;
+    if (img.closest('.price-result-thumb') || img.id === 'priceProductImage') fotoSiguiente(img);
+  }, true);
+
   function renderResults() {
     const paneTitle = document.querySelector('.price-pane-title');
     const supplierGroups = [
@@ -229,18 +294,25 @@
     }
     const officialHtml = state.items.length ? sourceHeading('Precios Claros', state.items.length) + state.items.map(item => `
       <button class="price-result${item.ean === state.selectedEan ? ' active' : ''}" type="button" data-ean="${escapeHtml(item.ean)}" aria-pressed="${item.ean === state.selectedEan ? 'true' : 'false'}">
-        <div class="price-result-brand">${escapeHtml(item.brand || 'Sin marca')} · ${escapeHtml(item.presentation || 'Presentación sin informar')}</div>
-        <div class="price-result-name">${escapeHtml(item.name)}</div>
-        <div class="price-result-meta">${itemPriceSummary(item)}</div>
+        ${thumbHtml(item.images || [item.image], [item.brand, item.name].filter(Boolean).join(' '))}
+        <div class="price-result-body">
+          <div class="price-result-brand">${escapeHtml(item.brand || 'Sin marca')} · ${escapeHtml(item.presentation || 'Presentación sin informar')}</div>
+          <div class="price-result-name">${escapeHtml(item.name)}</div>
+          <div class="price-result-meta">${itemPriceSummary(item)}</div>
+        </div>
       </button>
     `).join('') : '';
     const suppliersHtml = supplierGroups.map(([label, items]) => sourceHeading(label, items.length) + items.map(item => `
       <button class="price-result${item.id === state.selectedSupplier ? ' active' : ''}" type="button" data-supplier-id="${escapeHtml(item.id)}" aria-pressed="${item.id === state.selectedSupplier ? 'true' : 'false'}">
-        <div class="price-result-brand">${escapeHtml(item.brand || item.sourceLabel)}${item.presentation ? ` · ${escapeHtml(item.presentation)}` : ''}</div>
-        <div class="price-result-name">${escapeHtml(item.title)}</div>
-        <div class="price-result-meta">${supplierPriceSummary(item)}</div>
+        ${thumbHtml([item.image], item.title)}
+        <div class="price-result-body">
+          <div class="price-result-brand">${escapeHtml(item.brand || item.sourceLabel)}${item.presentation ? ` · ${escapeHtml(item.presentation)}` : ''}</div>
+          <div class="price-result-name">${escapeHtml(item.title)}</div>
+          <div class="price-result-meta">${supplierPriceSummary(item)}</div>
+        </div>
       </button>`).join('')).join('');
     resultsElement.innerHTML = officialHtml + suppliersHtml;
+    llenarFotosFaltantes(resultsElement);
   }
 
   async function apiRequest(params) {
@@ -249,7 +321,7 @@
     }
     const url = new URL(API_URL, location.href);
     Object.entries(params).forEach(([key, value]) => url.searchParams.set(key, value));
-    url.searchParams.set('scope', 'individual-v3-size');
+    url.searchParams.set('scope', 'individual-v4-fotos');
     url.searchParams.set('lat', state.location.lat);
     url.searchParams.set('lng', state.location.lng);
     url.searchParams.set('zone', state.location.key || 'current');
@@ -534,10 +606,14 @@
     resultsElement.innerHTML = '<div class="price-ml-note">Catálogo Mercado Libre. El precio aparece sólo cuando existe una publicación ganadora vigente.</div>'
       + state.mlItems.map(item => `
       <button class="price-result${item.id === state.selectedMl ? ' active' : ''}" type="button" data-ml-id="${escapeHtml(item.id)}" aria-pressed="${item.id === state.selectedMl ? 'true' : 'false'}">
-        <div class="price-result-brand">${escapeHtml(item.brand || 'MercadoLibre')}${item.presentation ? ` · ${escapeHtml(item.presentation)}` : ''}</div>
-        <div class="price-result-name">${escapeHtml(item.title)}</div>
-        <div class="price-result-meta">${item.price ? `<span>Precio ganador <strong>${money(item.price)}</strong></span>` : '<span>Sin precio automático · consultar en ML</span>'}</div>
+        ${thumbHtml([item.image], item.title)}
+        <div class="price-result-body">
+          <div class="price-result-brand">${escapeHtml(item.brand || 'MercadoLibre')}${item.presentation ? ` · ${escapeHtml(item.presentation)}` : ''}</div>
+          <div class="price-result-name">${escapeHtml(item.title)}</div>
+          <div class="price-result-meta">${item.price ? `<span>Precio ganador <strong>${money(item.price)}</strong></span>` : '<span>Sin precio automático · consultar en ML</span>'}</div>
+        </div>
       </button>`).join('');
+    llenarFotosFaltantes(resultsElement);
   }
 
   function showMlDetail(id) {
@@ -852,8 +928,10 @@
     const saved = readSavedPrices()[product.ean] || {};
     const catRecord = catByEan(product.ean);
     const savedCat = catRecord?.categoria || data.suggestedCategory || inferCategory(product.name, product.brand);
-    const image = /^https:\/\//.test(data.image || '')
-      ? `<img id="priceProductImage" src="${escapeHtml(data.image)}" alt="${escapeHtml(product.name)}">`
+    const detailImages = fotoCandidatas(Array.isArray(data.images) && data.images.length ? data.images : [data.image]);
+    const detailFotoQ = [product.brand, product.name].filter(Boolean).join(' ');
+    const image = detailImages.length
+      ? `<img id="priceProductImage" src="${escapeHtml(detailImages[0])}" data-alts="${escapeHtml(detailImages.slice(1).join(' '))}" alt="${escapeHtml(product.name)}">`
       : '<div class="price-product-placeholder">$</div>';
     const costHint = 'Cargá lo que pagaste por una unidad para calcular tu margen.';
     const sourceLinks = Array.isArray(data.sourceLinks) && data.sourceLinks.length
@@ -865,7 +943,7 @@
 
     detailElement.innerHTML = `
       <div class="price-product-head">
-        <div class="price-product-image" id="priceProductImageBox">${image}</div>
+        <div class="price-product-image" id="priceProductImageBox" data-foto-q="${escapeHtml(detailFotoQ)}"${detailImages.length ? '' : ' data-foto-need="1"'}>${image}</div>
         <div>
           <div class="price-product-brand">${escapeHtml(product.brand || 'Sin marca')}</div>
           <div class="price-product-name">${escapeHtml(product.name || 'Producto')}</div>
@@ -929,12 +1007,9 @@
       </section>
     `;
 
-    const productImage = document.getElementById('priceProductImage');
-    if (productImage) {
-      productImage.addEventListener('error', () => {
-        document.getElementById('priceProductImageBox').innerHTML = '<div class="price-product-placeholder">$</div>';
-      }, { once: true });
-    }
+    // Si la foto falla, el listener global prueba las demás candidatas y después ML por
+    // nombre; si el detalle llegó sin foto, se busca en ML ahora.
+    llenarFotosFaltantes(detailElement);
     if (saved.sale) calculateMetrics(false);
     if (panel && window.matchMedia('(max-width: 720px)').matches) {
       setTimeout(() => {
