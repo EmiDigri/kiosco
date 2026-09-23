@@ -1854,18 +1854,21 @@ async function vtexImage(ean) {
   if (!code) return null;
   const hit = vtexCache.get(code);
   if (hit && hit.hasta > Date.now()) return hit.url;
-  const urls = await Promise.all(VTEX_TIENDAS.map(async tienda => {
+  const results = await Promise.all(VTEX_TIENDAS.map(async tienda => {
     try {
       const text = await supplierFetch(`${tienda}/api/catalog_system/pub/products/search?fq=alternateIds_Ean:${code}`, { headers: { ...BROWSER_HEADERS, accept: 'application/json' } }, 3000);
       const url = JSON.parse(text)?.[0]?.items?.[0]?.images?.[0]?.imageUrl || '';
-      return /^https?:\/\//.test(url) ? url.replace(/^http:/, 'https:') : null;
+      return { ok: true, url: /^https?:\/\//.test(url) ? url.replace(/^http:/, 'https:') : null };
     } catch {
-      return null;
+      return { ok: false, url: null };
     }
   }));
-  const url = urls.find(Boolean) || null;
+  const url = results.find(result => result.url)?.url || null;
+  // "No está" solo se recuerda 12 h si las dos tiendas respondieron; si fue un error
+  // de red o un timeout, se vuelve a intentar a los 2 minutos.
+  const definitivo = Boolean(url) || results.every(result => result.ok);
   if (vtexCache.size > 3000) vtexCache.clear();
-  vtexCache.set(code, { url, hasta: Date.now() + 12 * 60 * 60 * 1000 });
+  vtexCache.set(code, { url, hasta: Date.now() + (definitivo ? 12 * 60 : 2) * 60 * 1000 });
   return url;
 }
 
@@ -1881,7 +1884,11 @@ async function handleSearch(query, lat, lng, zone) {
   // Las fotos por código arrancan apenas llega Precios Claros, en paralelo con los proveedores.
   const fotosPromise = retailPromise.then(async retail => {
     const eans = Array.from(new Set((retail?.products || []).map(product => normalizeProduct(product)?.ean).filter(Boolean))).slice(0, 30);
-    const urls = await Promise.all(eans.map(ean => vtexImage(ean).catch(() => null)));
+    // De a 8 para no saturar a las tiendas (60 consultas juntas hacían caer algunas).
+    const urls = [];
+    for (let index = 0; index < eans.length; index += 8) {
+      urls.push(...await Promise.all(eans.slice(index, index + 8).map(ean => vtexImage(ean).catch(() => null))));
+    }
     return new Map(eans.map((ean, index) => [ean, urls[index]]));
   }).catch(() => new Map());
   const [retailSettled, suppliersSettled, fotosSettled] = await Promise.allSettled([
