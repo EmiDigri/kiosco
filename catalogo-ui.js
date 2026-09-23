@@ -1144,16 +1144,9 @@
 
   openButton.addEventListener('click', () => setOpen(true));
   closeButton.addEventListener('click', () => setOpen(false));
-  let overlayPressStartedInside = false;
-  overlay.addEventListener('pointerdown', event => {
-    overlayPressStartedInside = Boolean(panel?.contains(event.target));
-  }, true);
-  overlay.addEventListener('click', event => {
-    const startedInside = overlayPressStartedInside;
-    overlayPressStartedInside = false;
-    if (event.target === overlay && !startedInside) setOpen(false);
-  });
-  overlay.addEventListener('pointercancel', () => { overlayPressStartedInside = false; });
+  // Precios es una pantalla de trabajo: NO se cierra con un clic en el fondo oscuro
+  // (el usuario la cerraba sin querer al hacer clic cerca del borde y perdía lo que
+  // estaba mirando). Se cierra solo con la ✕ o con Esc.
   document.addEventListener('keydown', event => {
     if (event.key === 'Escape' && overlay.classList.contains('open')) setOpen(false);
   });
