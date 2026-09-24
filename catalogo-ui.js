@@ -23,6 +23,7 @@
 
   const API_URL = window.KIOSCO_CATALOG_API || '/api/catalogo';
   const isIndividual = window.KioscoPriceUnit.isIndividual;
+  const matchesSearch = window.KioscoPriceUnit.matchesSearch;
   const PRICE_STORAGE_KEY = 'kiosco_product_prices_v1';
   const LOCATION_STORAGE_KEY = 'kiosco_product_location_v1';
   const LOCATIONS = {
@@ -466,7 +467,7 @@
   function localCatalogSuggestions(query) {
     const normalized = catalogText(query).trim();
     if (!normalized) return [];
-    return catItems().filter(record => catalogText([record.nombre, record.marca, record.presentacion].filter(Boolean).join(' ')).includes(normalized)).slice(0, 4).map(record => ({
+    return catItems().filter(record => matchesSearch(record, query, {partial:true})).slice(0, 4).map(record => ({
       id: `catalog:${record.uid}`,
       source: 'catalog',
       sourceLabel: 'Mi catálogo',
@@ -484,7 +485,7 @@
     try {
       const data = await apiRequest({ action: 'suggest', q: query });
       if (requestId !== state.suggestionRequest || searchInput.value.trim() !== query) return;
-      const remote = Array.isArray(data.items) ? data.items.filter(isIndividual) : [];
+      const remote = Array.isArray(data.items) ? data.items.filter(item => matchesSearch(item, query, {partial:true})) : [];
       const merged = [];
       const seen = new Set();
       [...local, ...remote].filter(isIndividual).forEach(item => {
@@ -557,10 +558,10 @@
     try {
       const data = await apiRequest({ action: 'search', q: query });
       if (requestId !== state.searchRequest) return;
-      state.items = Array.isArray(data.items) ? data.items.filter(isIndividual) : [];
-      state.supplierItems = Array.isArray(data.supplierItems) ? data.supplierItems.filter(isIndividual) : [];
+      state.items = Array.isArray(data.items) ? data.items.filter(item => matchesSearch(item, query)) : [];
+      state.supplierItems = Array.isArray(data.supplierItems) ? data.supplierItems.filter(item => matchesSearch(item, query)) : [];
       if (!state.items.length && !state.supplierItems.length) {
-        resultsElement.innerHTML = loadingHtml('Buscando una alternativa en Mercado Libre…');
+        resultsElement.innerHTML = loadingHtml('Buscando el mismo producto en Mercado Libre…');
         const rescued = await searchMercadoLibre(query, requestId);
         if (!rescued && requestId === state.searchRequest) renderResults();
       } else {
@@ -593,7 +594,7 @@
       const data = await apiRequest({ action: 'ml', q: query });
       if (requestId !== state.searchRequest) return true;
       if (data.disabled || !Array.isArray(data.items) || !data.items.length) return false;
-      state.mlItems = data.items.filter(isIndividual);
+      state.mlItems = data.items.filter(item => matchesSearch(item, query));
       if (!state.mlItems.length) return false;
       renderMlResults();
       return true;
@@ -743,7 +744,7 @@
       const selected = comparisonId(item) === selectedId;
       const sameProduct = samePriceProduct(selectedItem, item);
       return { item, selected, score, shared, sameProduct };
-    }).filter(row => row.selected || row.sameProduct || row.shared > 0);
+    }).filter(row => row.selected || row.sameProduct);
 
     const sourceOrder = ['precios-claros', 'open25', 'rappi', 'dulce-sur'];
     const offers = [];
@@ -825,8 +826,10 @@
   }
 
   function sourceOffersHtml(offers) {
-    if (!Array.isArray(offers) || offers.length < 2) return '';
-    const labels = { selected: 'Producto elegido', same: 'Mismo producto', similar: 'Alternativa similar' };
+    if (!Array.isArray(offers)) return '';
+    offers = offers.filter(offer => ['selected','same'].includes(offer.matchType));
+    if (offers.length < 2) return '';
+    const labels = { selected: 'Producto elegido', same: 'Mismo producto' };
     const comparable = offers.filter(offer => ['selected','same'].includes(offer.matchType)
       && offer.source !== 'rappi' && offer.available !== false
       && Number.isFinite(Number(offer.retailPrice)) && Number(offer.retailPrice) > 0);
@@ -857,13 +860,11 @@
     }
     const exact = offers.filter(offer => offer.matchType !== 'similar' && offer.source !== 'rappi');
     const delivery = offers.filter(offer => offer.matchType !== 'similar' && offer.source === 'rappi');
-    const alternatives = offers.filter(offer => offer.matchType === 'similar');
     return `
       <section class="price-source-comparison">
         <div class="price-source-comparison-head"><div><strong>Precios del producto elegido</strong><small>${exact.length > 1 ? 'Coincidencias por código de barras o descripción y presentación' : exact.length ? 'Una referencia disponible' : 'Sin referencias de venta directa'}</small></div></div>
         ${exact.length ? renderGroups(exact) : ''}
         ${delivery.length ? `<details class="price-shop-details"><summary><span>Delivery · Rappi</span></summary>${renderGroups(delivery)}</details>` : ''}
-        ${alternatives.length ? `<details class="price-shop-details"><summary><span>Otras opciones (${alternatives.length})</span></summary><div class="price-source-warning">No se confirmó que sean el mismo producto. No forman parte de la referencia del producto elegido.</div>${renderGroups(alternatives)}</details>` : ''}
       </section>`;
   }
 

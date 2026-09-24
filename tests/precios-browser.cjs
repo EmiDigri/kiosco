@@ -23,7 +23,9 @@ const {start}=require('./catalogo-preview.cjs');
           {id:'dulce:3',source:'dulce-sur',title:'Rasta Negro 70g',unitPrice:1000},
           {id:'dulce:4',source:'dulce-sur',sourceLabel:'Dulce Sur',priceType:'unit',unitSaleVerified:true,minimum:1,title:'Rasta Negro 70g',unitPrice:1700},
           {id:'dulce:5',source:'dulce-sur',priceType:'unit',unitSaleVerified:true,minimum:6,title:'Rasta Negro 70g',unitPrice:900},
-          {id:'open25:6',source:'open25',sourceLabel:'Open 25',priceType:'retail',title:'Rasta Negro 70g',unitPrice:1500},
+     {id:'open25:6',source:'open25',sourceLabel:'Open 25',priceType:'retail',title:'Rasta Negro 70g',unitPrice:1500},
+     {id:'noise:7',source:'rappi',priceType:'retail',title:'Detergente Rasta negro 70g',unitPrice:500},
+     {id:'noise:8',source:'rappi',priceType:'retail',title:'Jabon Rasta negro',unitPrice:400},
         ];
         items.forEach(item=>{item.brand='Rasta';});
         const checkedAt='2026-09-19T01:30:00Z';
@@ -57,9 +59,24 @@ const {start}=require('./catalogo-preview.cjs');
       await page.locator('#priceOwnCost').fill('1000');
       await page.locator('#priceCalcForm button[type="submit"]').click();
       assert((await page.locator('#priceMetricGrid').innerText()).includes('50,0%'));
-      assert(!(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)));
-      await page.locator('#priceDetail').scrollIntoViewIfNeeded();
-      await page.screenshot({path:path.join(output,'precios-'+width+'.png')});
+   assert(!(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)));
+   await page.locator('#priceDetail').scrollIntoViewIfNeeded();
+   await page.screenshot({path:path.join(output,'precios-'+width+'.png')});
+   assert(!/detergente|jabon|otras opciones/i.test(await page.locator('#priceDetail').innerText()));
+   await page.evaluate(()=>{
+    const other={id:'rappi:small',source:'rappi',brand:'Rasta',title:'Rasta Negro 40g',unitPrice:900};
+    window.__priceFixture.search.supplierItems.push(other);
+   });
+   await page.locator('#priceSearchInput').fill('rasta negro 70g');
+   await page.locator('#priceSearchButton').click();
+   await result.first().waitFor();
+   assert.equal(await result.count(),3);
+   assert(!/40g|detergente|jabon/i.test(await page.locator('#priceResults').innerText()));
+   await page.evaluate(()=>{window.__priceFixture.ml={items:[{id:'ml:wrong',title:'Chocolate Milka Oreo 155g',brand:'Milka',price:5000}]};});
+   await page.locator('#priceSearchInput').fill('milka almendras 155g');
+   await page.locator('#priceSearchButton').click();
+   await page.waitForFunction(()=>!document.getElementById('priceSearchButton').disabled);
+   assert.equal(await result.count(),0,'cannot fall back to another flavour');
       assert.deepEqual(errors,[]);
       await page.close();
     }

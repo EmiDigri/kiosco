@@ -557,7 +557,7 @@ async function dulceSurSearch(query, limit = 10) {
       updatedAt: product.fecha_actualizacion || null,
       relevance: textRelevance(`${brand || ''} ${product.nombre}`, queryText),
     };
-  }).filter(item => unitPrices.isIndividual(item) && item.available && matchesRequestedSize(item, query))
+  }).filter(item => unitPrices.matchesSearch(item, query, {partial:true}) && item.available && matchesRequestedSize(item, query))
     .sort((a, b) => b.relevance - a.relevance).slice(0, limit);
   return supplierCacheSet(cacheKey, items);
 }
@@ -699,7 +699,7 @@ async function rappiSearch(query, limit = 10) {
       updatedAt: new Date().toISOString(),
       relevance,
     };
-  }).filter(item => item.relevance >= 20 && unitPrices.isIndividual(item) && matchesRequestedSize(item, query)).sort((a, b) => b.relevance - a.relevance || a.unitPrice - b.unitPrice).slice(0, 20);
+  }).filter(item => item.relevance >= 20 && unitPrices.matchesSearch(item, query, {partial:true}) && matchesRequestedSize(item, query)).sort((a, b) => b.relevance - a.relevance || a.unitPrice - b.unitPrice).slice(0, 20);
   supplierCacheSet(cacheKey, items);
   return items.slice(0, limit);
 }
@@ -768,7 +768,7 @@ async function open25Search(query, limit = 10) {
       relevance: textRelevance(parsed.title, queryText),
     });
   }
-  const ranked = items.filter(item => item.relevance >= 20 && unitPrices.isIndividual(item) && matchesRequestedSize(item, query))
+  const ranked = items.filter(item => item.relevance >= 20 && unitPrices.matchesSearch(item, query, {partial:true}) && matchesRequestedSize(item, query))
     .sort((a, b) => b.relevance - a.relevance || a.unitPrice - b.unitPrice)
     .slice(0, 20);
   supplierCacheSet(cacheKey, ranked);
@@ -1399,14 +1399,14 @@ async function handleRadar() {
   return value;
 }
 
-async function supplierSearch(query, limit = 10) {
+async function supplierSearch(query, limit = 10, options = {}) {
   const [rappi, open25, dulce] = await Promise.allSettled([rappiSearch(query, limit), open25Search(query, limit), dulceSurSearch(query, limit)]);
   return {
     items: [
       ...(open25.status === 'fulfilled' ? open25.value : []),
       ...(rappi.status === 'fulfilled' ? rappi.value : []),
       ...(dulce.status === 'fulfilled' ? dulce.value : []),
-    ].filter(unitPrices.isIndividual),
+    ].filter(item => unitPrices.matchesSearch(item, query, options)),
     sources: { rappi: rappi.status === 'fulfilled', open25: open25.status === 'fulfilled', dulceSur: dulce.status === 'fulfilled' },
   };
 }
@@ -1584,7 +1584,8 @@ async function searchSource(kind, query, lat, lng, zone) {
       if (wholesale) params.set('entorno', 'mayoristas');
       return officialJson(base, `/productos?${params}`, wholesale);
     }));
-    const rows = settled.flatMap(result => result.status === 'fulfilled' && Array.isArray(result.value.productos) ? result.value.productos : []);
+    const rows = settled.flatMap(result => result.status === 'fulfilled' && Array.isArray(result.value.productos) ? result.value.productos : [])
+      .filter(product => unitPrices.matchesSearch(normalizeProduct(product), query));
     products.push(...rows);
     if (rows.length) break;
   }
@@ -1883,7 +1884,7 @@ async function handleSearch(query, lat, lng, zone) {
   const retailPromise = searchSource('retail', query, lat, lng, zone);
   // Las fotos por código arrancan apenas llega Precios Claros, en paralelo con los proveedores.
   const fotosPromise = retailPromise.then(async retail => {
-    const eans = Array.from(new Set((retail?.products || []).map(product => normalizeProduct(product)?.ean).filter(Boolean))).slice(0, 30);
+    const eans = Array.from(new Set((retail?.products || []).map(normalizeProduct).filter(item => unitPrices.matchesSearch(item, query)).map(item => item.ean))).slice(0, 30);
     // De a 8 para no saturar a las tiendas (60 consultas juntas hacían caer algunas).
     const urls = [];
     for (let index = 0; index < eans.length; index += 8) {
@@ -1903,7 +1904,7 @@ async function handleSearch(query, lat, lng, zone) {
   const retail = retailSettled.status === 'fulfilled' ? retailSettled.value : null;
   const suppliers = suppliersSettled.status === 'fulfilled' ? suppliersSettled.value : { items: [], sources: {} };
   return {
-    items: mergeSearchResults(retail, null).filter(item => unitPrices.isIndividual(item) && matchesRequestedSize(item, query)).map(({wholesale, ...item}) => withImages(item, suppliers.items, fotosPorEan.get(item.ean) || null)),
+    items: mergeSearchResults(retail, null).filter(item => unitPrices.matchesSearch(item, query) && matchesRequestedSize(item, query)).map(({wholesale, ...item}) => withImages(item, suppliers.items, fotosPorEan.get(item.ean) || null)),
     supplierItems: suppliers.items,
     coverage: {
       retailBranches: retail?.branches?.length || 0,
@@ -1997,7 +1998,7 @@ export default async function handler(req, res) {
     } else if (action === 'suggest') {
       const query = normalizeQuery(req.query.q);
       if (query.length < 2) return res.status(400).json({ error: 'Ingresá al menos 2 caracteres' });
-      const suppliers = await supplierSearch(query, 6);
+      const suppliers = await supplierSearch(query, 6, {partial:true});
       payload = { items: suppliers.items.slice(0, 10), sources: suppliers.sources };
     } else if (action === 'ml') {
       // Búsqueda directa en MercadoLibre (para librería y todo lo que
@@ -2005,7 +2006,7 @@ export default async function handler(req, res) {
       const query = normalizeQuery(req.query.q);
       if (query.length < 2) return res.status(400).json({ error: 'Ingresá al menos 2 caracteres' });
       const result = await mlSearch(query, 10);
-      payload = result;
+      payload = {...result, items:(result.items || []).filter(item => unitPrices.matchesSearch(item, query))};
     } else if (action === 'foto') {
       // La mejor foto de MercadoLibre para un producto, buscada SIN el peso (para la
       // foto importa el producto, no el tamaño) y elegida con sameProductImage.

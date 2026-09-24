@@ -43,17 +43,18 @@ test('missing identity and different brands or pack counts cannot confirm equiva
   assert(!same(item('Birome trazo fino',{brand:'Bic'}),item('Birome trazo fino',{brand:'Filgo'})));
   assert(!same(item('Alfajor Rasta negro 70g',{packUnits:6}),item('Alfajor Rasta negro 70g')));
 });
-test('comparison markup separates alternatives in a collapsed section',()=>{
+test('comparison never renders unconfirmed alternatives, even in collapsed sections',()=>{
   vm.runInContext(source.slice(source.indexOf('  function sourceOffersHtml('),source.indexOf('  function renderDetail(')),ctx);
   ctx.escapeHtml=value=>String(value||'');
   ctx.sourceOfferValues=()=>'$100';
   const html=ctx.sourceOffersHtml([
     {matchType:'selected',source:'open25',sourceLabel:'Open 25',title:'Rasta 70g'},
+    {matchType:'same',source:'rappi',sourceLabel:'Rappi',title:'Rasta 70g'},
     {matchType:'similar',source:'rappi',sourceLabel:'Rappi',title:'Rasta 40g'}
   ]);
   assert(html.includes('Una referencia disponible'));
-  const split=html.indexOf('<details');
-  assert(!html.slice(0,split).includes('Rasta 40g'));
-  assert(html.slice(split).includes('Rasta 40g'));
+  assert(!html.includes('Rasta 40g'));
+  assert(!html.includes('Otras opciones'));
+  assert(html.includes('Delivery'));
   assert(!/<details[^>]*\bopen\b/.test(html));
 });

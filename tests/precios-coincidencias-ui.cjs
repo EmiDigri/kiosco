@@ -11,6 +11,7 @@ vm.runInContext(source.slice(source.indexOf('  function sourceOffersHtml('),sour
 const content=ctx.sourceOffersHtml([
   {matchType:'selected',source:'open25',sourceLabel:'Open 25',title:'Alfajor Rasta negro',presentation:'70 g'},
   {matchType:'same',source:'precios-claros',sourceLabel:'Precios Claros',title:'Alfajor Rasta negro',presentation:'70 g'},
+  {matchType:'same',source:'rappi',sourceLabel:'Rappi',title:'Alfajor Rasta negro',presentation:'70 g'},
   {matchType:'similar',source:'rappi',sourceLabel:'Rappi',title:'Alfajor Rasta blanco',presentation:'40 g'},
 ]);
 (async()=>{
@@ -25,7 +26,9 @@ const content=ctx.sourceOffersHtml([
       assert.equal(await details.getAttribute('open'),null);
       assert.equal(await page.getByText('Alfajor Rasta blanco').isVisible(),false);
       await details.locator('summary').click();
-      assert(await page.getByText('Alfajor Rasta blanco').isVisible());
+      assert.equal(await page.getByText('Alfajor Rasta blanco').count(),0);
+      assert(await details.getByText('Alfajor Rasta negro').isVisible());
+      assert.equal(await page.getByText('Otras opciones',{exact:false}).count(),0);
       assert(!(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)));
       await page.screenshot({path:path.join(output,`${width}.png`)});
       await details.locator('summary').click();
