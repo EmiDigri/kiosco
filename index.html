@@ -2532,6 +2532,35 @@ body.light .met-mes-btn,body.light .met-bar{background:rgba(15,23,42,.05)}
   .met-head-nav{gap:10px}
   .met-mes-lbl{min-width:120px;font-size:14px}
 }
+/* Cascada horizontal: los importes quedan fuera de las barras en el celular. */
+.met-waterfall{display:none;list-style:none;padding:0;margin:0}
+@media(max-width:600px){
+  #metCascada,.met-cascade-caption{display:none}
+  .met-waterfall{display:block}
+  .met-waterfall-step{padding:12px 0;min-width:0}
+  .met-waterfall-step:first-child{padding-top:2px}
+  .met-waterfall-head{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:4px 10px;color:var(--text-mid);font-size:13px;line-height:1.4}
+  .met-waterfall-head strong{color:var(--text);font-size:17px;font-weight:800;letter-spacing:0;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+  .met-waterfall-track{position:relative;height:12px;margin:8px 0 5px;background:var(--glass);border-radius:3px}
+  .met-waterfall-track::before{content:'';position:absolute;left:var(--zero);top:-4px;bottom:-4px;border-left:1px solid var(--text-soft);opacity:.45}
+  .met-waterfall-bar{position:absolute;left:var(--start);width:var(--size);height:100%;border-radius:3px;background:var(--step-color);transform-origin:left;animation:met-waterfall-in .45s ease-out both}
+  .met-waterfall-note{color:var(--text-soft);font-size:11px;line-height:1.4}
+  .met-waterfall-result{margin-top:4px;padding:14px 0 0;border-top:1px solid var(--glass-border)}
+  .met-waterfall-result .met-waterfall-head{font-weight:750}
+  .met-overlay .met-card-title,.met-overlay .met-kpi-top{letter-spacing:0;font-size:11px;line-height:1.4}
+  .met-overlay .met-row.hero{display:grid;gap:8px}
+  .met-overlay .met-row.hero b{font-size:27px;line-height:1.2;letter-spacing:0;white-space:normal;overflow-wrap:anywhere}
+  .met-overlay .met-kpi-val{flex-wrap:wrap;overflow:visible;text-overflow:clip;white-space:normal;overflow-wrap:anywhere;letter-spacing:0;gap:3px 6px;line-height:1.3}
+  .met-overlay .met-kpi-sub{flex-basis:100%}
+  .met-overlay .met-kpi-top{align-items:flex-start;justify-content:space-between}
+  .met-overlay .met-help-btn{width:24px;height:24px;margin:-3px 0;flex-shrink:0}
+  .met-overlay .met-row:not(.hero){flex-wrap:wrap}
+  .met-overlay .met-lbl{flex-wrap:wrap}
+  body.light .met-overlay .met-pos{color:#168046!important}
+  body.light .met-overlay .met-neg{color:#bc3030!important}
+}
+@keyframes met-waterfall-in{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@media(prefers-reduced-motion:reduce){.met-waterfall-bar{animation:none}}
 .hist-met-kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
 .hist-met-kpi{background:rgba(255,255,255,.04);border:1px solid var(--glass-border);border-radius:14px;padding:14px 10px;text-align:center}
 .hist-met-kpi-label{font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-soft);margin-bottom:6px}
@@ -5378,7 +5407,7 @@ function metLabelSalida(nombre){const n=metNorm(nombre);
   if(!nom||/^transferencia/i.test(nom))return 'Transferencia (proveedor)';
   return nom.length>26?nom.slice(0,26)+'…':nom;}
 // ECharts se carga on-demand (sólo al abrir Métricas, para no pesar el home).
-let _metEchProm=null,_metCasc=null,_metTree=null,_metResizeReady=false;
+let _metEchProm=null,_metCasc=null,_metTree=null,_metResizeReady=false,_metCascValues=null,_metDrawRequest=0;
 function metCargarECharts(){if(window.echarts)return Promise.resolve();if(_metEchProm)return _metEchProm;_metEchProm=new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js';s.onload=()=>res();s.onerror=()=>{_metEchProm=null;rej(new Error('echarts'));};document.head.appendChild(s);});return _metEchProm;}
 let metMes=new Date();metMes.setDate(1);
 function metActualizarNav(){
@@ -5463,7 +5492,8 @@ function metRender(){
     <div class="met-card">
       <div class="met-card-title">Cómo se llega a la utilidad</div>
       <div id="metCascada" class="met-chart" style="height:230px"></div>
-      <div class="met-cap">Estado de resultados en cascada: de la <b>facturación</b> se detrae el <b>costo de mercadería</b> (costo variable) y los <b>costos fijos</b>; el remanente es el <b>resultado neto</b>.</div>
+      ${metCascadaMovil({recaud,variable,gastFijos,inversion,utilidad})}
+      <div class="met-cap met-cascade-caption">Estado de resultados en cascada: de la <b>facturación</b> se detrae el <b>costo de mercadería</b> (costo variable) y los <b>costos fijos</b>; el remanente es el <b>resultado neto</b>.</div>
     </div>
     <div class="met-card">
       <div class="met-card-title">Indicadores de rentabilidad</div>
@@ -5540,16 +5570,49 @@ function metComisionesCard(ing){
     ${sinDato?`<div class="met-cap">${sinDato} cobro${sinDato===1?'':'s'} por Point todavía sin desglose de MercadoPago.</div>`:''}
   </div>`;
 }
+function metCascadaMovil(v){
+  let saldo=v.recaud;
+  const pasos=[{nombre:'Facturación',monto:v.recaud,desde:0,hasta:saldo,color:'#7c90ff',nota:'Total del mes'}];
+  for(const [nombre,monto,color] of [['Mercadería',v.variable,'#f0728a'],['Costos fijos',v.gastFijos,'#f0b860'],['Inversión',v.inversion,'#61d6c0']]){
+    if(nombre==='Inversión'&&monto<=0)continue;
+    pasos.push({nombre,monto,desde:saldo-monto,hasta:saldo,color,resta:true});
+    saldo-=monto;
+  }
+  pasos.push({nombre:v.utilidad<0?'Pérdida neta':'Utilidad neta',monto:v.utilidad,desde:Math.min(0,v.utilidad),hasta:Math.max(0,v.utilidad),color:v.utilidad<0?'#f87171':'#5fd68a',resultado:true});
+  // Un mismo eje para todos los pasos, incluso cuando los egresos superan las ventas.
+  const min=Math.min(0,...pasos.map(p=>p.desde)),max=Math.max(0,...pasos.map(p=>p.hasta)),rango=max-min||1;
+  const pct=n=>(n/rango*100).toFixed(4)+'%';
+  const filas=pasos.map(p=>{
+    const nota=p.nota||(v.recaud>0?(Math.abs(p.monto)/v.recaud*100).toLocaleString('es-AR',{maximumFractionDigits:1})+'% de la facturación':'Sin facturación registrada');
+    const importe=(p.resta||p.monto<0?'−':'')+histMoney(Math.abs(p.monto));
+    return `<li class="met-waterfall-step${p.resultado?' met-waterfall-result':''}" style="--step-color:${p.color};--start:${pct(p.desde-min)};--size:${pct(p.hasta-p.desde)}">
+      <div class="met-waterfall-head"><span>${p.nombre}</span><strong${p.resultado?` class="${p.monto<0?'met-neg':'met-pos'}"`:''}>${importe}</strong></div>
+      <div class="met-waterfall-track" aria-hidden="true"><span class="met-waterfall-bar"></span></div>
+      <div class="met-waterfall-note">${nota}</div>
+    </li>`;
+  }).join('');
+  return `<ol class="met-waterfall" aria-label="De la facturación al resultado del mes" style="--zero:${pct(-min)}">${filas}</ol>`;
+}
 async function metDibujarGraficos(v){
+  _metCascValues=v;
+  const request=++_metDrawRequest;
+  if(!_metResizeReady){
+    _metResizeReady=true;let timer;
+    window.addEventListener('resize',()=>{clearTimeout(timer);timer=setTimeout(()=>{
+      if(_metCascValues&&document.getElementById('metricasOverlay')?.classList.contains('open'))metDibujarGraficos(_metCascValues);
+    },120);});
+  }
   const elC=document.getElementById('metCascada'),elT=document.getElementById('metTreemap');
+  if(!elC)return;
+  if(window.matchMedia('(max-width:600px)').matches){if(_metCasc){_metCasc.dispose();_metCasc=null;}return;}
   try{await metCargarECharts();}catch(e){if(elC)elC.innerHTML='<div class="met-cap" style="text-align:center;padding:24px">No se pudo cargar el gráfico (sin conexión). Los indicadores de arriba y abajo son correctos igual.</div>';return;}
   if(!window.echarts)return;
   // Espero a que cargue Space Grotesk (numerales) para que el render SVG la use y no
   // caiga a la fuente de sistema en la primera pintada.
   try{await Promise.all([document.fonts.load('600 15px "Space Grotesk"'),document.fonts.load('500 10px "Space Grotesk"')]);}catch(e){}
+  if(request!==_metDrawRequest||!elC?.isConnected)return;
   const dark=!document.body.classList.contains('light');
   const txt=dark?'#d8d8dc':'#334155', sub=dark?'#9a9aa2':'#64748b', borde=dark?'#161620':'#ffffff';
-  if(!_metResizeReady){_metResizeReady=true;window.addEventListener('resize',()=>{try{_metCasc&&_metCasc.resize();_metTree&&_metTree.resize();}catch(e){}});}
   // ── Cascada (estado de resultados) ──
   if(elC){try{
     if(_metCasc)_metCasc.dispose();
