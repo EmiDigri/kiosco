@@ -641,6 +641,8 @@ body.light .mostrador-status.error{color:#9a4600}
 .hist-egr-nom{font-size:13px;color:var(--text);display:flex;align-items:center;gap:6px;min-width:0}
 .hist-egr-fecha{font-size:11px;font-weight:800;color:var(--text-soft);font-variant-numeric:tabular-nums;flex-shrink:0}
 .hist-egr-nomtxt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.hist-egr-nom .prov-logo{margin-right:0}
+.hist-egr-leg-nom .prov-logo{margin-right:6px}
 .hist-egr-n{background:var(--glass-border);color:var(--text-soft);font-size:10px;font-weight:800;border-radius:999px;padding:1px 6px;flex-shrink:0}
 .hist-egr-tot{font-size:13px;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums;flex-shrink:0}
 .hist-egr-det{max-height:0;overflow:hidden;transition:max-height .22s ease}
@@ -5400,7 +5402,8 @@ const MET_LABEL={Edenor:'Luz',AYSA:'Agua',Telecentro:'Internet',Fotocopiadora:'I
 const PROV_LOGOS=[
   [/coca|femsa/,'coca.png'],[/arcor/,'arcor.png'],[/pepsico/,'pepsico.png'],[/nobleza|piccardo|\bbat\b/,'nobleza.png'],
   [/felfort/,'felfort.png'],[/cachafaz/,'cachafaz.png'],[/levite/,'levite.png'],[/tia maruca/,'tiamaruca.png'],
-  [/balcarce/,'balcarce.png'],[/\bspeed\b/,'speed.png'],[/poxipol/,'poxipol.ico'],
+  [/balcarce/,'balcarce.png'],[/\bspeed\b/,'speed.png'],[/poxipol/,'poxipol.ico'],[/\brasta\b/,'rasta.jpg'],[/citric/,'citric.jpg'],
+  [/todo dulce/,'tododulce.png'],[/^producto$/,'mercadolibre.png'], // "Pago Producto" = compra en Mercado Libre
   [/edenor|^luz\b/,'edenor.png'],[/aysa|^agua\b/,'aysa.ico'],[/telecentro|^internet\b/,'telecentro.ico'],[/metrogas|^gas\b/,'metrogas.png'],
   [/mercado ?pago|comision mp/,'mercadopago.png'],[/\barca\b|afip|monotributo|impuestos/,'arca.png'],[/mapfre|seguro/,'mapfre.png'],
   [/mercado ?libre|lector|impresora/,'mercadolibre.png'],
@@ -5410,7 +5413,7 @@ const PROV_RUBROS=[
   [/librer/,'📚'],[/fotocopiadora/,'🖨️'],[/fumigacion/,'🐜'],[/contador/,'🧾'],[/toldo/,'⛱️'],[/figu/,'🃏'],
   [/pelota/,'⚽'],[/llavero/,'🔑'],[/panuelo/,'🧻'],[/usb/,'🔌'],[/encendedor/,'🔥'],[/cigarrillo|tabaco|sedas/,'🚬'],
   [/vaper/,'💨'],[/pebete/,'🥪'],[/kiosco/,'🏪'],[/^once\b/,'🛒'],[/transferencia/,'💸'],[/logistica/,'🚚'],
-  [/citric/,'🍋'],[/sin identificar/,'❔'],[/inversion|mejora/,'🛠️'],
+  [/sin identificar/,'❔'],[/inversion|mejora/,'🛠️'],
 ];
 function provNorm(s){return String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim();}
 function provLogoHtml(nombre){
@@ -6253,7 +6256,7 @@ function histGrupoFilasHtml(grupos){
     // lista): asi la columna de fechas lee de arriba a abajo del ultimo al primero,
     // sin rangos que confundan. El detalle desplegable trae cada fecha por separado.
     const fechaLbl=fechas.length?fmt(fechas[fechas.length-1]):'';
-    return `<div class="hist-egr-grp" data-egr="${i}"><div class="hist-egr-row"><span class="hist-egr-nom">${fechaLbl?`<span class="hist-egr-fecha">${fechaLbl}</span>`:''}<span class="hist-egr-nomtxt">${cmEsc(CierreCuentas.conceptoGasto(g.nombre))}</span>${multi?`<span class="hist-egr-n">${g.items.length}</span>`:''}</span><span class="hist-egr-tot">${histMoney(g.total)}</span></div><div class="hist-egr-det">${det}</div></div>`;
+    return `<div class="hist-egr-grp" data-egr="${i}"><div class="hist-egr-row"><span class="hist-egr-nom">${fechaLbl?`<span class="hist-egr-fecha">${fechaLbl}</span>`:''}${provLogoHtml(CierreCuentas.conceptoGasto(g.nombre))}<span class="hist-egr-nomtxt">${cmEsc(CierreCuentas.conceptoGasto(g.nombre))}</span>${multi?`<span class="hist-egr-n">${g.items.length}</span>`:''}</span><span class="hist-egr-tot">${histMoney(g.total)}</span></div><div class="hist-egr-det">${det}</div></div>`;
   }).join('');
 }
 function histRenderGastosMes(){
