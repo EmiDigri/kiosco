@@ -5527,7 +5527,7 @@ function metRender(){
 function metMediosCard(contable){
   const once=Number(contable?.once)||0, mp=Number(contable?.mp)||0, efectivo=Math.max(0,(Number(contable?.efectivo)||0)-once), tot=efectivo+mp+once;
   if(tot<=0)return '';
-  const filas=[['Efectivo',efectivo,'var(--green)'],['Mercado Pago',mp,'var(--accent)'],['Once · regalos',once,'var(--amber)']];
+  const filas=[['Efectivo',efectivo,'var(--green)'],['Mercado Pago',mp,'var(--accent)'],['Once',once,'var(--amber)']];
   return `<div class="met-card">
     <div class="met-card-title">Cómo entró la plata</div>
     ${filas.map(([lbl,v,c])=>`<div class="met-row"><span class="met-lbl"><span class="met-dot" style="background:${c}"></span>${lbl} <small style="color:var(--text-soft);font-weight:600">${Math.round(v/tot*100)}%</small></span><b>${histMoney(v)}</b></div>`).join('')}
@@ -5976,7 +5976,7 @@ function histRenderMetricas(y,m,last){
     <div class="hk-metrics">
       <div class="hk-metric"><div class="hk-metric-lbl">Efectivo</div><div class="hk-metric-val">${histMoney(Math.max(0,contable.efectivo-(contable.once||0)))}</div></div>
       <div class="hk-metric"><div class="hk-metric-lbl">Mercado Pago</div><div class="hk-metric-val">${histMoney(contable.mp)}</div></div>
-      <div class="hk-metric"><div class="hk-metric-lbl">Once · regalos</div><div class="hk-metric-val">${histMoney(contable.once||0)}</div></div>
+      <div class="hk-metric"><div class="hk-metric-lbl">Once</div><div class="hk-metric-val">${histMoney(contable.once||0)}</div></div>
       <div class="hk-metric"><div class="hk-metric-lbl">Gastos registrados</div><div class="hk-metric-val">${histMoney(contable.gastos)}</div></div>
       <div class="hk-metric" style="grid-column:1/-1"><div class="hk-metric-lbl">Resultado registrado${faltanCierres?' · parcial':''}</div><div class="hk-metric-val">${histMoney(contable.resultado)}</div></div>
     </div>
