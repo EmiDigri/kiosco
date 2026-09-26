@@ -16,6 +16,11 @@ const CASA_PASO_URL = 'https://www.libreriamayorista.com.ar';
 const DULCE_SUR_URL = 'https://oepqhdjuujfdlpjjktbs.supabase.co';
 const RAPPI_URL = 'https://www.rappi.com.ar';
 const DIA_URL = 'https://diaonline.supermercadosdia.com.ar';
+const JOSIMAR_URL = 'https://www.josimar.com.ar';
+const STATIONERY_STORES = {
+  ramos: { url: 'https://ramospapeleria.com.ar', label: 'Librería Ramos' },
+  clips: { url: 'https://www.clipslibreria.com.ar', label: 'Clips Librería' },
+};
 const INFOKIOSCOS_RANKING_URL = 'https://infokioscos.com.ar/ranking-alfajores';
 const INFOKIOSCOS_API_URL = 'https://infokioscos.com.ar/wp-json/wp/v2/posts';
 const ALFAJOR_COM_URL = 'https://alfajor.com.ar';
@@ -595,7 +600,7 @@ function productBrand(title) {
 }
 
 function priceMeasures(text) {
-  return Array.from(String(text || '').toLowerCase().matchAll(/\b(?:x\s*)?(\d+(?:[.,]\d+)?)\s*(kilogramos?|kg|gramos?|grs?|g|mililitros?|ml|cc|litros?|lts?|l)\b/g));
+  return Array.from(String(text || '').toLowerCase().matchAll(/\b(?:x\s*)?(\d+(?:[.,]\d+)?)\s*(kilogramos?|kg|gramos?|grms?|grs?|g|mililitros?|ml|cc|litros?|lts?|l)\b/g));
 }
 
 function normalizedMeasure(match) {
@@ -703,24 +708,32 @@ async function rappiSearch(query, limit = 10) {
 }
 
 async function diaSearch(query, limit = 10) {
-  const cacheKey = `dia:unit-v1:${mlText(query)}`;
+  return vtexRetailSearch(query, limit, 'dia', 'Día online', DIA_URL);
+}
+
+async function josimarSearch(query, limit = 10) {
+  return vtexRetailSearch(query, limit, 'josimar', 'Josimar', JOSIMAR_URL);
+}
+
+async function vtexRetailSearch(query, limit, source, label, baseUrl) {
+  const cacheKey = `${source}:unit-v2:${mlText(query)}`;
   const cached = supplierCacheGet(cacheKey);
   if (cached) return cached.slice(0, limit);
   const params = new URLSearchParams({ft:supplierQueryText(query), _from:'0', _to:'49'});
-  const rows = JSON.parse(await supplierFetch(`${DIA_URL}/api/catalog_system/pub/products/search?${params.toString().replace(/\+/g, '%20')}`, {}, 6500));
-  if (!Array.isArray(rows)) throw new Error('Día no devolvió su catálogo');
+  const rows = JSON.parse(await supplierFetch(`${baseUrl}/api/catalog_system/pub/products/search?${params.toString().replace(/\+/g, '%20')}`, {}, 6500));
+  if (!Array.isArray(rows)) throw new Error(`${label} no devolvió su catálogo`);
   const items = rows.flatMap(product => (product.items || []).flatMap(sku => {
     // Never convert weight prices, kits, loyalty teasers or multipliers into a unit offer.
     if (sku.measurementUnit !== 'un' || Number(sku.unitMultiplier) !== 1 || sku.isKit === true) return [];
     const offer = (sku.sellers || []).find(seller => seller.sellerDefault === true)?.commertialOffer;
     const price = numberOrNull(offer?.Price);
-    if (!price || price <= 0 || Number(offer.AvailableQuantity) <= 0) return [];
+    if (!price || price <= 0 || !(Number(offer.AvailableQuantity) > 0) || offer.IsAvailable === false) return [];
     const title = String(sku.nameComplete || sku.name || product.productName || '');
     const permalink = String(product.link || '');
-    if (!permalink.startsWith(`${DIA_URL}/`)) return [];
+    if (!permalink.startsWith(`${baseUrl}/`)) return [];
     const item = {
-      id:`dia:${sku.itemId}`, code:String(sku.itemId), ean:String(sku.ean || ''),
-      source:'dia', sourceLabel:'Día online', priceType:'retail',
+      id:`${source}:${sku.itemId}`, code:String(sku.itemId), ean:String(sku.ean || ''),
+      source, sourceLabel:label, priceType:'retail',
       title, brand:unitPrices.brandOf({title, brand:product.brand}),
       presentation:priceMeasures(title).map(match => match[0].trim()).join(' · ') || 'Unidad',
       category:(product.categories || []).join(' '), minimum:1,
@@ -732,6 +745,54 @@ async function diaSearch(query, limit = 10) {
   })).sort((a,b) => b.relevance - a.relevance).slice(0, 30);
   supplierCacheSet(cacheKey, items);
   return items.slice(0, limit);
+}
+
+async function stationerySearch(query, limit, source) {
+  const store = STATIONERY_STORES[source];
+  const cacheKey = `${source}:unit-v1:${mlText(query)}`;
+  const cached = supplierCacheGet(cacheKey);
+  if (cached) return cached.slice(0, limit);
+  // These shops search words with OR. Format is checked locally, not used to flood the results with A4 accessories.
+  const queryText = casaPasoQuery(supplierQueryText(query)).replace(/\b(?:a[3-7]|oficio|carta)\b/gi, ' ').replace(/\s+/g, ' ').trim() || query;
+  const html = await supplierFetch(`${store.url}/search/?q=${encodeURIComponent(queryText)}`, {
+    headers: { ...BROWSER_HEADERS, accept: 'text/html' },
+  }, 6500);
+  const products = [];
+  for (const match of html.matchAll(/<script\b[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)) {
+    try { ldProducts(JSON.parse(match[1]), products); } catch { /* Ignore unrelated malformed metadata. */ }
+  }
+  if (!products.length && !/no encontramos|no se encontraron|sin resultados|ning[uú]n producto/i.test(html)) {
+    throw new Error(`${store.label} no devolvió su catálogo`);
+  }
+  const items = products.flatMap(product => {
+    const offers = Array.isArray(product.offers) ? product.offers : [product.offers];
+    // Accept one identifiable ARS offer, never aggregate prices, installments or payment discounts.
+    if (offers.length !== 1) return [];
+    const offer = offers[0];
+    if (offer?.['@type'] !== 'Offer' || offer.priceCurrency !== 'ARS' || !/^https?:\/\/schema.org\/InStock$/.test(offer.availability || '')) return [];
+    const price = numberOrNull(offer.price);
+    if (!(price > 0) || (offer.inventoryLevel?.value != null && !(Number(offer.inventoryLevel.value) > 0))) return [];
+    if (offer.eligibleQuantity && (Number(offer.eligibleQuantity.minValue || offer.eligibleQuantity.value || 1) !== 1)) return [];
+    const permalink = String(offer.url || '');
+    if (!permalink.startsWith(`${store.url}/productos/`)) return [];
+    const title = htmlText(product.name);
+    const code = String(product.sku || permalink.slice(store.url.length));
+    const image = Array.isArray(product.image) ? product.image[0] : product.image;
+    const item = {
+      id:`${source}:${code}`, code, ean:String(product.gtin13 || product.gtin || product.gtin12 || product.gtin14 || ''),
+      source, sourceLabel:store.label, priceType:'retail', title,
+      brand:unitPrices.brandOf({title, brand:product.brand?.name}), category:'Librería',
+      // Schema weight is shipping weight, not paper grammage or the unit presentation.
+      presentation:priceMeasures(title).map(match => match[0].trim()).join(' · ') || 'Unidad',
+      minimum:1, unitSaleVerified:true, unitPrice:price, retailMin:price, retailMax:price, storeCount:1,
+      available:true, image:typeof image === 'string' && image.startsWith('https://') ? image : null,
+      permalink, updatedAt:new Date().toISOString(), relevance:textRelevance(title, queryText),
+    };
+    return unitPrices.matchesSearch(item, query) && matchesRequestedSize(item, query) ? [item] : [];
+  });
+  const unique = [...new Map(items.map(item => [item.id, item])).values()].sort((a,b) => b.relevance - a.relevance);
+  supplierCacheSet(cacheKey, unique);
+  return unique.slice(0, limit);
 }
 
 // ── Open 25: cadena de drugstores/kioscos con tienda online ──
@@ -1431,15 +1492,22 @@ async function handleRadar() {
 }
 
 async function supplierSearch(query, limit = 10, options = {}) {
-  const [rappi, open25, dulce, dia] = await Promise.allSettled([rappiSearch(query, limit), open25Search(query, limit), dulceSurSearch(query, limit), diaSearch(query, limit)]);
+  const [rappi, open25, dulce, dia, josimar, ramos, clips] = await Promise.allSettled([
+    rappiSearch(query, limit), open25Search(query, limit), dulceSurSearch(query, limit), diaSearch(query, limit),
+    josimarSearch(query, limit), stationerySearch(query, limit, 'ramos'), stationerySearch(query, limit, 'clips'),
+  ]);
   return {
     items: [
       ...(open25.status === 'fulfilled' ? open25.value : []),
       ...(dia.status === 'fulfilled' ? dia.value : []),
+      ...(josimar.status === 'fulfilled' ? josimar.value : []),
+      ...(ramos.status === 'fulfilled' ? ramos.value : []),
+      ...(clips.status === 'fulfilled' ? clips.value : []),
       ...(rappi.status === 'fulfilled' ? rappi.value : []),
       ...(dulce.status === 'fulfilled' ? dulce.value : []),
     ].filter(item => unitPrices.matchesSearch(item, query, options)),
-    sources: { rappi: rappi.status === 'fulfilled', open25: open25.status === 'fulfilled', dulceSur: dulce.status === 'fulfilled', dia:dia.status === 'fulfilled' },
+    sources: { rappi: rappi.status === 'fulfilled', open25: open25.status === 'fulfilled', dulceSur: dulce.status === 'fulfilled', dia:dia.status === 'fulfilled',
+      josimar:josimar.status === 'fulfilled', ramos:ramos.status === 'fulfilled', clips:clips.status === 'fulfilled' },
   };
 }
 
@@ -1956,6 +2024,9 @@ async function handleSearch(query, lat, lng, zone) {
       rappi: suppliers.sources.rappi === true,
       dulceSur: suppliers.sources.dulceSur === true,
       dia: suppliers.sources.dia === true,
+      josimar: suppliers.sources.josimar === true,
+      ramos: suppliers.sources.ramos === true,
+      clips: suppliers.sources.clips === true,
     },
     partialSources: retail?.partial ? ['retail'] : [],
   };
@@ -2004,6 +2075,9 @@ async function handleCompare(product, lat, lng, zone) {
       rappi: suppliers.sources.rappi === true,
       dulceSur: suppliers.sources.dulceSur === true,
       dia: suppliers.sources.dia === true,
+      josimar: suppliers.sources.josimar === true,
+      ramos: suppliers.sources.ramos === true,
+      clips: suppliers.sources.clips === true,
     },
     partialSources: retailResult.status === 'fulfilled' && retailResult.value.partial ? ['retail'] : [],
   };
@@ -2152,7 +2226,7 @@ export default async function handler(req, res) {
       ...payload,
       location: { lat, lng, zone },
       checkedAt: new Date().toISOString(),
-      source: 'Precios Claros + Open 25 + Rappi + Dulce Sur · venta individual',
+      source: 'Precios Claros + Día + Josimar + Open 25 + Ramos + Clips + Rappi + Dulce Sur · venta individual',
     });
   } catch (error) {
     const message = error?.name === 'AbortError'

@@ -11,14 +11,14 @@
     if(Number(item.packUnits)>1||Number(item.unitsPerPack)>1||Number(item.minimum)>1)return false;
     const text=[item.title||item.name||item.nombre,item.presentation||item.presentacion,item.saleFormat]
       .filter(Boolean).join(' ').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
-    if(/\b(packs?|multipacks?|tripacks?|bipacks?|bultos?|combos?|lotes?|docenas?|displays?|cajas?|cjas?|cjs|cj|caj|estuches?)\b/.test(text))return false;
+    if(/\b(packs?|multipacks?|tripacks?|bipacks?|bultos?|combos?|sets?|lotes?|docenas?|displays?|cajas?|cjas?|cjs|cj|caj|estuches?)\b/.test(text))return false;
     if(/\b(?:2\s*x\s*1|3\s*x\s*2)\b/.test(text))return false;
     for(const match of text.matchAll(/\b(?:minimo|minima|desde|a partir de)\s*(?:de\s*)?(\d+)\s*(?:unidades?|uds?|un|u)\b/g)){
       if(Number(match[1])>1)return false;
     }
     // Counts of sheets and physical measurements describe a single item.
-    for(const match of text.matchAll(/(?:^|[\s-])(?:x|por)\s*(\d+(?:[.,]\d+)?)\s*([a-z]+)?/g)){
-      if(/^(?:g|gr|grs|grm|gramos?|kg|ml|cc|l|lt|lts|litros?|hojas?|h|mm|cm|m)$/.test(match[2]||''))continue;
+    for(const match of text.matchAll(/(?:^|[^a-z0-9])(?:x|por)\s*(\d+(?:[.,]\d+)?)\s*([a-z]+)?/g)){
+      if(/^(?:g|gr|grs|grms?|gramos?|kg|ml|cc|l|lt|lts|litros?|hojas?|h|hs|hjs|mm|cm|m)$/.test(match[2]||''))continue;
       if(Number(match[1].replace(',','.'))>1)return false;
     }
     for(const match of text.matchAll(/(?:\b|x)(\d+)\s*(?:unidades|unidad|uds|ud|un|u)\b/g)){
@@ -41,8 +41,8 @@
       .replace(/\bclasicos?\b|\bclasicas\b/g,'clasica')
       .replace(/\bs\s*\//g,'sin ').replace(/\bc\s*\//g,'con ')
       .replace(/\bx(?=\d)/g,' ')
-      .replace(/\b(?:x\s*)?(\d+)\s*hojas?\b/g,'$1 hoja')
-      .replace(/\b(\d+(?:[.,]\d+)?)\s*(kilogramos?|kg|gramos?|grs?|grm|g|mililitros?|ml|cc|litros?|lts?|l)\b/g,(_,n,u)=>{
+      .replace(/\b(?:x\s*)?(\d+)\s*(?:hojas?|hjs|hs)\b/g,'$1 hoja')
+      .replace(/\b(\d+(?:[.,]\d+)?)\s*(kilogramos?|kg|gramos?|grs?|grms?|g|mililitros?|ml|cc|litros?|lts?|l)\b/g,(_,n,u)=>{
         const volume=/^(?:mililitro|ml|cc|litro|lt|l)/.test(u),factor=/^(?:kilogramo|kg|litro|lt|l$)/.test(u)?1000:1;
         return ' '+(Math.round(Number(n.replace(',','.'))*factor*1000)/1000)+(volume?'ml':'g')+' ';
       }).replace(/[^a-z0-9.]+/g,' ').replace(/\.(?!\d)/g,' ').replace(/(^|[^0-9])\./g,'$1 ').split(/\s+/)
