@@ -2488,12 +2488,14 @@ body.light .hist-neg-margen-pill{background:rgba(15,23,42,.04)}
 .met-brk-group:last-of-type{margin-bottom:2px}
 .met-brk-head{display:flex;justify-content:space-between;align-items:baseline;font-size:12px;font-weight:800;color:var(--text);margin:2px 0 10px;padding-bottom:7px;border-bottom:1px solid var(--glass-border)}
 .met-brk-head b{font-family:'Inter',sans-serif;color:var(--text-soft);font-variant-numeric:tabular-nums}
-.met-brk-row{display:grid;grid-template-columns:minmax(84px,34%) 1fr auto;align-items:center;gap:10px;padding:5px 0;font-size:12px}
-.met-brk-nom{color:var(--text-mid);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.met-brk-row{display:grid;grid-template-columns:minmax(0,34%) 1fr 108px;align-items:center;gap:10px;padding:5px 0;font-size:12px;min-height:30px}
+.met-brk-nom{color:var(--text-mid);display:flex;align-items:center;gap:8px;min-width:0}
+.met-brk-txt,.met-prov-txt{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.met-brk-nom .prov-logo,.met-prov-nom .prov-logo{margin-right:0;vertical-align:0}
 .met-brk-track{height:9px;background:rgba(255,255,255,.06);border-radius:20px;overflow:hidden}
 .met-brk-fill{display:block;height:100%;border-radius:20px;transition:width .7s cubic-bezier(.34,1.4,.64,1)}
 .met-brk-val{font-family:'Inter',sans-serif;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums;white-space:nowrap;display:flex;align-items:baseline;gap:5px;justify-content:flex-end}
-.met-brk-val small{font-weight:700;color:var(--text-soft);font-size:10.5px}
+.met-brk-val small{font-weight:700;color:var(--text-soft);font-size:10.5px;min-width:28px;text-align:right}
 body.light .met-brk-track{background:rgba(15,23,42,.06)}
 .met-prov-head{font-size:12px;color:var(--text-mid);margin-bottom:10px;line-height:1.5}
 /* Loguitos de proveedores: todos del mismo tamaño (20px), estilo ícono de app */
@@ -2506,12 +2508,12 @@ body.light .prov-logo{box-shadow:0 0 0 1px rgba(15,23,42,.12)}
 body.light .prov-logo-rubro{background:rgba(15,23,42,.05)}
 body.light .prov-logo-ini{color:hsl(var(--h),55%,34%)}
 .met-prov-head b{color:var(--text);font-weight:800}
-.met-prov-row{display:grid;grid-template-columns:minmax(64px,32%) 1fr auto;align-items:center;gap:8px;padding:6px 0;font-size:12px}
-.met-prov-nom{color:var(--text-mid);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.met-prov-row{display:grid;grid-template-columns:minmax(0,34%) 1fr 108px;align-items:center;gap:10px;padding:5px 0;font-size:12px;min-height:30px}
+.met-prov-nom{color:var(--text-mid);display:flex;align-items:center;gap:8px;min-width:0}
 .met-prov-track{height:8px;background:rgba(255,255,255,.06);border-radius:20px;overflow:hidden}
 .met-prov-fill{display:block;height:100%;border-radius:20px;background:#7c90ff}
-.met-prov-val{font-family:'Inter',sans-serif;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums;white-space:nowrap}
-.met-prov-val small{color:var(--text-soft);font-weight:700;font-size:10px;margin-left:3px}
+.met-prov-val{font-family:'Inter',sans-serif;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums;white-space:nowrap;display:flex;align-items:baseline;gap:5px;justify-content:flex-end}
+.met-prov-val small{color:var(--text-soft);font-weight:700;font-size:10.5px;min-width:28px;text-align:right}
 body.light .met-prov-track{background:rgba(15,23,42,.06)}
 .met-com-break{margin-top:10px;padding:10px 12px;background:rgba(255,255,255,.03);border:1px solid var(--glass-border);border-radius:10px;font-size:11.5px;color:var(--text-mid)}
 .met-com-break>div{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:3px 0}
@@ -2539,7 +2541,7 @@ body.light .met-mes-btn,body.light .met-bar{background:rgba(15,23,42,.05)}
   .met-kpi-top{font-size:9px}
   .met-kpi-val{font-size:16px}
   .met-row.hero b{font-size:25px}
-  .met-brk-row{grid-template-columns:minmax(66px,42%) 1fr auto;gap:8px;font-size:11.5px}
+  .met-brk-row,.met-prov-row{grid-template-columns:minmax(0,40%) 1fr 98px;gap:8px;font-size:11.5px}
   .met-head-nav{gap:10px}
   .met-mes-lbl{min-width:120px;font-size:14px}
 }
@@ -5518,7 +5520,7 @@ function metRender(){
   const brkGroup=(titulo,arr,color,total)=>{
     if(!arr||!arr.length)return '';
     const s=arr.slice().sort((a,b)=>b.monto-a.monto),top=s.slice(0,12),rest=s.slice(12);
-    const fila=(nom,mo,op)=>{const pct=total>0?mo/total*100:0;return `<div class="met-brk-row"><span class="met-brk-nom">${provLogoHtml(nom)}${nom}</span><span class="met-brk-track"><span class="met-brk-fill" style="width:${Math.max(2,Math.round(pct))}%;background:${color}${op?';opacity:.5':''}"></span></span><span class="met-brk-val">${histMoneyCompact(mo)}<small>${Math.round(pct)}%</small></span></div>`;};
+    const fila=(nom,mo,op)=>{const pct=total>0?mo/total*100:0;return `<div class="met-brk-row"><span class="met-brk-nom">${provLogoHtml(nom)}<span class="met-brk-txt">${nom}</span></span><span class="met-brk-track"><span class="met-brk-fill" style="width:${Math.max(2,Math.round(pct))}%;background:${color}${op?';opacity:.5':''}"></span></span><span class="met-brk-val">${histMoneyCompact(mo)}<small>${Math.round(pct)}%</small></span></div>`;};
     let filas=top.map(x=>fila(x.nombre,x.monto,false)).join('');
     if(rest.length)filas+=fila(`Otros (${rest.length})`,rest.reduce((a,x)=>a+x.monto,0),true);
     return `<div class="met-brk-group"><div class="met-brk-head"><span>${titulo}</span><b>${histMoneyCompact(total)}</b></div>${filas}</div>`;
@@ -5589,7 +5591,7 @@ function metProveedoresCard(egr){
   if(!rank.length||total<=0)return '';
   let cum=0,n80=0; for(const r of rank){cum+=r.mo;n80++;if(cum>=total*0.8)break;}
   const maxMo=rank[0].mo||1;
-  const filas=rank.slice(0,12).map(r=>{const share=Math.round(r.mo/total*100);return `<div class="met-prov-row"><span class="met-prov-nom">${provLogoHtml(r.lbl)}${r.lbl}</span><span class="met-prov-track"><span class="met-prov-fill" style="width:${Math.max(3,Math.round(r.mo/maxMo*100))}%"></span></span><span class="met-prov-val">${histMoneyCompact(r.mo)}<small>${share}%</small></span></div>`;}).join('');
+  const filas=rank.slice(0,12).map(r=>{const share=Math.round(r.mo/total*100);return `<div class="met-prov-row"><span class="met-prov-nom">${provLogoHtml(r.lbl)}<span class="met-prov-txt">${r.lbl}</span></span><span class="met-prov-track"><span class="met-prov-fill" style="width:${Math.max(3,Math.round(r.mo/maxMo*100))}%"></span></span><span class="met-prov-val">${histMoneyCompact(r.mo)}<small>${share}%</small></span></div>`;}).join('');
   return `<div class="met-card">
     <div class="met-card-title">En quién comprás la mercadería</div>
     <div class="met-prov-head">El <b>80%</b> de la mercadería se la comprás a <b>${n80}</b> proveedor${n80===1?'':'es'} de ${rank.length}.</div>
