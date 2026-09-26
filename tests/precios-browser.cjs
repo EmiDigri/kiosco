@@ -37,8 +37,13 @@ const {start}=require('./catalogo-preview.cjs');
       await page.locator('#priceSuggestions [data-suggestion-index]').first().waitFor({timeout:5000}).catch(()=>{});
       await page.locator('#priceSearchButton').click();
       const result=page.locator('#priceResults .price-result');
+      // Diseño agrupado (Codex, terminado por Claude): las 3 ofertas del mismo producto
+      // son UNA tarjeta con "3 fuentes". En celular, al elegir se oculta la lista y se
+      // vuelve con "← Volver a resultados".
+      const verResultados=async()=>{if(!(await result.first().isVisible()))await page.locator('#priceBackResults').click();};
       await result.first().waitFor();
-      assert.equal(await result.count(),3);
+      assert.equal(await result.count(),1);
+      assert((await result.first().innerText()).includes('3 fuentes'));
       await result.last().click();
       assert((await page.locator('.price-reference-note').first().innerText()).includes('Mediana de 2 fuentes'));
       const checked=await page.locator('.price-checked-at').innerText();
@@ -46,6 +51,7 @@ const {start}=require('./catalogo-preview.cjs');
       assert((await page.locator('.price-reference-value').innerText()).includes('1.600'));
       assert.equal(await page.locator('.price-lowest').count(),1);
       assert((await page.locator('.price-source-offer').filter({has:page.locator('.price-lowest')}).innerText()).includes('1.500'));
+      await verResultados();
       await result.first().click();
       assert.equal(await page.locator('.price-reference').count(),1);
       assert(!/mayorista|bulto|pack x6/i.test(await page.locator('#priceDetail').innerText()));
@@ -70,7 +76,7 @@ const {start}=require('./catalogo-preview.cjs');
    await page.locator('#priceSearchInput').fill('rasta negro 70g');
    await page.locator('#priceSearchButton').click();
    await result.first().waitFor();
-   assert.equal(await result.count(),3);
+   assert.equal(await result.count(),1);
    assert(!/40g|detergente|jabon/i.test(await page.locator('#priceResults').innerText()));
    await page.evaluate(()=>{window.__priceFixture.ml={items:[{id:'ml:wrong',title:'Chocolate Milka Oreo 155g',brand:'Milka',price:5000}]};});
    await page.locator('#priceSearchInput').fill('milka almendras 155g');

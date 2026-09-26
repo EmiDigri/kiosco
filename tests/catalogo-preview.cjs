@@ -8,17 +8,23 @@ const source = fs.readFileSync(path.join(root,'index.html'),'utf8');
 const styles = source.match(/<style>([\s\S]*?)<\/style>/)[0];
 const most = source.slice(source.indexOf('  <div class="mostrador-overlay"'),source.indexOf('  <div class="aviso-banner"'));
 const price = source.slice(source.indexOf('<div class="historial-overlay price-overlay"'),source.indexOf('<div class="toast"'));
+const audit = process.env.KIOSCO_PRICE_AUDIT_FILE ? JSON.parse(fs.readFileSync(process.env.KIOSCO_PRICE_AUDIT_FILE,'utf8')) : null;
 const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Prueba local del lector</title>${styles}</head><body>
 <header style="padding:20px;display:flex;gap:12px"><button class="btn-historial" id="btnMostrador">Mostrador</button><button class="btn-historial" id="btnPrecios">Precios</button></header>
 <p style="padding:0 20px;font-size:13px">Prueba local. Codigos: 7790000000013 y 7790000000020. No modifica el kiosco.</p>
 ${most}${price}<div class="toast" id="toast"></div><pre id="qaResults" style="padding:20px;white-space:pre-wrap"></pre>
 <script>
+window.__priceAudit=${JSON.stringify(audit).replace(/</g,'\\u003c')};
 window.kioscoAuth={token:async()=> 'fixture',headers:async()=>({})};
 window.showToast=text=>{const el=document.getElementById('toast');el.textContent=text;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),4500);};
 const originalFetch=window.fetch.bind(window);
 window.fetch=(url,opts)=> {
   if(String(url).includes('pilfeptwylgufhbmmday.supabase.co'))return originalFetch('/fixture-api'+new URL(url).pathname+new URL(url).search,opts);
-  if(String(url).includes('/api/catalogo'))return Promise.resolve(new Response(JSON.stringify(window.__priceFixture?.[new URL(url,location.origin).searchParams.get('action')]||{items:[],now:[],ranking:[],alfajores:[],products:[]})));
+  if(String(url).includes('/api/catalogo')){
+    const params=new URL(url,location.origin).searchParams, action=params.get('action');
+    const recorded=action==='search'?window.__priceAudit?.searches[params.get('q')]:action==='compare'?window.__priceAudit?.comparisons[params.get('name')]:null;
+    return Promise.resolve(new Response(JSON.stringify(window.__priceFixture?.[action]||recorded||{items:[],now:[],ranking:[],alfajores:[],products:[]})));
+  }
   if(String(url).startsWith('/')||String(url).startsWith(location.origin))return originalFetch(url,opts);
   return Promise.reject(new Error('External network blocked in test fixture'));
 };

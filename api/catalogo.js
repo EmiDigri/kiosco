@@ -15,6 +15,7 @@ let publicApiKeyPromise;
 const CASA_PASO_URL = 'https://www.libreriamayorista.com.ar';
 const DULCE_SUR_URL = 'https://oepqhdjuujfdlpjjktbs.supabase.co';
 const RAPPI_URL = 'https://www.rappi.com.ar';
+const DIA_URL = 'https://diaonline.supermercadosdia.com.ar';
 const INFOKIOSCOS_RANKING_URL = 'https://infokioscos.com.ar/ranking-alfajores';
 const INFOKIOSCOS_API_URL = 'https://infokioscos.com.ar/wp-json/wp/v2/posts';
 const ALFAJOR_COM_URL = 'https://alfajor.com.ar';
@@ -590,11 +591,7 @@ function offerPrices(offers) {
 }
 
 function productBrand(title) {
-  const text = mlText(title);
-  const known = ['rasta', 'milka', 'guaymallen', 'fantoche', 'jorgito', 'aguila', 'terrabusi', 'tatin', 'jorgelin', 'cofler', 'bon o bon', 'mogul', 'oreo', 'arcor'];
-  const found = known.find(brand => text.includes(brand));
-  if (!found) return '';
-  return found.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+  return unitPrices.brandOf({title});
 }
 
 function priceMeasures(text) {
@@ -675,7 +672,7 @@ async function rappiSearch(query, limit = 10) {
   const items = Array.from(grouped.entries()).map(([productId, product]) => {
     const relevance = textRelevance(product.title, translated);
     const prices = product.prices.filter(Number.isFinite);
-    const presentation = presentations.get(productId) || product.title.match(/\b\d+(?:[.,]\d+)?\s*(?:g|gr|kg|ml|cc|l)\b/i)?.[0] || 'Unidad';
+    const presentation = presentations.get(productId) || product.title.match(/\b\d+(?:[.,]\d+)?\s*(?:g|gr|grs|grm|kg|ml|cc|l)\b/i)?.[0] || 'Unidad';
     return {
       id: `rappi:${productId}`,
       source: 'rappi',
@@ -701,6 +698,38 @@ async function rappiSearch(query, limit = 10) {
       relevance,
     };
   }).filter(item => item.relevance >= 20 && unitPrices.matchesSearch(item, query, {partial:true}) && matchesRequestedSize(item, query)).sort((a, b) => b.relevance - a.relevance || a.unitPrice - b.unitPrice).slice(0, 20);
+  supplierCacheSet(cacheKey, items);
+  return items.slice(0, limit);
+}
+
+async function diaSearch(query, limit = 10) {
+  const cacheKey = `dia:unit-v1:${mlText(query)}`;
+  const cached = supplierCacheGet(cacheKey);
+  if (cached) return cached.slice(0, limit);
+  const params = new URLSearchParams({ft:supplierQueryText(query), _from:'0', _to:'49'});
+  const rows = JSON.parse(await supplierFetch(`${DIA_URL}/api/catalog_system/pub/products/search?${params.toString().replace(/\+/g, '%20')}`, {}, 6500));
+  if (!Array.isArray(rows)) throw new Error('Día no devolvió su catálogo');
+  const items = rows.flatMap(product => (product.items || []).flatMap(sku => {
+    // Never convert weight prices, kits, loyalty teasers or multipliers into a unit offer.
+    if (sku.measurementUnit !== 'un' || Number(sku.unitMultiplier) !== 1 || sku.isKit === true) return [];
+    const offer = (sku.sellers || []).find(seller => seller.sellerDefault === true)?.commertialOffer;
+    const price = numberOrNull(offer?.Price);
+    if (!price || price <= 0 || Number(offer.AvailableQuantity) <= 0) return [];
+    const title = String(sku.nameComplete || sku.name || product.productName || '');
+    const permalink = String(product.link || '');
+    if (!permalink.startsWith(`${DIA_URL}/`)) return [];
+    const item = {
+      id:`dia:${sku.itemId}`, code:String(sku.itemId), ean:String(sku.ean || ''),
+      source:'dia', sourceLabel:'Día online', priceType:'retail',
+      title, brand:unitPrices.brandOf({title, brand:product.brand}),
+      presentation:priceMeasures(title).map(match => match[0].trim()).join(' · ') || 'Unidad',
+      category:(product.categories || []).join(' '), minimum:1,
+      unitSaleVerified:true, unitPrice:price, retailMin:price, retailMax:price, storeCount:1,
+      available:true, image:sku.images?.[0]?.imageUrl || null, permalink,
+      updatedAt:new Date().toISOString(), relevance:textRelevance(title, supplierQueryText(query)),
+    };
+    return unitPrices.matchesSearch(item, query) && matchesRequestedSize(item, query) ? [item] : [];
+  })).sort((a,b) => b.relevance - a.relevance).slice(0, 30);
   supplierCacheSet(cacheKey, items);
   return items.slice(0, limit);
 }
@@ -1402,14 +1431,15 @@ async function handleRadar() {
 }
 
 async function supplierSearch(query, limit = 10, options = {}) {
-  const [rappi, open25, dulce] = await Promise.allSettled([rappiSearch(query, limit), open25Search(query, limit), dulceSurSearch(query, limit)]);
+  const [rappi, open25, dulce, dia] = await Promise.allSettled([rappiSearch(query, limit), open25Search(query, limit), dulceSurSearch(query, limit), diaSearch(query, limit)]);
   return {
     items: [
       ...(open25.status === 'fulfilled' ? open25.value : []),
+      ...(dia.status === 'fulfilled' ? dia.value : []),
       ...(rappi.status === 'fulfilled' ? rappi.value : []),
       ...(dulce.status === 'fulfilled' ? dulce.value : []),
     ].filter(item => unitPrices.matchesSearch(item, query, options)),
-    sources: { rappi: rappi.status === 'fulfilled', open25: open25.status === 'fulfilled', dulceSur: dulce.status === 'fulfilled' },
+    sources: { rappi: rappi.status === 'fulfilled', open25: open25.status === 'fulfilled', dulceSur: dulce.status === 'fulfilled', dia:dia.status === 'fulfilled' },
   };
 }
 
@@ -1925,6 +1955,7 @@ async function handleSearch(query, lat, lng, zone) {
       open25: suppliers.sources.open25 === true,
       rappi: suppliers.sources.rappi === true,
       dulceSur: suppliers.sources.dulceSur === true,
+      dia: suppliers.sources.dia === true,
     },
     partialSources: retail?.partial ? ['retail'] : [],
   };
@@ -1972,6 +2003,7 @@ async function handleCompare(product, lat, lng, zone) {
       open25: suppliers.sources.open25 === true,
       rappi: suppliers.sources.rappi === true,
       dulceSur: suppliers.sources.dulceSur === true,
+      dia: suppliers.sources.dia === true,
     },
     partialSources: retailResult.status === 'fulfilled' && retailResult.value.partial ? ['retail'] : [],
   };

@@ -36,6 +36,7 @@
   const state = {
     location: loadLocation(),
     items: [],
+    presentationFilter: '',
     selectedEan: null,
     detail: null,
     searchRequest: 0,
@@ -99,6 +100,7 @@
       ['Librería', ['resma', 'birome', 'boligrafo', 'lapicera', 'marcador', 'resaltador', 'cuaderno', 'carpeta', 'lapiz', 'goma', 'regla', 'papel', 'cartulina', 'adhesivo', 'abrochadora', 'clip', 'corrector', 'crayon', 'tempera']],
       ['Chocolates', ['chocolate', 'bombon', 'bon o bon']],
       ['Golosinas', ['alfajor', 'caramelo', 'chicle', 'gomita', 'turron', 'pastilla']],
+      ['Snacks', ['papas fritas', 'lays', 'doritos', 'cheetos', 'palitos salados', 'mani', 'pochoclo']],
       ['Bebidas', ['gaseosa', 'agua ', 'jugo', 'cerveza', 'energizante', 'soda']],
       ['Cigarrillos', ['cigarrillo', 'tabaco', 'encendedor']],
       ['Panificados', ['galletita', 'bizcocho', 'pan ', 'budin', 'magdalena']],
@@ -286,39 +288,38 @@
 
   function renderResults() {
     const paneTitle = document.querySelector('.price-pane-title');
-    const supplierGroups = [
-      ['Open 25 · cadena de kioscos', state.supplierItems.filter(item => item.source === 'open25')],
-      ['Rappi · minorista online', state.supplierItems.filter(item => item.source === 'rappi')],
-      ['Dulce Sur · venta individual', state.supplierItems.filter(item => item.source === 'dulce-sur')],
-    ].filter(([, items]) => items.length);
-    const total = state.items.length + state.supplierItems.length;
-    if (paneTitle) paneTitle.textContent = supplierGroups.length ? 'Resultados combinados' : 'Variantes exactas';
+    const sourceOrder = ['precios-claros', 'dia', 'open25', 'dulce-sur', 'rappi'];
+    const candidates = [...state.items.map(item => ({...item, source:'precios-claros', sourceLabel:'Precios Claros'})), ...state.supplierItems]
+      .sort((a,b) => sourceOrder.indexOf(a.source) - sourceOrder.indexOf(b.source));
+    const groups = window.KioscoPriceUnit.groupProducts(candidates);
+    const sizes = [...new Set(groups.map(rows => window.KioscoPriceUnit.presentationOf(rows[0]) || 'unknown'))].sort((a,b) => a.localeCompare(b, 'es', {numeric:true}));
+    if (state.presentationFilter && !sizes.includes(state.presentationFilter)) state.presentationFilter = '';
+    const visibleGroups = state.presentationFilter ? groups.filter(rows => (window.KioscoPriceUnit.presentationOf(rows[0]) || 'unknown') === state.presentationFilter) : groups;
+    const total = visibleGroups.length;
+    if (paneTitle) paneTitle.textContent = 'Productos por presentación';
     resultCount.textContent = String(total);
     if (!total) {
       const failed = Object.values(state.sources).some(value => value === false);
       resultsElement.innerHTML = `<div class="price-empty"><div class="price-empty-icon">0</div><span>${failed ? 'Consulta incompleta: algunas fuentes no respondieron.' : 'No encontramos coincidencias por unidad en las fuentes consultadas.'}</span></div>${sourceStatusHtml(state.sources, state.partialSources)}`;
       return;
     }
-    const officialHtml = state.items.length ? sourceHeading('Precios Claros', state.items.length) + state.items.map(item => `
-      <button class="price-result${item.ean === state.selectedEan ? ' active' : ''}" type="button" data-ean="${escapeHtml(item.ean)}" aria-pressed="${item.ean === state.selectedEan ? 'true' : 'false'}">
-        ${thumbHtml(item.images || [item.image], [item.brand, item.name].filter(Boolean).join(' '), item.ean)}
+    const filter = sizes.length > 1 ? `<div class="price-results-filter"><label for="priceSizeFilter">Presentación</label><select class="price-select" id="priceSizeFilter"><option value="">Todas (${groups.length})</option>${sizes.map(size => `<option value="${escapeHtml(size)}"${size === state.presentationFilter ? ' selected' : ''}>${size === 'unknown' ? 'Sin medida informada' : escapeHtml(size.replace(/(\d)(g|ml)/g, '$1 $2'))}</option>`).join('')}</select></div>` : '';
+    const html = visibleGroups.map(items => {
+      const item = items[0], official = item.source === 'precios-claros';
+      const active = items.some(row => row.source === 'precios-claros' ? row.ean === state.selectedEan : row.id === state.selectedSupplier);
+      const labels = [...new Set(items.map(row => row.sourceLabel))];
+      const images = items.flatMap(row => row.images || [row.image]).filter(Boolean);
+      return `<button class="price-result${active ? ' active' : ''}" type="button" ${official ? 'data-ean' : 'data-supplier-id'}="${escapeHtml(official ? item.ean : item.id)}" aria-pressed="${active}">
+        ${thumbHtml(images, item.name || item.title, item.ean)}
         <div class="price-result-body">
-          <div class="price-result-brand">${escapeHtml(item.brand || 'Sin marca')} · ${escapeHtml(item.presentation || 'Presentación sin informar')}</div>
-          <div class="price-result-name">${escapeHtml(item.name)}</div>
-          <div class="price-result-meta">${itemPriceSummary(item)}</div>
+          <div class="price-result-brand">${escapeHtml(window.KioscoPriceUnit.brandOf(item) || 'Sin marca')} · ${escapeHtml(item.presentation || 'Presentación sin informar')}</div>
+          <div class="price-result-name">${escapeHtml(item.name || item.title)}</div>
+          <div class="price-result-meta">${official ? itemPriceSummary(item) : supplierPriceSummary(item)}</div>
+          <div class="price-result-sources">${labels.length > 1 ? `<strong>${labels.length} fuentes</strong> · ` : ''}${escapeHtml(labels.join(' · '))}</div>
         </div>
-      </button>
-    `).join('') : '';
-    const suppliersHtml = supplierGroups.map(([label, items]) => sourceHeading(label, items.length) + items.map(item => `
-      <button class="price-result${item.id === state.selectedSupplier ? ' active' : ''}" type="button" data-supplier-id="${escapeHtml(item.id)}" aria-pressed="${item.id === state.selectedSupplier ? 'true' : 'false'}">
-        ${thumbHtml([item.image], item.title)}
-        <div class="price-result-body">
-          <div class="price-result-brand">${escapeHtml(item.brand || item.sourceLabel)}${item.presentation ? ` · ${escapeHtml(item.presentation)}` : ''}</div>
-          <div class="price-result-name">${escapeHtml(item.title)}</div>
-          <div class="price-result-meta">${supplierPriceSummary(item)}</div>
-        </div>
-      </button>`).join('')).join('');
-    resultsElement.innerHTML = sourceStatusHtml(state.sources, state.partialSources) + officialHtml + suppliersHtml;
+      </button>`;
+    }).join('');
+    resultsElement.innerHTML = filter + sourceStatusHtml(state.sources, state.partialSources) + html;
     llenarFotosFaltantes(resultsElement);
   }
 
@@ -328,7 +329,7 @@
     }
     const url = new URL(API_URL, location.href);
     Object.entries(params).forEach(([key, value]) => url.searchParams.set(key, value));
-    url.searchParams.set('scope', 'individual-v8-comparacion');
+    url.searchParams.set('scope', 'individual-v9-identidad-dia');
     url.searchParams.set('lat', state.location.lat);
     url.searchParams.set('lng', state.location.lng);
     url.searchParams.set('zone', state.location.key || 'current');
@@ -520,18 +521,21 @@
     if (!item) return;
     const availableSuggestions = state.suggestions.slice();
     searchInput.value = item.title;
+    clearTimeout(suggestionTimer);
+    state.suggestionRequest += 1;
     hideSuggestions();
-    if (['rappi', 'open25', 'dulce-sur'].includes(item.source)) {
+    if (['rappi', 'open25', 'dulce-sur', 'dia'].includes(item.source)) {
       state.searchRequest += 1;
       searchButton.disabled = false;
       state.sources = {};
       state.partialSources = [];
       state.items = [];
+      state.presentationFilter = '';
       state.selectedEan = null;
       state.detail = null;
       state.mlItems = [];
       state.selectedMl = null;
-      state.supplierItems = availableSuggestions.filter(entry => ['rappi', 'open25', 'dulce-sur'].includes(entry.source) && isIndividual(entry));
+      state.supplierItems = availableSuggestions.filter(entry => ['rappi', 'open25', 'dulce-sur', 'dia'].includes(entry.source) && isIndividual(entry));
       if (!state.supplierItems.some(entry => entry.id === item.id)) state.supplierItems.unshift(item);
       state.selectedSupplier = item.id;
       renderResults();
@@ -548,6 +552,10 @@
       notify('Escribí al menos 2 caracteres');
       return;
     }
+    // Cancelar sugerencias pendientes (timer o consulta en vuelo): si llegaban después
+    // de "Buscar", el desplegable se reabría tapando los resultados.
+    clearTimeout(suggestionTimer);
+    state.suggestionRequest += 1;
     hideSuggestions();
     const requestId = ++state.searchRequest;
     state.detailRequest += 1;
@@ -555,12 +563,14 @@
     state.partialSources = [];
     searchButton.disabled = true;
     state.items = [];
+    state.presentationFilter = '';
     state.selectedEan = null;
     state.detail = null;
     state.mlItems = [];
     state.selectedMl = null;
     state.supplierItems = [];
     state.selectedSupplier = null;
+    detailElement.closest('.price-layout').classList.remove('has-selection');
     resultCount.textContent = '…';
     resultsElement.innerHTML = loadingHtml('Buscando variantes exactas…');
     detailElement.innerHTML = '<div class="price-detail-empty">Sin variante seleccionada.</div>';
@@ -637,6 +647,7 @@
     if (!item) return;
     const requestId = ++state.detailRequest;
     state.selectedMl = id;
+    state.selectedEan = state.selectedSupplier = null;
     renderMlResults();
     renderDetail({
       mlSource: true,
@@ -712,7 +723,6 @@
   function sourceOffersFor(selectedItem, results = state) {
     if (!selectedItem) return [];
     const selectedTokens = new Set(comparisonItemTokens(selectedItem));
-    const selectedSource = comparisonSource(selectedItem);
     const selectedId = comparisonId(selectedItem);
     const candidates = [
       ...(results.items || []).map(item => ({ ...item, source: 'precios-claros' })),
@@ -729,12 +739,12 @@
       return { item, selected, score, shared, sameProduct };
     }).filter(row => row.selected || row.sameProduct);
 
-    const sourceOrder = ['precios-claros', 'open25', 'rappi', 'dulce-sur', 'mercadolibre'];
+    const sourceOrder = ['precios-claros', 'dia', 'open25', 'rappi', 'dulce-sur', 'mercadolibre'];
     const offers = [];
     sourceOrder.forEach(source => {
       const rows = ranked.filter(row => comparisonSource(row.item) === source)
         .sort((a, b) => Number(b.selected) - Number(a.selected) || Number(b.sameProduct) - Number(a.sameProduct) || b.score - a.score || (Number(a.item.unitPrice) || Infinity) - (Number(b.item.unitPrice) || Infinity));
-      const visible = source === selectedSource ? rows.filter(row => row.selected).slice(0, 1) : rows.slice(0, 3);
+      const visible = rows.slice(0, 3);
       visible.forEach(row => offers.push(sourceOffer(row.item, row.selected, row.score, row.sameProduct)));
     });
     return offers;
@@ -750,11 +760,11 @@
       sourceLabel: item.sourceLabel,
       permalink: item.permalink,
       sourceLinks: [{ label: item.sourceLabel, url: item.permalink }],
-      suggestedCategory: item.category || inferCategory(item.title, item.brand),
+      suggestedCategory: item.source === 'dia' ? inferCategory(item.title, item.brand) : item.category || inferCategory(item.title, item.brand),
       product: {
-        ean: item.code || item.id,
+        ean: item.ean || item.code || item.id,
         name: item.title,
-        brand: item.brand || item.sourceLabel || '',
+        brand: window.KioscoPriceUnit.brandOf(item),
         presentation: item.presentation || 'Unidad',
       },
       image: item.image,
@@ -775,6 +785,7 @@
     if (!item || !isIndividual(item)) return;
     const requestId = ++state.detailRequest;
     state.selectedSupplier = id;
+    state.selectedEan = state.selectedMl = null;
     renderResults();
     renderDetail(supplierDetailData(item));
     completeComparison(item, requestId);
@@ -857,7 +868,7 @@
     const bySource = new Map(), seen = new Set();
     for (const offer of data.sourceOffers || []) {
       if (!['selected', 'same'].includes(offer.matchType) || offer.available === false) continue;
-      if (!['precios-claros', 'open25', 'dulce-sur'].includes(offer.source)) continue;
+      if (!['precios-claros', 'dia', 'open25', 'dulce-sur'].includes(offer.source)) continue;
       // A search-result minimum is not a representative price for Precios Claros.
       const price = offer.selected && offer.source === 'precios-claros'
         ? Number(data.retailReference?.median) : Number(offer.referencePrice);
@@ -878,16 +889,18 @@
     return {median:median(values), min:Math.min(...values), max:Math.max(...values), count:values.length, labels:sources.map(source=>source.label)};
   }
 
-  function sourceStatusHtml(sources = {}, partial = [], results) {
-    const names = {retail:'Precios Claros', open25:'Open 25', dulceSur:'Dulce Sur', rappi:'Rappi'};
+  function sourceStatusHtml(sources = {}, partial = [], results, knownOffers = []) {
+    const names = {retail:'Precios Claros', dia:'Día online', open25:'Open 25', dulceSur:'Dulce Sur', rappi:'Rappi'};
     const failed = Object.entries(names).filter(([key]) => sources[key] === false).map(([,label]) => label);
     const incomplete = partial.map(key => names[key]).filter(Boolean);
     const warnings = [failed.length ? `${failed.join(', ')}: no respondió. No significa que no tenga el producto.` : '', incomplete.length ? `${incomplete.join(', ')}: consulta parcial.` : ''].filter(Boolean).join(' ');
     if (!results) return warnings ? `<div class="price-ml-note" role="status">${escapeHtml(warnings)}</div>` : '';
     const counts = {retail:(results.items || []).length};
-    for (const [key, source] of [['open25','open25'],['rappi','rappi'],['dulceSur','dulce-sur']]) counts[key] = (results.supplierItems || []).filter(item => item.source === source).length;
+    for (const [key, source] of [['dia','dia'],['open25','open25'],['rappi','rappi'],['dulceSur','dulce-sur']]) counts[key] = (results.supplierItems || []).filter(item => item.source === source).length;
     const rows = Object.entries(names).filter(([key]) => typeof sources[key] === 'boolean').map(([key, label]) => {
-      const status = sources[key] === false ? 'No respondió' : partial.includes(key) ? 'Consulta parcial' : counts[key] ? 'Coincidencia encontrada' : 'Sin coincidencia exacta con precio';
+      const source = {retail:'precios-claros',dulceSur:'dulce-sur'}[key] || key;
+      const known = knownOffers.some(offer => offer.source === source && Number(offer.retailPrice) > 0);
+      const status = sources[key] === false ? 'No respondió' : partial.includes(key) ? 'Consulta parcial' : counts[key] ? 'Coincidencia encontrada' : known ? 'Precio encontrado en la búsqueda inicial' : 'Sin coincidencia exacta con precio';
       return `<div class="price-shop-row"><span>${escapeHtml(label)}</span><small>${escapeHtml(status)}</small></div>`;
     }).join('');
     return `${warnings ? `<div class="price-ml-note" role="status">${escapeHtml(warnings)}</div>` : ''}<details class="price-shop-details"><summary><span>Fuentes consultadas</span></summary><div class="price-shop-list">${rows}</div></details>`;
@@ -901,12 +914,11 @@
     try {
       const result = await apiRequest({action:'compare', name:item.title || item.name, brand:item.brand || '', presentation:item.presentation || '', ean:item.ean || item.gtin || item.barcode || ''});
       if (requestId !== state.detailRequest || state.detail !== data) return;
-      // Keep already-visible references only when that source could not be refreshed.
-      const keys = {'precios-claros':'retail', open25:'open25', rappi:'rappi', 'dulce-sur':'dulceSur'};
+      // A narrower follow-up query can miss a valid offer found seconds earlier.
       const previous = data.sourceOffers || [];
       const fresh = sourceOffersFor(item, result);
       const ids = new Set(fresh.map(offer => `${offer.source}:${offer.id}`));
-      data.sourceOffers = [...fresh, ...previous.filter(offer => result.sources?.[keys[offer.source]] === false && !ids.has(`${offer.source}:${offer.id}`))];
+      data.sourceOffers = [...fresh, ...previous.filter(offer => ['selected','same'].includes(offer.matchType) && !ids.has(`${offer.source}:${offer.id}`))];
       data.comparisonSources = result;
       data.comparisonPending = false;
       data.comparisonError = false;
@@ -938,7 +950,7 @@
       const range = retail.min && retail.max && retail.min !== retail.max ? ` · rango ${money(retail.min)} a ${money(retail.max)}` : '';
       retailNote = data.retailSource === 'rappi'
         ? `${retail.count || 1} oferta${retail.count === 1 ? '' : 's'} en Buenos Aires${range} · puede incluir promoción o recargo de delivery`
-        : `Precio publicado para comprar una unidad en ${data.sourceLabel}${range}`;
+        : `Precio publicado para comprar una unidad en ${data.sourceLabel}${range}${data.retailSource === 'dia' ? '. Precio online; puede variar según sucursal. Sin envío.' : ''}`;
     } else if (data.mlSource) {
       retailLabel = 'Precio ganador Mercado Libre';
       retailNote = retail.count
@@ -971,11 +983,12 @@
     ${sourceOffersHtml(data.sourceOffers)}
     ${data.comparisonPending ? '<div class="price-ml-note" role="status">Buscando este producto en las otras fuentes…</div>' : ''}
     ${data.comparisonError ? '<div class="price-ml-note" role="status">No pudimos completar la comparación. Se conservan las referencias anteriores.</div>' : ''}
-    ${data.comparisonSources ? sourceStatusHtml(data.comparisonSources.sources, data.comparisonSources.partialSources, data.comparisonSources) : ''}`;
+    ${data.comparisonSources ? sourceStatusHtml(data.comparisonSources.sources, data.comparisonSources.partialSources, data.comparisonSources, data.sourceOffers) : ''}`;
   }
 
   function renderDetail(data) {
     state.detail = data;
+    detailElement.closest('.price-layout').classList.add('has-selection');
     const referenceHtml = priceReferenceHtml(data);
     const product = data.product || {};
     const saved = readSavedPrices()[product.ean] || {};
@@ -997,7 +1010,7 @@
       ? `<span>${data.supplierSource ? 'Código' : 'EAN'} ${escapeHtml(product.ean || 'sin informar')}</span>${sourceLinks}`
       : `<span>EAN ${escapeHtml(product.ean)}</span>`;
 
-    detailElement.innerHTML = `
+    detailElement.innerHTML = `<button type="button" class="price-back-results" id="priceBackResults">← Volver a resultados</button>
       <div class="price-product-head">
         <div class="price-product-image" id="priceProductImageBox" data-foto-q="${escapeHtml(detailFotoQ)}"${/^\d{8,14}$/.test(String(product.ean || '')) ? ` data-foto-ean="${escapeHtml(product.ean)}"` : ''}${detailImages.length ? '' : ' data-foto-need="1"'}>${image}</div>
         <div>
@@ -1164,8 +1177,10 @@
   async function loadDetail(ean) {
     const requestId = ++state.detailRequest;
     state.selectedEan = ean;
+    state.selectedSupplier = state.selectedMl = null;
+    detailElement.closest('.price-layout').classList.add('has-selection');
     renderResults();
-    detailElement.innerHTML = loadingHtml('Consultando precios por comercio…');
+    detailElement.innerHTML = '<button type="button" class="price-back-results" id="priceBackResults">← Volver a resultados</button>' + loadingHtml('Consultando precios por comercio…');
     try {
       const data = await apiRequest({ action: 'detail', ean });
       if (requestId !== state.detailRequest) return;
@@ -1175,7 +1190,7 @@
       completeComparison(item, requestId);
     } catch (error) {
       if (requestId !== state.detailRequest) return;
-      detailElement.innerHTML = errorHtml(error.message);
+      detailElement.innerHTML = '<button type="button" class="price-back-results" id="priceBackResults">← Volver a resultados</button>' + errorHtml(error.message);
     }
   }
 
@@ -1262,7 +1277,23 @@
     event.preventDefault();
     calculateMetrics(true);
   });
+  resultsElement.addEventListener('change', event => {
+    if (event.target.id !== 'priceSizeFilter') return;
+    state.presentationFilter = event.target.value;
+    renderResults();
+    document.getElementById('priceSizeFilter')?.focus();
+  });
   detailElement.addEventListener('click', event => {
+    if (event.target.id === 'priceBackResults') {
+      state.detailRequest += 1;
+      state.detail = null;
+      state.selectedEan = state.selectedSupplier = state.selectedMl = null;
+      detailElement.closest('.price-layout').classList.remove('has-selection');
+      if (state.mlItems.length) renderMlResults(); else renderResults();
+      resultsElement.closest('.price-results-pane').scrollIntoView({block:'start', behavior:'smooth'});
+      resultsElement.querySelector('button')?.focus({preventScroll:true});
+      return;
+    }
     if (event.target.id !== 'priceSugerirBtn') return;
     const marginTarget = Number(document.getElementById('priceMargenObj')?.value) || 30;
     if (marginTarget <= 0 || marginTarget >= 95) { notify('El margen tiene que estar entre 1 y 94%'); return; }
@@ -1763,7 +1794,7 @@
       const rows = group.rows.map(record => {
         const margin = catMargin(record);
         const sub = [record.marca, record.presentacion].filter(Boolean).join(' · ');
-        const origenTexto = { manual: 'manual', preciosclaros: 'Precios Claros', mercadolibre: 'Mercado Libre', 'casa-paso': 'Casa Paso', 'dulce-sur': 'Dulce Sur', rappi: 'Rappi', open25: 'Open 25', factura: 'Factura 📷' }[record.origen] || 'manual';
+        const origenTexto = { manual: 'manual', preciosclaros: 'Precios Claros', mercadolibre: 'Mercado Libre', 'casa-paso': 'Casa Paso', 'dulce-sur': 'Dulce Sur', rappi: 'Rappi', dia: 'Día online', open25: 'Open 25', factura: 'Factura 📷' }[record.origen] || 'manual';
         const origen = `<span class="cat-origin">${origenTexto}</span>`;
         return `<div class="cat-row" data-uid="${escapeHtml(record.uid)}">
           ${catThumbHtml(record)}

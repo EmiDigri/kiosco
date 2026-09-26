@@ -39,6 +39,10 @@ const {start}=require('./catalogo-preview.cjs');
       await page.locator('#priceSearchInput').fill('milka');
       await page.locator('#priceSearchButton').click();
       const results=page.locator('#priceResults .price-result');
+      // En celular, elegir un producto oculta la lista: se vuelve con "← Volver a
+      // resultados". En escritorio la lista sigue visible y no se toca (la carrera
+      // entre respuestas se prueba igual que antes).
+      const verResultados=async()=>{if(!(await results.first().isVisible()))await page.locator('#priceBackResults').click();};
       await results.first().click();
       await page.getByText('Buscando este producto en las otras fuentes…').waitFor();
       await page.locator('#priceOwnSale').fill('7000');
@@ -67,7 +71,9 @@ const {start}=require('./catalogo-preview.cjs');
       await page.screenshot({path:path.join(output,`${width}.png`)});
 
       // A late response must never replace the newly selected product.
+      await verResultados();
       await results.first().click();
+      await verResultados();
       await results.last().click();
       await page.evaluate(()=>window.__requests[1].finish({items:[],supplierItems:[],sources:{}}));
       assert((await page.locator('.price-product-name').innerText()).includes('Oreo'));
@@ -77,6 +83,7 @@ const {start}=require('./catalogo-preview.cjs');
       assert((await page.locator('.price-product-name').innerText()).includes('Oreo'));
 
       // Starting a different search invalidates an in-flight comparison too.
+      await verResultados();
       await results.first().click();
       await page.locator('#priceSearchInput').fill('producto inexistente');
       await page.locator('#priceSearchButton').click();
