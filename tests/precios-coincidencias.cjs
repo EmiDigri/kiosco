@@ -4,7 +4,7 @@ const fs=require('node:fs');
 const vm=require('node:vm');
 const source=fs.readFileSync(require('node:path').join(__dirname,'../catalogo-ui.js'),'utf8');
 const matchSource=source.slice(source.indexOf('  function samePriceProduct('),source.indexOf('  function sourceOffer('));
-const ctx=vm.createContext({});
+const ctx=vm.createContext({window:{KioscoPriceUnit:require('../price-unit.js')}});
 vm.runInContext(matchSource,ctx);
 const same=ctx.samePriceProduct;
 const item=(title,extra={})=>({title,brand:'Marca de prueba',...extra});
@@ -27,7 +27,21 @@ test('normalizes units and ordering without discarding sizes',()=>{
     ['Chocolate Milka 100g','Chocolate Milka 0,1 kg'],
     ['Gaseosa Coca Cola 1,5 litros','Coca Cola Gaseosa 1500 ml'],
     ['Resma Autor A4 75 grs x500 hojas','Resma Autor A4 75 g 500 hojas'],
+    ['Choc.Leche C/Alm.Milka 0,155 kg','Chocolate Milka con leche y almendras 155g'],
+    ['Birome Bic azul','Boligrafo Bic azul'],
+    ['Bombon Bon o Bon 15g','Bombones bonobon 15 gramos'],
   ])assert.equal(same(item(a),item(b)),true,`${a} / ${b}`);
+});
+
+test('abbreviations never erase a flavour, size, sugar restriction or pack format',()=>{
+  for(const [a,b] of [
+    ['Choc Milka alm 155g','Chocolate Milka avellanas 155g'],
+    ['Choc Milka alm 155g','Chocolate Milka almendras 55g'],
+    ['Chocolate s/azucar 100g','Chocolate con azucar 100g'],
+    ['Chocolate s/azucar 100g','Chocolate 100g'],
+    ['Birome Bic azul','Boligrafo Bic negro'],
+  ])assert(!same(item(a),item(b)),a+' / '+b);
+  assert(same(item('Chocolate s/azucar 100g'),item('Chocolate sin azucar 100g')));
 });
 test('trusts valid barcode fields but not store codes or invalid EANs',()=>{
   assert(same(item('Nombre A',{ean:'4006381333931'}),item('Nombre B',{barcode:'4006381333931'})));

@@ -43,6 +43,8 @@
     mlItems: [],
     selectedMl: null,
     supplierItems: [],
+    sources: {},
+    partialSources: [],
     selectedSupplier: null,
     suggestions: [],
     suggestionRequest: 0,
@@ -293,7 +295,8 @@
     if (paneTitle) paneTitle.textContent = supplierGroups.length ? 'Resultados combinados' : 'Variantes exactas';
     resultCount.textContent = String(total);
     if (!total) {
-      resultsElement.innerHTML = '<div class="price-empty"><div class="price-empty-icon">0</div><span>No encontramos una variante vigente en esta zona.</span></div>';
+      const failed = Object.values(state.sources).some(value => value === false);
+      resultsElement.innerHTML = `<div class="price-empty"><div class="price-empty-icon">0</div><span>${failed ? 'Consulta incompleta: algunas fuentes no respondieron.' : 'No encontramos coincidencias por unidad en las fuentes consultadas.'}</span></div>${sourceStatusHtml(state.sources, state.partialSources)}`;
       return;
     }
     const officialHtml = state.items.length ? sourceHeading('Precios Claros', state.items.length) + state.items.map(item => `
@@ -315,7 +318,7 @@
           <div class="price-result-meta">${supplierPriceSummary(item)}</div>
         </div>
       </button>`).join('')).join('');
-    resultsElement.innerHTML = officialHtml + suppliersHtml;
+    resultsElement.innerHTML = sourceStatusHtml(state.sources, state.partialSources) + officialHtml + suppliersHtml;
     llenarFotosFaltantes(resultsElement);
   }
 
@@ -325,11 +328,11 @@
     }
     const url = new URL(API_URL, location.href);
     Object.entries(params).forEach(([key, value]) => url.searchParams.set(key, value));
-    url.searchParams.set('scope', 'individual-v7-fotos');
+    url.searchParams.set('scope', 'individual-v8-comparacion');
     url.searchParams.set('lat', state.location.lat);
     url.searchParams.set('lng', state.location.lng);
     url.searchParams.set('zone', state.location.key || 'current');
-    const response = await fetch(url.toString(), { headers: { accept: 'application/json' } });
+    const response = await fetch(url.toString(), { headers: { accept: 'application/json' }, signal: AbortSignal.timeout(45000) });
     let data = null;
     try {
       data = await response.json();
@@ -519,6 +522,10 @@
     searchInput.value = item.title;
     hideSuggestions();
     if (['rappi', 'open25', 'dulce-sur'].includes(item.source)) {
+      state.searchRequest += 1;
+      searchButton.disabled = false;
+      state.sources = {};
+      state.partialSources = [];
       state.items = [];
       state.selectedEan = null;
       state.detail = null;
@@ -543,6 +550,9 @@
     }
     hideSuggestions();
     const requestId = ++state.searchRequest;
+    state.detailRequest += 1;
+    state.sources = {};
+    state.partialSources = [];
     searchButton.disabled = true;
     state.items = [];
     state.selectedEan = null;
@@ -558,6 +568,8 @@
     try {
       const data = await apiRequest({ action: 'search', q: query });
       if (requestId !== state.searchRequest) return;
+      state.sources = data.sources || {};
+      state.partialSources = data.partialSources || [];
       state.items = Array.isArray(data.items) ? data.items.filter(item => matchesSearch(item, query)) : [];
       state.supplierItems = Array.isArray(data.supplierItems) ? data.supplierItems.filter(item => matchesSearch(item, query)) : [];
       if (!state.items.length && !state.supplierItems.length) {
@@ -607,7 +619,7 @@
     const paneTitle = document.querySelector('.price-pane-title');
     if (paneTitle) paneTitle.textContent = 'Resultados MercadoLibre';
     resultCount.textContent = String(state.mlItems.length);
-    resultsElement.innerHTML = '<div class="price-ml-note">Catálogo Mercado Libre. El precio aparece sólo cuando existe una publicación ganadora vigente.</div>'
+    resultsElement.innerHTML = sourceStatusHtml(state.sources, state.partialSources) + '<div class="price-ml-note">Catálogo Mercado Libre. El precio aparece sólo cuando existe una publicación ganadora vigente.</div>'
       + state.mlItems.map(item => `
       <button class="price-result${item.id === state.selectedMl ? ' active' : ''}" type="button" data-ml-id="${escapeHtml(item.id)}" aria-pressed="${item.id === state.selectedMl ? 'true' : 'false'}">
         ${thumbHtml([item.image], item.title)}
@@ -623,6 +635,7 @@
   function showMlDetail(id) {
     const item = state.mlItems.find(entry => entry.id === id);
     if (!item) return;
+    const requestId = ++state.detailRequest;
     state.selectedMl = id;
     renderMlResults();
     renderDetail({
@@ -640,6 +653,7 @@
       retailReference: item.reference || {},
       retailStores: [],
     });
+    completeComparison({ ...item, source: 'mercadolibre', sourceLabel: 'Mercado Libre', unitPrice: item.price }, requestId);
   }
 
   function supplierMatchTokens(item) {
@@ -670,38 +684,7 @@
   }
 
   function samePriceProduct(left, right) {
-    const normalize = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
-    function barcode(item) {
-      const value = String(item.ean || item.gtin || item.barcode || '').trim();
-      if (!/^(?:\d{8}|\d{12,14})$/.test(value) || /^0+$/.test(value)) return null;
-      let sum = 0;
-      for (let i = value.length - 2, weight = 3; i >= 0; i--, weight = 4 - weight) sum += Number(value[i]) * weight;
-      return (10 - sum % 10) % 10 === Number(value.at(-1)) ? value.padStart(14, '0') : null;
-    }
-    function identity(item) {
-      let text = normalize([item.brand, item.title || item.name || item.nombre, item.presentation || item.presentacion, item.saleFormat].filter(Boolean).join(' '));
-      const sizes = [];
-      text = text.replace(/\b(?:x\s*)?(\d+(?:[.,]\d+)?)\s*(kilogramos?|kg|gramos?|grs?|g|mililitros?|ml|cc|litros?|lts?|l)\b/g, (_, amount, unit) => {
-        const volume = /^(?:mililitro|ml|cc|litro|lt|l)/.test(unit);
-        const factor = /^(?:kilogramo|kg|litro|lt|l$)/.test(unit) ? 1000 : 1;
-        const size = String(Math.round(Number(amount.replace(',', '.')) * factor * 1000) / 1000) + (volume ? 'ml' : 'g');
-        sizes.push(size);
-        return ' ' + size + ' ';
-      });
-      text = text.replace(/\bx\s*(\d+)\s*(hojas?)\b/g, '$1 $2');
-      const tokens = new Set(text.replace(/[^a-z0-9.]+/g, ' ').split(/\s+/).filter(token => token && !['de', 'con', 'por', 'el', 'la', 'unidad', 'unidades', 'individual', '1u'].includes(token)));
-      return { tokens, sizes: [...new Set(sizes)].sort().join('|') };
-    }
-    // Only barcode fields are identifiers; supplier SKU/code values are not EANs.
-    const a = identity(left), b = identity(right);
-    if (a.sizes && b.sizes && a.sizes !== b.sizes) return false;
-    for (const field of ['packUnits', 'unitsPerPack']) {
-      if ((Number(left[field]) || 1) !== (Number(right[field]) || 1)) return false;
-    }
-    const aCode = barcode(left), bCode = barcode(right);
-    if (aCode && bCode) return aCode === bCode;
-    if (!normalize(left.brand) || !normalize(right.brand) || normalize(left.brand) !== normalize(right.brand)) return false;
-    return a.tokens.size >= 3 && a.tokens.size === b.tokens.size && [...a.tokens].every(token => b.tokens.has(token));
+    return window.KioscoPriceUnit.sameProduct(left, right);
   }
 
   function sourceOffer(item, selected, score, sameProduct) {
@@ -715,7 +698,7 @@
       title: item.title || item.name || 'Producto',
       presentation: item.presentation || '',
       retailPrice,
-      referencePrice: isOfficial ? (Number(item.retail?.min) === Number(item.retail?.max) ? retailPrice : null) : retailPrice,
+      referencePrice: isOfficial ? (Number(item.referencePrice) || (Number(item.retail?.min) === Number(item.retail?.max) ? retailPrice : null)) : retailPrice,
       available: item.available !== false,
       retailMin: isOfficial ? Number(item.retail?.min) || null : Number(item.retailMin) || retailPrice,
       retailMax: isOfficial ? Number(item.retail?.max) || null : Number(item.retailMax) || retailPrice,
@@ -726,14 +709,14 @@
     };
   }
 
-  function sourceOffersFor(selectedItem) {
+  function sourceOffersFor(selectedItem, results = state) {
     if (!selectedItem) return [];
     const selectedTokens = new Set(comparisonItemTokens(selectedItem));
     const selectedSource = comparisonSource(selectedItem);
     const selectedId = comparisonId(selectedItem);
     const candidates = [
-      ...state.items.map(item => ({ ...item, source: 'precios-claros' })),
-      ...state.supplierItems,
+      ...(results.items || []).map(item => ({ ...item, source: 'precios-claros' })),
+      ...(results.supplierItems || []),
     ];
     if (!candidates.some(item => comparisonId(item) === selectedId)) candidates.unshift(selectedItem);
 
@@ -746,7 +729,7 @@
       return { item, selected, score, shared, sameProduct };
     }).filter(row => row.selected || row.sameProduct);
 
-    const sourceOrder = ['precios-claros', 'open25', 'rappi', 'dulce-sur'];
+    const sourceOrder = ['precios-claros', 'open25', 'rappi', 'dulce-sur', 'mercadolibre'];
     const offers = [];
     sourceOrder.forEach(source => {
       const rows = ranked.filter(row => comparisonSource(row.item) === source)
@@ -790,9 +773,11 @@
   async function showSupplierDetail(id) {
     const item = state.supplierItems.find(entry => entry.id === id);
     if (!item || !isIndividual(item)) return;
+    const requestId = ++state.detailRequest;
     state.selectedSupplier = id;
     renderResults();
     renderDetail(supplierDetailData(item));
+    completeComparison(item, requestId);
   }
 
   function referenceRange(reference) {
@@ -893,7 +878,55 @@
     return {median:median(values), min:Math.min(...values), max:Math.max(...values), count:values.length, labels:sources.map(source=>source.label)};
   }
 
-  function renderDetail(data) {
+  function sourceStatusHtml(sources = {}, partial = [], results) {
+    const names = {retail:'Precios Claros', open25:'Open 25', dulceSur:'Dulce Sur', rappi:'Rappi'};
+    const failed = Object.entries(names).filter(([key]) => sources[key] === false).map(([,label]) => label);
+    const incomplete = partial.map(key => names[key]).filter(Boolean);
+    const warnings = [failed.length ? `${failed.join(', ')}: no respondió. No significa que no tenga el producto.` : '', incomplete.length ? `${incomplete.join(', ')}: consulta parcial.` : ''].filter(Boolean).join(' ');
+    if (!results) return warnings ? `<div class="price-ml-note" role="status">${escapeHtml(warnings)}</div>` : '';
+    const counts = {retail:(results.items || []).length};
+    for (const [key, source] of [['open25','open25'],['rappi','rappi'],['dulceSur','dulce-sur']]) counts[key] = (results.supplierItems || []).filter(item => item.source === source).length;
+    const rows = Object.entries(names).filter(([key]) => typeof sources[key] === 'boolean').map(([key, label]) => {
+      const status = sources[key] === false ? 'No respondió' : partial.includes(key) ? 'Consulta parcial' : counts[key] ? 'Coincidencia encontrada' : 'Sin coincidencia exacta con precio';
+      return `<div class="price-shop-row"><span>${escapeHtml(label)}</span><small>${escapeHtml(status)}</small></div>`;
+    }).join('');
+    return `${warnings ? `<div class="price-ml-note" role="status">${escapeHtml(warnings)}</div>` : ''}<details class="price-shop-details"><summary><span>Fuentes consultadas</span></summary><div class="price-shop-list">${rows}</div></details>`;
+  }
+
+  async function completeComparison(item, requestId) {
+    const data = state.detail;
+    if (!data) return;
+    data.comparisonPending = true;
+    refreshReference(data);
+    try {
+      const result = await apiRequest({action:'compare', name:item.title || item.name, brand:item.brand || '', presentation:item.presentation || '', ean:item.ean || item.gtin || item.barcode || ''});
+      if (requestId !== state.detailRequest || state.detail !== data) return;
+      // Keep already-visible references only when that source could not be refreshed.
+      const keys = {'precios-claros':'retail', open25:'open25', rappi:'rappi', 'dulce-sur':'dulceSur'};
+      const previous = data.sourceOffers || [];
+      const fresh = sourceOffersFor(item, result);
+      const ids = new Set(fresh.map(offer => `${offer.source}:${offer.id}`));
+      data.sourceOffers = [...fresh, ...previous.filter(offer => result.sources?.[keys[offer.source]] === false && !ids.has(`${offer.source}:${offer.id}`))];
+      data.comparisonSources = result;
+      data.comparisonPending = false;
+      data.comparisonError = false;
+      refreshReference(data);
+    } catch {
+      if (requestId !== state.detailRequest || state.detail !== data) return;
+      data.comparisonPending = false;
+      data.comparisonError = true;
+      refreshReference(data);
+    }
+  }
+
+  function refreshReference(data) {
+    const target = document.getElementById('priceReferenceContent');
+    if (!target || state.detail !== data) return;
+    target.innerHTML = priceReferenceHtml(data);
+    if (!document.getElementById('priceMetrics')?.hidden) calculateMetrics(false);
+  }
+
+  function priceReferenceHtml(data) {
     const combined = combinedUnitReference(data);
     let retail = data.retailReference || {};
     let retailLabel = 'Referencia minorista por unidad';
@@ -920,14 +953,30 @@
       retailNote = `Sin minoristas oficiales · ${retail.count} publicaciones ML, rango ${money(retail.min)} a ${money(retail.max)}`;
     }
     data.comparisonReference = combined || (data.retailSource === 'rappi' ? null : retail);
-    if (combined && (combined.count > 1 || data.retailSource === 'rappi')) {
+    if (combined && (combined.count > 1 || data.retailSource === 'rappi' || data.mlSource)) {
       retailLabel = 'Referencia por unidad · sin delivery';
       retailDisplayValue = combined.median;
       retailNote = combined.count > 1
         ? `Mediana de ${combined.count} fuentes: ${combined.labels.join(' · ')}. Rango ${money(combined.min)} a ${money(combined.max)}`
         : `Una referencia disponible: ${combined.labels[0]}`;
     }
+    return `<div class="price-reference-grid price-reference-single">
+      <section class="price-reference">
+        <div class="price-reference-label">${escapeHtml(retailLabel)}</div>
+        <div class="price-reference-value">${money(retailDisplayValue)}</div>
+        <div class="price-reference-note">${escapeHtml(retailNote)}</div>
+        ${priceCheckedText(data.checkedAt) ? `<div class="price-reference-note price-checked-at">${escapeHtml(priceCheckedText(data.checkedAt))}</div>` : ''}
+      </section>
+    </div>
+    ${sourceOffersHtml(data.sourceOffers)}
+    ${data.comparisonPending ? '<div class="price-ml-note" role="status">Buscando este producto en las otras fuentes…</div>' : ''}
+    ${data.comparisonError ? '<div class="price-ml-note" role="status">No pudimos completar la comparación. Se conservan las referencias anteriores.</div>' : ''}
+    ${data.comparisonSources ? sourceStatusHtml(data.comparisonSources.sources, data.comparisonSources.partialSources, data.comparisonSources) : ''}`;
+  }
+
+  function renderDetail(data) {
     state.detail = data;
+    const referenceHtml = priceReferenceHtml(data);
     const product = data.product || {};
     const saved = readSavedPrices()[product.ean] || {};
     const catRecord = catByEan(product.ean);
@@ -958,16 +1007,7 @@
         </div>
       </div>
 
-      <div class="price-reference-grid price-reference-single">
-        <section class="price-reference">
-          <div class="price-reference-label">${escapeHtml(retailLabel)}</div>
-          <div class="price-reference-value">${money(retailDisplayValue)}</div>
-          <div class="price-reference-note">${escapeHtml(retailNote)}</div>
-          ${priceCheckedText(data.checkedAt) ? `<div class="price-reference-note price-checked-at">${escapeHtml(priceCheckedText(data.checkedAt))}</div>` : ''}
-        </section>
-      </div>
-
-      ${sourceOffersHtml(data.sourceOffers)}
+      <div id="priceReferenceContent" aria-live="polite">${referenceHtml}</div>
 
       ${shopDetails('Precios minoristas considerados', data.retailStores || [])}
 
@@ -1130,7 +1170,9 @@
       const data = await apiRequest({ action: 'detail', ean });
       if (requestId !== state.detailRequest) return;
       const selected = state.items.find(item => item.ean === ean);
-      renderDetail({ ...data, sourceOffers: sourceOffersFor(selected ? { ...selected, source: 'precios-claros' } : { ...data.product, source: 'precios-claros' }) });
+      const item = { ...(selected || data.product), source: 'precios-claros' };
+      renderDetail({ ...data, sourceOffers: sourceOffersFor(item) });
+      completeComparison(item, requestId);
     } catch (error) {
       if (requestId !== state.detailRequest) return;
       detailElement.innerHTML = errorHtml(error.message);

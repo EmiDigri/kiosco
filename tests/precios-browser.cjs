@@ -29,7 +29,7 @@ const {start}=require('./catalogo-preview.cjs');
         ];
         items.forEach(item=>{item.brand='Rasta';});
         const checkedAt='2026-09-19T01:30:00Z';
-        window.__priceFixture={search:{items:[],supplierItems:items,checkedAt},suggest:{items,checkedAt}};
+        window.__priceFixture={search:{items:[],supplierItems:items,checkedAt},suggest:{items,checkedAt},compare:{items:[],supplierItems:items,checkedAt,sources:{retail:true,open25:true,rappi:true,dulceSur:true}}};
       });
       await page.goto(origin);
       await page.locator('#btnPrecios').click();

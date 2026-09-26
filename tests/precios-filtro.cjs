@@ -87,7 +87,7 @@ test('comparison collects only the selected product and confirmed equivalents',(
   const source=fs.readFileSync(path.join(__dirname,'../catalogo-ui.js'),'utf8');
   const selected={id:'a',source:'open25',brand:'Rasta',title:'Alfajor Rasta negro 70g',unitPrice:1500};
   const exact={...selected,id:'b',source:'rappi'};
-  const ctx=vm.createContext({isIndividual:unitPrices.isIndividual,catalogText:s=>s.toLowerCase(),state:{items:[],supplierItems:[selected,exact,{...exact,id:'c',title:'Alfajor Rasta blanco 70g'},{...exact,id:'d',title:'Alfajor Rasta negro 40g'}]}});
+  const ctx=vm.createContext({window:{KioscoPriceUnit:unitPrices},isIndividual:unitPrices.isIndividual,catalogText:s=>s.toLowerCase(),state:{items:[],supplierItems:[selected,exact,{...exact,id:'c',title:'Alfajor Rasta blanco 70g'},{...exact,id:'d',title:'Alfajor Rasta negro 40g'}]}});
   vm.runInContext(source.slice(source.indexOf('  function supplierMatchTokens('),source.indexOf('  function supplierDetailData(')),ctx);
   const offers=ctx.sourceOffersFor(selected);
   assert.deepEqual(Array.from(offers,row=>row.id),['a','b']);

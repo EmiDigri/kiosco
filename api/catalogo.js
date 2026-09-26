@@ -519,7 +519,7 @@ async function dulceSurSearch(query, limit = 10) {
     producto_id: `in.(${products.map(product => product.id).join(',')})`,
     order: 'cantidad.asc',
   });
-  const presentations = await dulceSurJson('presentaciones', presentationParams).catch(() => []);
+  const presentations = await dulceSurJson('presentaciones', presentationParams);
   const byProduct = new Map();
   presentations.forEach(row => {
     if (!byProduct.has(row.producto_id)) byProduct.set(row.producto_id, []);
@@ -649,6 +649,7 @@ async function rappiSearch(query, limit = 10) {
   const html = await supplierFetch(`${RAPPI_URL}/search?query=${encodeURIComponent(translated)}`, {
     headers: { ...BROWSER_HEADERS, accept: 'text/html,application/xhtml+xml' },
   }, 10000);
+  if (!/__NEXT_DATA__|application\/ld\+json/i.test(html)) throw new Error('Rappi no devolvió su catálogo');
   const presentations = rappiPresentations(html);
   const grouped = new Map();
   const scripts = html.matchAll(/<script([^>]*)type=["']application\/ld\+json["']([^>]*)>([\s\S]*?)<\/script>/gi);
@@ -739,6 +740,7 @@ async function open25Search(query, limit = 10) {
   const html = await supplierFetch(`https://tienda.open25.com.ar/search/?q=${encodeURIComponent(queryText)}`, {
     headers: { ...BROWSER_HEADERS, accept: 'text/html,application/xhtml+xml' },
   }, 10000);
+  if (!/js-item-product|no encontramos|no se encontraron|sin resultados|ning[uú]n producto/i.test(html)) throw new Error('Open 25 no devolvió su catálogo');
   const items = [];
   for (const card of html.split('class="js-item-product').slice(1)) {
     const parsed = open25Card(card);
@@ -1510,12 +1512,15 @@ async function getBranches(kind, lat, lng) {
 async function getCoverageBranches(kind, lat, lng, zone) {
   if (kind !== 'retail' || zone !== 'caba') return getBranches(kind, lat, lng);
   const settled = await Promise.allSettled(CABA_RETAIL_ANCHORS.map(anchor => getBranches('retail', anchor.lat, anchor.lng)));
+  if (settled.every(result => result.status === 'rejected')) throw settled[0].reason;
   const byId = new Map();
   settled.forEach(result => {
     if (result.status !== 'fulfilled') return;
     result.value.forEach(branch => byId.set(`${branch.comercioId || ''}-${branch.banderaId || ''}-${branch.id}`, branch));
   });
-  return Array.from(byId.values());
+  const branches = Array.from(byId.values());
+  branches.partial = settled.some(result => result.status === 'rejected');
+  return branches;
 }
 
 function officialQueryCandidates(query) {
@@ -1569,10 +1574,10 @@ async function searchSource(kind, query, lat, lng, zone) {
   const wholesale = kind === 'wholesale';
   const base = wholesale ? WHOLESALE_API : RETAIL_API;
   const branches = await getCoverageBranches(kind, lat, lng, zone);
-  if (!branches.length) return { branches, products: [] };
+  if (!branches.length) return { branches, products: [], partial: Boolean(branches.partial) };
   const chunks = [];
   for (let index = 0; index < branches.length; index += 65) chunks.push(branches.slice(index, index + 65));
-  let products = [];
+  let products = [], responded = false, partial = Boolean(branches.partial), lastError;
   for (const candidate of officialQueryCandidates(query)) {
     const settled = await Promise.allSettled(chunks.map(async branchChunk => {
       const params = new URLSearchParams({
@@ -1584,13 +1589,19 @@ async function searchSource(kind, query, lat, lng, zone) {
       if (wholesale) params.set('entorno', 'mayoristas');
       return officialJson(base, `/productos?${params}`, wholesale);
     }));
+    responded ||= settled.some(result => result.status === 'fulfilled');
+    partial ||= settled.some(result => result.status === 'rejected');
+    lastError = settled.find(result => result.status === 'rejected')?.reason || lastError;
     const rows = settled.flatMap(result => result.status === 'fulfilled' && Array.isArray(result.value.productos) ? result.value.productos : [])
       .filter(product => unitPrices.matchesSearch(normalizeProduct(product), query));
     products.push(...rows);
     if (rows.length) break;
+    if (settled.every(result => result.status === 'rejected')) break;
   }
+  if (!responded && lastError) throw lastError;
   return {
     branches,
+    partial,
     products: mergeSourceProducts(products, wholesale),
   };
 }
@@ -1666,7 +1677,7 @@ async function detailSource(kind, ean, lat, lng, zone) {
   const wholesale = kind === 'wholesale';
   const base = wholesale ? WHOLESALE_API : RETAIL_API;
   const branches = await getCoverageBranches(kind, lat, lng, zone);
-  if (!branches.length) return { product: null, rows: [] };
+  if (!branches.length) return { product: null, rows: [], partial: Boolean(branches.partial) };
   const chunks = [];
   for (let index = 0; index < branches.length; index += 45) chunks.push(branches.slice(index, index + 45));
   const settled = await Promise.allSettled(chunks.map(async branchChunk => {
@@ -1697,7 +1708,7 @@ async function detailSource(kind, ean, lat, lng, zone) {
       }))
       .filter(row => row.price)
       .sort((a, b) => (a.distanceKm ?? 999) - (b.distanceKm ?? 999));
-    return { product: normalizeProduct(data.producto), rows };
+    return { product: normalizeProduct(data.producto), rows, partial: Boolean(branches.partial) || settled.some(result => result.status === 'rejected') };
   }
 
   const rows = sourceRows
@@ -1915,6 +1926,54 @@ async function handleSearch(query, lat, lng, zone) {
       rappi: suppliers.sources.rappi === true,
       dulceSur: suppliers.sources.dulceSur === true,
     },
+    partialSources: retail?.partial ? ['retail'] : [],
+  };
+}
+
+function comparisonDeadline(promise, ms = 16000) {
+  let timer;
+  return Promise.race([promise, new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error('La fuente tardó demasiado en responder')), ms);
+  })]).finally(() => clearTimeout(timer));
+}
+
+async function handleCompare(product, lat, lng, zone) {
+  const query = unitPrices.comparisonQuery(product).slice(0, 80);
+  const official = (async () => {
+    let matches, partial = false;
+    if (unitPrices.barcode(product)) {
+      matches = [{ ...product, ean: String(product.ean) }];
+    } else {
+      const result = await searchSource('retail', query, lat, lng, zone);
+      partial = result.partial === true;
+      matches = mergeSearchResults(result, null).filter(item => unitPrices.sameProduct(product, item)).slice(0, 2);
+    }
+    const details = await Promise.allSettled(matches.map(item => detailSource('retail', item.ean, lat, lng, zone)));
+    if (details.length && details.every(result => result.status === 'rejected')) throw details[0].reason;
+    const items = details.flatMap(result => {
+      if (result.status !== 'fulfilled') { partial = true; return []; }
+      const detail = result.value;
+      partial ||= detail.partial === true;
+      if (!detail.product || !unitPrices.sameProduct(product, detail.product)) return [];
+      const ref = reference(detail.rows, 'price');
+      if (!ref.count) return [];
+      return [{ ...detail.product, retail: {min:ref.min, max:ref.max, stores:ref.count}, referencePrice:ref.median }];
+    });
+    return { items, partial };
+  })();
+  // Leave time to return the other sources before the server's 20-second limit.
+  const [retailResult, suppliersResult] = await Promise.allSettled([comparisonDeadline(official), comparisonDeadline(supplierSearch(query, 20))]);
+  const suppliers = suppliersResult.status === 'fulfilled' ? suppliersResult.value : {items:[], sources:{}};
+  return {
+    items: retailResult.status === 'fulfilled' ? retailResult.value.items : [],
+    supplierItems: suppliers.items.filter(item => unitPrices.sameProduct(product, item)),
+    sources: {
+      retail: retailResult.status === 'fulfilled',
+      open25: suppliers.sources.open25 === true,
+      rappi: suppliers.sources.rappi === true,
+      dulceSur: suppliers.sources.dulceSur === true,
+    },
+    partialSources: retailResult.status === 'fulfilled' && retailResult.value.partial ? ['retail'] : [],
   };
 }
 
@@ -1987,7 +2046,16 @@ export default async function handler(req, res) {
 
   try {
     let payload;
-    if (action === 'detail') {
+    if (action === 'compare') {
+      const product = {
+        name: String(req.query.name || '').trim().slice(0, 180),
+        brand: String(req.query.brand || '').trim().slice(0, 80),
+        presentation: String(req.query.presentation || '').trim().slice(0, 100),
+        ean: String(req.query.ean || '').trim().slice(0, 14),
+      };
+      if (!product.name || !unitPrices.isIndividual(product) || !unitPrices.isKioskProduct(product)) return res.status(400).json({error:'Elegí un producto de venta individual del kiosco.'});
+      payload = await handleCompare(product, lat, lng, zone);
+    } else if (action === 'detail') {
       const ean = String(req.query.ean || '').replace(/\D/g, '').slice(0, 18);
       if (ean.length < 8) return res.status(400).json({ error: 'EAN inválido' });
       payload = await handleDetail(ean, lat, lng, zone);
@@ -2043,7 +2111,8 @@ export default async function handler(req, res) {
       payload = await handleSearch(query, lat, lng, zone);
     }
 
-    const cacheControl = action === 'suggest'
+    const hasFailures = Object.values(payload.sources || {}).some(value => value === false) || payload.partialSources?.length > 0;
+    const cacheControl = hasFailures && ['search', 'compare', 'suggest'].includes(action) ? 'no-store' : action === 'suggest'
       ? 's-maxage=300, stale-while-revalidate=900'
       : (action === 'radar' ? 's-maxage=21600, stale-while-revalidate=86400' : 's-maxage=900, stale-while-revalidate=3600');
     res.setHeader('Cache-Control', cacheControl);
