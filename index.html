@@ -2494,6 +2494,15 @@ body.light .hist-neg-margen-pill{background:rgba(15,23,42,.04)}
 .met-brk-val small{font-weight:700;color:var(--text-soft);font-size:10.5px}
 body.light .met-brk-track{background:rgba(15,23,42,.06)}
 .met-prov-head{font-size:12px;color:var(--text-mid);margin-bottom:10px;line-height:1.5}
+/* Loguitos de proveedores: todos del mismo tamaño (20px), estilo ícono de app */
+.prov-logo{display:inline-grid;place-items:center;width:20px;height:20px;flex:0 0 20px;border-radius:6px;background:#fff;box-shadow:0 0 0 1px rgba(255,255,255,.1),0 1px 2px rgba(0,0,0,.3);overflow:hidden;vertical-align:-5px;margin-right:8px}
+.prov-logo img{width:16px;height:16px;object-fit:contain;display:block}
+.prov-logo-rubro{background:rgba(255,255,255,.07);box-shadow:none;font-size:12px;line-height:1}
+.prov-logo-ini{background:hsla(var(--h),55%,55%,.2);box-shadow:none;color:hsl(var(--h),65%,72%);font:800 10px/1 'Inter',sans-serif}
+.prov-logo-vacio{background:transparent;box-shadow:none}
+body.light .prov-logo{box-shadow:0 0 0 1px rgba(15,23,42,.12)}
+body.light .prov-logo-rubro{background:rgba(15,23,42,.05)}
+body.light .prov-logo-ini{color:hsl(var(--h),55%,34%)}
 .met-prov-head b{color:var(--text);font-weight:800}
 .met-prov-row{display:grid;grid-template-columns:minmax(64px,32%) 1fr auto;align-items:center;gap:8px;padding:6px 0;font-size:12px}
 .met-prov-nom{color:var(--text-mid);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -5383,6 +5392,38 @@ function metTipoGasto(nombre){const n=(nombre||'').trim();if(MET_INVERSION.has(n
 // Nombre lindo para cada concepto (el usuario ve "Luz", no "Edenor"); el proveedor real
 // se aclara en el tooltip del gráfico. Sólo para los que no se explican solos.
 const MET_LABEL={Edenor:'Luz',AYSA:'Agua',Telecentro:'Internet',Fotocopiadora:'Insumos fotocopiadora','Mercado Pago':'Comisión MP',Toldo:'Toldo (mejora del local)','M.A':'M.A (sin identificar)'};
+// ── Loguitos de proveedores (Métricas + Historial) ──
+// 1) Marca conocida: su logo REAL, guardado en assets/logos (cada uno verificado a mano;
+//    Nobleza = BAT Argentina desde 2016; Coca = tapita de Coca-Cola FEMSA, el proveedor).
+// 2) Rubro genérico: un ícono. 3) Persona/distribuidor: su inicial.
+// Regla del usuario: NUNCA una inicial para una marca conocida (ej. "M" para Metrogas).
+const PROV_LOGOS=[
+  [/coca|femsa/,'coca.png'],[/arcor/,'arcor.png'],[/pepsico/,'pepsico.png'],[/nobleza|piccardo|\bbat\b/,'nobleza.png'],
+  [/felfort/,'felfort.png'],[/cachafaz/,'cachafaz.png'],[/levite/,'levite.png'],[/tia maruca/,'tiamaruca.png'],
+  [/balcarce/,'balcarce.png'],[/\bspeed\b/,'speed.png'],[/poxipol/,'poxipol.ico'],
+  [/edenor|^luz\b/,'edenor.png'],[/aysa|^agua\b/,'aysa.ico'],[/telecentro|^internet\b/,'telecentro.ico'],[/metrogas|^gas\b/,'metrogas.png'],
+  [/mercado ?pago|comision mp/,'mercadopago.png'],[/\barca\b|afip|monotributo|impuestos/,'arca.png'],[/mapfre|seguro/,'mapfre.png'],
+  [/mercado ?libre|lector|impresora/,'mercadolibre.png'],
+];
+const PROV_RUBROS=[
+  [/alquiler/,'🏠'],[/bebida/,'🥤'],[/\bcafe\b/,'☕'],[/alfajor|barrita/,'🍫'],[/azucar/,'🥄'],[/bolsa/,'🛍️'],
+  [/librer/,'📚'],[/fotocopiadora/,'🖨️'],[/fumigacion/,'🐜'],[/contador/,'🧾'],[/toldo/,'⛱️'],[/figu/,'🃏'],
+  [/pelota/,'⚽'],[/llavero/,'🔑'],[/panuelo/,'🧻'],[/usb/,'🔌'],[/encendedor/,'🔥'],[/cigarrillo|tabaco|sedas/,'🚬'],
+  [/vaper/,'💨'],[/pebete/,'🥪'],[/kiosco/,'🏪'],[/^once\b/,'🛒'],[/transferencia/,'💸'],[/logistica/,'🚚'],
+  [/citric/,'🍋'],[/sin identificar/,'❔'],[/inversion|mejora/,'🛠️'],
+];
+function provNorm(s){return String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim();}
+function provLogoHtml(nombre){
+  const n=provNorm(nombre);
+  if(!n||/^otros\b/.test(n))return '<span class="prov-logo prov-logo-vacio" aria-hidden="true"></span>';
+  const logo=PROV_LOGOS.find(([re])=>re.test(n));
+  if(logo)return `<span class="prov-logo" aria-hidden="true"><img src="./assets/logos/${logo[1]}" alt="" loading="lazy" decoding="async"></span>`;
+  const rubro=PROV_RUBROS.find(([re])=>re.test(n));
+  if(rubro)return `<span class="prov-logo prov-logo-rubro" aria-hidden="true">${rubro[1]}</span>`;
+  const ini=(n.match(/[a-z0-9]/)||['•'])[0].toUpperCase();
+  let h=0;for(const c of n)h=(h*31+c.charCodeAt(0))%360;
+  return `<span class="prov-logo prov-logo-ini" style="--h:${h}" aria-hidden="true">${ini}</span>`;
+}
 const MET_PROVEEDOR={Edenor:'Edenor',AYSA:'AYSA',Telecentro:'Telecentro'};
 function metLabel(n){n=(n||'').trim();return MET_LABEL[n]||n;}
 // Conciliación con MercadoPago: clasificar/etiquetar una salida de MP por su nombre.
@@ -5474,7 +5515,7 @@ function metRender(){
   const brkGroup=(titulo,arr,color,total)=>{
     if(!arr||!arr.length)return '';
     const s=arr.slice().sort((a,b)=>b.monto-a.monto),top=s.slice(0,12),rest=s.slice(12);
-    const fila=(nom,mo,op)=>{const pct=total>0?mo/total*100:0;return `<div class="met-brk-row"><span class="met-brk-nom">${nom}</span><span class="met-brk-track"><span class="met-brk-fill" style="width:${Math.max(2,Math.round(pct))}%;background:${color}${op?';opacity:.5':''}"></span></span><span class="met-brk-val">${histMoneyCompact(mo)}<small>${Math.round(pct)}%</small></span></div>`;};
+    const fila=(nom,mo,op)=>{const pct=total>0?mo/total*100:0;return `<div class="met-brk-row"><span class="met-brk-nom">${provLogoHtml(nom)}${nom}</span><span class="met-brk-track"><span class="met-brk-fill" style="width:${Math.max(2,Math.round(pct))}%;background:${color}${op?';opacity:.5':''}"></span></span><span class="met-brk-val">${histMoneyCompact(mo)}<small>${Math.round(pct)}%</small></span></div>`;};
     let filas=top.map(x=>fila(x.nombre,x.monto,false)).join('');
     if(rest.length)filas+=fila(`Otros (${rest.length})`,rest.reduce((a,x)=>a+x.monto,0),true);
     return `<div class="met-brk-group"><div class="met-brk-head"><span>${titulo}</span><b>${histMoneyCompact(total)}</b></div>${filas}</div>`;
@@ -5545,7 +5586,7 @@ function metProveedoresCard(egr){
   if(!rank.length||total<=0)return '';
   let cum=0,n80=0; for(const r of rank){cum+=r.mo;n80++;if(cum>=total*0.8)break;}
   const maxMo=rank[0].mo||1;
-  const filas=rank.slice(0,12).map(r=>{const share=Math.round(r.mo/total*100);return `<div class="met-prov-row"><span class="met-prov-nom">${r.lbl}</span><span class="met-prov-track"><span class="met-prov-fill" style="width:${Math.max(3,Math.round(r.mo/maxMo*100))}%"></span></span><span class="met-prov-val">${histMoneyCompact(r.mo)}<small>${share}%</small></span></div>`;}).join('');
+  const filas=rank.slice(0,12).map(r=>{const share=Math.round(r.mo/total*100);return `<div class="met-prov-row"><span class="met-prov-nom">${provLogoHtml(r.lbl)}${r.lbl}</span><span class="met-prov-track"><span class="met-prov-fill" style="width:${Math.max(3,Math.round(r.mo/maxMo*100))}%"></span></span><span class="met-prov-val">${histMoneyCompact(r.mo)}<small>${share}%</small></span></div>`;}).join('');
   return `<div class="met-card">
     <div class="met-card-title">En quién comprás la mercadería</div>
     <div class="met-prov-head">El <b>80%</b> de la mercadería se la comprás a <b>${n80}</b> proveedor${n80===1?'':'es'} de ${rank.length}.</div>
@@ -6243,7 +6284,7 @@ function histRenderGastosMes(){
     let off=depth?(principalesTotal+previousTotal)/viewTotal*CC:0;
     const arcs=segs.map((s,i)=>{const len=viewTotal?s.val/viewTotal*CC:0,gap=Math.min(4,Math.max(1,len*.1)),draw=Math.max(.4,len-gap),more=s.more?' data-egr-more role="button" tabindex="0"':'';const a=`<circle class="hist-egr-arc" data-egr-seg="${i}"${more} data-egr-dash="${draw} ${CC-draw}" cx="70" cy="70" r="${R}" fill="none" stroke="${s.color}" style="color:${s.color}" stroke-width="${SW}" stroke-dasharray="0 ${CC}" stroke-dashoffset="${-off}" transform="rotate(-90 70 70)"><title>${cmEsc(CierreCuentas.conceptoGasto(s.label))}: ${histMoney(s.val)}${s.more?` · ${s.count} conceptos`:''}</title></circle>`;off+=len;return a;}).join('');
     const pct=val=>(val/viewTotal*100).toLocaleString('es-AR',{maximumFractionDigits:1})+'%';
-    const legend=segs.map((s,i)=>`<button type="button" class="hist-egr-leg" data-egr-seg="${i}"${s.more?' data-egr-more':''} title="${cmEsc(CierreCuentas.conceptoGasto(s.label))}: ${histMoney(s.val)} · ${pct(s.val)} del total"><span class="hist-egr-dot" style="background:${s.color};color:${s.color}"></span><span class="hist-egr-leg-nom">${cmEsc(CierreCuentas.conceptoGasto(s.label))}${s.count?` <small>· ${s.count} conceptos</small>`:''}</span><span class="hist-egr-leg-pct">${pct(s.val)}</span>${s.more?'<span class="hist-egr-leg-arrow" aria-hidden="true">→</span>':''}</button>`).join('');
+    const legend=segs.map((s,i)=>`<button type="button" class="hist-egr-leg" data-egr-seg="${i}"${s.more?' data-egr-more':''} title="${cmEsc(CierreCuentas.conceptoGasto(s.label))}: ${histMoney(s.val)} · ${pct(s.val)} del total"><span class="hist-egr-dot" style="background:${s.color};color:${s.color}"></span><span class="hist-egr-leg-nom">${s.more?'':provLogoHtml(CierreCuentas.conceptoGasto(s.label))}${cmEsc(CierreCuentas.conceptoGasto(s.label))}${s.count?` <small>· ${s.count} conceptos</small>`:''}</span><span class="hist-egr-leg-pct">${pct(s.val)}</span>${s.more?'<span class="hist-egr-leg-arrow" aria-hidden="true">→</span>':''}</button>`).join('');
     const absoluteStart=PAGE+offset,absoluteEnd=PAGE+offset+visible.length;
     const bar=depth?`<div class="hist-egr-drillbar"><button type="button" data-egr-back>← ${depth===1?'Volver al total':'Anteriores'}</button><span>% sobre el total · conceptos ${absoluteStart+1}–${absoluteEnd} de ${todos.length}</span></div>`:'';
     chart.innerHTML=`${bar}<div class="hist-egr-donut-wrap"><svg class="hist-egr-donut" viewBox="0 0 140 140" role="img" aria-label="${depth?'Desglose de Otros':'Composición de egresos por proveedor'}"><circle class="hist-egr-track" cx="70" cy="70" r="${R}" fill="none" stroke-width="${SW}"></circle>${arcs}<circle class="hist-egr-hole" cx="70" cy="70" r="36"></circle><text x="70" y="62" text-anchor="middle" class="hist-egr-c1">TOTAL EGRESOS</text><text x="70" y="79" text-anchor="middle" class="hist-egr-c2">${histMoneyCompact(viewTotal)}</text><text x="70" y="91" text-anchor="middle" class="hist-egr-c3">${depth?`${otrosGrupos.length} en Otros`:`${source.length} ${source.length===1?'concepto':'conceptos'}`}</text></svg></div><div class="hist-egr-legend">${legend}</div>`;

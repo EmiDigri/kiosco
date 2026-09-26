@@ -111,7 +111,9 @@
         ${note || local ? `<p class="hist-gastos-nota">${cmEsc([note, local].filter(Boolean).join(' '))}</p>` : ''}
         ${data.filas.length ? data.filas.map(g => {
           const medio = g.medio === 'revisar' ? 'Medio de pago por revisar' : g.medio === 'mp' ? 'MP' : data.local ? 'Medio de pago sin verificar' : 'Efectivo';
-          const concepto = `<span>${cmEsc(CierreCuentas.conceptoGasto(g.nombre || 'Transferencia enviada'))}${g.caja ? ' · ' + cmEsc(g.caja) : ''}<small class="hist-gasto-meta">${medio}</small></span>`;
+          const nombreGasto = CierreCuentas.conceptoGasto(g.nombre || 'Transferencia enviada');
+          const logo = typeof provLogoHtml === 'function' ? provLogoHtml(nombreGasto) : '';
+          const concepto = `<span>${logo}${cmEsc(nombreGasto)}${g.caja ? ' · ' + cmEsc(g.caja) : ''}<small class="hist-gasto-meta">${medio}</small></span>`;
           // Solo los gastos del cuaderno (con uid) se editan; las salidas de MP no.
           if (g.origen === 'cuaderno' && g.uid) {
             const editBtn = `<button class="hist-gasto-edit" data-guid="${cmEsc(g.uid)}" data-nombre="${cmEsc(g.nombre || '')}" data-monto="${Number(g.monto) || 0}" data-caja="${cmEsc(g.caja || '')}" data-turno="${cmEsc(g.turno || '')}" title="Editar" aria-label="Editar gasto">✎</button>`;
