@@ -2486,12 +2486,12 @@ body.light .hist-neg-margen-pill{background:rgba(15,23,42,.04)}
 .met-cap b{color:var(--text-mid);font-weight:800}
 .met-brk-group{margin-bottom:16px}
 .met-brk-group:last-of-type{margin-bottom:2px}
-.met-brk-head{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:15px;font-weight:800;color:var(--text);margin:6px 0 12px;padding-bottom:10px;border-bottom:1px solid color-mix(in srgb,var(--c,#7c90ff) 35%,transparent)}
+.met-brk-head{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:15px;font-weight:800;color:var(--text);margin:6px 0 12px;padding-bottom:10px;border-bottom:1px solid rgba(var(--c-rgb,124,144,255),.35)}
 /* Cada grupo con el color de sus barras: marquita en el título y total en pastilla */
 .met-brk-title{display:inline-flex;align-items:center;gap:9px;min-width:0}
-.met-brk-title i{flex:0 0 4px;width:4px;height:18px;border-radius:4px;background:var(--c,#7c90ff);box-shadow:0 0 10px color-mix(in srgb,var(--c,#7c90ff) 60%,transparent)}
-.met-brk-head b.met-brk-total{color:var(--c,#7c90ff);background:color-mix(in srgb,var(--c,#7c90ff) 14%,transparent);border:1px solid color-mix(in srgb,var(--c,#7c90ff) 45%,transparent);border-radius:999px;padding:3px 14px;box-shadow:0 0 18px color-mix(in srgb,var(--c,#7c90ff) 22%,transparent);white-space:nowrap}
-body.light .met-brk-head b.met-brk-total{color:color-mix(in srgb,var(--c,#7c90ff) 72%,#000);box-shadow:none}
+.met-brk-title i{flex:0 0 4px;width:4px;height:18px;border-radius:4px;background:var(--c,#7c90ff);box-shadow:0 0 10px rgba(var(--c-rgb,124,144,255),.6)}
+.met-brk-head b.met-brk-total{color:var(--c,#7c90ff);background:rgba(var(--c-rgb,124,144,255),.14);border:1px solid rgba(var(--c-rgb,124,144,255),.45);border-radius:999px;padding:3px 14px;box-shadow:0 0 18px rgba(var(--c-rgb,124,144,255),.22);white-space:nowrap}
+body.light .met-brk-head b.met-brk-total{color:var(--c,#7c90ff);color:color-mix(in srgb,var(--c,#7c90ff) 72%,#000);box-shadow:none}
 .met-brk-head b{font-family:'Inter',sans-serif;color:var(--text);font-size:20px;font-weight:800;letter-spacing:-.3px;font-variant-numeric:tabular-nums}
 .met-brk-row{display:grid;grid-template-columns:minmax(0,34%) 1fr 146px;align-items:center;gap:14px;padding:6px 0;font-size:14.5px;min-height:38px}
 .met-brk-nom{color:var(--text-mid);display:flex;align-items:center;gap:10px;min-width:0}
@@ -5536,7 +5536,8 @@ function metRender(){
     const fila=(nom,mo,op)=>{const pct=total>0?mo/total*100:0;return `<div class="met-brk-row"><span class="met-brk-nom">${provLogoHtml(nom)}<span class="met-brk-txt">${nom}</span></span><span class="met-brk-track"><span class="met-brk-fill" style="width:${Math.max(2,Math.round(pct))}%;background:${color}${op?';opacity:.5':''}"></span></span><span class="met-brk-val">${histMoneyCompact(mo)}<small>${Math.round(pct)}%</small></span></div>`;};
     let filas=top.map(x=>fila(x.nombre,x.monto,false)).join('');
     if(rest.length)filas+=fila(`Otros (${rest.length})`,rest.reduce((a,x)=>a+x.monto,0),true);
-    return `<div class="met-brk-group" style="--c:${color}"><div class="met-brk-head"><span class="met-brk-title"><i aria-hidden="true"></i>${titulo}</span><b class="met-brk-total">${histMoneyCompact(total)}</b></div>${filas}</div>`;
+    const rgb=[1,3,5].map(i=>parseInt(String(color).slice(i,i+2),16)||0).join(',');
+    return `<div class="met-brk-group" style="--c:${color};--c-rgb:${rgb}"><div class="met-brk-head"><span class="met-brk-title"><i aria-hidden="true"></i>${titulo}</span><b class="met-brk-total">${histMoneyCompact(total)}</b></div>${filas}</div>`;
   };
   // Pagos-ingreso del mes (para el heatmap y las comisiones). Se recalcula solo cada
   // vez que se abre Métricas, porque histRowsPagosMes se re-lee de Supabase en vivo.
