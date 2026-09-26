@@ -150,7 +150,7 @@
     return {errores, diferencias, suma};
   }
   function resumenMes(dias, desde, hasta) {
-    let total = 0, mp = 0, efectivo = 0, gastos = 0, cerrados = 0, esperados = 0, completos = 0, totalCompletos = 0;
+    let total = 0, mp = 0, efectivo = 0, once = 0, gastos = 0, cerrados = 0, esperados = 0, completos = 0, totalCompletos = 0;
     const date = new Date(`${desde}T12:00:00Z`);
     while (date.toISOString().slice(0, 10) <= hasta) {
       const dia = date.toISOString().slice(0, 10), data = dias[dia];
@@ -163,13 +163,18 @@
       closures.forEach(c => {
         mpDia += (Number(c.mp) || 0) - (Number(data?.turnos?.[c.turno]?.mp) || 0);
         efectivo += totalCierre(c, Number(c.gastos_caja) || 0) - (Number(c.mp) || 0);
+        // Nota de Claude para Codex (25/9/2026): el Once del cierre es un INGRESO aparte
+        // (efectivo que entra por regalos; NO es el gasto "Once" de compra de mercadería).
+        // Se devuelve en `once` para mostrarlo por separado. `efectivo` lo sigue incluyendo
+        // a propósito, así no cambia nada de lo que ya lo usaba (mp + efectivo = total).
+        once += Number(c.once_monto ?? c.once) || 0;
       });
       mp += mpDia;
       gastos += (data?.gastos || []).reduce((s, g) => s + (monto(g.monto) || 0), 0);
       if (completo(data, dia)) { completos++; totalCompletos += totalDia(data); }
       date.setUTCDate(date.getUTCDate() + 1);
     }
-    return {total, mp, efectivo, gastos, resultado:total - gastos, cerrados, esperados, completos, totalCompletos};
+    return {total, mp, efectivo, once, gastos, resultado:total - gastos, cerrados, esperados, completos, totalCompletos};
   }
   return {monto, fecha, ingreso, salida, totalCierre, totalDia, completo, turnos, nombre, conceptoGasto, idGastoFoto, conciliarGastos, resumenGastosDia, validarFoto, resumenMes};
 });

@@ -5509,6 +5509,7 @@ function metRender(){
       </div>
       <div class="met-kpi-help" id="metKpiHelp" hidden></div>
     </div>
+    ${metMediosCard(contable)}
     <div class="met-card">
       <div class="met-card-title">Estructura de egresos por concepto</div>
       ${brkGroup('Costos variables (mercadería)',grupos.variable,'#7c90ff',variable)}
@@ -5519,6 +5520,19 @@ function metRender(){
     ${metComisionesCard(metIng)}
     ${metProveedoresCard(egr)}`;
   metDibujarGraficos({recaud,variable,gastFijos,inversion,utilidad});
+}
+// "Cómo entró la plata": Efectivo / Mercado Pago / Once del mes, cada uno por separado.
+// OJO: el Once del cierre es un INGRESO (efectivo que entra por regalos). No confundir
+// con el gasto "Once" (compra de mercadería en el barrio de Once), que va en egresos.
+function metMediosCard(contable){
+  const once=Number(contable?.once)||0, mp=Number(contable?.mp)||0, efectivo=Math.max(0,(Number(contable?.efectivo)||0)-once), tot=efectivo+mp+once;
+  if(tot<=0)return '';
+  const filas=[['Efectivo',efectivo,'var(--green)'],['Mercado Pago',mp,'var(--accent)'],['Once · regalos',once,'var(--amber)']];
+  return `<div class="met-card">
+    <div class="met-card-title">Cómo entró la plata</div>
+    ${filas.map(([lbl,v,c])=>`<div class="met-row"><span class="met-lbl"><span class="met-dot" style="background:${c}"></span>${lbl} <small style="color:var(--text-soft);font-weight:600">${Math.round(v/tot*100)}%</small></span><b>${histMoney(v)}</b></div>`).join('')}
+    <div class="met-bar">${filas.filter(([,v])=>v>0).map(([,v,c])=>`<span style="width:${(v/tot*100).toFixed(2)}%;background:${c}"></span>`).join('')}</div>
+  </div>`;
 }
 // En quién comprás la mercadería: Pareto del mes (80/20) de los proveedores.
 // SOLO tipo variable (mercadería): quedan afuera alquiler, servicios e impuestos,
@@ -5958,12 +5972,13 @@ function histRenderMetricas(y,m,last){
     :`<div class="hk-proj-top"><span>Proyección de cierre del mes</span><span class="hk-learn-pill">✨ aprende</span></div><div class="hk-proj-val">${histMoneyCompact(projLow)} – ${histMoneyCompact(projHigh)}</div><div class="hk-proj-note">${nCierresMes>=2?`afinada con ${nCierresMes} cierre${nCierresMes===1?'':'s'} · `:'todavía aprendiendo · '}margen ±${Math.round(projErr*100)}%</div>`;
   const kioscoHtml=`<div class="hist-kiosco">
     <div class="hk-head"><span class="hk-title">Nuestro kiosco</span><span class="hk-sub">${mesCorto}${esMesActual?` · día ${hoyD} de ${last}`:''}</span></div>
-    <div class="hk-proj-card"><div class="hk-proj-top"><span>Recaudación registrada</span></div><div class="hk-proj-val">${histMoney(contable.total)}</div><div class="hk-proj-note">Efectivo + Mercado Pago · ${contable.cerrados}/${contable.esperados} turnos con cierre${faltanCierres>0?' · falta efectivo por cargar':''}</div></div>
+    <div class="hk-proj-card"><div class="hk-proj-top"><span>Recaudación registrada</span></div><div class="hk-proj-val">${histMoney(contable.total)}</div><div class="hk-proj-note">Efectivo + Mercado Pago + Once · ${contable.cerrados}/${contable.esperados} turnos con cierre${faltanCierres>0?' · falta efectivo por cargar':''}</div></div>
     <div class="hk-metrics">
-      <div class="hk-metric"><div class="hk-metric-lbl">MP incluido en el total</div><div class="hk-metric-val">${histMoney(contable.mp)}</div></div>
-      <div class="hk-metric"><div class="hk-metric-lbl">Efectivo registrado (incluye Once)</div><div class="hk-metric-val">${histMoney(contable.efectivo)}</div></div>
+      <div class="hk-metric"><div class="hk-metric-lbl">Efectivo</div><div class="hk-metric-val">${histMoney(Math.max(0,contable.efectivo-(contable.once||0)))}</div></div>
+      <div class="hk-metric"><div class="hk-metric-lbl">Mercado Pago</div><div class="hk-metric-val">${histMoney(contable.mp)}</div></div>
+      <div class="hk-metric"><div class="hk-metric-lbl">Once · regalos</div><div class="hk-metric-val">${histMoney(contable.once||0)}</div></div>
       <div class="hk-metric"><div class="hk-metric-lbl">Gastos registrados</div><div class="hk-metric-val">${histMoney(contable.gastos)}</div></div>
-      <div class="hk-metric"><div class="hk-metric-lbl">Resultado registrado${faltanCierres?' · parcial':''}</div><div class="hk-metric-val">${histMoney(contable.resultado)}</div></div>
+      <div class="hk-metric" style="grid-column:1/-1"><div class="hk-metric-lbl">Resultado registrado${faltanCierres?' · parcial':''}</div><div class="hk-metric-val">${histMoney(contable.resultado)}</div></div>
     </div>
     <div class="hk-ritmo">
       <div class="hk-ritmo-title">Facturación por turno</div>
