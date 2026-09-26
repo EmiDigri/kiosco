@@ -34,7 +34,7 @@
     const uid = btn.dataset.guid, nombre = btn.dataset.nombre || '';
     if (!uid) return;
     if (!confirm(`¿Borrar el gasto "${nombre || 'sin nombre'}"? No se puede deshacer.`)) return;
-    const dia = document.getElementById('histVistaDetalle')?.dataset.dia || '';
+    const dia = btn.dataset.fecha || document.getElementById('histVistaDetalle')?.dataset.dia || '';
     const row = btn.closest('.hist-gasto-line');
     if (row) { row.style.opacity = '.5'; row.querySelectorAll('button').forEach(b => b.disabled = true); }
     cmEliminarGastoRemoto({uid}).then(() => {
@@ -48,7 +48,7 @@
   function abrirEdicionGasto(btn) {
     const row = btn.closest('.hist-gasto-line');
     if (!row) return;
-    const datos = {uid:btn.dataset.guid, nombre:btn.dataset.nombre || '', monto:Number(btn.dataset.monto) || 0, caja:btn.dataset.caja || '', turno:btn.dataset.turno || ''};
+    const datos = {uid:btn.dataset.guid, nombre:btn.dataset.nombre || '', monto:Number(btn.dataset.monto) || 0, caja:btn.dataset.caja || '', turno:btn.dataset.turno || '', fecha:btn.dataset.fecha || ''};
     const original = row.innerHTML;
     row.classList.add('editando');
     row.innerHTML = `<input class="hist-gasto-enom" type="text" value="${cmEsc(datos.nombre)}" aria-label="Concepto" placeholder="Concepto"><input class="hist-gasto-emon" type="number" inputmode="numeric" value="${datos.monto}" aria-label="Monto" placeholder="Monto"><button class="hist-gasto-ok" title="Guardar" aria-label="Guardar">✓</button><button class="hist-gasto-no" title="Cancelar" aria-label="Cancelar">✕</button>`;
@@ -58,7 +58,9 @@
     const guardar = async () => {
       const nombre = nom.value.trim(), monto = Number(mon.value) || 0;
       if (!nombre || !monto) { showToast('Cargá concepto y monto'); return; }
-      const dia = document.getElementById('histVistaDetalle')?.dataset.dia || '';
+      // La fecha sale del propio gasto: sin ella la base rechazaba el guardado.
+      const dia = datos.fecha || document.getElementById('histVistaDetalle')?.dataset.dia || '';
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(dia)) { showToast('No encontré la fecha de este gasto. Recargá la página.'); return; }
       row.querySelectorAll('input,button').forEach(el => el.disabled = true);
       try {
         await cmGuardarGastoRemoto({uid:datos.uid, nombre, monto, caja:datos.caja, turno:datos.turno}, dia);
@@ -116,8 +118,8 @@
           const concepto = `<span>${logo}${cmEsc(nombreGasto)}${g.caja ? ' · ' + cmEsc(g.caja) : ''}<small class="hist-gasto-meta">${medio}</small></span>`;
           // Solo los gastos del cuaderno (con uid) se editan; las salidas de MP no.
           if (g.origen === 'cuaderno' && g.uid) {
-            const editBtn = `<button class="hist-gasto-edit" data-guid="${cmEsc(g.uid)}" data-nombre="${cmEsc(g.nombre || '')}" data-monto="${Number(g.monto) || 0}" data-caja="${cmEsc(g.caja || '')}" data-turno="${cmEsc(g.turno || '')}" title="Editar" aria-label="Editar gasto">✎</button>`;
-            const delBtn = `<button class="hist-gasto-del" data-guid="${cmEsc(g.uid)}" data-nombre="${cmEsc(g.nombre || '')}" title="Borrar" aria-label="Borrar gasto">✕</button>`;
+            const editBtn = `<button class="hist-gasto-edit" data-guid="${cmEsc(g.uid)}" data-nombre="${cmEsc(g.nombre || '')}" data-monto="${Number(g.monto) || 0}" data-caja="${cmEsc(g.caja || '')}" data-turno="${cmEsc(g.turno || '')}" data-fecha="${cmEsc(g.fecha || '')}" title="Editar" aria-label="Editar gasto">✎</button>`;
+            const delBtn = `<button class="hist-gasto-del" data-guid="${cmEsc(g.uid)}" data-nombre="${cmEsc(g.nombre || '')}" data-fecha="${cmEsc(g.fecha || '')}" title="Borrar" aria-label="Borrar gasto">✕</button>`;
             return `<div class="hist-gasto-line">${concepto}<span class="hist-gasto-r"><strong>${histMoney(g.monto)}</strong>${editBtn}${delBtn}</span></div>`;
           }
           return `<div class="hist-gasto-line">${concepto}<strong>${histMoney(g.monto)}</strong></div>`;
