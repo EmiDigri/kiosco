@@ -22,7 +22,7 @@ let fixtureToday=fixed;
 const fechaHoy=()=>fixtureToday,histIso=(y,m,d)=>y+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0');
 const histMoney=n=>'$'+Number(n||0).toLocaleString('es-AR'),histMoneyCompact=histMoney,formatFecha=d=>d;
 const histMediana=a=>a.length?a[Math.floor(a.length/2)]:0,histMesLearnRead=()=>({bias:[],errs:[]});
-const histTendenciaPill=()=>'',histSvgBarsDias=()=>'',histAnimarGraficoDias=()=>{},histTooltipGraficoDias=()=>{},histKioscoEnriquecer=()=>{},learnSbPush=()=>{};
+const histTendenciaPill=()=>'',histSvgBarsDias=()=>'',histAnimarGraficoDias=()=>{},histTooltipGraficoDias=()=>{},histKioscoEnriquecer=()=>{},learnSbPush=()=>{},provLogoHtml=()=>'';
 const turnosDelDia=dia=>CierreCuentas.turnos(dia).map(nombre=>({nombre})),esTransferenciaFueraHorario=()=>false;
 const sbAuthHeaders=async()=>({}),lockBody=()=>{},unlockBody=()=>{},leerHistorial=()=>({}),histCargarMes=async()=>renderMonth();
 const histGetLocalCierreDia=dia=>JSON.parse(localStorage.getItem('kiosco_cierre_manual')||'{}')[dia]||{cierres:{},gastos:[]};
@@ -45,7 +45,8 @@ resetFixture();loadExample();
 </script><script src="/fixture-tests.js"></script></body></html>`;
 const server=http.createServer((req,res)=>{
   const url=new URL(req.url,'http://localhost');res.setHeader('Cache-Control','no-store');
-  res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'");
+  // blob: because cmComprimirFoto opens the photo with URL.createObjectURL (EXIF fix, 8602db9); it stays local.
+  res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'none'");
   if(url.pathname==='/'){res.setHeader('Content-Type','text/html; charset=utf-8');return res.end(html);}
   const files={'/cierre-cuentas.js':'cierre-cuentas.js','/cierre-foto-ui.js':'cierre-foto-ui.js','/fixture-tests.js':'tests/cierre-browser.js'};
   if(files[url.pathname]){res.setHeader('Content-Type','text/javascript; charset=utf-8');return res.end(fs.readFileSync(path.join(root,files[url.pathname])));}
