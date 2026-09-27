@@ -33,6 +33,25 @@
   const productTypes=new Set(('alfajor chocolate bombon caramelo chicle gomita galletita oblea turron pastilla chupetin chupetines confite confites malvavisco malvaviscos golosina golosinas snack papita mani pochoclo palitos nachos semilla semillas helado helados postre postres gaseosa bebida agua soda jugo energizante energizantes isotonica cerveza vino vodka fernet whisky licor leche yogur yogurt manteca queso fiambre mantecol budin bizcocho pan magdalena magdalenas tortita tortitas azucar edulcorante yerba cafe cacao te mate cocido harina arroz fideos aceite sal mayonesa ketchup mostaza mermelada atun conserva conservas resma boligrafo marcador resaltador lapiz cuaderno carpeta carpetas cartulina goma regla corrector tempera crayon crayones adhesivo abrochadora clip clips libreria cigarrillo tabaco encendedor fosforo fosforos pila preservativo preservativos panuelo servilleta servilletas').split(' '));
   const kioskBrands=new Set(('rasta milka arcor cofler block guaymallen fantoche jorgito jorgelin aguila terrabusi tatin oreo pepitos toddy bagley chocolinas sonrisas diversion opera criollitas traviata tentaciones kesitas saladix mogul rocklets shot marroc cabsha cadbury kinder ferrero nutella beldent topline bazooka sugus bonobon lays doritos cheetos twistos pehuamar krachitos coca sprite fanta pepsi manaos speed monster gatorade powerade cepita baggio levite villavicencio aquarius tic tac halls menthoplus flynn paff').split(' '));
   const stopWords=new Set(['de','del','la','el','las','los','con','c','por','x','y','unidad','unidades','individual','un','u']);
+  // Palabras que no distinguen un producto de otro: cada tienda las pone o no. "Gaseosa Coca-Cola
+  // Sabor Original 600 ml" (Día) es "Gaseosa Original Coca Cola 600 cc" (Josimar) y "Coca-Cola 600
+  // Ml" (Rappi). Las que sí distinguen variantes (zero, light, limón, sin azúcar) siguen contando.
+  const fillerWords=new Set(['gaseosa','gaseosas','bebida','bebidas','refresco','refrescos','sabor','original','lata','botella','pet','descartable']);
+  function withoutFillers(tokens){
+    const out=[];
+    for(let i=0;i<tokens.length;i++){
+      if(tokens[i]==='no'&&tokens[i+1]==='retornable'){i++;continue;}
+      if(!fillerWords.has(tokens[i]))out.push(tokens[i]);
+    }
+    return out;
+  }
+  // Un número suelto en la búsqueda es un tamaño: "coca 600" = 600 ml o 600 g, "coca 1.75" = 1,75 l.
+  function bareNumberSizes(token){
+    if(!/^\d+(?:\.\d+)?$/.test(token))return null;
+    const n=Number(token),sizes=[`${n}ml`,`${n}g`];
+    if(n<10){const k=Math.round(n*1e6)/1e3;sizes.push(`${k}ml`,`${k}g`);}
+    return sizes;
+  }
   function searchText(value){return String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();}
   function itemText(item){return [item.brand||item.marca,item.title||item.name||item.nombre,item.presentation||item.presentacion].filter(Boolean).join(' ');}
   function searchTokens(value){
@@ -65,7 +84,7 @@
     let tokens=searchTokens([brand,item.title||item.name||item.nombre,item.presentation||item.presentacion,item.saleFormat].filter(Boolean).join(' '));
     // Lay's listings omit "papas fritas" interchangeably; retain flavour and weight.
     if(searchTokens(brand).join(' ')==='lays')tokens=tokens.filter(token=>!['papas','fritas','papa','frita'].includes(token));
-    return new Set(tokens);
+    return new Set(withoutFillers(tokens));
   }
   function barcode(item){
     const value=String(item.ean||item.gtin||item.barcode||'').trim();
@@ -115,11 +134,17 @@
     if(!isIndividual(item)||!isKioskProduct(item))return false;
     const raw=String(query||'').trim();
     if(/^\d{8,14}$/.test(raw))return [item.ean,item.barcode,item.gtin].some(code=>String(code||'').padStart(14,'0')===raw.padStart(14,'0'));
-    const wanted=searchTokens(raw),actual=searchTokens(itemText(item));
+    let wanted=searchTokens(raw);
+    const actual=searchTokens(itemText(item));
     if(!wanted.length)return false;
+    // Las palabras de relleno no se exigen (salvo que sean lo único que se buscó).
+    const essential=withoutFillers(wanted);
+    if(essential.length)wanted=essential;
     // A broad brand query may return its variants, but every specified attribute must match.
     return wanted.every((token,index)=>{
       if(token==='sin')return actual.some((value,i)=>value==='sin'&&actual[i+1]===wanted[index+1]);
+      const sizes=bareNumberSizes(token);
+      if(sizes&&(actual.includes(token)||actual.some(value=>sizes.includes(value))))return true;
       const exact=actual.includes(token);
       if(exact&&index>0&&wanted[index-1]!=='sin'&&actual.some((value,i)=>value===token&&actual[i-1]==='sin')&&!wanted.includes('sin'))return false;
       return exact||(options.partial===true&&index===wanted.length-1&&/^[a-z]{2,}$/.test(token)&&actual.some(value=>value.startsWith(token)));

@@ -72,3 +72,28 @@ test('comparison never renders unconfirmed alternatives, even in collapsed secti
   assert(html.includes('Delivery'));
   assert(!/<details[^>]*\bopen\b/.test(html));
 });
+
+// Casos reales del 27/9/2026: la misma Coca-Cola con nombres distintos en cada tienda.
+const U=require('../price-unit.js');
+const prod=(title,source)=>({title,source,category:'Kiosco',presentation:(title.match(/\d+(?:[.,]\d+)?\s*(?:cc|ml|l|lt)\b/i)||['Unidad'])[0]});
+test('same product across stores even if one adds filler words (gaseosa, sabor, original, no retornable)',()=>{
+  assert.equal(U.sameProduct(prod('Gaseosa Coca-Cola Sabor Original 600 Ml.','dia'),prod('Gaseosa Original Coca Cola 600 cc','josimar')),true);
+  assert.equal(U.sameProduct(prod('Coca-Cola Sabor Original 354 Ml','rappi'),prod('Gaseosa Coca Cola 354 cc','josimar')),true);
+  assert.equal(U.sameProduct(prod('Gaseosa Coca Cola Original 1,75L','open25'),prod('Gaseosa No Retornable Coca Cola 1.75 lt','josimar')),true);
+  assert.equal(U.comparisonQuery(prod('Gaseosa Coca-Cola Sabor Original 600 Ml.','dia')),'coca cola 600ml');
+});
+test('variants and sizes stay separate',()=>{
+  assert.equal(U.sameProduct(prod('Gaseosa Coca-Cola Sabor Original 600 Ml.','dia'),prod('Gaseosa Zero Coca Cola 600 cc','josimar')),false);
+  assert.equal(U.sameProduct(prod('Gaseosa Original Coca Cola 600 cc','josimar'),prod('Gaseosa Light Coca Cola 600 cc','josimar')),false);
+  assert.equal(U.sameProduct(prod('Gaseosa No Retornable Coca Cola 1.75 lt','josimar'),prod('Gaseosa Zero No Retornable Coca Cola 1.75 lt','josimar')),false);
+  assert.equal(U.sameProduct(prod('Gaseosa Original Coca Cola 600 cc','josimar'),prod('Gaseosa Coca Cola 354 cc','josimar')),false);
+});
+test('typed searches: a bare number is a size and filler words are not required',()=>{
+  assert.equal(U.matchesSearch(prod('Gaseosa Original Coca Cola 600 cc','josimar'),'coca cola 600',{partial:true}),true);
+  assert.equal(U.matchesSearch(prod('Gaseosa Coca Cola 354 cc','josimar'),'coca cola 600',{partial:true}),false);
+  assert.equal(U.matchesSearch(prod('Gaseosa Coca Cola Original 1,75L','open25'),'coca 1.75',{partial:true}),true);
+  assert.equal(U.matchesSearch(prod('Gaseosa Original Coca Cola 600 cc','josimar'),'coca cola zero 600',{partial:true}),false);
+  assert.equal(U.matchesSearch(prod('Gaseosa Coca Cola 354 cc','josimar'),'coca cola sabor original 354',{partial:true}),true);
+  assert.equal(U.matchesSearch(prod('Gaseosa Original Coca Cola 600 cc','josimar'),'gaseosa',{partial:true}),true);
+  assert.equal(U.matchesSearch(prod('Gaseosa Coca Cola Zero 600ml - Pack x 6un','open25'),'coca cola 600',{partial:true}),false,'packs stay out');
+});
