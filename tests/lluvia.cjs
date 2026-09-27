@@ -9,7 +9,7 @@ const source = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8')
 const start = source.indexOf('// ── Lluvia: probabilidad');
 const end = source.indexOf('// ── fin lluvia ──', start);
 assert(start > 0 && end > start, 'no encontré el bloque de lluvia en index.html');
-const ctx = {Intl, Date, Math, Number, String, Object, Array};
+const ctx = {Intl, Date, Math, Number, String, Object, Array, mcUrl: slug => `https://icons/${slug}.svg`};
 vm.runInNewContext(source.slice(start, end) + ';this.api={iwLluviaResumen,iwLluviaTexto,iwLluviaHtml,IW_LLUVIA_MIN};', ctx);
 const {iwLluviaResumen, iwLluviaTexto, iwLluviaHtml, IW_LLUVIA_MIN} = ctx.api;
 
@@ -38,15 +38,22 @@ test('rainy afternoon: chance until closing and the specific hours', () => {
   assert.equal(r.simulaciones, 10);
   assert.equal(r.franjas.map(f => `${f.desde}-${f.hasta}`).join(','), '14-17');
   const tx = iwLluviaTexto(r, null);
-  assert.equal(tx.frase, 'Lluvia casi segura (80%)');
-  assert.equal(tx.cuando, 'de 14 a 17 h');
+  assert.equal(`${tx.etiqueta} · ${tx.pct} · ${tx.cuando}`, 'Lluvia · 80% · de 14 a 17 h');
+  const html = iwLluviaHtml(r, null);
+  assert(html.includes('<span>Lluvia</span><span>·</span><span>80%</span><span>·</span><span>de 14 a 17 h</span>'));
+  assert(html.includes('https://icons/umbrella.svg'));
+});
+
+test('two rain windows: only the strongest one is shown', () => {
+  const datos = ensemble(10, (m, d, h) => ((m < 3 && h >= 9 && h < 11) || (m < 8 && h >= 19 && h < 21) ? 2 : 0));
+  const tx = iwLluviaTexto(resumen(datos, '2026-09-28T08:00:00-03:00'), null);
+  assert.equal(tx.cuando, 'de 19 a 21 h');
 });
 
 test('while the rain window is going on it says until when', () => {
   const datos = ensemble(10, (m, d, h) => (m < 6 && h >= 14 && h < 17 ? 2 : 0));
   const tx = iwLluviaTexto(resumen(datos, '2026-09-28T15:20:00-03:00'), null);
-  assert.equal(tx.frase, 'Lluvia probable (60%)');
-  assert.equal(tx.cuando, 'hasta las 17 h');
+  assert.equal(`${tx.etiqueta} · ${tx.pct} · ${tx.cuando}`, 'Lluvia · 60% · hasta las 17 h');
 });
 
 test('dry days and drizzle-only days do not show the line', () => {
@@ -73,8 +80,7 @@ test('after closing it shows tomorrow within opening hours', () => {
   const r = resumen(datos, '2026-09-28T22:30:00-03:00');
   assert.equal(r.manana, true);
   const tx = iwLluviaTexto(r, null);
-  assert.equal(tx.frase, 'Mañana: puede llover (40%)');
-  assert.equal(tx.cuando, 'de 9 a 12 h');
+  assert.equal(`${tx.etiqueta} · ${tx.pct} · ${tx.cuando}`, 'Lluvia mañana · 40% · de 9 a 12 h');
 });
 
 test('Sunday uses the Sunday opening hour', () => {
@@ -85,11 +91,11 @@ test('Sunday uses the Sunday opening hour', () => {
 
 test('raining now at Aeroparque always shows, even without forecast data', () => {
   const seco = ensemble(10, () => 0);
-  assert.equal(iwLluviaTexto(resumen(seco, '2026-09-28T10:00:00-03:00'), 'Lloviendo ahora').frase, 'Lloviendo ahora');
-  assert.equal(iwLluviaTexto(null, 'Tormenta ahora').frase, 'Tormenta ahora');
+  assert.equal(iwLluviaTexto(resumen(seco, '2026-09-28T10:00:00-03:00'), 'Lloviendo ahora').etiqueta, 'Lloviendo ahora');
+  assert.equal(iwLluviaTexto(null, 'Tormenta ahora').etiqueta, 'Tormenta ahora');
   assert(iwLluviaHtml(null, 'Lloviendo ahora').includes('Lloviendo ahora'));
   const conFranja = ensemble(10, (m, d, h) => (m < 7 && h >= 9 && h < 13 ? 2 : 0));
-  assert.equal(iwLluviaTexto(resumen(conFranja, '2026-09-28T10:00:00-03:00'), 'Lloviendo ahora').cuando, 'sigue hasta las 13 h');
+  assert.equal(iwLluviaTexto(resumen(conFranja, '2026-09-28T10:00:00-03:00'), 'Lloviendo ahora').cuando, 'hasta las 13 h');
 });
 
 test('missing values and separate models are handled', () => {

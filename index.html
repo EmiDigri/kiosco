@@ -157,9 +157,8 @@ html.overlay-scroll-lock{overflow-y:hidden!important}
 .iw-humidity.is-humid{color:#74c0fc}.iw-humidity.is-dry{color:#f6b84a}
 .iw-humidity-svg{display:block;width:21px;height:21px;flex:0 0 21px;margin-right:1px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.28))}
 .iw-rain-slot{display:block}.iw-rain-slot:empty{display:none}
-.iw-rain{display:flex;align-items:center;flex-wrap:wrap;gap:1px 4px;min-height:16px;color:#74c0fc;font-size:10px;font-weight:700;line-height:1.25}
-.iw-rain-icon{display:block;width:14px;height:14px;flex:0 0 14px;margin-right:1px}
-.iw-rain-when{color:var(--text-mid);font-weight:600}
+.iw-rain{display:flex;align-items:center;gap:3px;min-height:16px;color:#74c0fc;font-size:10px;font-weight:700;line-height:1;white-space:nowrap}
+.iw-rain-icon{display:block;width:21px;height:21px;flex:0 0 21px;margin-right:1px;object-fit:contain;filter:hue-rotate(200deg) saturate(.75) brightness(1.15) drop-shadow(0 0 4px rgba(116,192,252,.22));pointer-events:none}
 body.light .iw-rain{color:#1864ab}
 @media(max-width:430px){.iw-humidity-svg{width:19px;height:19px;flex-basis:19px}}
 .iw-moon-slot{flex:0 0 auto}
@@ -9254,21 +9253,22 @@ function iwLluviaResumen(modelos,ahora,turnosDe){
   porHora.forEach(x=>{if(x.p<umbral)return;const ult=franjas[franjas.length-1];if(ult&&ult.hasta===x.h){ult.hasta=x.h+1;ult.max=Math.max(ult.max,x.p);}else franjas.push({desde:x.h,hasta:x.h+1,max:x.p});});
   return{total:Math.round(100*si/n),simulaciones:n,manana,ahora:horaAhora,porHora,franjas:franjas.sort((a,b)=>b.max-a.max).slice(0,2).sort((a,b)=>a.desde-b.desde)};
 }
+// Mismo formato que viento y humedad: "Lluvia · 81% · de 13 a 19 h" (digra no quiere
+// "casi segura"/"probable"). Un solo rango: el de más chance, para que entre en una línea.
 // estadoAhora: 'Lloviendo ahora' / 'Tormenta ahora' si el Aeroparque lo está observando.
 function iwLluviaTexto(r,estadoAhora){
-  if(!r)return estadoAhora?{frase:estadoAhora,cuando:''}:null;
+  if(!r)return estadoAhora?{etiqueta:estadoAhora,pct:'',cuando:''}:null;
   const enCurso=f=>!r.manana&&f.desde<=r.ahora&&r.ahora<f.hasta;
-  if(estadoAhora&&!r.manana){const sigue=r.franjas.find(enCurso);return{frase:estadoAhora,cuando:sigue?`sigue hasta las ${sigue.hasta} h`:''};}
-  const t=r.total;
-  if(t<IW_LLUVIA_MIN)return null;
-  const frase=t<50?'Puede llover':t<80?'Lluvia probable':'Lluvia casi segura';
-  const cuando=r.franjas.map(f=>enCurso(f)?`hasta las ${f.hasta} h`:`de ${f.desde} a ${f.hasta} h`).join(' y ');
-  return{frase:r.manana?`Mañana: ${frase.toLowerCase()} (${t}%)`:`${frase} (${t}%)`,cuando};
+  if(estadoAhora&&!r.manana){const sigue=r.franjas.find(enCurso);return{etiqueta:estadoAhora,pct:'',cuando:sigue?`hasta las ${sigue.hasta} h`:''};}
+  if(r.total<IW_LLUVIA_MIN)return null;
+  const f=r.franjas.slice().sort((a,b)=>b.max-a.max)[0];
+  return{etiqueta:r.manana?'Lluvia mañana':'Lluvia',pct:`${r.total}%`,cuando:!f?'':enCurso(f)?`hasta las ${f.hasta} h`:`de ${f.desde} a ${f.hasta} h`};
 }
 function iwLluviaHtml(r,estadoAhora){
   const tx=iwLluviaTexto(r,estadoAhora);if(!tx)return'';
   const titulo=!r?'Observado ahora en el Aeroparque':`Chance de que llueva al menos 1 mm ${r.manana?'mañana, en el horario del kiosco':'desde ahora hasta el cierre'}, según ${r.simulaciones} simulaciones de 3 modelos del clima (europeo, estadounidense y alemán). Chance hora por hora: ${r.porHora.map(x=>`${x.h} h ${x.p}%`).join(' · ')}`;
-  return`<span class="iw-rain" title="${titulo}"><svg class="iw-rain-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 18 0z"/><path d="M12 12v6a2 2 0 0 1-4 0"/></svg><span>${tx.frase}</span>${tx.cuando?`<span class="iw-rain-when">· ${tx.cuando}</span>`:''}</span>`;
+  const partes=[tx.etiqueta,tx.pct,tx.cuando].filter(Boolean).map(t=>`<span>${t}</span>`).join('<span>·</span>');
+  return`<span class="iw-rain" title="${titulo}"><img class="iw-rain-icon" src="${mcUrl('umbrella')}" alt="" aria-hidden="true">${partes}</span>`;
 }
 // ── fin lluvia ──
 async function fetchInfoWidget(){
