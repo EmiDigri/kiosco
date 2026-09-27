@@ -2996,32 +2996,51 @@ img,svg,canvas{max-width:100%}
 .pulse-pace-row{display:flex;gap:14px}
 .pulse-pace-item{min-width:0;cursor:help}
 .pulse-metric-value.pace-mini{font-size:18px}
-.pulse-chart{position:relative;height:92px;padding:8px 2px 18px;border-bottom:1px solid var(--glass-border)}
-.pulse-gridlines{position:absolute;left:0;right:0;top:8px;bottom:18px;z-index:0;pointer-events:none}
-.pulse-grid-line{position:absolute;top:0;bottom:0;width:1px;background:rgba(255,255,255,.055)}
-.pulse-bars{position:absolute;left:0;right:0;top:8px;bottom:18px;display:grid;grid-template-columns:repeat(24,minmax(3px,1fr));align-items:end;gap:3px;z-index:1}
+.pulse-chart{--pulse-axis-w:62px;position:relative;height:172px;border-bottom:1px solid var(--glass-border)}
+.pulse-plot{position:absolute;left:var(--pulse-axis-w);right:6px;top:24px;bottom:22px}
+.pulse-gridlines{position:absolute;inset:0;z-index:0;pointer-events:none}
+.pulse-grid-line{position:absolute;top:0;bottom:0;width:1px;background:rgba(255,255,255,.032)}
+.pulse-grid-horizontal{position:absolute;left:0;right:0;height:1px;background:var(--glass-border);opacity:.6}
+.pulse-y-label{position:absolute;right:calc(100% + 9px);transform:translateY(50%);color:var(--text-soft);font-size:9px;font-weight:650;white-space:nowrap;font-variant-numeric:tabular-nums}
+.pulse-bars{position:absolute;inset:0;display:grid;grid-template-columns:repeat(24,minmax(3px,1fr));align-items:end;z-index:1}
 .pulse-bar-col{height:100%;display:flex;align-items:flex-end;justify-content:center;position:relative}
-.pulse-bar{width:100%;max-width:22px;height:var(--pulse-h,2%);min-height:2px;border-radius:3px 3px 1px 1px;background:rgba(124,144,255,.28);border-top:1px solid rgba(163,177,255,.28)}
-.pulse-bar-col.is-current .pulse-bar{background:var(--accent);border-color:#9cacff;box-shadow:0 0 12px rgba(124,144,255,.35)}
-.pulse-events{position:absolute;left:0;right:0;top:8px;bottom:18px;z-index:3;pointer-events:none}
-.pulse-event{position:absolute;width:4px;height:4px;margin-left:-2px;margin-bottom:-2px;border-radius:50%;background:#f4f1ed;box-shadow:0 0 6px rgba(255,255,255,.5);opacity:.72;pointer-events:auto;cursor:pointer}
+.pulse-bar{width:64%;max-width:24px;height:var(--pulse-h,0%);border-radius:5px 5px 1px 1px;background:linear-gradient(180deg,rgba(124,144,255,.6),rgba(124,144,255,.12));box-shadow:inset 0 1px rgba(200,208,255,.55)}
+.pulse-bar-col.is-current .pulse-bar{background:linear-gradient(180deg,#9aa9ff,rgba(124,144,255,.38));box-shadow:inset 0 1px rgba(255,255,255,.65),0 0 16px rgba(124,144,255,.42)}
+.pulse-events{position:absolute;inset:0;z-index:3;pointer-events:none}
+.pulse-event{position:absolute;width:5px;height:5px;margin-left:-2.5px;margin-bottom:-2.5px;border-radius:50%;background:#f4f1ed;box-shadow:0 0 6px rgba(255,255,255,.5);opacity:.9;pointer-events:auto;cursor:pointer}
+.pulse-event::after{content:'';position:absolute;inset:-7px;border-radius:50%}
+.pulse-event:focus-visible,.pulse-bar-col:focus-visible{outline:2px solid var(--accent);outline-offset:5px}
 .pulse-event.is-latest{width:7px;height:7px;margin-left:-3.5px;margin-bottom:-3.5px;background:#5FD68A;box-shadow:0 0 0 4px rgba(95,214,138,.13),0 0 15px rgba(95,214,138,.65);opacity:1}
 .pulse-event.is-max{width:8px;height:8px;margin-left:-4px;margin-bottom:-4px;background:#FFD43B;box-shadow:0 0 0 4px rgba(255,212,59,.2),0 0 18px rgba(255,212,59,.8);opacity:1;z-index:4}
-.pulse-tooltip{position:fixed;z-index:99999;background:rgba(10,14,26,.96);color:#f4f1ed;font-size:11px;font-weight:750;white-space:nowrap;padding:5px 9px;border-radius:7px;border:1px solid rgba(255,255,255,.14);box-shadow:0 6px 18px rgba(0,0,0,.4);pointer-events:none;opacity:0;transform:translate(-50%,-6px);transition:opacity .12s ease,transform .12s ease;font-variant-numeric:tabular-nums}
-.pulse-tooltip.show{opacity:1;transform:translate(-50%,-10px)}
+.pulse-tooltip{position:fixed;z-index:99999;background:rgba(10,14,26,.96);color:#f4f1ed;font-size:11px;font-weight:750;max-width:calc(100vw - 16px);padding:5px 9px;border-radius:7px;border:1px solid rgba(255,255,255,.14);box-shadow:0 6px 18px rgba(0,0,0,.4);pointer-events:none;opacity:0;transform:translateY(4px);transition:opacity .12s ease,transform .12s ease;font-variant-numeric:tabular-nums}
+.pulse-tooltip.show{opacity:1;transform:translateY(0)}
 body.light .pulse-tooltip{background:#fff;color:#1b1e2b;border-color:rgba(20,20,40,.12);box-shadow:0 6px 18px rgba(20,20,40,.18)}
-.pulse-now{position:absolute;top:3px;bottom:14px;width:1px;background:rgba(244,241,237,.52);z-index:2;pointer-events:none}
-.pulse-now::before{content:'';position:absolute;top:0;left:50%;width:5px;height:5px;border-radius:50%;background:#f4f1ed;transform:translate(-50%,-50%);box-shadow:0 0 8px rgba(255,255,255,.55)}
-.pulse-axis{position:absolute;left:0;right:0;bottom:0;height:14px;color:var(--text-soft);font-size:8px;font-weight:700;font-variant-numeric:tabular-nums}
+.pulse-future{position:absolute;top:0;bottom:0;right:0;z-index:0;pointer-events:none;background:repeating-linear-gradient(135deg,rgba(255,255,255,.03) 0 5px,transparent 5px 11px)}
+.pulse-now{position:absolute;top:-4px;bottom:0;width:1px;background:linear-gradient(rgba(244,241,237,.72) 55%,transparent 0) 0 0/1px 5px repeat-y;z-index:2;pointer-events:none}
+.pulse-now-label{position:absolute;top:-20px;left:50%;transform:translateX(-50%);padding:2px 7px;border-radius:999px;background:rgba(244,241,237,.1);border:1px solid rgba(244,241,237,.2);color:var(--text);font-size:9px;font-weight:750;line-height:1.2;white-space:nowrap}
+.pulse-now.is-end .pulse-now-label{left:auto;right:-4px;transform:none}.pulse-now.is-start .pulse-now-label{left:-4px;transform:none}
+.pulse-axis{position:absolute;left:var(--pulse-axis-w);right:6px;bottom:0;height:14px;color:var(--text-soft);font-size:8px;font-weight:700;font-variant-numeric:tabular-nums}
 .pulse-axis span{position:absolute;top:0;transform:translateX(-50%)}
+.pulse-legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:9px;color:var(--text-mid);font-size:10px;line-height:16px;letter-spacing:0}
+.pulse-legend span{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.pulse-key{display:inline-block;flex:0 0 auto;width:5px;height:5px;border-radius:50%;background:var(--text)}
+.pulse-key.bar{width:9px;height:9px;border-radius:2px;background:linear-gradient(180deg,rgba(124,144,255,.75),rgba(124,144,255,.25))}
+.pulse-key.max{background:#FFD43B}.pulse-key.latest{background:#5FD68A}
 .pulse-foot{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:10px;font-size:10px;color:var(--text-soft)}
 .pulse-foot strong{color:var(--text-mid);font-weight:750}
 .pulse-loading{height:128px;display:flex;align-items:center;justify-content:center;color:var(--text-soft);font-size:11px}
 body.light .kiosk-pulse{background:linear-gradient(90deg,rgba(37,76,232,.07),rgba(36,150,130,.035) 46%,rgba(255,255,255,.45))}
 body.light .pulse-event{background:#254CE8;box-shadow:none}
+body.light .pulse-key:not(.bar):not(.max):not(.latest){background:#254CE8}
 body.light .pulse-event.is-latest{background:#16835f;box-shadow:0 0 0 4px rgba(22,131,95,.12)}
+body.light .pulse-event.is-max{background:#bd8900;box-shadow:0 0 0 4px rgba(189,137,0,.14)}
+body.light .pulse-key.max{background:#bd8900}body.light .pulse-key.latest{background:#16835f}
 body.light .pulse-grid-line{background:rgba(20,20,40,.07)}
-body.light .pulse-now,body.light .pulse-now::before{background:#334155}
+body.light .pulse-now{background:linear-gradient(#334155 55%,transparent 0) 0 0/1px 5px repeat-y}
+body.light .pulse-now-label{background:rgba(51,65,85,.07);border-color:rgba(51,65,85,.22);color:#1b1e2b}
+body.light .pulse-future{background:repeating-linear-gradient(135deg,rgba(20,20,40,.045) 0 5px,transparent 5px 11px)}
+body.light .pulse-bar{background:linear-gradient(180deg,rgba(37,76,232,.5),rgba(37,76,232,.1));box-shadow:inset 0 1px rgba(37,76,232,.45)}
+body.light .pulse-bar-col.is-current .pulse-bar{background:linear-gradient(180deg,#254CE8,rgba(37,76,232,.3));box-shadow:0 0 12px rgba(37,76,232,.25)}
 body.light .pulse-tabs{background:rgba(37,76,232,.025)}
 body.light .pulse-tab.is-active{background:#fff;box-shadow:0 1px 5px rgba(20,20,40,.12)}
 .home-yesterday-access{
@@ -3064,9 +3083,10 @@ body.light .pulse-tab.is-active{background:#fff;box-shadow:0 1px 5px rgba(20,20,
   .pulse-metric:nth-child(3){grid-column:1/-1;border-left:none;border-top:1px solid var(--glass-border);padding:12px 0 0}
   .pulse-metric-value{font-size:21px}.pulse-metric-note{font-size:9.5px}
   .pulse-pace-row{gap:8px}.pulse-metric-value.pace-mini{font-size:16px}
-  .pulse-chart{height:82px}.pulse-bars{gap:2px}
-  .pulse-axis{font-size:7px}
-  .pulse-event{width:3px;height:3px;margin-left:-1.5px;margin-bottom:-1.5px}
+  .pulse-chart{--pulse-axis-w:54px;height:158px}
+  .pulse-axis{font-size:7px}.pulse-y-label{font-size:8px;right:calc(100% + 6px)}
+  .pulse-legend{font-size:9px;gap:4px 12px}
+  .pulse-event{width:4px;height:4px;margin-left:-2px;margin-bottom:-2px}
   .pulse-foot{font-size:9px;align-items:flex-start}.pulse-foot span:last-child{text-align:right}
   .home-yesterday-access{width:100%;margin:-5px 0 14px;min-height:58px}
 }
@@ -7178,6 +7198,24 @@ function pulseMoneyShort(n){
   if(n>=1000)return'$'+Math.round(n/1000).toLocaleString('es-AR')+' mil';
   return pulseMoney(n);
 }
+function pulseChartScale(maxValue){
+  // Escala redonda lo más ajustada posible al pico (3 a 5 divisiones de 1, 2, 2,5 o 5): con un
+  // pico de $101 mil llega a $125 mil y no a $200 mil, así las barras usan la altura del gráfico.
+  const max=Math.max(1,Number(maxValue)||1000);
+  let best=null;
+  for(let exp=Math.floor(Math.log10(max/5));exp<=Math.ceil(Math.log10(max));exp++){
+    for(const base of [1,2,2.5,5]){
+      const step=base*10**exp,count=Math.ceil(max/step);
+      if(count>=3&&count<=5&&(!best||step*count<best.max))best={max:step*count,step,count};
+    }
+  }
+  if(!best){const step=10**Math.ceil(Math.log10(max/4));best={max:step*4,step,count:4};}
+  return{max:best.max,ticks:Array.from({length:best.count+1},(_,i)=>i*best.step)};
+}
+function pulseAxisMoney(value){
+  const divisor=value>=1000000?1000000:value>=1000?1000:1;
+  return'$'+(value/divisor).toLocaleString('es-AR',{maximumFractionDigits:2})+(divisor===1000000?' M':divisor===1000?' mil':'');
+}
 function pulseRowKey(r){return`${r.fecha}|${String(r.hora||'').slice(0,5)}|${Math.round((Number(r.monto)||0)*100)}|${String(r.nombre||'').trim().toLowerCase()}`;}
 function pulseValidRow(r){return r&&r.fecha&&r.hora&&(Number(r.monto)||0)>0&&r.es_enviada!==true&&String(r.es_enviada)!=='true'&&r.devuelta!==true&&String(r.devuelta)!=='true'&&(!r.status||r.status==='approved');}
 function pulseLocalRows(desde){
@@ -7313,6 +7351,7 @@ function pulseProyeccion(byDate,todayIso,dow,startM,endExclM,cutoffM,parcialHoy,
 }
 function pulseRender(rows){
   const content=document.getElementById('pulseContent');if(!content)return;
+  document.querySelector('.pulse-tooltip.show')?.classList.remove('show');
   const now=new Date(),actualToday=pulseIso(now),actualCutoff=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
   const byDate=new Map();
   rows.forEach(r=>{if(!byDate.has(r.fecha))byDate.set(r.fecha,[]);byDate.get(r.fecha).push(r);});
@@ -7385,7 +7424,7 @@ function pulseRender(rows){
   }
   const hourTotals=Array.from({length:24},()=>0);
   todayRows.forEach(r=>{const h=Math.max(0,Math.min(23,Math.floor(pulseMinutes(r.hora)/60)));hourTotals[h]+=Number(r.monto)||0;});
-  const maxHour=Math.max(1,...hourTotals),peakHour=hourTotals.indexOf(Math.max(...hourTotals));
+  const maxHour=Math.max(0,...hourTotals),peakHour=hourTotals.indexOf(Math.max(...hourTotals));
   const movementMinutes=todayRows.map(r=>pulseMinutes(r.hora));
   const outsideRows=todayRows.filter(r=>{const mins=pulseMinutes(r.hora);return mins<usualStartMinutes||mins>usualEndMinutes;});
   let rangeStartHour=Math.floor(usualStartMinutes/60),rangeEndHour=Math.ceil(usualEndMinutes/60);
@@ -7396,23 +7435,26 @@ function pulseRender(rows){
   }
   const rangeHours=Math.max(1,rangeEndHour-rangeStartHour),rangeStartMinutes=rangeStartHour*60,rangeDurationMinutes=rangeHours*60;
   const visibleHourTotals=hourTotals.slice(rangeStartHour,rangeEndHour);
-  const bars=visibleHourTotals.map((value,i)=>{const h=rangeStartHour+i;return`<div class="pulse-bar-col${isToday&&h===now.getHours()?' is-current':''}" title="${String(h).padStart(2,'0')}:00 · ${pulseMoney(value)}"><span class="pulse-bar" style="--pulse-h:${value?Math.max(6,(value/maxHour)*100):2}%"></span></div>`;}).join('');
+  // Both layers share the same linear scale and the same plot bounds.
+  const scale=pulseChartScale(maxHour);
+  const bars=visibleHourTotals.map((value,i)=>{const h=rangeStartHour+i,tip=`${String(h).padStart(2,'0')}:00–${String(h+1).padStart(2,'0')}:00 · $${value.toLocaleString('es-AR',{maximumFractionDigits:2})} en total`;return`<div class="pulse-bar-col${isToday&&h===now.getHours()?' is-current':''}" tabindex="0" aria-label="${tip}" data-pulse-tip="${tip}"><span class="pulse-bar" style="--pulse-h:${value/scale.max*100}%"></span></div>`;}).join('');
   const axisHours=Array.from({length:rangeHours+1},(_,i)=>rangeStartHour+i);
-  const axisLeft=h=>Math.max(.8,Math.min(99.2,(h-rangeStartHour)/rangeHours*100)).toFixed(2);
+  const axisLeft=h=>((h-rangeStartHour)/rangeHours*100).toFixed(2);
   const gridlines=axisHours.map(h=>`<span class="pulse-grid-line" style="left:${axisLeft(h)}%"></span>`).join('');
+  const yGrid=scale.ticks.map(value=>`<span class="pulse-grid-horizontal" style="bottom:${value/scale.max*100}%"></span><span class="pulse-y-label" style="bottom:${value/scale.max*100}%">${pulseAxisMoney(value)}</span>`).join('');
   const axisLabels=axisHours.map(h=>`<span style="left:${axisLeft(h)}%">${String(h).padStart(2,'0')}</span>`).join('');
   const eventRows=todayRows,maxPayment=Math.max(1,...eventRows.map(r=>Number(r.monto)||0));
   const newKeys=[];
   const events=eventRows.map((r,i)=>{
     const key=pulseRowKey(r),isLatest=i===eventRows.length-1,isNew=isToday&&pulseHasRendered&&!pulseKnownKeys.has(key);if(isNew)newKeys.push(key);
     const monto=Number(r.monto)||0,isMax=maxPayment>1&&monto===maxPayment;
-    const left=Math.max(.25,Math.min(99.75,(pulseMinutes(r.hora)-rangeStartMinutes)/rangeDurationMinutes*100)),bottom=8+Math.min(78,Math.sqrt(monto/maxPayment)*70);
-    const tip=`${String(r.hora).slice(0,5)} · ${pulseMoney(monto)}${isMax?' · pago más alto del día':''}`;
-    return`<span class="pulse-event${isLatest?' is-latest':''}${isMax?' is-max':''}${isNew?' is-new':''}" data-pulse-key="${key}" data-pulse-tip="${cmEsc?cmEsc(tip):tip}" style="left:${left}%;bottom:${bottom}%"></span>`;
+    const left=Math.max(0,Math.min(100,(pulseMinutes(r.hora)-rangeStartMinutes)/rangeDurationMinutes*100)),bottom=monto/scale.max*100;
+    const tip=`${String(r.hora).slice(0,5)} · $${monto.toLocaleString('es-AR',{maximumFractionDigits:2})}${isMax?' · mayor cobro':''}${isLatest?' · último cobro':''}`;
+    return`<span class="pulse-event${isLatest?' is-latest':''}${isMax?' is-max':''}${isNew?' is-new':''}" tabindex="0" role="button" aria-label="${cmEsc(tip)}" data-pulse-key="${cmEsc(key)}" data-pulse-tip="${cmEsc(tip)}" style="left:${left}%;bottom:${bottom}%"></span>`;
   }).join('');
   const nowVisible=isToday&&nowMins>=rangeStartMinutes&&nowMins<=rangeStartMinutes+rangeDurationMinutes;
   const nowLeft=Math.max(.25,Math.min(99.75,(nowMins-rangeStartMinutes)/rangeDurationMinutes*100));
-  const nowMarker=nowVisible?`<span class="pulse-now" style="left:${nowLeft}%"></span>`:'';
+  const nowMarker=nowVisible?`<span class="pulse-future" style="left:${nowLeft}%" aria-hidden="true"></span><span class="pulse-now${nowLeft>85?' is-end':nowLeft<8?' is-start':''}" style="left:${nowLeft}%"><span class="pulse-now-label">Ahora</span></span>`:'';
   const historicBest=Math.max(0,...comparables.map(d=>d.full));
   const peakText=todayTotal>historicBest&&historicBest>0?'Mejor día comparable superado':hourTotals[peakHour]>0?`Pico: ${String(peakHour).padStart(2,'0')}:00 · ${pulseMoney(hourTotals[peakHour])}`:isToday?'Todavía sin cobros hoy':'Ayer no hubo movimientos';
   const outsideText=outsideRows.length?` · ${outsideRows.length} movimiento${outsideRows.length===1?'':'s'} fuera de horario`:'';
@@ -7449,10 +7491,11 @@ function pulseRender(rows){
       <div class="pulse-metric"><div class="pulse-metric-label">${paceLabel}</div><div class="pulse-pace-row"><div class="pulse-pace-item" title="${cmEsc?cmEsc(paceTip):paceTip}"><div class="pulse-metric-value pace-mini">${paceValue}</div><div class="pulse-metric-note ${paceClass}">${paceNote}</div></div><div class="pulse-pace-item" title="${cmEsc?cmEsc(pace30Tip):pace30Tip}"><div class="pulse-metric-value pace-mini">${pace30Value}</div><div class="pulse-metric-note ${pace30Class}">${pace30Note}</div></div></div></div>
       ${tercerTileHtml}
     </div>
-    <div class="pulse-chart" role="img" aria-label="Actividad de Mercado Pago ${isToday?'de hoy':'de ayer'} entre las ${String(rangeStartHour).padStart(2,'0')}:00 y las ${String(rangeEndHour).padStart(2,'0')}:00">
-      <div class="pulse-gridlines">${gridlines}</div><div class="pulse-bars" style="grid-template-columns:repeat(${rangeHours},minmax(3px,1fr))">${bars}</div><div class="pulse-events">${events}</div>${nowMarker}
+    <div class="pulse-chart" role="group" aria-label="Cobros de Mercado Pago ${isToday?'de hoy':'de ayer'}, en pesos. Barras: total por hora. Puntos: cada cobro.">
+      <div class="pulse-plot"><div class="pulse-gridlines">${gridlines}${yGrid}</div><div class="pulse-bars" style="grid-template-columns:repeat(${rangeHours},minmax(3px,1fr))">${bars}</div><div class="pulse-events">${events}</div>${nowMarker}</div>
       <div class="pulse-axis">${axisLabels}</div>
     </div>
+    <div class="pulse-legend"><span><i class="pulse-key bar" aria-hidden="true"></i>Total por hora</span><span><i class="pulse-key" aria-hidden="true"></i>Cada cobro</span><span><i class="pulse-key max" aria-hidden="true"></i>Mayor cobro</span><span><i class="pulse-key latest" aria-hidden="true"></i>Último cobro</span></div>
     <div class="pulse-foot"><span><strong>${footLead}</strong>${outsideText}</span><span>${footRight}</span></div>`;
   pulseKnownKeys=new Set(availableTodayRows.map(pulseRowKey));
   requestAnimationFrame(()=>{
@@ -7476,15 +7519,21 @@ function pulseRender(rows){
   function show(dot){
     const tip=ensureTip(),texto=dot.dataset.pulseTip;if(!texto)return;
     tip.textContent=texto;
-    const r=dot.getBoundingClientRect();
-    tip.style.left=(r.left+r.width/2)+'px';
-    tip.style.top=r.top+'px';
+    const r=dot.getBoundingClientRect(),size=tip.getBoundingClientRect();
+    tip.style.left=Math.max(8,Math.min(window.innerWidth-size.width-8,r.left+r.width/2-size.width/2))+'px';
+    tip.style.top=Math.max(8,r.top-size.height-10)+'px';
     tip.classList.add('show');
   }
   function hide(){if(tipEl)tipEl.classList.remove('show');}
-  document.addEventListener('pointerover',e=>{const dot=e.target.closest('.pulse-event');if(dot)show(dot);});
-  document.addEventListener('pointerout',e=>{const dot=e.target.closest('.pulse-event');if(dot&&!dot.contains(e.relatedTarget))hide();});
+  const target=e=>e.target.closest('.pulse-event,.pulse-bar-col');
+  document.addEventListener('pointerover',e=>{if(e.pointerType==='touch')return;const dot=target(e);if(dot)show(dot);});
+  document.addEventListener('pointerout',e=>{if(e.pointerType==='touch')return;const dot=target(e);if(dot&&!dot.contains(e.relatedTarget))hide();});
+  document.addEventListener('click',e=>{const dot=target(e);if(dot)show(dot);else hide();});
+  document.addEventListener('focusin',e=>{const dot=target(e);if(dot)show(dot);});
+  document.addEventListener('focusout',e=>{if(target(e))hide();});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')hide();else if((e.key==='Enter'||e.key===' ')&&target(e)){e.preventDefault();show(target(e));}});
   document.addEventListener('scroll',hide,true);
+  window.addEventListener('resize',hide);
 })();
 async function cargarPulsoKiosco(){
   if(pulseLoading)return;pulseLoading=true;
