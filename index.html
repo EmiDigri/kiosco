@@ -4724,44 +4724,22 @@ function showToast(msg){
   els.sundayPicker.hidden=true;els.gameContent.hidden=false;
   const puzzleId=isPractice?`${day}|practica-unica-antes-vale`:esDomingo?`${day}|${scheduledOwner.nombre}|${owner.nombre}`:`${day}|${owner.nombre}`;
   const gameHasStarted=id=>Boolean(id&&Array.isArray(state.games[id]?.guesses)&&state.games[id].guesses.length);
-  const rememberUsed=wordKey=>{if(!state.used.some(item=>normalize(item)===wordKey))state.used.push(wordKey);};
+  // ── Palabra del día (pedido de digra 27/9/2026) ──
+  // La MISMA palabra para todos los turnos y todos los dispositivos: sale solo de la
+  // fecha. El banco se recorre en un orden mezclado fijo, una palabra por día, así no se
+  // repite hasta usar todo el banco (~9.800 palabras). Antes dependía del nombre de quien
+  // jugaba y del historial guardado en cada dispositivo, y a cada uno le tocaba otra.
+  const ordenPalabras=words.slice().sort((a,b)=>hash(`orden-v1|${a.key}`)-hash(`orden-v1|${b.key}`)||(a.key<b.key?-1:1));
+  const numeroDia=fecha=>Math.round(Date.UTC(+fecha.slice(0,4),+fecha.slice(5,7)-1,+fecha.slice(8,10))/864e5);
+  const palabraDelDia=(fecha,desfase=0)=>ordenPalabras.length?ordenPalabras[(numeroDia(fecha)+desfase)%ordenPalabras.length]:null;
+  // ── fin palabra del día ──
   function assignWord(){
-    const saved=state.assignments[puzzleId];
-    if(saved){
-      const found=words.find(word=>word.key===normalize(saved));
-      if(found&&!isPractice){
-        const played=gameHasStarted(puzzleId),playedElsewhere=Object.entries(state.assignments).some(([id,value])=>id!==puzzleId&&normalize(value)===found.key&&gameHasStarted(id));
-        if(played)rememberUsed(found.key);
-        else if(!playedElsewhere)state.used=state.used.filter(item=>normalize(item)!==found.key);
-        state.activeChallenge={word:found.display,puzzleId,played,playedAt:played?(state.activeChallenge?.playedAt||state.games[puzzleId]?.completedAt||null):null};
-        writeState(state);
-      }
-      if(found)return found;
-    }
-    if(!isPractice&&state.activeChallenge){
-      const pending=state.activeChallenge,pendingWord=words.find(word=>word.key===normalize(pending.word));
-      const pendingPlayed=Boolean(pending.played||gameHasStarted(pending.puzzleId));
-      if(pendingWord&&!pendingPlayed){
-        state.assignments[puzzleId]=pendingWord.display;
-        state.activeChallenge={...pending,word:pendingWord.display,puzzleId,played:false,playedAt:null};
-        state.used=state.used.filter(item=>normalize(item)!==pendingWord.key);
-        writeState(state);return pendingWord;
-      }
-      if(pendingWord&&pendingPlayed)rememberUsed(pendingWord.key);
-    }
-    const used=new Set(state.used.map(normalize));
-    if(used.size>=words.length)return null;
-    const available=words.filter(word=>!used.has(word.key));
-    const preferredLength=5+(hash(`${puzzleId}|longitud`)%4);
-    let lengthPool=available.filter(word=>word.length===preferredLength);
-    if(!lengthPool.length)lengthPool=available;
-    const categories=[...new Set(lengthPool.map(word=>word.category))];
-    const category=categories[hash(`${puzzleId}|categoria`)%categories.length];
-    const candidates=lengthPool.filter(word=>word.category===category);
-    const word=candidates[hash(`${puzzleId}|palabra`)%candidates.length];
+    // Una partida que ya se empezó (con la palabra de antes del cambio) se respeta.
+    const saved=state.assignments[puzzleId],found=saved&&words.find(word=>word.key===normalize(saved));
+    const word=found&&gameHasStarted(puzzleId)?found:palabraDelDia(day,isPractice?1:0);
     if(!word)return null;
     state.assignments[puzzleId]=word.display;
-    if(!isPractice)state.activeChallenge={word:word.display,puzzleId,played:false,playedAt:null};
+    if(!isPractice)state.activeChallenge={word:word.display,puzzleId,played:gameHasStarted(puzzleId),playedAt:state.games[puzzleId]?.completedAt||null};
     writeState(state);return word;
   }
   const answer=locked?null:assignWord();
@@ -4952,7 +4930,6 @@ function showToast(msg){
     if(game.guesses.includes(guess)){els.status.textContent='Esa palabra ya la probaste';return;}
     const row=game.guesses.length;game.guesses.push(guess);updateOwnerControl();const won=guess===answer.key;
     if(!isPractice){
-      rememberUsed(answer.key);
       state.activeChallenge={word:answer.display,puzzleId,played:true,playedAt:state.activeChallenge?.playedAt||new Date().toISOString()};
     }
     if(won){
