@@ -1,5 +1,23 @@
 .hist-dia-encabezado{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px 24px;margin:8px 0 18px}
 .hist-dia-encabezado .hist-dia-titulo{margin:0;letter-spacing:0;min-width:0}
+.hist-dia-acciones{display:flex;align-items:center;flex-wrap:wrap;gap:8px 18px;min-width:0;max-width:100%}
+.hist-gasto-agregar{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:44px;padding:8px 12px;border:1px solid var(--glass-border);border-radius:8px;background:var(--glass);color:var(--accent);font:inherit;font-size:14px;font-weight:650;cursor:pointer}
+.hist-gasto-agregar>span{font-size:21px;line-height:1}
+.hist-gasto-agregar:hover:not(:disabled){border-color:var(--accent)}
+.hist-gasto-agregar:disabled{opacity:.5;cursor:wait}
+.hist-nuevo-gasto{padding:16px 0;margin:8px 0 12px;border-top:1px solid var(--glass-border);border-bottom:1px solid var(--glass-border)}
+.hist-nuevo-gasto h4{display:flex;flex-wrap:wrap;gap:6px 12px;margin:0 0 14px;color:var(--text);font-size:15px;font-weight:650}
+.hist-nuevo-gasto h4 span{color:var(--text-soft);font-size:14px;font-weight:400}
+.hist-nuevo-campos{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:12px;max-width:640px}
+.hist-nuevo-campos label{display:grid;gap:6px;min-width:0;font-size:13px;color:var(--text-soft)}
+.hist-nuevo-campos input{box-sizing:border-box;width:100%;min-width:0;min-height:44px;padding:10px 12px;background:var(--glass);border:1px solid var(--glass-border);border-radius:8px;color:var(--text);font:inherit;font-size:16px}
+.hist-nuevo-acciones{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:8px;max-width:640px;margin-top:14px}
+.hist-nuevo-acciones button{min-height:44px;padding:8px 14px;border:1px solid var(--glass-border);border-radius:8px;background:var(--glass);color:var(--text);font:inherit;font-size:14px;cursor:pointer}
+.hist-nuevo-acciones .hist-nuevo-guardar{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:650}
+.hist-nuevo-acciones button:disabled{opacity:.6;cursor:wait}
+.hist-nuevo-error{margin:12px 0 0;color:var(--amber);font-size:14px;line-height:1.5}
+.hist-gasto-agregar:focus-visible,.hist-nuevo-gasto :focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+@media(max-width:420px){.hist-nuevo-campos{grid-template-columns:minmax(0,1fr)}.hist-dia-acciones{justify-content:space-between;width:100%;gap:8px}}
 .hist-dia-gastos{display:flex;align-items:baseline;flex-wrap:wrap;gap:6px;min-height:44px;max-width:100%;padding:6px 0;border:0;background:none;font:inherit;font-size:15px;color:var(--amber);cursor:pointer;text-align:left}
 .hist-dia-gastos strong{font-size:20px;font-weight:750;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
 .hist-dia-gastos:hover:not(:disabled) strong{text-decoration:underline;text-underline-offset:4px}

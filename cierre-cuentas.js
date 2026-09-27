@@ -62,6 +62,63 @@
     const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(key));
     return 'g_foto_' + Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
   }
+  const unicos = (rows, keyOf) => {
+    const seen = new Set();
+    return (rows || []).filter(row => {
+      const key = keyOf(row);
+      if (key == null) return true;
+      if (seen.has(String(key))) return false;
+      seen.add(String(key)); return true;
+    });
+  };
+  // Palabras que no identifican a un proveedor ("Pago Producto de Coca-Cola FEMSA de
+  // Buenos Aires S.A." tiene que coincidir con "Coca" por "coca", no por "pago").
+  const RELLENO = new Set(['pago', 'producto', 'del', 'las', 'los', 'con', 'transferencia', 'enviada', 'sac', 'srl', 'buenos', 'aires', 'varios']);
+  const tokensProveedor = text => nombre(text).split(' ').filter(t => t.length >= 3 && !RELLENO.has(t));
+  // Empareja 1 a 1 los gastos del cuaderno con las salidas de MP. Un gasto y una salida
+  // son el mismo pago si son del MISMO día (en septiembre 2026 los 12 pares reales lo
+  // fueron; un día de diferencia no alcanza para asumir que es el mismo pago) y además:
+  //   - tienen el mismo importe (redondeando centavos: MP los trae, el cuaderno no), o
+  //   - nombran al mismo proveedor y el importe difiere poco (hasta 25%: un error de
+  //     tipeo como Edenor anotado 418.409 y pagado 481.408,07).
+  // Cada salida cubre a lo sumo UN gasto y cada gasto a lo sumo UNA salida: nunca una
+  // salida de Arcor tapa todos los Arcor del mes. Se asignan primero los pares más
+  // seguros (importe + nombre). `ambiguo` marca empates que no se pueden
+  // resolver (dos gastos idénticos para una sola salida: ¿dos compras o uno repetido?).
+  function emparejarGastos(gastos, salidas) {
+    const pares = [];
+    gastos.forEach((g, gi) => {
+      const a = Math.abs(Number(g.monto)), dg = String(g.fecha || '').slice(0, 10), tg = tokensProveedor(g.nombre);
+      if (!(a > 0)) return;
+      salidas.forEach((p, si) => {
+        const b = Math.abs(Number(p.monto)), dp = String(p.fecha || '').slice(0, 10);
+        if (!(b > 0) || (dg && dp && dg !== dp)) return;
+        const dif = Math.abs(a - b);
+        const mismoImporte = dif < 1;
+        const tp = tokensProveedor(p.nombre);
+        const mismoNombre = tg.some(t => tp.includes(t));
+        if (!mismoImporte && !(mismoNombre && dif <= Math.max(a, b) * .25)) return;
+        pares.push({gi, si, puntos:(mismoImporte ? 2 : 0) + (mismoNombre ? 1 : 0), dif});
+      });
+    });
+    pares.sort((x, y) => y.puntos - x.puntos || x.dif - y.dif || x.gi - y.gi || x.si - y.si);
+    const deGasto = new Map(), deSalida = new Map();
+    pares.forEach(par => {
+      if (deGasto.has(par.gi) || deSalida.has(par.si)) return;
+      deGasto.set(par.gi, par); deSalida.set(par.si, par);
+    });
+    const ambiguos = new Set();
+    pares.forEach(par => {
+      const ganador = deSalida.get(par.si);
+      if (!ganador || ganador.gi === par.gi || deGasto.has(par.gi)) return;
+      const empate = par.puntos === ganador.puntos && par.dif === ganador.dif;
+      if (empate) { ambiguos.add(par.gi); ambiguos.add(ganador.gi); }
+    });
+    return gastos.map((g, gi) => {
+      const par = deGasto.get(gi);
+      return par ? {pago:salidas[par.si], ambiguo:ambiguos.has(gi)} : {pago:null, ambiguo:ambiguos.has(gi)};
+    });
+  }
   function conciliarGastos(gastos, pagos, disponible = true) {
     // Match one expense to one outgoing payment; never add the payment a second time.
     // NOTA (cambio pedido por digra 9/9/2026, hecho por Claude, NO por Codex): los
@@ -69,38 +126,32 @@
     // porque "Efectivo presunto" / "MP coincidente" confundian al usuario. La logica
     // de `medio` no cambio, solo el `texto` visible. Codex: si tocas esto, incorpora
     // el cambio (mantene los textos simples Efectivo / MP).
-    const seen = new Set();
-    const salidas = (pagos || []).filter(salida).filter(p => {
-      const key = p.pago_id ?? p.id;
-      if (key == null) return true;
-      if (seen.has(String(key))) return false;
-      seen.add(String(key)); return true;
-    });
-    return gastos.map(g => {
-      if (!disponible) return {medio:'pendiente', texto:'Sin consultar'};
-      const mismaFecha = p => !g.fecha || !p.fecha || g.fecha === p.fecha;
-      const candidates = salidas.filter(p => mismaFecha(p) && Math.abs(Math.abs(Number(p.monto)) - Number(g.monto)) < .005);
-      if (!candidates.length) return {medio:'efectivo', texto:'Efectivo'};
-      const competing = gastos.filter(x => (!g.fecha || !x.fecha || g.fecha === x.fecha) && monto(x.monto) === monto(g.monto));
-      const tokens = nombre(g.nombre).split(' ').filter(t => t.length >= 3);
-      const named = candidates.filter(p => tokens.some(t => nombre(p.nombre).split(' ').includes(t)));
-      const uniqueNamed = named.length === 1 && competing.filter(x => nombre(x.nombre).split(' ').filter(t => t.length >= 3).some(t => nombre(named[0].nombre).split(' ').includes(t))).length === 1;
-      if (uniqueNamed || (candidates.length === 1 && competing.length === 1)) {
-        return {medio:'mp', texto:'MP', pago:named[0] || candidates[0]};
-      }
-      return {medio:'revisar', texto:'MP'};
+    if (!disponible) return gastos.map(() => ({medio:'pendiente', texto:'Sin consultar'}));
+    const salidas = unicos((pagos || []).filter(salida), p => p.pago_id ?? p.id);
+    return emparejarGastos(gastos, salidas).map(par => {
+      if (par.ambiguo) return {medio:'revisar', texto:'MP'};
+      if (!par.pago) return {medio:'efectivo', texto:'Efectivo'};
+      return {medio:'mp', texto:'MP', pago:par.pago};
     });
   }
-  function resumenGastosDia(gastos, pagos, disponible = true) {
-    const unicos = (rows, keyOf) => {
-      const seen = new Set();
-      return (rows || []).filter(row => {
-        const key = keyOf(row);
-        if (key == null) return true;
-        if (seen.has(String(key))) return false;
-        seen.add(String(key)); return true;
-      });
+  // Egresos del mes sin contar dos veces lo que está en el cuaderno Y en MP: todas las
+  // salidas de MP (con su importe real) + los gastos del cuaderno que ninguna salida
+  // cubre. Cada salida emparejada trae su gasto del cuaderno (`gasto`) para nombrarla
+  // como la anotaron en el kiosco ("Pepsico" en vez de "Transferencia enviada").
+  function conciliarMes(gastos, pagos) {
+    const registrados = unicos(gastos, g => g.uid ?? g.id).filter(g => Number(g.monto) > 0);
+    const salidas = unicos((pagos || []).filter(salida), p => p.pago_id ?? p.id).filter(p => Math.abs(Number(p.monto)) > 0);
+    const cubre = new Map(), efectivo = [];
+    emparejarGastos(registrados, salidas).forEach((par, i) => {
+      if (par.pago) cubre.set(par.pago, registrados[i]);
+      else efectivo.push(registrados[i]);
+    });
+    return {
+      efectivo,
+      salidas: salidas.map(p => ({...p, monto:Math.abs(Number(p.monto)), gasto:cubre.get(p) || null})),
     };
+  }
+  function resumenGastosDia(gastos, pagos, disponible = true) {
     const registrados = unicos(gastos, g => g.uid ?? g.id).filter(g => monto(g.monto) !== null);
     const salidas = unicos((pagos || []).filter(salida), p => p.pago_id ?? p.id)
       .filter(p => monto(Math.abs(Number(p.monto))) !== null);
@@ -111,7 +162,13 @@
       const medio = medios[i];
       if (medio.medio === 'revisar' || (medio.pago && usados.has(medio.pago))) porRevisar = true;
       if (medio.pago) usados.add(medio.pago);
-      return {...g, monto:monto(g.monto), medio:medio.medio, origen:'cuaderno'};
+      const fila = {...g, monto:monto(g.monto), medio:medio.medio, origen:'cuaderno'};
+      // Si por MP salió otro importe (error al anotar: Edenor 418.409 anotado, 481.408,07
+      // pagado) cuenta lo que salió de verdad, igual que Métricas, y se guarda lo anotado
+      // para mostrarlo. El registro del cuaderno no se toca.
+      const real = medio.pago ? monto(Math.abs(Number(medio.pago.monto))) : null;
+      if (real !== null && Math.abs(real - fila.monto) >= 1) { fila.anotado = fila.monto; fila.monto = real; }
+      return fila;
     });
     salidas.filter(p => !usados.has(p)).forEach(p => {
       filas.push({...p, monto:Math.abs(Number(p.monto)), medio:'mp', origen:'mp'});
@@ -176,5 +233,5 @@
     }
     return {total, mp, efectivo, once, gastos, resultado:total - gastos, cerrados, esperados, completos, totalCompletos};
   }
-  return {monto, fecha, ingreso, salida, totalCierre, totalDia, completo, turnos, nombre, conceptoGasto, idGastoFoto, conciliarGastos, resumenGastosDia, validarFoto, resumenMes};
+  return {monto, fecha, ingreso, salida, totalCierre, totalDia, completo, turnos, nombre, conceptoGasto, idGastoFoto, emparejarGastos, conciliarGastos, conciliarMes, resumenGastosDia, validarFoto, resumenMes};
 });

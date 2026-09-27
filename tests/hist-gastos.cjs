@@ -43,3 +43,66 @@ test('empty days and local-only totals have explicit states', () => {
   assert.equal(local.total,100);
   assert.equal(local.local,true);
 });
+
+// Casos reales de septiembre 2026 (cuaderno vs salidas de MP).
+test('MP cents do not create a second expense (Coca 381.846 written, 381.845,15 paid)', () => {
+  const result = C.resumenGastosDia([{uid:'c',fecha:'2026-09-04',nombre:'Coca',monto:381846}],
+    [outgoing('mp',381845.15,{fecha:'2026-09-04',nombre:'Pago Producto de  Coca-Cola FEMSA de Buenos Aires S.A.'})]);
+  assert.equal(result.filas.length,1);
+  assert.equal(result.filas[0].medio,'mp');
+  assert.equal(result.total,381846);
+});
+
+test('a typo in the notebook counts what MP paid and keeps the written amount visible', () => {
+  const result = C.resumenGastosDia([{uid:'e',fecha:'2026-09-07',nombre:'Edenor',monto:418409}],
+    [outgoing('mp',481408.07,{fecha:'2026-09-07',nombre:'Pago Edenor'})]);
+  assert.equal(result.filas.length,1);
+  assert.equal(result.filas[0].monto,481408.07);
+  assert.equal(result.filas[0].anotado,418409);
+  assert.equal(result.total,481408.07);
+});
+
+test('one MP payment covers one notebook expense, never every expense of that supplier', () => {
+  const gastos = [
+    {uid:'1',fecha:'2026-09-04',nombre:'Coca',monto:381846},
+    {uid:'2',fecha:'2026-09-11',nombre:'Coca',monto:150000},
+    {uid:'3',fecha:'2026-09-04',nombre:'Coca',monto:90000}
+  ];
+  const mes = C.conciliarMes(gastos,[outgoing('mp',381845.15,{fecha:'2026-09-04',nombre:'Pago Producto de Coca-Cola FEMSA'})]);
+  assert.deepEqual(mes.efectivo.map(g=>g.uid),['2','3']);
+  assert.equal(mes.salidas[0].gasto.uid,'1');
+});
+
+test('shared words or equal amounts on distant days do not hide a cash expense', () => {
+  const mes = C.conciliarMes([
+    {uid:'hub',fecha:'2026-09-09',nombre:'Hub USB',monto:7000},
+    {uid:'x',fecha:'2026-09-20',nombre:'Flete',monto:66633}
+  ],[
+    outgoing('lector',39539.39,{fecha:'2026-09-04',nombre:'Pago Lector De Codigo De Barras Usb'}),
+    outgoing('t',66633,{fecha:'2026-09-01',nombre:'Transferencia enviada'})
+  ]);
+  assert.deepEqual(mes.efectivo.map(g=>g.uid),['hub','x']);
+  assert(mes.salidas.every(s=>s.gasto===null));
+});
+
+test('only the same day matches: a payment a day apart is a different movement', () => {
+  const pago = outgoing('m',54589.13,{fecha:'2026-09-13',nombre:'Pago MAPFRE Aconcagua'});
+  assert.equal(C.conciliarMes([{uid:'a',fecha:'2026-09-13',nombre:'Seguro Mapfre',monto:54589}],[pago]).efectivo.length,0);
+  assert.equal(C.conciliarMes([{uid:'a',fecha:'2026-09-14',nombre:'Seguro Mapfre',monto:54589}],[pago]).efectivo.length,1);
+});
+
+test('month total counts each paid expense once (cash not covered + every MP payment)', () => {
+  const gastos = [
+    {uid:'p',fecha:'2026-09-01',nombre:'Pepsico',monto:66633},
+    {uid:'s',fecha:'2026-09-01',nombre:'Santos',monto:899850}
+  ];
+  const salidas = [
+    outgoing('t',66633,{fecha:'2026-09-01',nombre:'Transferencia enviada'}),
+    outgoing('arca',79552.18,{fecha:'2026-09-19',nombre:'Pago ARCA'}),
+    outgoing('dev',5000,{fecha:'2026-09-02',devuelta:true})
+  ];
+  const mes = C.conciliarMes(gastos,salidas);
+  const total = mes.efectivo.reduce((s,g)=>s+g.monto,0)+mes.salidas.reduce((s,p)=>s+p.monto,0);
+  assert.equal(Math.round(total*100)/100,1046035.18);
+  assert.equal(mes.salidas.find(s=>s.pago_id==='t').gasto.nombre,'Pepsico');
+});

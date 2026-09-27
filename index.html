@@ -3527,7 +3527,7 @@ body.light .tg-lock{background:rgba(255,255,255,.96)}
 
 </style>
 <link rel="stylesheet" href="./login.css?v=20260905-motion">
-<link rel="stylesheet" href="./historial-gastos.css?v=20260915">
+<link rel="stylesheet" href="./historial-gastos.css?v=20260927-agregar">
 <link rel="stylesheet" href="./assets/vendor/cropper-1.6.2/cropper.min.css">
 <link rel="stylesheet" href="./historial-foto-recorte.css?v=20260919">
 <script src="./login.js?v=20260905-motion" defer></script>
@@ -4355,7 +4355,7 @@ body.light .tg-lock{background:rgba(255,255,255,.96)}
 <div class="toast" id="toast"></div>
 
 <script src="./assets/desafios-es.js"></script>
-<script src="./cierre-cuentas.js?v=20260918-conceptos"></script>
+<script src="./cierre-cuentas.js?v=20260927-conciliacion"></script>
 <script defer src="./assets/palabras-validas.js"></script>
 <script>
 const TURNOS_DOMINGO = [
@@ -5476,8 +5476,6 @@ const MET_PROVEEDOR={Edenor:'Edenor',AYSA:'AYSA',Telecentro:'Telecentro'};
 function metLabel(n){n=(n||'').trim();return MET_LABEL[n]||n;}
 // Conciliación con MercadoPago: clasificar/etiquetar una salida de MP por su nombre.
 const metNorm=s=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
-const MET_STOP=new Set(['pago','producto','de','del','la','las','los','el','transferencia','enviada','sa','sac','srl','s','a','buenos','aires','con','y','varios']);
-const metToks=s=>metNorm(s).split(' ').filter(t=>t.length>=3&&!MET_STOP.has(t));
 function metTipoSalidaMp(nombre){const n=metNorm(nombre);
   if(/\b(edenor|telecentro|aysa|arca|afip|agip|rentas|mapfre|seguro|monotributo|impuest|luz|metrogas|gas natural|internet|alquiler)\b/.test(n))return 'fijo';
   if(/\b(lector|toldo|heladera|mostrador|freezer|estanteria|cartel)\b/.test(n))return 'inversion';
@@ -5528,19 +5526,18 @@ function metRender(){
   let faltan=0;
   {const hastaF=esMesActual?hoyD-1:last;
    for(let dd=1;dd<=hastaF;dd++){const fd=histIso(y,m,dd),dat=histResumenMes[fd],cl=new Map(((dat&&dat.cierres)||[]).map(c=>[c.turno,c]));CierreCuentas.turnos(fd).forEach(t=>{if(!(cl.has(t)&&CierreCuentas.monto(cl.get(t).total_turno)!==null))faltan++;});}}
-  // Egresos CONCILIADOS con MercadoPago: cada gasto se cuenta una sola vez y con el
-  // monto real. Regla: se toman TODAS las salidas de MP (monto real, incluye MAPFRE,
-  // ARCA, etc. que no se anotan en el cuaderno) + los gastos del cuaderno que NO están
-  // cubiertos por una salida de MP (los pagados en efectivo). Un gasto del cuaderno se
-  // considera "cubierto" si comparte nombre o monto con una salida de MP (así no se
-  // doble-cuenta Edenor/proveedores pagados por MP, y el monto que vale es el de MP).
-  const metSalidas=(histRowsPagosMes||[]).filter(p=>(p.es_enviada===true||String(p.es_enviada)==='true')&&!(p.devuelta===true||String(p.devuelta)==='true')&&(!p.status||p.status==='approved')).map(p=>({nombre:(p.nombre||'').trim(),monto:Math.abs(Number(p.monto)||0)})).filter(p=>p.monto>0);
-  const metSalTok=new Set(); metSalidas.forEach(s=>metToks(s.nombre).forEach(t=>metSalTok.add(t)));
-  const metSalMonto=metSalidas.map(s=>s.monto);
-  const metCubierto=g=>{const gt=metToks(g.nombre);if(gt.length&&gt.some(t=>metSalTok.has(t)))return true;return metSalMonto.some(m=>Math.abs(m-g.monto)<1);};
+  // Egresos CONCILIADOS con MercadoPago, 1 a 1 (CierreCuentas.conciliarMes): TODAS las
+  // salidas de MP con su monto real (incluye MAPFRE, ARCA, etc. que no se anotan en el
+  // cuaderno) + los gastos del cuaderno que ninguna salida cubre (los pagados en efectivo).
+  // Una salida cubre a lo sumo UN gasto del mismo día con el mismo
+  // importe, o del mismo proveedor con importe parecido: no se doble-cuenta Edenor ni los
+  // proveedores pagados por MP, y una salida de Coca no tapa todos los Coca del mes.
+  // La salida emparejada se nombra y clasifica como la anotaron ("Pepsico", no
+  // "Transferencia enviada"); el monto que vale es el de MP.
+  const metConc=CierreCuentas.conciliarMes(histRowsGastosMes,histRowsPagosMes);
   const egr=[];
-  (histRowsGastosMes||[]).forEach(g=>{const mo=Number(g.monto)||0;if(mo<=0)return;const nom=(g.nombre||'').trim();if(!metCubierto({nombre:nom,monto:mo}))egr.push({nombre:metLabel(nom),monto:mo,tipo:metTipoGasto(nom)});});
-  metSalidas.forEach(s=>egr.push({nombre:metLabelSalida(s.nombre),monto:s.monto,tipo:metTipoSalidaMp(s.nombre)}));
+  metConc.efectivo.forEach(g=>{const nom=(g.nombre||'').trim();egr.push({nombre:metLabel(nom),monto:Number(g.monto),tipo:metTipoGasto(nom)});});
+  metConc.salidas.forEach(s=>{const nom=s.gasto?(s.gasto.nombre||'').trim():'';egr.push(nom?{nombre:metLabel(nom),monto:s.monto,tipo:metTipoGasto(nom)}:{nombre:metLabelSalida(s.nombre),monto:s.monto,tipo:metTipoSalidaMp(s.nombre)});});
   let fijo=0,variable=0,inversion=0,pendiente=0;
   const acum={variable:{},fijo:{},inversion:{},pendiente:{}};
   egr.forEach(e=>{const t=e.tipo;acum[t][e.nombre]=(acum[t][e.nombre]||0)+e.monto;if(t==='fijo')fijo+=e.monto;else if(t==='inversion')inversion+=e.monto;else if(t==='pendiente')pendiente+=e.monto;else variable+=e.monto;});
@@ -6307,9 +6304,12 @@ function histGrupoFilasHtml(grupos){
 }
 function histRenderGastosMes(){
   const el=document.getElementById('histGastosMes');if(!el)return;
-  const efectivo=histAgruparPorNombre(histRowsGastosMes||[]);
-  const totalEfectivo=(histRowsGastosMes||[]).reduce((s,g)=>s+(Number(g.monto)||0),0);
-  const salidas=(histRowsPagosMes||[]).filter(p=>(p.es_enviada===true||String(p.es_enviada)==='true')&&!(p.devuelta===true||String(p.devuelta)==='true')&&(!p.status||p.status==='approved'));
+  // Conciliado 1 a 1 con MP (igual que Métricas): un gasto del cuaderno pagado por MP
+  // va una sola vez, en la columna MercadoPago, con el importe real y el nombre anotado.
+  const conc=CierreCuentas.conciliarMes(histRowsGastosMes,histRowsPagosMes);
+  const efectivo=histAgruparPorNombre(conc.efectivo);
+  const totalEfectivo=conc.efectivo.reduce((s,g)=>s+(Number(g.monto)||0),0);
+  const salidas=conc.salidas.map(s=>s.gasto?{...s,nombre:s.gasto.nombre}:s);
   const mp=histAgruparPorNombre(salidas);
   const totalMp=salidas.reduce((s,p)=>s+(Number(p.monto)||0),0);
   const total=totalEfectivo+totalMp;
@@ -10672,7 +10672,7 @@ initEasterEggs();
 <script src="./cierre-foto-ui.js?v=20260909-lectura"></script>
 <script src="./price-unit.js?v=20260919-unit2"></script>
 <script src="./catalogo-ui.js"></script>
-<script src="./historial-gastos.js?v=20260918-conceptos"></script>
+<script src="./historial-gastos.js?v=20260927-agregar"></script>
 <script src="./historial-foto-recorte.js?v=20260919"></script>
 <script>
 // Snapshot del cierre por foto (opción A, automático). NO toca cierre-foto-ui.js de

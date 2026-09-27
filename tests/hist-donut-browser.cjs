@@ -14,6 +14,7 @@ const html=`<!doctype html><html><head><meta charset="utf-8"><meta name="viewpor
 const histMoney=n=>'$'+Number(n||0).toLocaleString('es-AR');
 const histMoneyCompact=n=>n>=1e6?'$'+(n/1e6).toLocaleString('es-AR',{maximumFractionDigits:1})+'M':'$'+Math.round(n/1000)+'k';
 const cmEsc=s=>String(s||'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+const provLogoHtml=()=>''; // los logos no son parte de esta prueba
 let histRowsGastosMes=[{fecha:'2026-09-18',nombre:'Pago Arcor',monto:125000},{fecha:'2026-09-16',nombre:'Telecentro',monto:32342}];
 let histRowsPagosMes=[['Coca-Cola FEMSA',553976],['Edenor',481408],['Transferencia enviada',272327],['Producto',63460],['MAPFRE Aconcagua',54589],['Barracas Logistica',34875],['Lector',39539],['Norbieta',30000],['Santos',27000],['Todo Dulce',24000],['Limpieza',21000],['Internet',18000],['Reparaciones',15000],['Impuestos',12000],['Flete',9000]].map((x,i)=>({fecha:'2026-09-'+String(Math.max(1,18-i)).padStart(2,'0'),nombre:x[0],monto:x[1],es_enviada:true,status:'approved'}));
 ${renderSource}

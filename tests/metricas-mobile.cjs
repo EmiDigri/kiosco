@@ -18,7 +18,7 @@ const markup = source.slice(markupStart, markupEnd).replace('met-overlay"', 'met
 // Use the app's pinned ECharts build, downloaded once to TEMP (or ECHARTS_TEST_PATH).
 const library = fs.readFileSync(process.env.ECHARTS_TEST_PATH || path.join(os.tmpdir(), 'kiosco-echarts-5.5.1.min.js'));
 const output = fs.mkdtempSync(path.join(os.tmpdir(), 'kiosco-metricas-'));
-const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">${styles}</head><body>${markup}<script>
+const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">${styles}</head><body>${markup}<script>${fs.readFileSync(path.join(root, 'cierre-cuentas.js'), 'utf8')}</script><script>
 const histMoney=n=>'$'+Number(n||0).toLocaleString('es-AR');
 const histMoneyCompact=n=>'$'+(n/1e6).toLocaleString('es-AR',{maximumFractionDigits:1})+'M';
 const histMesNombre=d=>d.toLocaleDateString('es-AR',{month:'long',year:'numeric'});
@@ -26,7 +26,8 @@ const histPrimerYUltimoDiaMes=d=>({y:d.getFullYear(),m:d.getMonth()+1,last:30});
 const histIso=(y,m,d)=>y+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0');
 let histMesActual, histResumenMes={}, histRowsPagosMes=[], histRowsGastosMes=[];
 let revenue=24568000;
-const CierreCuentas={resumenMes:()=>({total:revenue}),turnos:()=>[]};
+// Real reconciliation (conciliarMes); only the monthly revenue and shifts are synthetic.
+const CierreCuentas={...window.CierreCuentas,resumenMes:()=>({total:revenue}),turnos:()=>[]};
 const lockBody=()=>{},unlockBody=()=>{},histCargarMes=async()=>{};
 ${source.slice(start, end)}
 window.renderFixture=(sales,variable,fixed,investment=0)=>{
