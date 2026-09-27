@@ -17,6 +17,7 @@ const DULCE_SUR_URL = 'https://oepqhdjuujfdlpjjktbs.supabase.co';
 const RAPPI_URL = 'https://www.rappi.com.ar';
 const DIA_URL = 'https://diaonline.supermercadosdia.com.ar';
 const JOSIMAR_URL = 'https://www.josimar.com.ar';
+const CIGARPOINT_URL = 'https://www.cigarpoint.com.ar';
 const STATIONERY_STORES = {
   ramos: { url: 'https://ramospapeleria.com.ar', label: 'Librería Ramos' },
   clips: { url: 'https://www.clipslibreria.com.ar', label: 'Clips Librería' },
@@ -801,8 +802,10 @@ async function stationerySearch(query, limit, source) {
 // foto (data-srcset) y el precio en CENTAVOS en data-product-price. Precio
 // real de venta al público de una cadena de kioscos — la referencia
 // minorista más directa para este rubro.
-function open25Card(card) {
+// También sirve para Cigar Point, que corre en la misma plataforma: `base` es la tienda.
+function open25Card(card, base = 'https://tienda.open25.com.ar') {
   const title = htmlText(card.match(/data-store="product-item-name-\d+"[^>]*>([^<]*)</)?.[1]);
+  const productUrl = new RegExp(`href="(${base.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/productos/[^"]+)"`);
   const cents = Number(card.match(/data-product-price="(\d+)"/)?.[1]);
   if (!title || !Number.isFinite(cents) || cents <= 0) return null;
   const srcset = card.match(/data-srcset="([^"]+)"/)?.[1] || '';
@@ -812,7 +815,7 @@ function open25Card(card) {
     title,
     price: cents / 100,
     image: image ? `https:${image}` : null,
-    permalink: card.match(/href="(https:\/\/tienda\.open25\.com\.ar\/productos\/[^"]+)"/)?.[1] || null,
+    permalink: card.match(productUrl)?.[1] || null,
     // El cartel "Sin stock" viene en TODAS las tarjetas; cuando hay stock
     // llega oculto con style="display:none". Solo cuenta si está visible.
     outOfStock: (() => {
@@ -856,6 +859,54 @@ async function open25Search(query, limit = 10) {
       available: !parsed.outOfStock,
       image: parsed.image,
       permalink: parsed.permalink || `https://tienda.open25.com.ar/search/?q=${encodeURIComponent(queryText)}`,
+      updatedAt: new Date().toISOString(),
+      relevance: textRelevance(parsed.title, queryText),
+    });
+  }
+  const ranked = items.filter(item => item.relevance >= 20 && unitPrices.matchesSearch(item, query, {partial:true}) && matchesRequestedSize(item, query))
+    .sort((a, b) => b.relevance - a.relevance || a.unitPrice - b.unitPrice)
+    .slice(0, 20);
+  supplierCacheSet(cacheKey, ranked);
+  return ranked.slice(0, limit);
+}
+
+// Cigar Point (tabaquería online, en la misma plataforma que Open 25): tabaco para armar,
+// papelillos, filtros y encendedores, que no vende ninguna otra fuente. No vende cigarrillos.
+// Su buscador escribe "REDFIELD" junto: con "red field" devolvía otras cosas "red".
+async function cigarpointSearch(query, limit = 10) {
+  const queryText = supplierQueryText(query).replace(/\bred\s+field\b/gi, 'redfield');
+  const cacheKey = `cigarpoint:v1:${mlText(query)}`;
+  const cached = supplierCacheGet(cacheKey);
+  if (cached) return cached.slice(0, limit);
+  const html = await supplierFetch(`${CIGARPOINT_URL}/search/?q=${encodeURIComponent(queryText)}`, {
+    headers: { ...BROWSER_HEADERS, accept: 'text/html,application/xhtml+xml' },
+  }, 8000);
+  if (!/js-item-product|no encontramos|no se encontraron|sin resultados|ning[uú]n producto/i.test(html)) throw new Error('Cigar Point no devolvió su catálogo');
+  const items = [];
+  for (const card of html.split('class="js-item-product').slice(1)) {
+    const parsed = open25Card(card, CIGARPOINT_URL);
+    if (!parsed) continue;
+    items.push({
+      id: `cigarpoint:${parsed.productId}`,
+      source: 'cigarpoint',
+      sourceLabel: 'Cigar Point',
+      priceType: 'retail',
+      code: parsed.productId,
+      title: parsed.title,
+      brand: productBrand(parsed.title),
+      presentation: parsed.title.match(/\b\d+(?:[.,]\d+)?\s*(?:g|gr|grs|kg|ml|cc|l|lt|un)\b/i)?.[0] || 'Unidad',
+      category: 'Kiosco',
+      unitPrice: parsed.price,
+      retailMin: parsed.price,
+      retailMax: parsed.price,
+      storeCount: 1,
+      packPrice: null,
+      packUnits: null,
+      minimum: 1,
+      stock: parsed.outOfStock ? 0 : null,
+      available: !parsed.outOfStock,
+      image: parsed.image,
+      permalink: parsed.permalink || `${CIGARPOINT_URL}/search/?q=${encodeURIComponent(queryText)}`,
       updatedAt: new Date().toISOString(),
       relevance: textRelevance(parsed.title, queryText),
     });
@@ -1492,9 +1543,10 @@ async function handleRadar() {
 }
 
 async function supplierSearch(query, limit = 10, options = {}) {
-  const [rappi, open25, dulce, dia, josimar, ramos, clips] = await Promise.allSettled([
+  const [rappi, open25, dulce, dia, josimar, ramos, clips, cigarpoint] = await Promise.allSettled([
     rappiSearch(query, limit), open25Search(query, limit), dulceSurSearch(query, limit), diaSearch(query, limit),
     josimarSearch(query, limit), stationerySearch(query, limit, 'ramos'), stationerySearch(query, limit, 'clips'),
+    cigarpointSearch(query, limit),
   ]);
   return {
     items: [
@@ -1503,11 +1555,13 @@ async function supplierSearch(query, limit = 10, options = {}) {
       ...(josimar.status === 'fulfilled' ? josimar.value : []),
       ...(ramos.status === 'fulfilled' ? ramos.value : []),
       ...(clips.status === 'fulfilled' ? clips.value : []),
+      ...(cigarpoint.status === 'fulfilled' ? cigarpoint.value : []),
       ...(rappi.status === 'fulfilled' ? rappi.value : []),
       ...(dulce.status === 'fulfilled' ? dulce.value : []),
     ].filter(item => unitPrices.matchesSearch(item, query, options)),
     sources: { rappi: rappi.status === 'fulfilled', open25: open25.status === 'fulfilled', dulceSur: dulce.status === 'fulfilled', dia:dia.status === 'fulfilled',
-      josimar:josimar.status === 'fulfilled', ramos:ramos.status === 'fulfilled', clips:clips.status === 'fulfilled' },
+      josimar:josimar.status === 'fulfilled', ramos:ramos.status === 'fulfilled', clips:clips.status === 'fulfilled',
+      cigarpoint:cigarpoint.status === 'fulfilled' },
   };
 }
 
@@ -2025,6 +2079,7 @@ async function handleSearch(query, lat, lng, zone) {
       dulceSur: suppliers.sources.dulceSur === true,
       dia: suppliers.sources.dia === true,
       josimar: suppliers.sources.josimar === true,
+      cigarpoint: suppliers.sources.cigarpoint === true,
       ramos: suppliers.sources.ramos === true,
       clips: suppliers.sources.clips === true,
     },
@@ -2076,6 +2131,7 @@ async function handleCompare(product, lat, lng, zone) {
       dulceSur: suppliers.sources.dulceSur === true,
       dia: suppliers.sources.dia === true,
       josimar: suppliers.sources.josimar === true,
+      cigarpoint: suppliers.sources.cigarpoint === true,
       ramos: suppliers.sources.ramos === true,
       clips: suppliers.sources.clips === true,
     },

@@ -97,3 +97,20 @@ test('typed searches: a bare number is a size and filler words are not required'
   assert.equal(U.matchesSearch(prod('Gaseosa Original Coca Cola 600 cc','josimar'),'gaseosa',{partial:true}),true);
   assert.equal(U.matchesSearch(prod('Gaseosa Coca Cola Zero 600ml - Pack x 6un','open25'),'coca cola 600',{partial:true}),false,'packs stay out');
 });
+
+// Tabaquería (Cigar Point, 27/9/2026): tabaco para armar, papelillos y filtros son de kiosco.
+test('rolling tobacco, papers and filters count as kiosk products; a bag of filters is one unit',()=>{
+  for(const title of ['REDFIELD VAINILLA 30 g','PAPELES SMOKING 200 HOJAS','FILTROS OCB SLIM','SMOKING CUADRO MAIZ','Tabaco Red Field Vainilla 30 g'])
+    assert.equal(U.isKioskProduct({title,category:'Kiosco'}),true,title);
+  assert.equal(U.isIndividual({title:'FILTROS STAMPS REGULAR X100'}),true);
+  assert.equal(U.isIndividual({title:'FILTROS SMOKING SLIM X 120'}),true);
+  assert.equal(U.isIndividual({title:'Filtros OCB Slim caja x 10 paquetes'}),false,'una caja sigue siendo pack');
+  assert.equal(U.isIndividual({title:'Alfajor Guaymallen x 6'}),false,'fuera de la tabaquería, x6 sigue siendo pack');
+});
+test('"red field" and "redfield" are the same brand',()=>{
+  const cp=prod('REDFIELD VAINILLA 30 g','cigarpoint'),otra=prod('Tabaco Red Field Vainilla 30 g','otra');
+  assert.equal(U.matchesSearch(cp,'red field vainilla',{partial:true}),true);
+  assert.equal(U.matchesSearch(otra,'redfield',{partial:true}),true);
+  assert.equal(U.sameProduct(cp,prod('Red Field Vainilla 30 gr','otra')),true);
+  assert.equal(U.sameProduct(cp,prod('REDFIELD GRAPE 30 g','cigarpoint')),false);
+});

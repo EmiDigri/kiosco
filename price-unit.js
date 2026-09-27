@@ -16,12 +16,16 @@
     for(const match of text.matchAll(/\b(?:minimo|minima|desde|a partir de)\s*(?:de\s*)?(\d+)\s*(?:unidades?|uds?|un|u)\b/g)){
       if(Number(match[1])>1)return false;
     }
-    // Counts of sheets and physical measurements describe a single item.
+    // Counts of sheets and physical measurements describe a single item. So does the count in a
+    // bag of filters or a booklet of rolling papers ("Filtros Stamps x100" is ONE bag).
+    const contenido=/\b(?:filtros?|papel(?:es|illos?)?|sedas|tips|boquillas?)\b/.test(text);
     for(const match of text.matchAll(/(?:^|[^a-z0-9])(?:x|por)\s*(\d+(?:[.,]\d+)?)\s*([a-z]+)?/g)){
       if(/^(?:g|gr|grs|grms?|gramos?|kg|ml|cc|l|lt|lts|litros?|hojas?|h|hs|hjs|mm|cm|m)$/.test(match[2]||''))continue;
+      if(contenido&&(!match[2]||/^(?:u|un|uds?|unidades?)$/.test(match[2])))continue;
       if(Number(match[1].replace(',','.'))>1)return false;
     }
     for(const match of text.matchAll(/(?:\b|x)(\d+)\s*(?:unidades|unidad|uds|ud|un|u)\b/g)){
+      if(contenido)continue;
       if(Number(match[1])>1)return false;
     }
     for(const match of text.matchAll(/\b(\d+)\s*x\s*\d+(?:[.,]\d+)?\s*(?:g|gr|grs|kg|ml|cc|l|lt|hojas?)\b/g)){
@@ -30,8 +34,8 @@
     return true;
   }
   const aliases={alfajores:'alfajor',chocolates:'chocolate',choc:'chocolate',choco:'chocolate',bombones:'bombon',caramelos:'caramelo',chicles:'chicle',gomitas:'gomita',galletas:'galletita',galleta:'galletita',galletitas:'galletita',obleas:'oblea',turrones:'turron',pastillas:'pastilla',alm:'almendra',almendras:'almendra',avellanas:'avellana',frutillas:'frutilla',negra:'negro',blanca:'blanco',black:'negro',white:'blanco',resmas:'resma',hojas:'hoja',biromes:'boligrafo',birome:'boligrafo',boligrafos:'boligrafo',lapiceras:'boligrafo',lapicera:'boligrafo',fibrones:'marcador',fibron:'marcador',marcadores:'marcador',resaltadores:'resaltador',lapices:'lapiz',gaseosas:'gaseosa',jugos:'jugo',bebidas:'bebida',cigarrillos:'cigarrillo',encendedores:'encendedor',pilas:'pila',panuelos:'panuelo',cuadernos:'cuaderno',budines:'budin',bizcochos:'bizcocho',papitas:'papita',snacks:'snack',cervezas:'cerveza'};
-  const productTypes=new Set(('alfajor chocolate bombon caramelo chicle gomita galletita oblea turron pastilla chupetin chupetines confite confites malvavisco malvaviscos golosina golosinas snack papita mani pochoclo palitos nachos semilla semillas helado helados postre postres gaseosa bebida agua soda jugo energizante energizantes isotonica cerveza vino vodka fernet whisky licor leche yogur yogurt manteca queso fiambre mantecol budin bizcocho pan magdalena magdalenas tortita tortitas azucar edulcorante yerba cafe cacao te mate cocido harina arroz fideos aceite sal mayonesa ketchup mostaza mermelada atun conserva conservas resma boligrafo marcador resaltador lapiz cuaderno carpeta carpetas cartulina goma regla corrector tempera crayon crayones adhesivo abrochadora clip clips libreria cigarrillo tabaco encendedor fosforo fosforos pila preservativo preservativos panuelo servilleta servilletas').split(' '));
-  const kioskBrands=new Set(('rasta milka arcor cofler block guaymallen fantoche jorgito jorgelin aguila terrabusi tatin oreo pepitos toddy bagley chocolinas sonrisas diversion opera criollitas traviata tentaciones kesitas saladix mogul rocklets shot marroc cabsha cadbury kinder ferrero nutella beldent topline bazooka sugus bonobon lays doritos cheetos twistos pehuamar krachitos coca sprite fanta pepsi manaos speed monster gatorade powerade cepita baggio levite villavicencio aquarius tic tac halls menthoplus flynn paff').split(' '));
+  const productTypes=new Set(('papelillo papelillos papeles sedas filtro filtros boquilla boquillas picadura alfajor chocolate bombon caramelo chicle gomita galletita oblea turron pastilla chupetin chupetines confite confites malvavisco malvaviscos golosina golosinas snack papita mani pochoclo palitos nachos semilla semillas helado helados postre postres gaseosa bebida agua soda jugo energizante energizantes isotonica cerveza vino vodka fernet whisky licor leche yogur yogurt manteca queso fiambre mantecol budin bizcocho pan magdalena magdalenas tortita tortitas azucar edulcorante yerba cafe cacao te mate cocido harina arroz fideos aceite sal mayonesa ketchup mostaza mermelada atun conserva conservas resma boligrafo marcador resaltador lapiz cuaderno carpeta carpetas cartulina goma regla corrector tempera crayon crayones adhesivo abrochadora clip clips libreria cigarrillo tabaco encendedor fosforo fosforos pila preservativo preservativos panuelo servilleta servilletas').split(' '));
+  const kioskBrands=new Set(('redfield smoking ocb gizeh raw libella stamps marlboro philip lucky camel chesterfield parliament rasta milka arcor cofler block guaymallen fantoche jorgito jorgelin aguila terrabusi tatin oreo pepitos toddy bagley chocolinas sonrisas diversion opera criollitas traviata tentaciones kesitas saladix mogul rocklets shot marroc cabsha cadbury kinder ferrero nutella beldent topline bazooka sugus bonobon lays doritos cheetos twistos pehuamar krachitos coca sprite fanta pepsi manaos speed monster gatorade powerade cepita baggio levite villavicencio aquarius tic tac halls menthoplus flynn paff').split(' '));
   const stopWords=new Set(['de','del','la','el','las','los','con','c','por','x','y','unidad','unidades','individual','un','u']);
   // Palabras que no distinguen un producto de otro: cada tienda las pone o no. "Gaseosa Coca-Cola
   // Sabor Original 600 ml" (Día) es "Gaseosa Original Coca Cola 600 cc" (Josimar) y "Coca-Cola 600
@@ -56,7 +60,7 @@
   function itemText(item){return [item.brand||item.marca,item.title||item.name||item.nombre,item.presentation||item.presentacion].filter(Boolean).join(' ');}
   function searchTokens(value){
     return searchText(value).replace(/\bbon\s*o\s*bon\b/g,'bonobon')
-      .replace(/\bcocacola\b/g,'coca cola').replace(/\blay['’]?s\b/g,'lays')
+      .replace(/\bcocacola\b/g,'coca cola').replace(/\bred\s*field\b/g,'redfield').replace(/\blay['’]?s\b/g,'lays')
       .replace(/\bclasicos?\b|\bclasicas\b/g,'clasica')
       .replace(/\bs\s*\//g,'sin ').replace(/\bc\s*\//g,'con ')
       .replace(/\bx(?=\d)/g,' ')

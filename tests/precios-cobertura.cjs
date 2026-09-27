@@ -84,7 +84,39 @@ test('new direct stores contribute to the reference and retain independent failu
   const result=ctx.combinedUnitReference({sourceOffers:['josimar','ramos','clips'].map((source,i)=>({source,id:source,sourceLabel:source,referencePrice:1000+i*100,matchType:'same'}))});
   assert.equal(result.count,3);assert.equal(result.median,1100);
   vm.runInContext(`rappiSearch=open25Search=dulceSurSearch=diaSearch=async()=>[];
-    josimarSearch=async()=>[];stationerySearch=async(q,n,source)=>{if(source==='ramos')throw Error('timeout');return []};`,ctx);
+    josimarSearch=async()=>[];cigarpointSearch=async()=>[];stationerySearch=async(q,n,source)=>{if(source==='ramos')throw Error('timeout');return []};`,ctx);
   const suppliers=await ctx.supplierSearch('resma');
   assert.equal(suppliers.sources.josimar,true);assert.equal(suppliers.sources.ramos,false);assert.equal(suppliers.sources.clips,true);
+  assert.equal(suppliers.sources.cigarpoint,true);
+});
+
+// Tarjetas con la misma forma que las de https://www.cigarpoint.com.ar/search/?q=redfield (27/9/2026).
+function cigarCard(id,name,cents,{slug=name.toLowerCase().replace(/[^a-z0-9]+/g,'-'),stock=true}={}){
+  return `<div class="js-item-product col-6" data-product-id="${id}"><a href="https://www.cigarpoint.com.ar/productos/${slug}/" title="${name}">
+    <img data-srcset="//acdn-us.mitiendanube.com/stores/001/297/768/products/${slug}-480-0.webp 480w"></a>
+    <div data-store="product-item-name-${id}">${name}</div><div data-product-price="${cents}"></div>
+    <div data-store="product-item-label-stock" data-label="Sin stock" ${stock?'style="display:none;"':''}>Sin stock</div></div>`;
+}
+test('Cigar Point reads its store cards, asks for "redfield" and keeps only the requested product',async()=>{
+  const ctx=fixture();
+  ctx.html='<html>'+[
+    cigarCard('60128870','REDFIELD VAINILLA 30 g',950000),cigarCard('60128871','REDFIELD GRAPE 30 g',950000),
+    cigarCard('1','PRINCIPES CORONA RED CHERRY',300000),cigarCard('2','REDFIELD VAINILLA 30 g Display x 10',9000000),
+  ].join('')+'</html>';
+  vm.runInContext('supplierFetch=async url=>{requestUrl=url;return html}',ctx);
+  const result=await ctx.cigarpointSearch('red field vainilla');
+  assert(ctx.requestUrl.startsWith('https://www.cigarpoint.com.ar/search/?q=redfield%20vainilla'),ctx.requestUrl);
+  assert.equal(result.length,1);
+  assert.equal(result[0].id,'cigarpoint:60128870');assert.equal(result[0].unitPrice,9500);
+  assert.equal(result[0].source,'cigarpoint');assert.equal(result[0].sourceLabel,'Cigar Point');
+  assert.equal(result[0].permalink,'https://www.cigarpoint.com.ar/productos/redfield-vainilla-30-g/');
+  assert.equal(result[0].available,true);
+});
+test('Cigar Point: an empty result page is a valid answer, an unknown page is a failure',async()=>{
+  const ctx=fixture();
+  ctx.html='<html><h2>No encontramos resultados para tu búsqueda</h2></html>';
+  vm.runInContext('supplierFetch=async()=>html',ctx);
+  assert.equal((await ctx.cigarpointSearch('marlboro')).length,0);
+  ctx.html='<html>error</html>';
+  await assert.rejects(ctx.cigarpointSearch('filtros ocb'),/Cigar Point no devolvió/);
 });

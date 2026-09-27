@@ -288,7 +288,7 @@
 
   function renderResults() {
     const paneTitle = document.querySelector('.price-pane-title');
-    const sourceOrder = ['precios-claros', 'dia', 'josimar', 'open25', 'ramos', 'clips', 'dulce-sur', 'rappi'];
+    const sourceOrder = ['precios-claros', 'dia', 'josimar', 'open25', 'cigarpoint', 'ramos', 'clips', 'dulce-sur', 'rappi'];
     const candidates = [...state.items.map(item => ({...item, source:'precios-claros', sourceLabel:'Precios Claros'})), ...state.supplierItems]
       .sort((a,b) => sourceOrder.indexOf(a.source) - sourceOrder.indexOf(b.source));
     const groups = window.KioscoPriceUnit.groupProducts(candidates);
@@ -524,7 +524,7 @@
     clearTimeout(suggestionTimer);
     state.suggestionRequest += 1;
     hideSuggestions();
-    if (['rappi', 'open25', 'dulce-sur', 'dia', 'josimar', 'ramos', 'clips'].includes(item.source)) {
+    if (['rappi', 'open25', 'dulce-sur', 'dia', 'josimar', 'ramos', 'clips', 'cigarpoint'].includes(item.source)) {
       state.searchRequest += 1;
       searchButton.disabled = false;
       state.sources = {};
@@ -535,7 +535,7 @@
       state.detail = null;
       state.mlItems = [];
       state.selectedMl = null;
-      state.supplierItems = availableSuggestions.filter(entry => ['rappi', 'open25', 'dulce-sur', 'dia', 'josimar', 'ramos', 'clips'].includes(entry.source) && isIndividual(entry));
+      state.supplierItems = availableSuggestions.filter(entry => ['rappi', 'open25', 'dulce-sur', 'dia', 'josimar', 'ramos', 'clips', 'cigarpoint'].includes(entry.source) && isIndividual(entry));
       if (!state.supplierItems.some(entry => entry.id === item.id)) state.supplierItems.unshift(item);
       state.selectedSupplier = item.id;
       renderResults();
@@ -739,7 +739,7 @@
       return { item, selected, score, shared, sameProduct };
     }).filter(row => row.selected || row.sameProduct);
 
-    const sourceOrder = ['precios-claros', 'dia', 'josimar', 'open25', 'ramos', 'clips', 'rappi', 'dulce-sur', 'mercadolibre'];
+    const sourceOrder = ['precios-claros', 'dia', 'josimar', 'open25', 'cigarpoint', 'ramos', 'clips', 'rappi', 'dulce-sur', 'mercadolibre'];
     const offers = [];
     sourceOrder.forEach(source => {
       const rows = ranked.filter(row => comparisonSource(row.item) === source)
@@ -868,7 +868,7 @@
     const bySource = new Map(), seen = new Set();
     for (const offer of data.sourceOffers || []) {
       if (!['selected', 'same'].includes(offer.matchType) || offer.available === false) continue;
-      if (!['precios-claros', 'dia', 'josimar', 'open25', 'ramos', 'clips', 'dulce-sur'].includes(offer.source)) continue;
+      if (!['precios-claros', 'dia', 'josimar', 'open25', 'cigarpoint', 'ramos', 'clips', 'dulce-sur'].includes(offer.source)) continue;
       // A search-result minimum is not a representative price for Precios Claros.
       const price = offer.selected && offer.source === 'precios-claros'
         ? Number(data.retailReference?.median) : Number(offer.referencePrice);
@@ -890,13 +890,13 @@
   }
 
   function sourceStatusHtml(sources = {}, partial = [], results, knownOffers = []) {
-    const names = {retail:'Precios Claros', dia:'Día online', josimar:'Josimar', open25:'Open 25', ramos:'Librería Ramos', clips:'Clips Librería', dulceSur:'Dulce Sur', rappi:'Rappi'};
+    const names = {retail:'Precios Claros', dia:'Día online', josimar:'Josimar', open25:'Open 25', cigarpoint:'Cigar Point', ramos:'Librería Ramos', clips:'Clips Librería', dulceSur:'Dulce Sur', rappi:'Rappi'};
     const failed = Object.entries(names).filter(([key]) => sources[key] === false).map(([,label]) => label);
     const incomplete = partial.map(key => names[key]).filter(Boolean);
     const warnings = [failed.length ? `${failed.join(', ')}: no respondió. No significa que no tenga el producto.` : '', incomplete.length ? `${incomplete.join(', ')}: consulta parcial.` : ''].filter(Boolean).join(' ');
     if (!results) return warnings ? `<div class="price-ml-note" role="status">${escapeHtml(warnings)}</div>` : '';
     const counts = {retail:(results.items || []).length};
-    for (const [key, source] of [['dia','dia'],['josimar','josimar'],['ramos','ramos'],['clips','clips'],['open25','open25'],['rappi','rappi'],['dulceSur','dulce-sur']]) counts[key] = (results.supplierItems || []).filter(item => item.source === source).length;
+    for (const [key, source] of [['dia','dia'],['josimar','josimar'],['ramos','ramos'],['clips','clips'],['open25','open25'],['cigarpoint','cigarpoint'],['rappi','rappi'],['dulceSur','dulce-sur']]) counts[key] = (results.supplierItems || []).filter(item => item.source === source).length;
     const rows = Object.entries(names).filter(([key]) => typeof sources[key] === 'boolean').map(([key, label]) => {
       const source = {retail:'precios-claros',dulceSur:'dulce-sur'}[key] || key;
       const known = knownOffers.some(offer => offer.source === source && Number(offer.retailPrice) > 0);
@@ -1794,7 +1794,7 @@
       const rows = group.rows.map(record => {
         const margin = catMargin(record);
         const sub = [record.marca, record.presentacion].filter(Boolean).join(' · ');
-        const origenTexto = { manual: 'manual', preciosclaros: 'Precios Claros', mercadolibre: 'Mercado Libre', 'casa-paso': 'Casa Paso', 'dulce-sur': 'Dulce Sur', rappi: 'Rappi', dia: 'Día online', josimar: 'Josimar', ramos: 'Librería Ramos', clips: 'Clips Librería', open25: 'Open 25', factura: 'Factura 📷' }[record.origen] || 'manual';
+        const origenTexto = { manual: 'manual', preciosclaros: 'Precios Claros', mercadolibre: 'Mercado Libre', 'casa-paso': 'Casa Paso', 'dulce-sur': 'Dulce Sur', rappi: 'Rappi', dia: 'Día online', josimar: 'Josimar', ramos: 'Librería Ramos', clips: 'Clips Librería', open25: 'Open 25', cigarpoint: 'Cigar Point', factura: 'Factura 📷' }[record.origen] || 'manual';
         const origen = `<span class="cat-origin">${origenTexto}</span>`;
         return `<div class="cat-row" data-uid="${escapeHtml(record.uid)}">
           ${catThumbHtml(record)}
