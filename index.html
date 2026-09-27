@@ -8741,7 +8741,10 @@ async function fetchFeriadosInfo(){
   const years=[hoy.getFullYear()-1,hoy.getFullYear(),hoy.getFullYear()+1];
   const yearResults=await Promise.all(years.map(async year=>{
     try{
-      const data=await fetch(`https://api.argentinadatos.com/v1/feriados/${year}`).then(r=>{if(!r.ok)throw new Error(r.status);return r.json();});
+      // Primero nuestro proxy: ArgentinaDatos + archivo oficial del Gobierno + feriados nacionales
+      // anunciados que todavía no publicó nadie (api/feriados.js). Si falla, ArgentinaDatos directo.
+      const pedir=url=>fetch(url).then(r=>{if(!r.ok)throw new Error(r.status);return r.json();});
+      const data=await pedir(`/api/feriados?year=${year}`).catch(()=>pedir(`https://api.argentinadatos.com/v1/feriados/${year}`));
       return{year,data};
     }catch(e){return null;}
   }));
