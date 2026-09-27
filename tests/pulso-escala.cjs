@@ -56,7 +56,7 @@ const server = http.createServer((req, res) => {
       assert.equal(await page.locator('.pulse-event').count(),7);
       assert.equal(await page.locator('.pulse-axis span').count(),16);
       assert.equal(await page.locator('.pulse-now-label').innerText(),'Ahora');
-      assert.equal(await page.locator('.pulse-legend span').count(),4);
+      assert.equal(await page.locator('.pulse-legend').count(),0,'sin leyenda (pedido de digra)');
       const geometry=await page.evaluate(()=>{
         const plot=document.querySelector('.pulse-plot').getBoundingClientRect();
         const dots=[...document.querySelectorAll('.pulse-event')].map(el=>{const r=el.getBoundingClientRect();return{fraction:parseFloat(el.style.bottom)/100,y:r.top+r.height/2};});
@@ -84,7 +84,6 @@ const server = http.createServer((req, res) => {
       assert.equal(await page.locator('.pulse-event.is-out').count(),1);
       assert.equal(await page.locator('.pulse-out-label').innerText(),'$500 mil');
       assert.equal((await page.locator('.pulse-chart:not(.pulse-chart-hours) .pulse-y-label').allTextContents()).at(-1),'$150 mil','la escala de los cobros no se estira');
-      assert.equal(await page.locator('.pulse-legend span').count(),5,'la leyenda explica el triangulito');
       const out=await page.locator('.pulse-out-label').boundingBox();
       assert(out.x>=0&&out.x+out.width<=width,'el monto del cobro gigante entra en pantalla');
       await page.screenshot({path:path.join(output,`pulse-${width}.png`)});

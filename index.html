@@ -3027,27 +3027,18 @@ body.light .pulse-tooltip{background:#fff;color:#1b1e2b;border-color:rgba(20,20,
 .pulse-now.is-end .pulse-now-label{left:auto;right:-4px;transform:none}.pulse-now.is-start .pulse-now-label{left:-4px;transform:none}
 .pulse-axis{position:absolute;left:var(--pulse-axis-w);right:6px;bottom:0;height:14px;color:var(--text-soft);font-size:8px;font-weight:700;font-variant-numeric:tabular-nums}
 .pulse-axis span{position:absolute;top:0;transform:translateX(-50%)}
-.pulse-legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:9px;color:var(--text-mid);font-size:10px;line-height:16px;letter-spacing:0}
-.pulse-legend span{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
-.pulse-key{display:inline-block;flex:0 0 auto;width:5px;height:5px;border-radius:50%;background:var(--text)}
-.pulse-key.bar{width:9px;height:9px;border-radius:2px;background:linear-gradient(180deg,rgba(124,144,255,.75),rgba(124,144,255,.25))}
-.pulse-key.max{background:#FFD43B}.pulse-key.latest{background:#5FD68A}
-.pulse-key.out{width:0;height:0;border-radius:0;background:none;border-left:4px solid transparent;border-right:4px solid transparent;border-bottom:7px solid #FFD43B}
 .pulse-foot{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:10px;font-size:10px;color:var(--text-soft)}
 .pulse-foot strong{color:var(--text-mid);font-weight:750}
 .pulse-loading{height:128px;display:flex;align-items:center;justify-content:center;color:var(--text-soft);font-size:11px}
 body.light .kiosk-pulse{background:linear-gradient(90deg,rgba(37,76,232,.07),rgba(36,150,130,.035) 46%,rgba(255,255,255,.45))}
 body.light .pulse-event{background:#254CE8;box-shadow:none}
-body.light .pulse-key:not(.bar):not(.max):not(.latest){background:#254CE8}
 body.light .pulse-event.is-latest{background:#16835f;box-shadow:0 0 0 4px rgba(22,131,95,.12)}
 body.light .pulse-event.is-max{background:#bd8900;box-shadow:0 0 0 4px rgba(189,137,0,.14)}
-body.light .pulse-key.max{background:#bd8900}body.light .pulse-key.latest{background:#16835f}
 body.light .pulse-grid-line{background:rgba(20,20,40,.07)}
 body.light .pulse-now{background:linear-gradient(#334155 55%,transparent 0) 0 0/1px 5px repeat-y}
 body.light .pulse-now-label{background:rgba(51,65,85,.07);border-color:rgba(51,65,85,.22);color:#1b1e2b}
 body.light .pulse-event.is-out{background:none;box-shadow:none;border-bottom-color:#bd8900;filter:none}
 body.light .pulse-out-label{background:#bd8900;color:#fff}
-body.light .pulse-key.out{background:none;border-bottom-color:#bd8900}
 body.light .pulse-strip-label{background:rgba(255,255,255,.75)}
 body.light .pulse-future{background:repeating-linear-gradient(135deg,rgba(20,20,40,.045) 0 5px,transparent 5px 11px)}
 body.light .pulse-bar{background:linear-gradient(180deg,rgba(37,76,232,.5),rgba(37,76,232,.1));box-shadow:inset 0 1px rgba(37,76,232,.45)}
@@ -3096,7 +3087,6 @@ body.light .pulse-tab.is-active{background:#fff;box-shadow:0 1px 5px rgba(20,20,
   .pulse-pace-row{gap:8px}.pulse-metric-value.pace-mini{font-size:16px}
   .pulse-chart{--pulse-axis-w:54px;height:132px}.pulse-chart-hours{height:72px}
   .pulse-axis{font-size:7px}.pulse-y-label{font-size:8px;right:calc(100% + 6px)}
-  .pulse-legend{font-size:9px;gap:4px 12px}
   .pulse-event{width:4px;height:4px;margin-left:-2px;margin-bottom:-2px}
   .pulse-foot{font-size:9px;align-items:flex-start}.pulse-foot span:last-child{text-align:right}
   .home-yesterday-access{width:100%;margin:-5px 0 14px;min-height:58px}
@@ -7525,7 +7515,6 @@ function pulseRender(rows){
       <span class="pulse-strip-label">Total por hora</span>
       <div class="pulse-axis">${axisLabels}</div>
     </div>
-    <div class="pulse-legend"><span><i class="pulse-key bar" aria-hidden="true"></i>Total por hora</span><span><i class="pulse-key" aria-hidden="true"></i>Cada cobro</span><span><i class="pulse-key max" aria-hidden="true"></i>Mayor cobro</span><span><i class="pulse-key latest" aria-hidden="true"></i>Último cobro</span>${outLeft.length?'<span><i class="pulse-key out" aria-hidden="true"></i>Cobro grande, fuera de escala</span>':''}</div>
     <div class="pulse-foot"><span><strong>${footLead}</strong>${outsideText}</span><span>${footRight}</span></div>`;
   // "Ahora" y el monto de un cobro gigante no se enciman: si se tocan en pantalla, se oculta la
   // pastilla "Ahora" (la línea punteada queda).
