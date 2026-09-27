@@ -156,6 +156,11 @@ html.overlay-scroll-lock{overflow-y:hidden!important}
 .iw-humidity{display:flex;align-items:center;gap:3px;min-height:16px;color:var(--text-mid);font-size:10px;font-weight:700;line-height:1;white-space:nowrap}
 .iw-humidity.is-humid{color:#74c0fc}.iw-humidity.is-dry{color:#f6b84a}
 .iw-humidity-svg{display:block;width:21px;height:21px;flex:0 0 21px;margin-right:1px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.28))}
+.iw-rain-slot{display:block}.iw-rain-slot:empty{display:none}
+.iw-rain{display:flex;align-items:center;flex-wrap:wrap;gap:1px 4px;min-height:16px;color:#74c0fc;font-size:10px;font-weight:700;line-height:1.25}
+.iw-rain-icon{display:block;width:14px;height:14px;flex:0 0 14px;margin-right:1px}
+.iw-rain-when{color:var(--text-mid);font-weight:600}
+body.light .iw-rain{color:#1864ab}
 @media(max-width:430px){.iw-humidity-svg{width:19px;height:19px;flex-basis:19px}}
 .iw-moon-slot{flex:0 0 auto}
 .iw-moon-slot:empty{display:none}
@@ -9196,11 +9201,82 @@ async function iwFetchDolarDirecto(){
   if(!out.oficial&&!out.blue&&!out.bolsa)throw new Error('sin cotizaciones');
   return out;
 }
+// ── Lluvia: probabilidad para Info del día (pedido de digra 27/9/2026) ──
+// Sale del ensemble de Open-Meteo: las simulaciones de 3 modelos (ECMWF, GFS e ICON,
+// ~122 en total). La chance que se muestra es la parte de las simulaciones que suman
+// al menos 1 mm (lluvia que moja la vereda) en las horas que faltan hasta el cierre;
+// contar cualquier gota inflaba los días casi secos (lun 28/9: 54% con 0,3 mm). Las
+// franjas horarias usan la chance de cada hora (al menos 0,1 mm). El renglón solo
+// aparece desde IW_LLUVIA_MIN (días de sol: 2-16%; días de lluvia: 70-85%) o si el
+// Aeroparque observa lluvia ahora. Se pide por nuestro proxy (/api/lluvia, con cache)
+// y, si falla, directo desde el navegador. Sin datos no se muestra nada.
+const IW_LLUVIA_MIN=30;
+const IW_LLUVIA_URL='https://ensemble-api.open-meteo.com/v1/ensemble?latitude=-34.6037&longitude=-58.3816&hourly=precipitation&models=ecmwf_ifs025,gfs025,icon_global&forecast_days=3&timezone=America%2FArgentina%2FBuenos_Aires';
+let iwLluviaCache=null;
+async function iwLluviaFetch(url,ms){
+  const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),ms);
+  try{const r=await fetch(url,{signal:ctrl.signal});if(!r.ok)throw new Error(r.status);return await r.json();}
+  finally{clearTimeout(timer);}
+}
+async function iwLluviaDatos(){
+  if(iwLluviaCache&&Date.now()-iwLluviaCache.at<30*60*1000)return iwLluviaCache.modelos;
+  let data=null;
+  try{data=await iwLluviaFetch('/api/lluvia',9000);}catch(e){}
+  if(!data){try{data=await iwLluviaFetch(IW_LLUVIA_URL,9000);}catch(e){}}
+  const modelos=[].concat(data||[]).filter(m=>m&&m.hourly&&Array.isArray(m.hourly.time));
+  if(!modelos.length)return null;
+  iwLluviaCache={at:Date.now(),modelos};
+  return modelos;
+}
+// modelos: respuesta del ensemble. turnosDe(dia): los turnos de ese día (abre con el
+// primero, cierra con el cierre del último). Después del cierre mira el día siguiente.
+function iwLluviaResumen(modelos,ahora,turnosDe){
+  const miembros=[];
+  [].concat(modelos||[]).filter(m=>m&&m.hourly).forEach(m=>Object.keys(m.hourly).forEach(k=>{if(k.startsWith('precipitation'))miembros.push({time:m.hourly.time,mm:m.hourly[k]});}));
+  if(!miembros.length)return null;
+  const partes=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Argentina/Buenos_Aires',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',hour12:false}).formatToParts(ahora);
+  const parte=tipo=>partes.find(x=>x.type===tipo).value;
+  const hoy=`${parte('year')}-${parte('month')}-${parte('day')}`,horaAhora=Number(parte('hour'))%24;
+  const horario=dia=>{const ts=turnosDe(dia),ult=ts[ts.length-1];return{abre:ts[0].desdeH,cierra:ult.cierreH??ult.hastaH};};
+  let dia=hoy,{abre,cierra}=horario(hoy),manana=false;
+  if(horaAhora>=cierra){
+    const d=new Date(`${hoy}T12:00:00Z`);d.setUTCDate(d.getUTCDate()+1);
+    dia=d.toISOString().slice(0,10);({abre,cierra}=horario(dia));manana=true;
+  }
+  const horas=[];for(let h=manana?abre:Math.max(abre,horaAhora);h<cierra;h++)horas.push(h);
+  const valor=(m,h)=>{const i=m.time.indexOf(`${dia}T${String(h).padStart(2,'0')}:00`);const v=i<0?null:m.mm[i];return v==null?null:Number(v);};
+  const porHora=horas.map(h=>{let si=0,n=0;miembros.forEach(m=>{const v=valor(m,h);if(v==null)return;n++;if(v>=0.1)si++;});return n?{h,p:Math.round(100*si/n)}:null;}).filter(Boolean);
+  if(!porHora.length)return null;
+  let si=0,n=0;
+  miembros.forEach(m=>{const vals=horas.map(h=>valor(m,h)).filter(v=>v!=null);if(!vals.length)return;n++;if(vals.reduce((a,v)=>a+v,0)>=1)si++;});
+  // Franjas: horas seguidas con chance cerca del pico (hasta 15 puntos menos); las 2 más fuertes, en orden.
+  const pico=Math.max(...porHora.map(x=>x.p)),umbral=Math.max(5,pico-15),franjas=[];
+  porHora.forEach(x=>{if(x.p<umbral)return;const ult=franjas[franjas.length-1];if(ult&&ult.hasta===x.h){ult.hasta=x.h+1;ult.max=Math.max(ult.max,x.p);}else franjas.push({desde:x.h,hasta:x.h+1,max:x.p});});
+  return{total:Math.round(100*si/n),simulaciones:n,manana,ahora:horaAhora,porHora,franjas:franjas.sort((a,b)=>b.max-a.max).slice(0,2).sort((a,b)=>a.desde-b.desde)};
+}
+// estadoAhora: 'Lloviendo ahora' / 'Tormenta ahora' si el Aeroparque lo está observando.
+function iwLluviaTexto(r,estadoAhora){
+  if(!r)return estadoAhora?{frase:estadoAhora,cuando:''}:null;
+  const enCurso=f=>!r.manana&&f.desde<=r.ahora&&r.ahora<f.hasta;
+  if(estadoAhora&&!r.manana){const sigue=r.franjas.find(enCurso);return{frase:estadoAhora,cuando:sigue?`sigue hasta las ${sigue.hasta} h`:''};}
+  const t=r.total;
+  if(t<IW_LLUVIA_MIN)return null;
+  const frase=t<50?'Puede llover':t<80?'Lluvia probable':'Lluvia casi segura';
+  const cuando=r.franjas.map(f=>enCurso(f)?`hasta las ${f.hasta} h`:`de ${f.desde} a ${f.hasta} h`).join(' y ');
+  return{frase:r.manana?`Mañana: ${frase.toLowerCase()} (${t}%)`:`${frase} (${t}%)`,cuando};
+}
+function iwLluviaHtml(r,estadoAhora){
+  const tx=iwLluviaTexto(r,estadoAhora);if(!tx)return'';
+  const titulo=!r?'Observado ahora en el Aeroparque':`Chance de que llueva al menos 1 mm ${r.manana?'mañana, en el horario del kiosco':'desde ahora hasta el cierre'}, según ${r.simulaciones} simulaciones de 3 modelos del clima (europeo, estadounidense y alemán). Chance hora por hora: ${r.porHora.map(x=>`${x.h} h ${x.p}%`).join(' · ')}`;
+  return`<span class="iw-rain" title="${titulo}"><svg class="iw-rain-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 18 0z"/><path d="M12 12v6a2 2 0 0 1-4 0"/></svg><span>${tx.frase}</span>${tx.cuando?`<span class="iw-rain-when">· ${tx.cuando}</span>`:''}</span>`;
+}
+// ── fin lluvia ──
 async function fetchInfoWidget(){
   const el=document.getElementById('infoWidgetContent');
   if(!el)return;
   iwLastFetch=Date.now();
   const moonPromise=iwEsHorarioLunar()?iwMoonData(new Date()):Promise.resolve(null);
+  const lluviaPromise=iwLluviaDatos();
   // Cada fuente con su propio try/catch para que una falla no rompa el widget
   let temp=null,sens=null,wxCode=null,wxWind=null,wxWindDir=null,wxWindGust=null,wxCloud=null,wxHumidity=null,wxPrecip=0,wxIsDay=1,wxForecast=[],wxObservedAt=null,wxSource='';
   // api.open-meteo.com es inalcanzable desde varios ISP argentinos (bug conocido:
@@ -9261,7 +9337,7 @@ async function fetchInfoWidget(){
     <div class="iw-temp-row">
       <div class="iw-temp-main">
         <div class="iw-temp-val">${tempDisp}</div>
-        <div class="iw-temp-meta"><span class="iw-temp-city"${wxMeta?` title="${wxMeta}"`:''}>Buenos Aires</span><span class="iw-temp-label">ST ${sens!=null?sens+'°C':'—'}</span>${windHtml}${iwHumidityHtml(wxHumidity)}</div>
+        <div class="iw-temp-meta"><span class="iw-temp-city"${wxMeta?` title="${wxMeta}"`:''}>Buenos Aires</span><span class="iw-temp-label">ST ${sens!=null?sens+'°C':'—'}</span>${windHtml}${iwHumidityHtml(wxHumidity)}<span class="iw-rain-slot"></span></div>
       </div>
       <div class="iw-moon-slot">${iwMoonHtml(moon)}</div>
       ${forecastDesk?`<div class="iw-forecast iw-forecast-desktop">${forecastDesk}</div>`:''}
@@ -9281,6 +9357,12 @@ async function fetchInfoWidget(){
   const elM=document.getElementById('infoWidgetContentMobile');
   el.innerHTML=html;
   if(elM)elM.innerHTML=html;
+  // Renglón de lluvia: se completa cuando llegan los datos, sin demorar el resto del widget.
+  const lluviaAhora=wxSource==='METAR Aeroparque'?(wxCode===95?'Tormenta ahora':(wxCode===61||wxCode===80)?'Lloviendo ahora':null):null;
+  lluviaPromise.then(modelos=>{
+    const lluviaHtml=iwLluviaHtml(modelos?iwLluviaResumen(modelos,new Date(),turnosDelDia):null,lluviaAhora);
+    document.querySelectorAll('.iw-rain-slot').forEach(slot=>{slot.innerHTML=lluviaHtml;});
+  }).catch(()=>{});
 }
 let iwLastFetch=0;
 fetchInfoWidget();

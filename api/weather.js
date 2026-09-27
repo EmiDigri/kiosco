@@ -63,10 +63,13 @@ function feelsLike(tempC, windKmh, rhPercent) {
 }
 
 function metarWeatherCode(row, fallback) {
-  const raw = String(row?.rawOb || '').toUpperCase();
+  // Solo el tiempo presente: lo que sigue a TEMPO/BECMG/NOSIG/RMK es pronóstico. Con
+  // "CAVOK ... TEMPO -TSRA" (27/9/2026) marcaba tormenta con el cielo despejado.
+  const raw = String(row?.rawOb || '').toUpperCase().split(/\s(?:TEMPO|BECMG|NOSIG|RMK)\b/)[0];
   if (/\bTS/.test(raw)) return 95;
   if (/\b(?:SN|SG|PL)/.test(raw)) return 71;
-  if (/\b(?:RA|DZ)/.test(raw)) return 61;
+  // -SHRA (chaparrones) también es lluvia; RERA (llovió antes) no.
+  if (/(?:^|\s)[-+]?(?:SH|FZ)?(?:RA|DZ)/.test(raw)) return 61;
   if (/\b(?:FG|BR)/.test(raw)) return 45;
   const covers = [row?.cover, ...(row?.clouds || []).map(cloud => cloud?.cover)].filter(Boolean);
   if (covers.some(cover => /OVC|BKN/.test(cover))) return 3;
