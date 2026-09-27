@@ -14,7 +14,7 @@ export default async function handler(req, res) {
   const rango = 'fecha=gte.2026-09-01&fecha=lte.2026-09-30';
   try {
     const [salidas, gastos, cierres] = await Promise.all([
-      get(`pagos?select=pago_id,fecha,hora,monto,nombre,tipo,operation_type,status,devuelta,excluido&es_enviada=eq.true&${rango}&order=fecha.asc,hora.asc&limit=5000`),
+      get(`pagos?select=pago_id,fecha,hora,monto,nombre,tipo,operation_type,status,devuelta&es_enviada=eq.true&${rango}&order=fecha.asc,hora.asc&limit=5000`),
       get(`gastos_caja?select=*&${rango}&order=fecha.asc&limit=5000`),
       get(`cierres_caja?select=*&${rango}&order=fecha.asc,turno.asc&limit=5000`),
     ]);
