@@ -122,3 +122,28 @@ test('Aeroparque METAR: forecast groups are not the current weather', async () =
   // RERA = llovió antes, no ahora: cae a las nubes / pronóstico, nunca a "lluvia".
   assert.notEqual(await correr('METAR SABE 271300Z 08014KT 9999 RERA SCT030 16/09 Q1016'), 61);
 });
+
+test('raining now: nearest stations to the kiosk (Aeroparque, then El Palomar)', async () => {
+  const {default: handler} = await import('../api/weather.js');
+  const realFetch = global.fetch;
+  const metNo = {properties:{timeseries:[{time:new Date().toISOString(), data:{instant:{details:{air_temperature:16}}, next_1_hours:{summary:{symbol_code:'cloudy'}, details:{}}}}]}};
+  const hace = min => new Date(Date.now() - min * 60000).toISOString();
+  const fila = (icaoId, rawOb, minutos = 5) => ({icaoId, reportTime:hace(minutos), temp:15, dewp:10, wspd:10, wdir:120, rawOb, clouds:[]});
+  const lluviaAhora = async filas => {
+    global.fetch = async url => ({ok:true, json:async () => String(url).includes('met.no') ? metNo : filas});
+    const res = {setHeader(){}, status(c){this.code = c; return this;}, json(o){this.body = o;}};
+    try { await handler({}, res); } finally { global.fetch = realFetch; }
+    return res.body.current.rain_now;
+  };
+  // Mañana del 27/9: Aeroparque con tormenta "en las cercanías" y El Palomar lloviendo.
+  const palomar = await lluviaAhora([fila('SABE', 'SPECI SABE 271343Z 12015KT 9999 VCTS FEW048CB OVC090 15/10 Q1016'), fila('SADP', 'METAR SADP 271400Z 01007KT 7000 -RA OVC045 15/10 Q1018')]);
+  assert.equal(palomar.station, 'El Palomar');
+  assert.equal(palomar.code, 61);
+  const aeroparque = await lluviaAhora([fila('SABE', 'METAR SABE 271400Z 12015KT 9000 -TSRA FEW030 FEW048CB OVC090 15/10 Q1016'), fila('SADP', 'METAR SADP 271400Z 01007KT 7000 -RA OVC045 15/10 Q1018')]);
+  assert.equal(aeroparque.station, 'Aeroparque');
+  assert.equal(aeroparque.code, 95);
+  // Tormenta solo "en las cercanías" en las dos: no llueve en ninguna.
+  assert.equal(await lluviaAhora([fila('SABE', 'SPECI SABE 271343Z 12015KT 9999 VCTS FEW048CB 15/10 Q1016'), fila('SADP', 'METAR SADP 271400Z 01007KT 9999 VCSH SCT045 15/10 Q1018')]), null);
+  // Reporte de lluvia de hace 2 horas: ya no sirve.
+  assert.equal(await lluviaAhora([fila('SABE', 'METAR SABE 271200Z 12015KT 9999 SCT030 15/10 Q1016'), fila('SADP', 'METAR SADP 271200Z 01007KT 7000 -RA OVC045 15/10 Q1018', 120)]), null);
+});

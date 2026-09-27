@@ -5,10 +5,17 @@
 // Se cambia a api.met.no (Instituto Meteorologico de Noruega / yr.no),
 // gratis, sin API key, solo requiere un User-Agent identificable.
 
-const LAT = -34.6037, LON = -58.3816;
+// El kiosco está en Villa Pueyrredón: el pronóstico se pide para el barrio (ubicación
+// aproximada, no la dirección). Temperatura y viento siguen saliendo de Aeroparque.
+const LAT = -34.58, LON = -58.50;
 const TZ = 'America/Argentina/Buenos_Aires';
-const METAR_URL = 'https://aviationweather.gov/api/data/metar?ids=SABE&format=json&taf=false&hours=3';
+// Estaciones que dicen si llueve AHORA, de la más cercana al kiosco a la más lejana
+// (Aeroparque ~8 km, El Palomar ~11 km). No hay radar gratuito que cubra Argentina.
+const ESTACIONES_LLUVIA = [{ id: 'SABE', nombre: 'Aeroparque' }, { id: 'SADP', nombre: 'El Palomar' }];
+const METAR_URL = 'https://aviationweather.gov/api/data/metar?ids=SABE,SADP&format=json&taf=false&hours=3';
 const MAX_OBSERVATION_AGE_MS = 3 * 60 * 60 * 1000;
+// Los METAR salen cada hora (más los especiales): una observación de lluvia más vieja no sirve.
+const MAX_LLUVIA_AGE_MS = 75 * 60 * 1000;
 
 function symbolToWmoCode(symbol) {
   const s = (symbol || '').replace(/_day|_night|_polartwilight/g, '');
@@ -78,7 +85,7 @@ function metarWeatherCode(row, fallback) {
   return fallback;
 }
 
-async function aeroparqueObservation() {
+async function metarRows() {
   try {
     const response = await fetch(METAR_URL, {
       headers: {
@@ -86,11 +93,35 @@ async function aeroparqueObservation() {
         'User-Agent': 'kiosco-app (github.com/EmiDigri/kiosco)',
       },
     });
-    if (!response.ok) return null;
+    if (!response.ok) return [];
     const payload = await response.json();
-    const rows = Array.isArray(payload) ? payload : (Array.isArray(payload?.value) ? payload.value : []);
-    const row = rows.filter(item => item?.icaoId === 'SABE')
-      .sort((a, b) => Date.parse(b.reportTime || 0) - Date.parse(a.reportTime || 0))[0];
+    return Array.isArray(payload) ? payload : (Array.isArray(payload?.value) ? payload.value : []);
+  } catch {
+    return [];
+  }
+}
+
+function ultimoReporte(rows, icaoId) {
+  return rows.filter(item => item?.icaoId === icaoId)
+    .sort((a, b) => Date.parse(b.reportTime || 0) - Date.parse(a.reportTime || 0))[0] || null;
+}
+
+// ¿Llueve ahora cerca del kiosco? La primera estación (por cercanía) con lluvia o tormenta
+// en su último reporte reciente. Tormenta "en las cercanías" (VCTS) no cuenta: no llueve ahí.
+function lluviaObservada(rows) {
+  for (const estacion of ESTACIONES_LLUVIA) {
+    const row = ultimoReporte(rows, estacion.id);
+    const edad = Date.now() - Date.parse(row?.reportTime || '');
+    if (!row || !Number.isFinite(edad) || edad < -30 * 60 * 1000 || edad > MAX_LLUVIA_AGE_MS) continue;
+    const code = metarWeatherCode(row, null);
+    if (code === 95 || code === 61) return { code, station: estacion.nombre, observed_at: String(row.reportTime) };
+  }
+  return null;
+}
+
+function aeroparqueObservation(rows) {
+  try {
+    const row = ultimoReporte(rows, 'SABE');
     const observedAt = String(row?.reportTime || '');
     const observedMs = Date.parse(observedAt);
     const temperature = Number(row?.temp);
@@ -119,12 +150,13 @@ export default async function handler(req, res) {
   res.setHeader('Cache-Control', 's-maxage=600, stale-while-revalidate=120');
 
   try {
-    const [r, observation] = await Promise.all([
+    const [r, rows] = await Promise.all([
       fetch(`https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=${LAT}&lon=${LON}`, {
         headers: { 'User-Agent': 'kiosco-app (github.com/EmiDigri/kiosco)' },
       }),
-      aeroparqueObservation(),
+      metarRows(),
     ]);
+    const observation = aeroparqueObservation(rows);
     if (!r.ok) throw new Error(String(r.status));
     const j = await r.json();
     const series = j?.properties?.timeseries || [];
@@ -157,6 +189,8 @@ export default async function handler(req, res) {
       is_day: isDayFromSymbol(nowSymbol, hourAR(observation?.observedAt || now.time)),
       observed_at: observation?.observedAt || now.time,
       source: observation ? 'METAR Aeroparque' : 'met.no',
+      // Lluvia observada ahora en Aeroparque o El Palomar ({code: 61 lluvia / 95 tormenta, station}).
+      rain_now: lluviaObservada(rows),
     };
 
     // Agrupa por dia (hora local AR) para min/max y elige el simbolo mas cercano al mediodia
