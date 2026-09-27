@@ -46,9 +46,13 @@ const server = http.createServer((req, res) => {
       page.on('pageerror',e=>errors.push(e.message));
       await page.route('**/*',route=>new URL(route.request().url()).origin===origin?route.continue():route.abort());
       await page.goto(origin);
-      // Pico por hora $101.000: la escala se ajusta a $125 mil (no a $200 mil) para usar la altura.
-      assert.deepEqual(await page.locator('.pulse-y-label').allTextContents(),['$0','$25 mil','$50 mil','$75 mil','$100 mil','$125 mil']);
-      assert.equal(await page.locator('.pulse-future').count(),1,'lo que falta del día se distingue');
+      // Dos franjas: arriba cada cobro (escala hasta $100 mil) y abajo el total por hora
+      // (pico $101.000 -> escala propia de $125 mil, con solo $0 y el tope).
+      assert.deepEqual(await page.locator('.pulse-y-label').allTextContents(),['$0','$20 mil','$40 mil','$60 mil','$80 mil','$100 mil','$0','$125 mil']);
+      assert.equal(await page.locator('.pulse-chart-hours .pulse-strip-label').innerText(),'Total por hora');
+      assert.equal(await page.locator('.pulse-future').count(),2,'lo que falta del día se distingue en las dos franjas');
+      assert.equal(await page.locator('.pulse-bar').first().evaluate(el=>el.style.getPropertyValue('--pulse-h')),'80%','07 h: $100.000 de $125 mil');
+      assert.equal(await page.locator('.pulse-event.is-out').count(),0,'sin cobros gigantes no hay marcas');
       assert.equal(await page.locator('.pulse-event').count(),7);
       assert.equal(await page.locator('.pulse-axis span').count(),16);
       assert.equal(await page.locator('.pulse-now-label').innerText(),'Ahora');
@@ -61,10 +65,9 @@ const server = http.createServer((req, res) => {
         const yLabels=[...document.querySelectorAll('.pulse-y-label')].map(el=>el.getBoundingClientRect());
         return{plotBottom:plot.bottom,plotHeight:plot.height,dots,bars:bars.map(r=>({top:r.top,height:r.height})),labelsOverlap:labels.some((r,i)=>i&&r.left<labels[i-1].right),yClipped:yLabels.some(r=>r.left<0),scroll:document.documentElement.scrollWidth,viewport:innerWidth};
       });
-      assert(Math.abs(geometry.dots[0].y-geometry.bars[0].top)<1,'Equal payment and hourly total must align');
       assert.equal(geometry.dots[0].fraction,geometry.dots[1].fraction*2,'Linear amounts');
       assert(geometry.bars[2].height===0,'Empty hour has no fabricated bar');
-      assert(Math.abs(geometry.dots[6].fraction-400/125000)<.00001,'Small payment is not inflated');
+      assert(Math.abs(geometry.dots[6].fraction-400/100000)<.00001,'Small payment is not inflated');
       assert(!geometry.labelsOverlap&&!geometry.yClipped&&geometry.scroll<=geometry.viewport,'Axes fit on mobile');
       const first=page.locator('.pulse-event').first();
       if(width<720)await first.tap();else await first.hover();
@@ -76,7 +79,16 @@ const server = http.createServer((req, res) => {
       await first.focus();await page.keyboard.press('Enter');
       assert.equal(await page.locator('.pulse-tooltip.show').count(),1);
       await page.keyboard.press('Escape');
+      // Un cobro gigante no aplasta a los demás: queda marcado arriba con su monto.
+      await page.evaluate(()=>renderFixture('today',[...fixture,{fecha:'2026-09-27',hora:'09:30',monto:500000,nombre:'Grande'}]));
+      assert.equal(await page.locator('.pulse-event.is-out').count(),1);
+      assert.equal(await page.locator('.pulse-out-label').innerText(),'$500 mil');
+      assert.equal((await page.locator('.pulse-chart:not(.pulse-chart-hours) .pulse-y-label').allTextContents()).at(-1),'$150 mil','la escala de los cobros no se estira');
+      assert.equal(await page.locator('.pulse-legend span').count(),5,'la leyenda explica el triangulito');
+      const out=await page.locator('.pulse-out-label').boundingBox();
+      assert(out.x>=0&&out.x+out.width<=width,'el monto del cobro gigante entra en pantalla');
       await page.screenshot({path:path.join(output,`pulse-${width}.png`)});
+      await page.evaluate(()=>renderFixture());
       await page.evaluate(()=>renderFixture('yesterday',fixture.map(r=>({...r,fecha:'2026-09-26'}))));
       assert.equal(await page.locator('.pulse-now').count(),0);
       assert.equal(await page.locator('.pulse-future').count(),0,'ayer no tiene horas por venir');
