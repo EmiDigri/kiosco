@@ -146,21 +146,19 @@ html.overlay-scroll-lock{overflow-y:hidden!important}
 .iw-temp-row{display:flex;align-items:center;gap:14px;margin-bottom:12px;min-width:0}
 .iw-temp-main{display:flex;align-items:center;gap:10px;min-width:0;flex:0 0 auto}
 .iw-temp-val{font-size:28px;font-weight:800;color:var(--text);line-height:1;letter-spacing:-.5px}
-.iw-temp-meta{display:flex;flex-direction:column;gap:1px}
-.iw-temp-city{font-size:11px;font-weight:600;color:var(--text-soft);text-transform:uppercase;letter-spacing:.06em}
-.iw-temp-label{font-size:12px;color:var(--text-mid);font-weight:500}
-.iw-wind{display:flex;align-items:center;gap:3px;min-height:16px;color:var(--text-mid);font-size:10px;font-weight:700;line-height:1;white-space:nowrap}
-.iw-wind-icon{display:block;width:20px;height:20px;flex:0 0 20px;margin-right:1px;object-fit:contain;filter:drop-shadow(0 0 4px rgba(116,192,252,.22));pointer-events:none}
+.iw-temp-meta{display:flex;flex-direction:column;gap:3px}
+.iw-temp-city{font-size:10px;font-weight:700;color:var(--text-soft);text-transform:uppercase;letter-spacing:.08em;padding-left:24px}
+/* Renglones del clima (sensación, viento, humedad, lluvia), pedido de digra 27/9/2026: mismo
+   tamaño, ícono de 18 px y el texto arrancando en la misma línea que "Buenos Aires";
+   nombre en gris y valor (.iw-v) en blanco. */
+.iw-feels,.iw-wind,.iw-humidity,.iw-rain{display:flex;align-items:center;gap:3px;min-height:17px;color:var(--text-mid);font-size:11px;font-weight:600;line-height:1;white-space:nowrap}
+.iw-feels-icon,.iw-wind-icon,.iw-rain-icon{display:block;width:18px;height:18px;flex:0 0 18px;margin-right:3px;object-fit:contain;pointer-events:none}
+.iw-wind-icon{filter:drop-shadow(0 0 4px rgba(116,192,252,.22))}
 .iw-wind.is-strong .iw-wind-icon{filter:drop-shadow(0 0 5px rgba(246,184,74,.34))}
-.iw-wind.is-cold{color:#74c0fc}.iw-wind.is-strong{color:#f6b84a}
-.iw-humidity{display:flex;align-items:center;gap:3px;min-height:16px;color:var(--text-mid);font-size:10px;font-weight:700;line-height:1;white-space:nowrap}
-.iw-humidity.is-humid{color:#74c0fc}.iw-humidity.is-dry{color:#f6b84a}
-.iw-humidity-svg{display:block;width:17px;height:17px;flex:0 0 17px;margin:0 3px 0 2px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.28))}
+.iw-rain-icon{filter:hue-rotate(200deg) saturate(.75) brightness(1.15) drop-shadow(0 0 4px rgba(116,192,252,.22))}
+.iw-humidity-svg{display:block;width:16px;height:16px;flex:0 0 16px;margin:0 4px 0 1px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.28))}
+.iw-v{color:var(--text);font-weight:700}
 .iw-rain-slot{display:block}.iw-rain-slot:empty{display:none}
-.iw-rain{display:flex;align-items:center;gap:3px;min-height:16px;color:#74c0fc;font-size:10px;font-weight:700;line-height:1;white-space:nowrap}
-.iw-rain-icon{display:block;width:21px;height:21px;flex:0 0 21px;margin-right:1px;object-fit:contain;filter:hue-rotate(200deg) saturate(.75) brightness(1.15) drop-shadow(0 0 4px rgba(116,192,252,.22));pointer-events:none}
-body.light .iw-rain{color:#1864ab}
-@media(max-width:430px){.iw-humidity-svg{width:19px;height:19px;flex-basis:19px}}
 .iw-moon-slot{flex:0 0 auto}
 .iw-moon-slot:empty{display:none}
 .iw-moon{display:flex;align-items:center;gap:7px;flex:0 0 auto;min-width:0;padding-left:10px;border-left:1px solid var(--glass-border)}
@@ -9111,7 +9109,7 @@ function iwWindHtml(speed,direction,gust,temp,sens){
   const cold=!strong&&wind>=10&&temp!=null&&sens!=null&&Number.isFinite(temperature)&&Number.isFinite(feels)&&feels<=temperature-2;
   const label=cold?'Viento frío':level.label;
   const cls=(strong?' is-strong':'')+(cold?' is-cold':'');
-  return`<span class="iw-wind${cls}" data-beaufort="${level.force}"><img class="iw-wind-icon" src="${mcUrl(`wind-beaufort-${level.force}`)}" alt="" aria-hidden="true"><span>${label}</span><span>·</span><span>${Math.round(wind)} km/h</span></span>`;
+  return`<span class="iw-wind${cls}" data-beaufort="${level.force}"><img class="iw-wind-icon" src="${mcUrl(`wind-beaufort-${level.force}`)}" alt="" aria-hidden="true"><span>${label}</span><span>·</span><span class="iw-v">${Math.round(wind)} km/h</span></span>`;
 }
 function iwHumidityHtml(humidity){
   const h=Number(humidity);
@@ -9139,7 +9137,7 @@ function iwHumidityHtml(humidity){
     +`<path d="${drop}" fill="none" stroke="${ring}" stroke-width="1.15"/>`
     +`<ellipse cx="9.6" cy="11.4" rx="1.25" ry="2.2" transform="rotate(-22 9.6 11.4)" fill="rgba(255,255,255,.5)"/>`
     +`</svg>`;
-  return`<span class="iw-humidity${cls}" title="Humedad relativa en vivo · el nivel de agua de la gota marca la humedad">${svg}<span>${label}</span><span>·</span><span>${Math.round(h)}%</span></span>`;
+  return`<span class="iw-humidity${cls}" title="Humedad relativa en vivo · el nivel de agua de la gota marca la humedad">${svg}<span>${label}</span><span>·</span><span class="iw-v">${Math.round(h)}%</span></span>`;
 }
 function iwPronosticoDias(daily){
   const time=daily?.time||[],codes=daily?.weather_code||[],maxs=daily?.temperature_2m_max||[],mins=daily?.temperature_2m_min||[];
@@ -9267,7 +9265,7 @@ function iwLluviaTexto(r,estadoAhora){
 function iwLluviaHtml(r,estadoAhora){
   const tx=iwLluviaTexto(r,estadoAhora);if(!tx)return'';
   const titulo=!r?'Observado ahora en el Aeroparque':`Chance de que llueva al menos 1 mm ${r.manana?'mañana, en el horario del kiosco':'desde ahora hasta el cierre'}, según ${r.simulaciones} simulaciones de 3 modelos del clima (europeo, estadounidense y alemán). Chance hora por hora: ${r.porHora.map(x=>`${x.h} h ${x.p}%`).join(' · ')}`;
-  const partes=[tx.etiqueta,tx.pct,tx.cuando].filter(Boolean).map(t=>`<span>${t}</span>`).join('<span>·</span>');
+  const partes=[[tx.etiqueta,''],[tx.pct,' class="iw-v"'],[tx.cuando,'']].filter(p=>p[0]).map(([t,c])=>`<span${c}>${t}</span>`).join('<span>·</span>');
   return`<span class="iw-rain" title="${titulo}"><img class="iw-rain-icon" src="${mcUrl('umbrella')}" alt="" aria-hidden="true">${partes}</span>`;
 }
 // ── fin lluvia ──
@@ -9337,7 +9335,7 @@ async function fetchInfoWidget(){
     <div class="iw-temp-row">
       <div class="iw-temp-main">
         <div class="iw-temp-val">${tempDisp}</div>
-        <div class="iw-temp-meta"><span class="iw-temp-city"${wxMeta?` title="${wxMeta}"`:''}>Buenos Aires</span><span class="iw-temp-label">ST ${sens!=null?sens+'°C':'—'}</span>${windHtml}${iwHumidityHtml(wxHumidity)}<span class="iw-rain-slot"></span></div>
+        <div class="iw-temp-meta"><span class="iw-temp-city"${wxMeta?` title="${wxMeta}"`:''}>Buenos Aires</span>${sens!=null?`<span class="iw-feels"><img class="iw-feels-icon" src="${mcUrl('thermometer')}" alt="" aria-hidden="true"><span>Sensación</span><span class="iw-v">${sens}°C</span></span>`:''}${windHtml}${iwHumidityHtml(wxHumidity)}<span class="iw-rain-slot"></span></div>
       </div>
       <div class="iw-moon-slot">${iwMoonHtml(moon)}</div>
       ${forecastDesk?`<div class="iw-forecast iw-forecast-desktop">${forecastDesk}</div>`:''}

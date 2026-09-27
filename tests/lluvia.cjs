@@ -40,7 +40,7 @@ test('rainy afternoon: chance until closing and the specific hours', () => {
   const tx = iwLluviaTexto(r, null);
   assert.equal(`${tx.etiqueta} · ${tx.pct} · ${tx.cuando}`, 'Lluvia · 80% · de 14 a 17 h');
   const html = iwLluviaHtml(r, null);
-  assert(html.includes('<span>Lluvia</span><span>·</span><span>80%</span><span>·</span><span>de 14 a 17 h</span>'));
+  assert(html.includes('<span>Lluvia</span><span>·</span><span class="iw-v">80%</span><span>·</span><span>de 14 a 17 h</span>'));
   assert(html.includes('https://icons/umbrella.svg'));
 });
 
