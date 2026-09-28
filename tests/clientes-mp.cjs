@@ -184,3 +184,34 @@ test('client card: totals, usual shift and weekday, months and latest purchases 
 test('the card asks the database for a name that may carry accents or ñ', () => {
   assert.equal(C.patronNombre(C.clave('  LUCÍA   NUÑEZ ')), 'l_c__ ____z');
 });
+
+test('client of the month: most days, then most money; nobody with a single day', () => {
+  const a = C.analizarClientes(MES, '2026-09-01', '2026-09-30');
+  assert.equal(a.estrella.nombre, 'Lucía Fernández');
+  assert.equal(a.estrella.visitas, 5);
+  assert.equal(C.analizarClientes(MES.filter(f => f.nombre === 'ANA GOMEZ'), '2026-09-01', '2026-09-30').estrella, null);
+});
+
+test('adjustments: excluded clients leave the numbers, merged names count as one person', () => {
+  const aj = C.normalizarAjustes({
+    excluidos: {'ana gomez': {nombre: 'Ana Gomez'}},
+    unidos: {'juan perez': {a: 'lucia fernandez', nombreA: 'Lucía Fernández', nombre: 'Juan Perez'}},
+  });
+  assert.equal(C.principalDe('juan perez', aj), 'lucia fernandez');
+  const filas = C.aplicarAjustes(MES, aj);
+  assert(!filas.some(f => f.nombre === 'ANA GOMEZ'));
+  assert.equal(filas.filter(f => f.nombre === 'Lucía Fernández').length, 3);
+  const a = C.analizarClientes(filas, '2026-09-01', '2026-09-30');
+  assert.deepEqual(a.ranking.map(c => [c.nombre, c.total, c.visitas, c.cobros]), [['Lucía Fernández', 14700, 7, 8]]);
+  // Marcados (para el buscador y la ficha) quedan, con la marca.
+  const marcados = C.aplicarAjustes(MES, aj, {marcar: true});
+  assert.equal(marcados.filter(f => f.excluido).length, 2);
+  assert.deepEqual(C.agruparClientes(marcados).find(c => c.nombre === 'Ana Gomez').excluido, true);
+  // Cadena: si Pedro se unió a Juan y Juan a Lucía, Pedro también cuenta como Lucía.
+  aj.unidos['pedro sosa'] = {a: 'juan perez', nombreA: 'Juan Perez', nombre: 'Pedro Sosa'};
+  assert.equal(C.principalDe('pedro sosa', aj), 'lucia fernandez');
+  assert.equal(C.aplicarAjustes([{nombre: 'PEDRO SOSA', fecha: '2026-09-02', hora: '10:00', monto: 1}], aj)[0].nombre, 'Lucía Fernández');
+  // Datos rotos en la base no rompen nada.
+  assert.deepEqual(C.normalizarAjustes('x'), {excluidos: {}, unidos: {}});
+  assert.deepEqual(C.normalizarAjustes({excluidos: [], unidos: null}), {excluidos: {}, unidos: {}});
+});

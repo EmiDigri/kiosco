@@ -221,3 +221,46 @@ body.light .cmp-kpis b{color:#111827}
 .cmp-dona-n{font-family:'Patrick Hand','Inter',cursive;font-size:30px;font-weight:400}
 .cmp-dona-s{font-family:'Patrick Hand','Inter',cursive;font-size:13px;font-weight:400}
 body.light .a-mano .cmp-mapa-celda b{background:rgba(255,255,255,.9);color:#111827}
+
+/* Cliente del mes */
+.cmp-estrella{position:relative;z-index:0;display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;box-sizing:border-box;margin:16px 0 4px;padding:16px 14px 14px;border-radius:18px;border:1px solid rgba(251,191,36,.45);background:radial-gradient(120% 90% at 50% 0%,rgba(251,191,36,.26),transparent 60%),radial-gradient(80% 70% at 100% 100%,rgba(255,107,154,.14),transparent 60%),rgba(255,255,255,.02);color:inherit;font:inherit;text-align:center;cursor:pointer;box-shadow:0 0 28px rgba(251,191,36,.12)}
+.cmp-estrella:hover{border-color:rgba(251,191,36,.75)}
+.cmp-estrella:focus-visible{outline:2px solid #fbbf24;outline-offset:3px}
+.cmp-estrella-tit{font-family:'Patrick Hand','Inter',cursive;font-size:19px;color:#fbbf24;letter-spacing:.02em}
+.cmp-av.is-estrella{flex-basis:74px;width:74px;height:74px;font-size:24px;outline:3px solid #fbbf24;outline-offset:3px;box-shadow:0 0 24px rgba(251,191,36,.45)}
+.cmp-estrella-nom{font-size:19px;font-weight:800;color:var(--text);letter-spacing:-.3px;margin-top:4px}
+.cmp-estrella-det{font-size:12px;color:var(--text-mid)}
+.cmp-estrella-det b{color:#fbbf24}
+.cmp-estrella-num{display:flex;gap:18px;margin:4px 0 2px}
+.cmp-estrella-num span{display:flex;flex-direction:column;font-size:10.5px;color:var(--text-soft)}
+.cmp-estrella-num b{font-size:15px;color:var(--text);font-variant-numeric:tabular-nums}
+.a-mano .cmp-estrella{border-color:transparent}
+
+/* Los que no se cuentan y los nombres unidos */
+.cmp-fuera{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:10px;font-size:11.5px;color:var(--text-soft)}
+.cmp-chip.is-fuera{--c:#9aa4b2}
+button.cmp-chip{font:inherit;font-size:10.5px;font-weight:800;cursor:pointer}
+.cmp-chip.is-estrella{--c:#fbbf24}
+.cmp-ficha-chips{display:flex;flex-wrap:wrap;gap:5px}
+.cmp-aviso,.cmp-alias{margin:0 0 10px;padding:9px 12px;border-radius:11px;font-size:12px;line-height:1.55;color:var(--text-mid)}
+.cmp-aviso{background:rgba(154,164,178,.1);border:1px solid rgba(154,164,178,.3)}
+.cmp-alias{background:rgba(139,123,255,.08);border:1px solid rgba(139,123,255,.28)}
+.cmp-alias-n{display:inline-flex;align-items:baseline;gap:5px;margin-right:10px;color:var(--text);font-weight:650}
+.cmp-link{padding:0;border:0;background:none;color:#a99dff;font:inherit;font-size:11.5px;font-weight:700;text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+.cmp-ficha-acc{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}
+.cmp-acc{padding:6px 12px;border-radius:999px;border:1px solid rgba(139,123,255,.4);background:rgba(139,123,255,.1);color:var(--text);font:inherit;font-size:12px;font-weight:700;cursor:pointer}
+.cmp-acc:hover{background:rgba(139,123,255,.2)}
+.cmp-acc.is-fuera{border-color:rgba(154,164,178,.4);background:rgba(154,164,178,.08);color:var(--text-mid)}
+.cmp-acc:disabled,.cmp-unir-op:disabled{opacity:.5;cursor:wait}
+.cmp-unir{margin:-4px 0 14px;padding:11px 12px;border-radius:12px;border:1px dashed rgba(139,123,255,.45);background:rgba(139,123,255,.05)}
+.cmp-unir[hidden]{display:none}
+.cmp-unir input{width:100%;box-sizing:border-box;min-height:38px;margin-top:8px;padding:7px 11px;border-radius:10px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.04);color:var(--text);font:inherit;font-size:14px}
+.cmp-unir input:focus{outline:2px solid var(--accent);outline-offset:1px}
+.cmp-unir-res{display:grid;gap:2px;margin-top:6px}
+.cmp-unir-op{display:flex;align-items:center;gap:10px;width:100%;padding:7px 4px;border:0;border-bottom:1px solid rgba(255,255,255,.05);background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.cmp-unir-op:last-child{border-bottom:0}
+.cmp-unir-op:hover{background:rgba(139,123,255,.08)}
+.cmp-unir-btn{margin-left:auto;padding:4px 11px;border-radius:999px;background:#8b7bff;color:#fff;font-size:11.5px;font-weight:800}
+body.light .cmp-link{color:#4f46e5}
+body.light .cmp-unir input{background:#fff;border-color:rgba(0,0,0,.15)}
+body.light .cmp-estrella-tit,body.light .cmp-estrella-det b{color:#b7791f}

@@ -52,8 +52,13 @@ function filtrar(q){const params=(q.split('?')[1]||'').split('&');let filas=guar
   return filas;}
 async function histSbSelectAll(q){consultas.push(q);if(!tablaExiste)throw new Error('{"code":"42P01","message":"relation mp_pagadores does not exist"}');
   if(q.startsWith('pagos'))return [{pago_id:1001},{pago_id:1002}];return filtrar(q);}
-async function histSbSelect(q){consultas.push(q);return filtrar(q);}
-async function cmSbWrite(p,m,body){if(!tablaExiste)throw new Error('relation "public.mp_pagadores" does not exist');
+// Ajustes de clientes en app_learn, confirmaciones aceptadas y confeti anotado.
+let ajustesGuardados=null,confetis=[];
+window.confirm=()=>true;
+window.confetti=o=>{confetis.push(o);};
+async function histSbSelect(q){consultas.push(q);if(q.startsWith('app_learn'))return ajustesGuardados?[{valor:JSON.parse(JSON.stringify(ajustesGuardados))}]:[];return filtrar(q);}
+async function cmSbWrite(p,m,body){if(p.startsWith('app_learn')){ajustesGuardados=JSON.parse(JSON.stringify(body.valor));return;}
+  if(!tablaExiste)throw new Error('relation "public.mp_pagadores" does not exist');
   const ids=new Set(body.map(f=>f.pago_id));guardado=guardado.filter(f=>!ids.has(f.pago_id)).concat(body);}
 // Detalle del día como lo dibuja index.html: transferencia, transferencia fuera de horario,
 // Point (sin botón ↩) y una transferencia que no está en el reporte.
@@ -193,6 +198,54 @@ const textos = loc => loc.allTextContents().then(t => t.map(s => s.replace(/\s+/
         .includes('Cada número es cuántas veces compró ese día de la semana, en ese turno. Por ejemplo: los miércoles a la mañana compró 4 veces.'));
       assert(!(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)), 'sin scroll horizontal');
       await page.locator('#cmpFicha').screenshot({path: path.join(dir, `clientes-ficha-${width}.png`)});
+
+      // Cliente del mes: el que más días vino, festejado con confeti; en su ficha lleva el sello.
+      assert.equal(await page.locator('#cmpEstrella .cmp-estrella-nom').innerText(), 'Carlos Diaz');
+      assert((await page.locator('#cmpEstrella').innerText()).includes('El que más días vino en septiembre (hasta el 28/09): 8 días'));
+      await page.locator('#cmpEstrella').scrollIntoViewIfNeeded();
+      await page.waitForFunction(() => confetis.length >= 1);
+      assert.equal(await page.locator('#cmpFicha .cmp-chip.is-estrella').innerText(), '⭐ Cliente del mes');
+      await page.locator('#cmpEstrella').screenshot({path: path.join(dir, `clientes-estrella-${width}.png`)});
+
+      // No contar: sale del ranking y de los números del mes; los cobros no se tocan.
+      await page.locator('.cmp-podio-lugar.is-2').click();
+      await page.locator('#cmpFicha .cmp-ficha-nom').filter({hasText: 'Martina Rojas'}).waitFor();
+      await page.locator('#cmpFicha [data-accion="excluir"]').click();
+      await page.locator('#cmpFicha .cmp-aviso').waitFor();
+      assert.deepEqual(await page.evaluate(() => Object.keys(ajustesGuardados.excluidos)), ['martina rojas']);
+      await page.waitForFunction(() => document.querySelector('#cmpAnalisis .cmp-kpis b').textContent === '5');
+      assert.deepEqual(await textos(page.locator('#cmpAnalisis > .cmp-kpis b')), ['5', '18', '$2.061', '$37.100']);
+      assert.deepEqual(await textos(page.locator('.cmp-podio-lugar .cmp-podio-nom')), ['Juan Perez', 'Carlos Diaz', 'Lucía Fernández']);
+      assert.deepEqual(await textos(page.locator('.cmp-fuera .cmp-chip')), ['Martina Rojas']);
+      assert.equal(await page.evaluate(() => guardado.filter(f => f.nombre === 'MARTINA ROJAS').length), 3);
+      // En el buscador sigue apareciendo, marcada.
+      await page.locator('#cmpBuscar').fill('martina');
+      await page.locator('#cmpResultados .cmp-cli .cmp-chip.is-fuera').filter({hasText: 'no se cuenta'}).waitFor();
+
+      // Unir: Ana paga a veces y es la misma persona que Juan -> se cuentan juntos.
+      await page.locator('.cmp-podio-lugar.is-2').click();
+      await page.locator('#cmpFicha .cmp-ficha-nom').filter({hasText: 'Juan Perez'}).waitFor();
+      await page.locator('#cmpFicha [data-accion="unir-abrir"]').click();
+      await page.locator('#cmpUnirBuscar').fill('ana');
+      await page.locator('#cmpUnirRes .cmp-unir-op').filter({hasText: 'Ana Gomez'}).click();
+      await page.locator('#cmpFicha .cmp-alias').filter({hasText: 'Ana Gomez'}).waitFor();
+      assert.deepEqual(await textos(page.locator('#cmpFicha .cmp-kpis b')), ['$8.900', '2', '4', '$2.225']);
+      assert.deepEqual(await page.evaluate(() => ajustesGuardados.unidos['ana gomez']), {a: 'juan perez', nombreA: 'Juan Perez', nombre: 'Ana Gomez'});
+      await page.waitForFunction(() => document.querySelector('#cmpAnalisis .cmp-kpis b').textContent === '4');
+      assert(!(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)), 'sin scroll horizontal');
+      await page.locator('#cmpFicha').screenshot({path: path.join(dir, `clientes-unido-${width}.png`)});
+      // Separar vuelve todo como estaba.
+      await page.locator('#cmpFicha [data-accion="separar"]').click();
+      await page.waitForFunction(() => !document.querySelector('#cmpFicha .cmp-alias'));
+      assert.deepEqual(await textos(page.locator('#cmpFicha .cmp-kpis b')), ['$8.000', '2', '3', '$2.667']);
+
+      // Volver a contar a Martina desde el aviso del mes.
+      await page.locator('.cmp-fuera .cmp-chip').click();
+      await page.locator('#cmpFicha .cmp-ficha-nom').filter({hasText: 'Martina Rojas'}).waitFor();
+      await page.locator('#cmpFicha [data-accion="incluir"]').click();
+      await page.waitForFunction(() => document.querySelector('#cmpAnalisis .cmp-kpis b').textContent === '6');
+      assert.equal(await page.locator('.cmp-fuera').count(), 0);
+      assert.deepEqual(await page.evaluate(() => ajustesGuardados), {excluidos: {}, unidos: {}});
 
       // Historial: cada transferencia del día muestra quién pagó; lo demás queda igual.
       await page.evaluate(() => mostrarDetalleDia('2026-09-28'));

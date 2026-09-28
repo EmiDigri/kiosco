@@ -194,6 +194,8 @@
         .sort((a, b) => b.visitasVentana - a.visitasVentana || (a.ultima < b.ultima ? 1 : -1)),
       // Sin reportes de meses anteriores no se puede saber quién es nuevo.
       nuevos: hayAnteriores ? todos.filter(c => c.cobros && !c.previo).map(resumen).sort((a, b) => b.total - a.total) : null,
+      // Cliente del mes: el que más días vino (si empatan, el que más gastó). Desde 2 días.
+      estrella: delMes.filter(c => c.visitas >= 2).sort((a, b) => b.visitas - a.visitas || b.total - a.total)[0] || null,
     };
   }
 
@@ -233,6 +235,52 @@
     };
   }
 
+  // ── Ajustes: a quién no contar y quiénes son la misma persona ───────────────────────
+  // Se guardan en app_learn (la tabla clave/valor de la app), así valen igual en la compu
+  // y en el celular. Nunca se tocan los cobros: solo cambia cómo se cuentan.
+  //   excluidos: {clave: {nombre, desde}}            -> no entra en el ranking ni en los números
+  //   unidos:    {clave: {a, nombreA, nombre}}      -> ese nombre se cuenta como el cliente "a"
+  const AJUSTES_CLAVE = 'clientes_mp_ajustes';
+  function normalizarAjustes(v) {
+    const a = v && typeof v === 'object' ? v : {}, obj = x => x && typeof x === 'object' && !Array.isArray(x) ? x : {};
+    return {excluidos: obj(a.excluidos), unidos: obj(a.unidos)};
+  }
+  // A qué cliente apunta un nombre (sigue la cadena si se unió más de una vez).
+  function principalDe(k, aj) { let x = k; for (let n = 0; n < 10 && aj.unidos[x]; n++) x = aj.unidos[x].a; return x; }
+  function nombrePrincipal(p, aj) { for (const u of Object.values(aj.unidos)) if (u.a === p && u.nombreA) return u.nombreA; return null; }
+  const aliasDe = (p, aj) => Object.keys(aj.unidos).filter(k => principalDe(k, aj) === p);
+  // Los cobros de un nombre unido pasan a llamarse como el cliente principal. Los que no se
+  // cuentan se sacan (o, con marcar, quedan marcados para el buscador y la ficha).
+  function aplicarAjustes(filas, aj, {marcar = false} = {}) {
+    const out = [];
+    for (const f of filas) {
+      const k = clave(f.nombre), p = principalDe(k, aj), excluido = !!aj.excluidos[p];
+      if (excluido && !marcar) continue;
+      if (p === k && !excluido) { out.push(f); continue; }
+      out.push(Object.assign({}, f, p !== k ? {nombre: nombrePrincipal(p, aj) || f.nombre} : {}, excluido ? {excluido: true} : {}));
+    }
+    return out;
+  }
+  let ajustesCache = null;
+  async function leerAjustes() {
+    const r = await root.histSbSelect(`app_learn?select=valor&clave=eq.${AJUSTES_CLAVE}`);
+    return normalizarAjustes(Array.isArray(r) && r[0] ? r[0].valor : null);
+  }
+  // Para mostrar: si no se puede leer, se sigue con lo último conocido (o sin ajustes).
+  async function cargarAjustes() {
+    try { ajustesCache = await leerAjustes(); } catch (e) { ajustesCache = ajustesCache || normalizarAjustes(null); }
+    return ajustesCache;
+  }
+  // Para cambiar: se relee lo último guardado (por si se tocó desde otro aparato) y si no se
+  // puede leer NO se escribe, así nunca se pisan los ajustes con una lista vacía.
+  async function guardarAjustes(cambio) {
+    const aj = await leerAjustes();
+    cambio(aj);
+    await root.cmSbWrite('app_learn?on_conflict=clave', 'POST', {clave: AJUSTES_CLAVE, valor: aj, updated_at: new Date().toISOString()}, 'resolution=merge-duplicates,return=minimal');
+    ajustesCache = aj;
+    return aj;
+  }
+
   // ── Buscador de clientes ─────────────────────────────────────────────────────────────
   // Un número busca quién pagó ese monto; un texto, clientes por nombre (sin importar
   // tildes, mayúsculas ni el orden de las palabras). Siempre devuelve clientes, no cobros.
@@ -261,12 +309,13 @@
       if (f.devuelto || !(Number(f.monto) > 0)) continue;
       const k = clave(f.nombre);
       if (!k) continue;
-      const c = porCliente.get(k) || {nombre: nombreVisible(f.nombre), total: 0, cobros: 0, dias: new Set(), ultima: ''};
+      const c = porCliente.get(k) || {nombre: nombreVisible(f.nombre), total: 0, cobros: 0, dias: new Set(), ultima: '', excluido: false};
       c.total += Number(f.monto); c.cobros++; c.dias.add(f.fecha);
       if (f.fecha > c.ultima) c.ultima = f.fecha;
+      if (f.excluido) c.excluido = true;
       porCliente.set(k, c);
     }
-    return [...porCliente.values()].map(c => ({nombre: c.nombre, total: Math.round(c.total * 100) / 100, cobros: c.cobros, visitas: c.dias.size, ultima: c.ultima}));
+    return [...porCliente.values()].map(c => ({nombre: c.nombre, total: Math.round(c.total * 100) / 100, cobros: c.cobros, visitas: c.dias.size, ultima: c.ultima, excluido: c.excluido}));
   }
   const MAX_RESULTADOS = 20;
   let busquedaActual = 0;
@@ -280,8 +329,10 @@
     el.innerHTML = '<div class="cmp-nada">Buscando…</div>';
     try {
       let filas = await root.histSbSelect(consulta.path);
+      const aj = await cargarAjustes();
       if (id !== busquedaActual) return;
       if (consulta.tipo === 'nombre') filas = filtrarPorNombre(filas, consulta.palabras);
+      filas = aplicarAjustes(filas, aj, {marcar: true});
       const clientes = agruparClientes(filas).sort(consulta.tipo === 'monto'
         ? (a, b) => b.cobros - a.cobros || (a.ultima < b.ultima ? 1 : -1)
         : (a, b) => b.total - a.total);
@@ -289,7 +340,8 @@
         ? (consulta.tipo === 'monto' ? `<div class="cmp-nada">${plural(clientes.length, 'cliente pagó', 'clientes pagaron')} ${pesos(consulta.monto)}:</div>` : '')
           + clientes.slice(0, MAX_RESULTADOS).map(c => filaCliente(c, null, consulta.tipo === 'monto'
             ? `${plural(c.cobros, 'vez', 'veces')} · última vez el ${fechaCorta(c.ultima)}`
-            : `${plural(c.visitas, 'día', 'días')} · última vez el ${fechaCorta(c.ultima)}`, {monto: consulta.tipo === 'nombre'})).join('')
+            : `${plural(c.visitas, 'día', 'días')} · última vez el ${fechaCorta(c.ultima)}`,
+            {monto: consulta.tipo === 'nombre', apagado: c.excluido, chip: c.excluido ? '<span class="cmp-chip is-fuera">no se cuenta</span>' : ''})).join('')
           + (clientes.length > MAX_RESULTADOS ? `<div class="cmp-nada">Hay ${$(clientes.length)}: escribí algo más para achicar la lista.</div>` : '')
         : `<div class="cmp-nada">No encontré clientes ${consulta.tipo === 'monto' ? 'que hayan pagado ese monto' : 'con ese nombre'}.</div>`;
       ponerAvatares(el);
@@ -504,6 +556,8 @@
       cont.querySelectorAll('.cmp-podio-base').forEach((el, i) => {
         rect(el, 'podio' + i, getComputedStyle(el).getPropertyValue('--m').trim() || '#fbbf24', {hachureGap: 5, roughness: 1.6});
       });
+      // Cliente del mes: marco dorado dibujado a mano.
+      cont.querySelectorAll('.cmp-estrella').forEach(el => rect(el, 'estrella', '#fbbf24', {fill: undefined, strokeWidth: 2.2, roughness: 2.2, bowing: 1.5}));
       // Por mes (ficha).
       cont.querySelectorAll('.cmp-mes-barra i').forEach((el, i) => rect(el, 'mes' + i, '#c77dff', {hachureGap: 3.5, strokeWidth: 1}));
       // Ranking: una pasada de resaltador.
@@ -576,8 +630,24 @@
     return `<div class="cmp-kpis${items.length === 4 ? ' cmp-kpis-4' : ''}">` + items.map(([valor, texto, color]) =>
       `<div style="--c:${color}"><b>${valor}</b><span>${texto}</span></div>`).join('') + '</div>';
   }
-  function analisisHtml(a, mesAnterior) {
+  // Cliente del mes: tarjeta destacada (se festeja con confeti la primera vez que se ve).
+  function estrellaHtml(a) {
+    const c = a.estrella;
+    if (!c) return '';
+    const mes = new Date(a.desde + 'T12:00:00Z').toLocaleDateString('es-AR', {month: 'long', timeZone: 'UTC'});
+    const hasta = a.ultimoDia < a.hasta ? ` (hasta el ${fechaCorta(a.ultimoDia)})` : '';
+    return `<button type="button" class="cmp-estrella" id="cmpEstrella" data-cliente="${esc(c.nombre)}">`
+      + `<span class="cmp-estrella-tit">⭐ Cliente del mes</span>${avatarHtml(c.nombre, 'is-estrella')}`
+      + `<span class="cmp-estrella-nom">${esc(c.nombre)}</span>`
+      + `<span class="cmp-estrella-det">El que más días vino en ${mes}${hasta}: <b>${plural(c.visitas, 'día', 'días')}</b></span>`
+      + `<span class="cmp-estrella-num"><span><b>${pesos(c.total)}</b>gastó</span><span><b>${$(c.cobros)}</b>${c.cobros === 1 ? 'compra' : 'compras'}</span><span><b>${pesos(c.ticket)}</b>ticket</span></span>`
+      + (c.franja != null ? `<span class="cmp-estrella-det">Suele venir ${franjaLarga(c.franja)}</span>` : '')
+      + '</button>';
+  }
+  function analisisHtml(a, mesAnterior, aj = normalizarAjustes(null)) {
     const pct = x => a.total ? Math.round(x / a.total * 100) : 0, top = a.ranking[0] ? a.ranking[0].total : 1;
+    const fuera = Object.values(aj.excluidos);
+    const fueraHtml = fuera.length ? `<div class="cmp-fuera"><span>🚫 No se cuentan:</span>${fuera.map(x => `<button type="button" class="cmp-chip is-fuera" data-cliente="${esc(x.nombre)}">${esc(x.nombre)}</button>`).join('')}</div>` : '';
     const hab = a.grupos[0];
     const grupos = a.grupos.map(g => `<div class="cmp-ley" style="--c:${GRUPOS[g.id].color}"><span class="cmp-ley-punto"></span>`
       + `<span class="cmp-ley-txt"><b>${GRUPOS[g.id].nombre}</b><small>${GRUPOS[g.id].detalle} · ${plural(g.clientes, 'cliente', 'clientes')}</small></span>`
@@ -596,6 +666,7 @@
           + a.nuevos.slice(0, 5).map(c => filaCliente(c, null, detalleRanking(c), {chip: '<span class="cmp-chip is-nuevo">nuevo</span>'})).join('')
         : '<div class="cmp-vacio">Este mes no hubo clientes nuevos.</div>';
     return kpisHtml([[$(a.clientes), 'clientes', '#8b7bff'], [$(a.cobros), 'compras', '#34d399'], [pesos(a.cobros ? a.total / a.cobros : 0), 'ticket promedio', '#38bdf8'], [pesos(a.total), 'cobrado con nombre', '#fbbf24']])
+      + fueraHtml + estrellaHtml(a)
       + `<div class="cmp-sec">🏆 Los que más compraron</div>${podioHtml(a.ranking.slice(0, 3))}<div class="cmp-lista" id="cmpRanking">${resto}</div>`
       + (a.ranking.length > VISIBLES ? `<button type="button" class="cmp-mas" id="cmpVerMas" aria-expanded="false">Ver los ${Math.min(MAS, a.ranking.length)}</button>` : '')
       + `<div class="cmp-sec">💸 De dónde sale lo cobrado</div><div class="cmp-grupos">`
@@ -612,7 +683,16 @@
     const v = f.meses[0] ? f.meses[0].visitas : 0;
     return v >= HABITUAL_DIAS ? ['Habitual', GRUPOS.habituales.color] : v >= 2 ? ['De vez en cuando', GRUPOS.aveces.color] : ['Vino una vez', GRUPOS.unavez.color];
   }
-  function fichaHtml(f) {
+  // excluido: no se cuenta; alias: otros nombres unidos a este cliente; estrella: es el cliente del mes.
+  function fichaAjustesHtml({excluido = false, alias = []} = {}) {
+    return (excluido ? '<div class="cmp-aviso">🚫 No se cuenta en el ranking ni en los números del mes. <button type="button" class="cmp-link" data-accion="incluir">Volver a contar</button></div>' : '')
+      + (alias.length ? `<div class="cmp-alias">🔗 También paga como: ${alias.map(x => `<span class="cmp-alias-n">${esc(x.nombre)} <button type="button" class="cmp-link" data-accion="separar" data-alias="${esc(x.clave)}">separar</button></span>`).join('')}</div>` : '')
+      + '<div class="cmp-ficha-acc"><button type="button" class="cmp-acc" data-accion="unir-abrir" aria-controls="cmpUnir">🔗 Unir con otro nombre</button>'
+      + (excluido ? '' : '<button type="button" class="cmp-acc is-fuera" data-accion="excluir">🚫 No contar</button>') + '</div>'
+      + '<div class="cmp-unir" id="cmpUnir" hidden><div class="met-sub">¿Paga también con otro nombre? Buscalo y tocá <b>Unir</b>: se van a contar como una sola persona.</div>'
+      + '<input type="search" id="cmpUnirBuscar" placeholder="Buscar el otro nombre" autocomplete="off"><div class="cmp-unir-res" id="cmpUnirRes"></div></div>';
+  }
+  function fichaHtml(f, extra = {}) {
     const hace = f.ultima ? diasEntre(f.ultima, hoyAR()) : null;
     const cuando = hace == null ? '' : hace <= 0 ? 'hoy' : hace === 1 ? 'ayer' : `hace ${hace} días`;
     const habito = [];
@@ -624,9 +704,10 @@
       + `<span class="cmp-compra-hora">${esc(c.hora || '')}</span><b>${pesos(c.monto)}</b>${c.devuelto ? '<em>devuelto</em>' : ''}</div>`).join('');
     const maxMes = Math.max(1, ...f.meses.map(m => m.total));
     return `<div class="cmp-ficha-top" style="--h:${tonoDe(f.nombre)}">${avatarHtml(f.nombre, 'is-ficha')}<div class="cmp-ficha-quien"><div class="cmp-ficha-nom">${esc(f.nombre)}</div>`
-      + `<span class="cmp-chip" style="--c:${colorTipo}">${tipo}</span>`
+      + `<span class="cmp-ficha-chips"><span class="cmp-chip" style="--c:${colorTipo}">${tipo}</span>${extra.estrella ? '<span class="cmp-chip is-estrella">⭐ Cliente del mes</span>' : ''}</span>`
       + (f.primera ? `<div class="met-sub">Primera compra el ${fechaCorta(f.primera)} · última el ${fechaCorta(f.ultima)} (${cuando})</div>` : '')
       + `</div><button type="button" class="cmp-ficha-cerrar" aria-label="Cerrar la ficha">×</button></div>`
+      + fichaAjustesHtml(extra)
       + kpisHtml([[pesos(f.total), 'gastó', '#fbbf24'], [$(f.visitas), f.visitas === 1 ? 'día' : 'días', '#34d399'], [$(f.cobros), f.cobros === 1 ? 'compra' : 'compras', '#8b7bff'], [pesos(f.ticket), 'ticket promedio', '#38bdf8']])
       + (habito.length ? `<div class="cmp-habito"><span aria-hidden="true">🕐</span> Suele venir ${habito.join(', ')}.</div>` : '')
       + (f.visitasDetalle.length ? `<div class="cmp-sec">📈 Lo que gastó cada día que vino</div>${barrasHtml(f.visitasDetalle)}` : '')
@@ -640,23 +721,111 @@
     const el = root.document && root.document.getElementById('cmpFicha');
     if (el) { el.hidden = true; el.innerHTML = ''; }
   }
-  let pedidoFicha = 0;
+  let pedidoFicha = 0, fichaActual = null, ultimoAnalisis = null;
+  // desdeLista: 'busqueda' (esconde los resultados), 'lista' (baja hasta la ficha) o
+  // 'refresco' (redibuja la misma ficha después de un ajuste, sin moverse).
   async function abrirFicha(nombre, desdeLista) {
     const doc = root.document, el = doc.getElementById('cmpFicha'), resultados = doc.getElementById('cmpResultados');
     if (!el) return;
-    const id = ++pedidoFicha, k = clave(nombre);
+    const id = ++pedidoFicha;
     if (resultados && desdeLista === 'busqueda') resultados.hidden = true;
     el.hidden = false;
-    el.innerHTML = '<div class="cmp-nada">Cargando la ficha…</div>';
-    if (desdeLista !== 'busqueda' && el.scrollIntoView) el.scrollIntoView({behavior: 'smooth', block: 'start'});
+    if (desdeLista !== 'refresco') el.innerHTML = '<div class="cmp-nada">Cargando la ficha…</div>';
+    if (desdeLista === 'lista' && el.scrollIntoView) el.scrollIntoView({behavior: 'smooth', block: 'start'});
     try {
-      const filas = (await root.histSbSelectAll(`${TABLA}?select=${CAMPOS}&nombre=ilike.${encodeURIComponent(patronNombre(k))}&order=pago_id.asc`)).filter(f => clave(f.nombre) === k);
+      // El cliente y todos los nombres unidos a él.
+      const aj = await cargarAjustes(), p = principalDe(clave(nombre), aj), claves = [p, ...aliasDe(p, aj)];
+      let filas = [];
+      for (const k of claves) filas = filas.concat((await root.histSbSelectAll(`${TABLA}?select=${CAMPOS}&nombre=ilike.${encodeURIComponent(patronNombre(k))}&order=pago_id.asc`)).filter(f => clave(f.nombre) === k));
       if (id !== pedidoFicha) return;
-      el.innerHTML = filas.length ? fichaHtml(fichaCliente(filas)) : '<div class="cmp-nada">No encontré compras de ese cliente.</div>';
+      if (!filas.length) { fichaActual = null; el.innerHTML = '<div class="cmp-nada">No encontré compras de ese cliente.</div>'; return; }
+      const f = fichaCliente(aplicarAjustes(filas, aj, {marcar: true}));
+      fichaActual = {clave: p, nombre: f.nombre};
+      const estrella = !!(ultimoAnalisis && ultimoAnalisis.estrella && clave(ultimoAnalisis.estrella.nombre) === p);
+      el.innerHTML = fichaHtml(f, {excluido: !!aj.excluidos[p], alias: claves.slice(1).map(k => ({clave: k, nombre: aj.unidos[k].nombre})), estrella});
       decorar(el);
     } catch (e) {
       if (id === pedidoFicha) el.innerHTML = '<div class="cmp-nada">No pude abrir la ficha. Revisá la conexión.</div>';
     }
+  }
+  // Botones de la ficha: no contar / volver a contar / unir / separar.
+  async function accionFicha(btn) {
+    const act = fichaActual, doc = root.document, accion = btn.dataset.accion;
+    if (!act) return;
+    if (accion === 'unir-abrir') {
+      const u = doc.getElementById('cmpUnir');
+      if (u) { u.hidden = !u.hidden; btn.setAttribute('aria-expanded', String(!u.hidden)); if (!u.hidden) doc.getElementById('cmpUnirBuscar').focus(); }
+      return;
+    }
+    let cambio = null, pregunta = '';
+    if (accion === 'excluir') {
+      pregunta = `¿No contar a ${act.nombre}?\n\nNo va a aparecer en el ranking ni en los números del mes. Sus cobros no se tocan y lo podés volver a contar cuando quieras.`;
+      cambio = aj => { aj.excluidos[act.clave] = {nombre: act.nombre, desde: hoyAR()}; };
+    } else if (accion === 'incluir') {
+      cambio = aj => { delete aj.excluidos[act.clave]; };
+    } else if (accion === 'separar') {
+      cambio = aj => { delete aj.unidos[btn.dataset.alias]; };
+    } else if (accion === 'unir-con') {
+      const otro = btn.dataset.otro;
+      pregunta = `¿${otro} y ${act.nombre} son la misma persona?\n\nSe van a contar juntos como ${act.nombre}. Lo podés separar cuando quieras.`;
+      cambio = aj => { aj.unidos[clave(otro)] = {a: act.clave, nombreA: act.nombre, nombre: otro}; };
+    }
+    if (!cambio || (pregunta && typeof root.confirm === 'function' && !root.confirm(pregunta))) return;
+    btn.disabled = true;
+    try {
+      await guardarAjustes(cambio);
+    } catch (e) {
+      btn.disabled = false;
+      if (typeof root.alert === 'function') root.alert('No se pudo guardar. Revisá la conexión y probá de nuevo.');
+      return;
+    }
+    await Promise.all([abrirFicha(act.nombre, 'refresco'), mostrarCobertura(mesVisto(), false)]);
+  }
+  // Buscador para unir: muestra cada nombre tal como viene en el reporte, menos los que ya son este cliente.
+  let busquedaUnir = 0;
+  async function buscarParaUnir(texto) {
+    const el = root.document.getElementById('cmpUnirRes'), act = fichaActual;
+    if (!el || !act) return;
+    const consulta = consultaBusqueda(texto), id = ++busquedaUnir;
+    if (!consulta) { el.innerHTML = ''; return; }
+    try {
+      let filas = await root.histSbSelect(consulta.path);
+      const aj = await cargarAjustes();
+      if (id !== busquedaUnir) return;
+      if (consulta.tipo === 'nombre') filas = filtrarPorNombre(filas, consulta.palabras);
+      const opciones = agruparClientes(filas.filter(f => principalDe(clave(f.nombre), aj) !== act.clave)).sort((a, b) => b.total - a.total).slice(0, 8);
+      el.innerHTML = opciones.length
+        ? opciones.map(c => `<button type="button" class="cmp-unir-op" data-accion="unir-con" data-otro="${esc(c.nombre)}">${avatarHtml(c.nombre)}`
+          + `<span class="cmp-cli-info"><span class="cmp-cli-nom"><span class="cmp-cli-txt">${esc(c.nombre)}</span></span><span class="cmp-cli-det">${plural(c.visitas, 'día', 'días')} · ${pesos(c.total)}</span></span>`
+          + '<span class="cmp-unir-btn">Unir</span></button>').join('')
+        : '<div class="cmp-nada">No encontré otro cliente con ese nombre.</div>';
+      ponerAvatares(el);
+    } catch (e) {
+      if (id === busquedaUnir) el.innerHTML = '<div class="cmp-nada">No pude buscar. Revisá la conexión.</div>';
+    }
+  }
+  // Confeti para el cliente del mes: la primera vez que la tarjeta aparece en pantalla
+  // (una vez por mes y por sesión) y cada vez que se la toca.
+  const festejados = new Set();
+  function tirarConfeti(el) {
+    if (!el || typeof root.confetti !== 'function') return;
+    if (root.matchMedia && root.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const r = el.getBoundingClientRect();
+    root.confetti({particleCount: 90, spread: 75, startVelocity: 32, zIndex: 100000,
+      origin: {x: (r.left + r.width / 2) / root.innerWidth, y: Math.max(0.1, (r.top + r.height / 3) / root.innerHeight)},
+      colors: ['#fbbf24', '#ff6b9a', '#8b7bff', '#34d399', '#38bdf8']});
+  }
+  function festejar(card, a) {
+    if (!card || !a.estrella || typeof root.IntersectionObserver !== 'function') return;
+    const k = `${a.desde}|${clave(a.estrella.nombre)}`;
+    if (festejados.has(k)) return;
+    const obs = new root.IntersectionObserver(entradas => {
+      if (!entradas.some(e => e.isIntersecting) || festejados.has(k)) return;
+      obs.disconnect();
+      festejados.add(k);
+      tirarConfeti(card);
+    }, {threshold: 0.6});
+    obs.observe(card);
   }
   function estado(html, tipo = '') {
     const el = root.document && root.document.getElementById('cmpEstado');
@@ -669,14 +838,17 @@
     const r = rangoMes(mes), id = ++pedidoAnalisis;
     try {
       const filas = await root.histSbSelectAll(`${TABLA}?select=${CAMPOS}&fecha=gte.${sumarDias(r.desde, -VENTANA_DIAS)}&fecha=lte.${r.hasta}&order=pago_id.asc`);
+      const aj = await cargarAjustes();
       if (id !== pedidoAnalisis) return;
       const delMes = filas.filter(f => f.fecha >= r.desde).length;
       if (conEstado) estado(delMes ? `En ${r.nombre} hay <b>${$(delMes)}</b> cobros con el nombre de quién pagó.` : `Todavía no cargaste el reporte de ${r.nombre}.`);
-      const a = delMes ? analizarClientes(filas, r.desde, r.hasta) : null, el = root.document.getElementById('cmpAnalisis');
+      // Los números del mes ya vienen sin los que no se cuentan y con los nombres unidos.
+      const a = delMes ? analizarClientes(aplicarAjustes(filas, aj), r.desde, r.hasta) : null, el = root.document.getElementById('cmpAnalisis');
+      ultimoAnalisis = a;
       if (!el) return;
       const anterior = new Date(mes.getFullYear(), mes.getMonth() - 1, 1).toLocaleDateString('es-AR', {month: 'long'});
-      el.innerHTML = a ? analisisHtml(a, anterior) : '';
-      if (a) decorar(el);
+      el.innerHTML = a ? analisisHtml(a, anterior, aj) : '';
+      if (a) { decorar(el); festejar(root.document.getElementById('cmpEstrella'), a); }
       const mas = root.document.getElementById('cmpVerMas');
       if (mas) mas.addEventListener('click', () => {
         const abierto = root.document.getElementById('cmpRanking').classList.toggle('is-abierto');
@@ -724,12 +896,25 @@
     card.addEventListener('click', e => {
       if (e.target.closest('.cmp-ficha-cerrar')) {
         cerrarFicha();
-        const res = doc.getElementById('cmpResultados');
+        const res = doc.getElementById('cmpResultados'), q = doc.getElementById('cmpBuscar').value;
         if (res) res.hidden = false;
+        // Por si se tocó algo en la ficha (no contar, unir), la lista se arma de nuevo.
+        if (q.trim()) buscar(q);
         return;
       }
+      const acc = e.target.closest('[data-accion]');
+      if (acc) { accionFicha(acc); return; }
       const cli = e.target.closest('[data-cliente]');
-      if (cli) abrirFicha(cli.dataset.cliente, cli.closest('#cmpResultados') ? 'busqueda' : 'lista');
+      if (!cli) return;
+      if (cli.id === 'cmpEstrella') tirarConfeti(cli);
+      abrirFicha(cli.dataset.cliente, cli.closest('#cmpResultados') ? 'busqueda' : 'lista');
+    });
+    let esperaUnir = null;
+    card.addEventListener('input', e => {
+      if (e.target.id !== 'cmpUnirBuscar') return;
+      clearTimeout(esperaUnir);
+      const v = e.target.value;
+      esperaUnir = setTimeout(() => buscarParaUnir(v), 300);
     });
     mostrarCobertura(mesVisto());
   }
@@ -754,5 +939,6 @@
     ponerAtajo();
   }
   return {parsearReporte, guardar, coincidencias, montoDe, fechaHoraAR, tablaFaltante, tarjetaHtml, nombreVisible, consultaBusqueda,
-    filtrarPorNombre, agruparClientes, analizarClientes, fichaCliente, franjaDe, sumarDias, patronNombre, clave};
+    filtrarPorNombre, agruparClientes, analizarClientes, fichaCliente, franjaDe, sumarDias, patronNombre, clave,
+    normalizarAjustes, principalDe, aplicarAjustes};
 });
