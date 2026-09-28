@@ -358,6 +358,15 @@
     const h = t < 0.6 ? 235 + t / 0.6 * 95 : 330 + (t - 0.6) / 0.4 * 60;
     return `hsla(${Math.round(h % 360)},90%,62%,${(0.16 + 0.84 * t).toFixed(2)})`;
   }
+  // Qué quiere decir cada número, con el ejemplo del casillero más encendido.
+  function explicacionMapa(mapa, quien) {
+    let top = null;
+    ORDEN_SEMANA.forEach(d => mapa[d].forEach((v, fr) => { if (v && (!top || v > top.v)) top = {d, fr, v}; }));
+    const base = quien === 'mes' ? 'Cada número es cuántas compras hubo ese día de la semana, en ese turno, en todo el mes.' : 'Cada número es cuántas veces compró ese día de la semana, en ese turno.';
+    const ejemplo = !top ? '' : ` Por ejemplo: <b>los ${DIAS_PLURAL[top.d]} a la ${FRANJAS[top.fr]}</b> `
+      + (quien === 'mes' ? `hubo <b>${plural(top.v, 'compra', 'compras')}</b>.` : `compró <b>${plural(top.v, 'vez', 'veces')}</b>.`);
+    return `<div class="met-sub cmp-expl">${base}${ejemplo} Cuanto más encendido, más movimiento.</div>`;
+  }
   function mapaHtml(mapa, unidad) {
     const max = Math.max(1, ...mapa.flat());
     const cab = FRANJAS.map((f, i) => `<span class="cmp-mapa-fr">${f}${turnoDe(i) ? `<small>${esc(turnoDe(i))}</small>` : ''}</span>`).join('');
@@ -592,7 +601,7 @@
       + `<div class="cmp-sec">💸 De dónde sale lo cobrado</div><div class="cmp-grupos">`
       + donaSvg(a.grupos.map(g => ({valor: g.total, color: GRUPOS[g.id].color})), `${pct(hab.total)}%`, 'habituales')
       + `<div class="cmp-leyenda">${grupos}</div></div>`
-      + `<div class="cmp-sec">🔥 Cuándo compran</div><div class="met-sub cmp-expl">Compras con nombre de cada día y turno. Cuanto más encendido, más movimiento.</div>${mapaHtml(a.mapa, ['compra', 'compras'])}`
+      + `<div class="cmp-sec">🔥 Cuándo compran</div>${explicacionMapa(a.mapa, 'mes')}${mapaHtml(a.mapa, ['compra', 'compras'])}`
       + `<div class="cmp-sec">👋 Habituales que dejaron de venir</div>`
       + `<div class="met-sub cmp-expl">Vinieron ${HABITUAL_DIAS} días o más en los últimos 2 meses y no aparecen desde hace ${SIN_VENIR_DIAS} días o más.</div><div class="cmp-lista">${dejaron}</div>`
       + `<div class="cmp-sec">✨ Clientes nuevos</div><div class="cmp-lista">${nuevos}</div>`
@@ -621,7 +630,7 @@
       + kpisHtml([[pesos(f.total), 'gastó', '#fbbf24'], [$(f.visitas), f.visitas === 1 ? 'día' : 'días', '#34d399'], [$(f.cobros), f.cobros === 1 ? 'compra' : 'compras', '#8b7bff'], [pesos(f.ticket), 'ticket promedio', '#38bdf8']])
       + (habito.length ? `<div class="cmp-habito"><span aria-hidden="true">🕐</span> Suele venir ${habito.join(', ')}.</div>` : '')
       + (f.visitasDetalle.length ? `<div class="cmp-sec">📈 Lo que gastó cada día que vino</div>${barrasHtml(f.visitasDetalle)}` : '')
-      + (f.visitas >= 2 ? `<div class="cmp-sec">🔥 Cuándo viene</div>${mapaHtml(f.mapa, ['compra', 'compras'])}` : '')
+      + (f.visitas >= 2 ? `<div class="cmp-sec">🔥 Cuándo viene</div>${explicacionMapa(f.mapa, 'cliente')}${mapaHtml(f.mapa, ['vez', 'veces'])}` : '')
       + (f.meses.length > 1 ? '<div class="cmp-sec">📅 Por mes</div>' + f.meses.map(m => `<div class="cmp-mes"><span class="cmp-mes-nom">${mesNombre(m.mes)}</span>`
           + `<span class="cmp-mes-barra"><i style="width:${Math.max(3, m.total / maxMes * 100).toFixed(1)}%"></i></span><span class="cmp-mes-val"><b>${pesos(m.total)}</b><small>${plural(m.visitas, 'día', 'días')}</small></span></div>`).join('') : '')
       + `<div class="cmp-sec">🧾 Últimas compras</div><div class="cmp-compras">${compras}</div>`

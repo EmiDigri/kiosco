@@ -124,6 +124,9 @@ const textos = loc => loc.allTextContents().then(t => t.map(s => s.replace(/\s+/
       assert.equal(await page.locator('#cmpAnalisis .cmp-mapa-celda').count(), 21);
       // Carlos: miércoles y domingos a la mañana, 4 veces cada uno.
       assert.equal(await page.locator('#cmpAnalisis .cmp-mapa-celda').nth(6).innerText(), '4');
+      // Arriba del mapa se explica qué es el número, con el ejemplo del casillero más encendido.
+      assert((await page.locator('#cmpAnalisis .cmp-mapa').evaluate(m => m.previousElementSibling.textContent))
+        .includes('Cada número es cuántas compras hubo ese día de la semana, en ese turno, en todo el mes. Por ejemplo: los miércoles a la mañana hubo 4 compras.'));
       const dejaron = await textos(page.locator('.cmp-cli.is-apagado .cmp-cli-txt'));
       assert.deepEqual(dejaron, ['Lucía Fernández', 'Pedro Sosa']);
       assert((await page.locator('.cmp-cli.is-apagado .cmp-chip').first().innerText()).startsWith('hace '));
@@ -186,6 +189,8 @@ const textos = loc => loc.allTextContents().then(t => t.map(s => s.replace(/\s+/
       assert.equal(await page.locator('#cmpFicha .cmp-vis-col').count(), 10);
       assert.equal(await page.locator('#cmpFicha .cmp-vis-monto').count(), 1);
       assert.equal(await page.locator('#cmpFicha .cmp-mapa-celda').count(), 21);
+      assert((await page.locator('#cmpFicha .cmp-mapa').evaluate(m => m.previousElementSibling.textContent))
+        .includes('Cada número es cuántas veces compró ese día de la semana, en ese turno. Por ejemplo: los miércoles a la mañana compró 4 veces.'));
       assert(!(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)), 'sin scroll horizontal');
       await page.locator('#cmpFicha').screenshot({path: path.join(dir, `clientes-ficha-${width}.png`)});
 
