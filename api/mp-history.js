@@ -94,6 +94,44 @@ export default async function handler(req, res) {
   if (!(await usuarioValido(req))) return res.status(401).json({ error: 'Necesitás iniciar sesión' });
   if (!MP_TOKEN) return res.status(503).json({ error: 'Mercado Pago no está configurado' });
 
+  // Temporary, authenticated read-only probe. Also expires on old deployments.
+  if (req.query.payment_ids !== undefined) {
+    res.setHeader('Cache-Control', 'no-store');
+    if (Date.now() >= Date.parse('2026-09-28T23:30:00Z')) return res.status(410).json({ error: 'Prueba finalizada' });
+    const raw = req.query.payment_ids;
+    if (typeof raw !== 'string' || !/^\d{1,20}(,\d{1,20}){0,9}$/.test(raw)) {
+      return res.status(400).json({ error: 'Ingresar entre 1 y 10 operaciones numericas' });
+    }
+    const ids = [...new Set(raw.split(','))];
+    const results = await Promise.all(ids.map(async id => {
+      try {
+        const response = await fetch(`https://api.mercadopago.com/v1/payments/${id}`, {
+          headers: { Authorization: `Bearer ${MP_TOKEN}`, accept: 'application/json' },
+          signal: AbortSignal.timeout(14000),
+        });
+        if (!response.ok) return { id, http_status: response.status };
+        const payment = await response.json();
+        if (String(payment.id) !== id || Number(payment.collector_id) !== MP_USER_ID) {
+          return { id, http_status: 403 };
+        }
+        return {
+          id, http_status: 200,
+          amount: Number(payment.transaction_amount) || 0,
+          date: payment.date_approved || payment.date_created || '',
+          operation_type: payment.operation_type || '',
+          payment_type: payment.payment_type_id || '',
+          has_payer_id: Boolean(payment.payer?.id),
+          names: {
+            payer: [payment.payer?.first_name, payment.payer?.last_name].filter(Boolean).join(' '),
+            additional: [payment.additional_info?.payer?.first_name, payment.additional_info?.payer?.last_name].filter(Boolean).join(' '),
+            cardholder: payment.card?.cardholder?.name || '',
+          },
+        };
+      } catch { return { id, http_status: 502 }; }
+    }));
+    return res.status(200).json({ results });
+  }
+
   const date = String(req.query.date || '');
   const window = validDate(date) ? dayWindow(date) : null;
   if (!window) return res.status(400).json({ error: 'Fecha inválida' });
