@@ -103,8 +103,10 @@
   }
   function tablaFaltante(error) { return /mp_pagadores|42P01|PGRST205|does not exist|relation/i.test(String(error && error.message || error)); }
 
-  // ── Tarjeta en Métricas ──────────────────────────────────────────────────────────────
+  // ── Formatos ─────────────────────────────────────────────────────────────────────────
   const $ = n => Number(n || 0).toLocaleString('es-AR');
+  const pesos = n => '$' + Math.round(Number(n) || 0).toLocaleString('es-AR');
+  const plural = (n, uno, varios) => `${$(n)} ${n === 1 ? uno : varios}`;
   const fechaCorta = iso => iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}` : '';
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
   function rangoMes(fecha) {
@@ -112,19 +114,11 @@
     const p = n => String(n).padStart(2, '0');
     return {desde: `${y}-${p(m)}-01`, hasta: `${y}-${p(m)}-${p(ult)}`, nombre: fecha.toLocaleDateString('es-AR', {month: 'long'})};
   }
-  function tarjetaHtml() {
-    return `<div class="met-card cmp-card" id="metClientes">
-      <div class="met-card-title">Clientes de Mercado Pago</div>
-      <div class="cmp-intro">A fin de mes subí el reporte <b>Todas las transacciones</b> de Mercado Pago y la app sabe quién pagó cada transferencia.</div>
-      <div class="cmp-acciones"><label class="cmp-subir"><input type="file" accept=".csv,text/csv" id="cmpArchivo"><span>Cargar reporte de Mercado Pago</span></label></div>
-      <div class="cmp-estado" id="cmpEstado" role="status" aria-live="polite"></div>
-      <div class="cmp-buscar">
-        <label class="cmp-buscar-lbl" for="cmpBuscar">Buscar un cobro</label>
-        <input type="search" id="cmpBuscar" placeholder="Nombre o monto, ej. lucia o 4500" autocomplete="off" inputmode="search">
-        <div class="cmp-resultados" id="cmpResultados" aria-live="polite"></div>
-      </div>
-    </div>`;
-  }
+  function sumarDias(iso, n) { const d = new Date(iso + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); }
+  const diasEntre = (desde, hasta) => Math.round((new Date(hasta + 'T12:00:00Z') - new Date(desde + 'T12:00:00Z')) / 864e5);
+  const diaSemana = iso => new Date(iso + 'T12:00:00Z').getUTCDay();
+  const DIAS_PLURAL = ['domingos', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábados'];
+  const DIAS_CORTOS = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
 
   // ── Nombres ──────────────────────────────────────────────────────────────────────────
   // "LUCIA DE LA FUENTE" -> "Lucia de la Fuente". El reporte viene en mayúsculas.
@@ -134,43 +128,170 @@
       .map((p, i) => (i && PARTICULAS.has(p)) ? p : p.charAt(0).toLocaleUpperCase('es-AR') + p.slice(1)).join(' ');
   }
   const sinTildes = s => String(s || '').normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
+  // Un cliente es un nombre del reporte, sin tildes ni mayúsculas.
+  const clave = n => sinTildes(nombreLimpio(n));
+  // Para pedirle a la base un nombre que puede venir con tildes o eñes: esas letras van
+  // como "cualquier letra" y después se compara bien acá.
+  const patronNombre = k => k.replace(/[aeioun]/g, '_');
 
-  // ── Buscador ─────────────────────────────────────────────────────────────────────────
-  // Un número busca por monto exacto; un texto, por nombre (sin importar tildes ni mayúsculas).
+  // ── Turnos ───────────────────────────────────────────────────────────────────────────
+  // Franjas de los turnos de semana: 7 a 12, 12 a 17 y de 17 al cierre (la madrugada va con la noche).
+  function franjaDe(hora) {
+    if (!/^\d{1,2}:\d{2}/.test(String(hora || ''))) return null;
+    const [h, m] = String(hora).split(':').map(Number), min = h * 60 + m;
+    return min < 7 * 60 ? 2 : min <= 12 * 60 ? 0 : min <= 17 * 60 ? 1 : 2;
+  }
+  const FRANJAS = ['mañana', 'tarde', 'noche'];
+  function turnoDe(i) {
+    // TURNOS_SEMANA es de index.html (Vale, Ani, Marta).
+    // eslint-disable-next-line no-undef
+    const semana = typeof TURNOS_SEMANA !== 'undefined' && Array.isArray(TURNOS_SEMANA) && TURNOS_SEMANA.length === 3 ? TURNOS_SEMANA : null;
+    return semana ? semana[i].nombre : null;
+  }
+  const franjaCorta = i => i == null ? 'horario variado' : (turnoDe(i) ? `turno ${turnoDe(i)}` : `a la ${FRANJAS[i]}`);
+  const franjaLarga = i => turnoDe(i) ? `en el turno de ${turnoDe(i)} (${FRANJAS[i]})` : `a la ${FRANJAS[i]}`;
+  function franjaPreferida(franjas) {
+    const n = franjas.reduce((a, b) => a + b, 0), max = Math.max(...franjas);
+    return n && max / n >= 0.5 ? franjas.indexOf(max) : null;
+  }
+
+  // ── Clientes del mes ─────────────────────────────────────────────────────────────────
+  // Una visita es un día distinto: tres transferencias el mismo día son una sola visita.
+  // Solo mira lo que ya pasó.
+  const HABITUAL_DIAS = 4;    // vino 4 días o más: una vez por semana o más
+  const SIN_VENIR_DIAS = 10;  // un habitual que no aparece hace 10 días o más "dejó de venir"
+  const VENTANA_DIAS = 60;    // para saber si era habitual y si es nuevo se miran 2 meses
+  function analizarClientes(filas, desde, hasta) {
+    const validas = filas.filter(f => !f.devuelto && Number(f.monto) > 0 && f.fecha && f.fecha <= hasta && clave(f.nombre));
+    const ultimoDia = validas.filter(f => f.fecha >= desde).reduce((u, f) => f.fecha > u ? f.fecha : u, '');
+    if (!ultimoDia) return null;
+    const inicioVentana = sumarDias(ultimoDia, -VENTANA_DIAS), limiteSinVenir = sumarDias(ultimoDia, -SIN_VENIR_DIAS);
+    const clientes = new Map();
+    // Mapa de calor del mes: compras por día de la semana (0 = domingo) y franja.
+    const mapa = Array.from({length: 7}, () => [0, 0, 0]);
+    let hayAnteriores = false;
+    for (const f of validas) {
+      const k = clave(f.nombre);
+      let c = clientes.get(k);
+      if (!c) clientes.set(k, c = {nombre: nombreVisible(f.nombre), total: 0, cobros: 0, dias: new Set(), diasVentana: new Set(), franjas: [0, 0, 0], ultima: '', previo: false});
+      if (f.fecha > c.ultima) c.ultima = f.fecha;
+      if (f.fecha >= inicioVentana) c.diasVentana.add(f.fecha);
+      if (f.fecha < desde) { hayAnteriores = c.previo = true; continue; }
+      c.total += Number(f.monto); c.cobros++; c.dias.add(f.fecha);
+      const fr = franjaDe(f.hora); if (fr != null) { c.franjas[fr]++; mapa[diaSemana(f.fecha)][fr]++; }
+    }
+    const resumen = c => ({nombre: c.nombre, total: Math.round(c.total * 100) / 100, cobros: c.cobros, visitas: c.dias.size,
+      ticket: c.cobros ? Math.round(c.total / c.cobros) : 0, franja: franjaPreferida(c.franjas), ultima: c.ultima, visitasVentana: c.diasVentana.size});
+    const todos = [...clientes.values()];
+    const delMes = todos.filter(c => c.cobros).map(resumen).sort((a, b) => b.total - a.total || b.visitas - a.visitas);
+    const total = delMes.reduce((s, c) => s + c.total, 0);
+    const grupo = (id, cond) => { const cs = delMes.filter(cond); return {id, clientes: cs.length, total: cs.reduce((s, c) => s + c.total, 0)}; };
+    return {
+      desde, hasta, ultimoDia, total, clientes: delMes.length, cobros: delMes.reduce((s, c) => s + c.cobros, 0),
+      ranking: delMes, mapa,
+      grupos: [grupo('habituales', c => c.visitas >= HABITUAL_DIAS), grupo('aveces', c => c.visitas >= 2 && c.visitas < HABITUAL_DIAS), grupo('unavez', c => c.visitas === 1)],
+      dejaron: todos.filter(c => c.diasVentana.size >= HABITUAL_DIAS && c.ultima <= limiteSinVenir).map(resumen)
+        .sort((a, b) => b.visitasVentana - a.visitasVentana || (a.ultima < b.ultima ? 1 : -1)),
+      // Sin reportes de meses anteriores no se puede saber quién es nuevo.
+      nuevos: hayAnteriores ? todos.filter(c => c.cobros && !c.previo).map(resumen).sort((a, b) => b.total - a.total) : null,
+    };
+  }
+
+  // ── Ficha de un cliente ──────────────────────────────────────────────────────────────
+  // Todo lo que hay cargado de una persona: cuánto gastó, cuándo viene, sus compras.
+  function fichaCliente(filas) {
+    const validas = filas.filter(f => !f.devuelto && Number(f.monto) > 0);
+    const dias = new Set(validas.map(f => f.fecha)), franjas = [0, 0, 0], porDia = Array(7).fill(0), meses = new Map();
+    const mapa = Array.from({length: 7}, () => [0, 0, 0]), gastoPorDia = new Map();
+    let total = 0;
+    for (const f of validas) {
+      total += Number(f.monto);
+      const fr = franjaDe(f.hora); if (fr != null) { franjas[fr]++; mapa[diaSemana(f.fecha)][fr]++; }
+      const m = meses.get(f.fecha.slice(0, 7)) || {mes: f.fecha.slice(0, 7), total: 0, dias: new Set()};
+      m.total += Number(f.monto); m.dias.add(f.fecha); meses.set(m.mes, m);
+      gastoPorDia.set(f.fecha, (gastoPorDia.get(f.fecha) || 0) + Number(f.monto));
+    }
+    dias.forEach(d => porDia[diaSemana(d)]++);
+    const maxDia = Math.max(...porDia), orden = [...dias].sort();
+    return {
+      nombre: nombreVisible(filas[0] ? filas[0].nombre : ''),
+      total: Math.round(total * 100) / 100, cobros: validas.length, visitas: dias.size,
+      ticket: validas.length ? Math.round(total / validas.length) : 0,
+      franja: franjaPreferida(franjas),
+      // Días de la semana que más viene (uno, o dos si empatan): solo si vino 3 días o más y
+      // cada uno de esos días pesa al menos 30%.
+      dias: (() => {
+        const top = [1, 2, 3, 4, 5, 6, 0].filter(d => porDia[d] === maxDia);
+        return dias.size >= 3 && top.length <= 2 && maxDia / dias.size >= 0.3 ? top : [];
+      })(),
+      primera: orden[0] || '', ultima: orden[orden.length - 1] || '',
+      meses: [...meses.values()].sort((a, b) => a.mes < b.mes ? 1 : -1).map(m => ({mes: m.mes, total: Math.round(m.total * 100) / 100, visitas: m.dias.size})),
+      compras: filas.slice().sort((a, b) => `${b.fecha} ${b.hora || ''}`.localeCompare(`${a.fecha} ${a.hora || ''}`)),
+      mapa,
+      // Lo que gastó cada día que vino, del más viejo al más nuevo (para el gráfico de barras).
+      visitasDetalle: [...gastoPorDia].sort((a, b) => a[0] < b[0] ? -1 : 1).map(([fecha, monto]) => ({fecha, total: Math.round(monto * 100) / 100})),
+    };
+  }
+
+  // ── Buscador de clientes ─────────────────────────────────────────────────────────────
+  // Un número busca quién pagó ese monto; un texto, clientes por nombre (sin importar
+  // tildes, mayúsculas ni el orden de las palabras). Siempre devuelve clientes, no cobros.
+  const CAMPOS = 'pago_id,nombre,fecha,hora,monto,devuelto';
   function consultaBusqueda(texto) {
     const q = String(texto || '').trim();
     const soloNumero = q.replace(/[$\s]/g, '');
     if (/^\d{1,3}(\.\d{3})+(,\d{1,2})?$|^\d+([.,]\d{1,2})?$/.test(soloNumero)) {
       const monto = montoDe(/^\d{1,3}(\.\d{3})+$/.test(soloNumero) ? soloNumero.replace(/\./g, '') : soloNumero);
-      return {tipo: 'monto', monto, path: `${TABLA}?select=pago_id,nombre,fecha,hora,monto,devuelto&monto=eq.${monto}&order=fecha.desc,hora.desc&limit=40`};
+      return {tipo: 'monto', monto, path: `${TABLA}?select=${CAMPOS}&monto=eq.${monto}&order=fecha.desc,hora.desc&limit=1000`};
     }
     const palabras = sinTildes(q).replace(/[^a-zñ ]/g, ' ').split(/\s+/).filter(p => p.length >= 2);
     if (!palabras.length) return null;
     // A la base se le pide la palabra más larga (así "fer lucia" también encuentra a
-    // "Lucia Fernandez"). Puede haber tildes: cada vocal va como "cualquier letra" y después
-    // se filtra bien acá, con todas las palabras y sin tildes.
+    // "Lucia Fernandez") y acá se filtra con todas las palabras.
     const patron = palabras.slice().sort((a, b) => b.length - a.length)[0].replace(/[aeiou]/g, '_');
-    return {tipo: 'nombre', palabras, path: `${TABLA}?select=pago_id,nombre,fecha,hora,monto,devuelto&nombre=ilike.*${encodeURIComponent(patron)}*&order=fecha.desc,hora.desc&limit=200`};
+    return {tipo: 'nombre', palabras, path: `${TABLA}?select=${CAMPOS}&nombre=ilike.*${encodeURIComponent(patron)}*&order=fecha.desc,hora.desc&limit=3000`};
   }
   function filtrarPorNombre(filas, palabras) {
     return filas.filter(f => { const n = sinTildes(f.nombre); return palabras.every(p => n.includes(p)); });
   }
+  // Junta los cobros encontrados por cliente.
+  function agruparClientes(filas) {
+    const porCliente = new Map();
+    for (const f of filas) {
+      if (f.devuelto || !(Number(f.monto) > 0)) continue;
+      const k = clave(f.nombre);
+      if (!k) continue;
+      const c = porCliente.get(k) || {nombre: nombreVisible(f.nombre), total: 0, cobros: 0, dias: new Set(), ultima: ''};
+      c.total += Number(f.monto); c.cobros++; c.dias.add(f.fecha);
+      if (f.fecha > c.ultima) c.ultima = f.fecha;
+      porCliente.set(k, c);
+    }
+    return [...porCliente.values()].map(c => ({nombre: c.nombre, total: Math.round(c.total * 100) / 100, cobros: c.cobros, visitas: c.dias.size, ultima: c.ultima}));
+  }
+  const MAX_RESULTADOS = 20;
   let busquedaActual = 0;
   async function buscar(texto) {
-    const el = root.document.getElementById('cmpResultados');
+    const doc = root.document, el = doc.getElementById('cmpResultados');
     if (!el) return;
     const consulta = consultaBusqueda(texto), id = ++busquedaActual;
+    cerrarFicha();
+    el.hidden = false;
     if (!consulta) { el.innerHTML = ''; return; }
     el.innerHTML = '<div class="cmp-nada">Buscando…</div>';
     try {
       let filas = await root.histSbSelect(consulta.path);
       if (id !== busquedaActual) return;
       if (consulta.tipo === 'nombre') filas = filtrarPorNombre(filas, consulta.palabras);
-      filas = filas.slice(0, 40);
-      el.innerHTML = filas.length ? filas.map(f => `<div class="cmp-res"><span class="cmp-res-nom">${esc(nombreVisible(f.nombre))}${f.devuelto ? '<em>devuelto</em>' : ''}</span>`
-        + `<span class="cmp-res-cuando">${fechaCorta(f.fecha)} · ${esc(f.hora || '')}</span><b class="cmp-res-monto">$${$(f.monto)}</b></div>`).join('')
-        + (filas.length === 40 ? '<div class="cmp-nada">Se muestran los 40 más recientes.</div>' : '')
-        : `<div class="cmp-nada">No encontré cobros ${consulta.tipo === 'monto' ? 'de ese monto' : 'con ese nombre'}.</div>`;
+      const clientes = agruparClientes(filas).sort(consulta.tipo === 'monto'
+        ? (a, b) => b.cobros - a.cobros || (a.ultima < b.ultima ? 1 : -1)
+        : (a, b) => b.total - a.total);
+      el.innerHTML = clientes.length
+        ? (consulta.tipo === 'monto' ? `<div class="cmp-nada">${plural(clientes.length, 'cliente pagó', 'clientes pagaron')} ${pesos(consulta.monto)}:</div>` : '')
+          + clientes.slice(0, MAX_RESULTADOS).map(c => filaCliente(c, null, consulta.tipo === 'monto'
+            ? `${plural(c.cobros, 'vez', 'veces')} · última vez el ${fechaCorta(c.ultima)}`
+            : `${plural(c.visitas, 'día', 'días')} · última vez el ${fechaCorta(c.ultima)}`, {monto: consulta.tipo === 'nombre'})).join('')
+          + (clientes.length > MAX_RESULTADOS ? `<div class="cmp-nada">Hay ${$(clientes.length)}: escribí algo más para achicar la lista.</div>` : '')
+        : `<div class="cmp-nada">No encontré clientes ${consulta.tipo === 'monto' ? 'que hayan pagado ese monto' : 'con ese nombre'}.</div>`;
     } catch (e) {
       if (id === busquedaActual) el.innerHTML = `<div class="cmp-nada">${tablaFaltante(e) ? 'Falta crear la tabla mp_pagadores en Supabase.' : 'No pude buscar. Revisá la conexión.'}</div>`;
     }
@@ -203,21 +324,221 @@
     const detalle = root.mostrarDetalleDia;
     root.mostrarDetalleDia = async function() { const r = await detalle.apply(this, arguments); await nombresDelDia(); return r; };
   }
+
+  // ── Tarjeta en Métricas ──────────────────────────────────────────────────────────────
+  function tarjetaHtml() {
+    return `<div class="met-card cmp-card" id="metClientes">
+      <div class="met-card-title">Clientes de Mercado Pago</div>
+      <div class="cmp-intro">A fin de mes subí el reporte <b>Todas las transacciones</b> de Mercado Pago y la app sabe quién pagó cada transferencia.</div>
+      <div class="cmp-acciones"><label class="cmp-subir"><input type="file" accept=".csv,text/csv" id="cmpArchivo"><span>Cargar reporte de Mercado Pago</span></label></div>
+      <div class="cmp-estado" id="cmpEstado" role="status" aria-live="polite"></div>
+      <div class="cmp-buscar">
+        <label class="cmp-buscar-lbl" for="cmpBuscar">Buscar un cliente</label>
+        <input type="search" id="cmpBuscar" placeholder="Nombre o monto, ej. lucia o 4500" autocomplete="off" inputmode="search">
+        <div class="cmp-resultados" id="cmpResultados" aria-live="polite"></div>
+        <div class="cmp-ficha" id="cmpFicha" hidden></div>
+      </div>
+      <div class="cmp-analisis" id="cmpAnalisis"></div>
+    </div>`;
+  }
+  // ── Colores y dibujos ────────────────────────────────────────────────────────────────
+  // Cada cliente tiene su color (sale del nombre, así es siempre el mismo) y sus iniciales.
+  function tonoDe(nombre) { let h = 7; for (const ch of clave(nombre)) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h % 360; }
+  function iniciales(nombre) {
+    const p = nombreLimpio(nombre).split(' ').filter(w => w && !PARTICULAS.has(w.toLowerCase()));
+    return ((p[0] || '').charAt(0) + (p[1] || '').charAt(0)).toLocaleUpperCase('es-AR');
+  }
+  const avatarHtml = (nombre, clase = '') => `<span class="cmp-av${clase ? ' ' + clase : ''}" style="--h:${tonoDe(nombre)}" aria-hidden="true">${esc(iniciales(nombre))}</span>`;
+  const ORDEN_SEMANA = [1, 2, 3, 4, 5, 6, 0];
+  const SEMANA_CORTA = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+  const SEMANA_LARGA = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+  // Mapa de calor: de índigo apagado (poco) a rosa y naranja (mucho).
+  function colorCalor(t) {
+    const h = t < 0.6 ? 235 + t / 0.6 * 95 : 330 + (t - 0.6) / 0.4 * 60;
+    return `hsla(${Math.round(h % 360)},90%,62%,${(0.16 + 0.84 * t).toFixed(2)})`;
+  }
+  function mapaHtml(mapa, unidad) {
+    const max = Math.max(1, ...mapa.flat());
+    const cab = FRANJAS.map((f, i) => `<span class="cmp-mapa-fr">${f}${turnoDe(i) ? `<small>${esc(turnoDe(i))}</small>` : ''}</span>`).join('');
+    const filas = ORDEN_SEMANA.map(d => `<span class="cmp-mapa-dia">${SEMANA_CORTA[d]}</span>` + mapa[d].map((v, fr) => {
+      const t = v / max;
+      return `<span class="cmp-mapa-celda${t > 0.4 ? ' is-fuerte' : ''}" style="${v ? `background:${colorCalor(t)}` : ''}" title="${SEMANA_LARGA[d]} a la ${FRANJAS[fr]}: ${plural(v, unidad[0], unidad[1])}">${v || ''}</span>`;
+    }).join('')).join('');
+    return `<div class="cmp-mapa"><span></span>${cab}${filas}</div>`;
+  }
+  function donaSvg(partes, centro, sub) {
+    const total = partes.reduce((s, p) => s + p.valor, 0) || 1, R = 50, C = 2 * Math.PI * R;
+    const conValor = partes.filter(p => p.valor > 0), hueco = conValor.length > 1 ? 2.5 : 0;
+    let acum = 0;
+    const arcos = conValor.map(p => {
+      const largo = p.valor / total * C, arco = `<circle cx="70" cy="70" r="${R}" fill="none" stroke="${p.color}" stroke-width="20" stroke-dasharray="${Math.max(0, largo - hueco).toFixed(2)} ${C.toFixed(2)}" stroke-dashoffset="${(-acum).toFixed(2)}" transform="rotate(-90 70 70)"/>`;
+      acum += largo;
+      return arco;
+    }).join('');
+    return `<svg class="cmp-dona" viewBox="0 0 140 140" role="img" aria-label="${esc(sub)}: ${esc(centro)}"><circle cx="70" cy="70" r="${R}" fill="none" class="cmp-dona-fondo" stroke-width="20"/>${arcos}`
+      + `<text x="70" y="70" text-anchor="middle" class="cmp-dona-n">${esc(centro)}</text><text x="70" y="89" text-anchor="middle" class="cmp-dona-s">${esc(sub)}</text></svg>`;
+  }
+  // Barras de lo que gastó cada día que vino (las últimas 40 visitas).
+  function barrasSvg(visitas) {
+    const ult = visitas.slice(-40), n = ult.length, max = Math.max(1, ...ult.map(v => v.total));
+    const W = 320, H = 118, arriba = 16, abajo = 18, alto = H - arriba - abajo, paso = W / Math.max(n, 6), ancho = Math.max(3, Math.min(22, paso * 0.68));
+    const barras = ult.map((v, i) => {
+      const h = Math.max(3, v.total / max * alto), x = i * paso + (paso - ancho) / 2;
+      return `<rect x="${x.toFixed(1)}" y="${(arriba + alto - h).toFixed(1)}" width="${ancho.toFixed(1)}" height="${h.toFixed(1)}" rx="${Math.min(4, ancho / 2).toFixed(1)}" fill="url(#cmpGradBarras)"><title>${SEMANA_CORTA[diaSemana(v.fecha)]} ${fechaCorta(v.fecha)}: ${pesos(v.total)}</title></rect>`;
+    }).join('');
+    return `<svg class="cmp-barras" viewBox="0 0 ${W} ${H}" role="img" aria-label="Lo que gastó cada día que vino"><defs><linearGradient id="cmpGradBarras" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#7c90ff"/><stop offset=".65" stop-color="#c77dff"/><stop offset="1" stop-color="#ff6b9a"/></linearGradient></defs>`
+      + `<line x1="0" x2="${W}" y1="${arriba + alto + .5}" y2="${arriba + alto + .5}" class="cmp-barras-eje"/>${barras}`
+      + `<text x="0" y="10" class="cmp-barras-txt">máx. ${pesos(max)}</text>`
+      + `<text x="0" y="${H - 3}" class="cmp-barras-txt">${fechaCorta(ult[0].fecha)}</text>`
+      + (n > 1 ? `<text x="${W}" y="${H - 3}" text-anchor="end" class="cmp-barras-txt">${fechaCorta(ult[n - 1].fecha)}</text>` : '') + '</svg>';
+  }
+
+  // ── Tarjeta: clientes y rankings ─────────────────────────────────────────────────────
+  // Cada cliente es un botón: al tocarlo se abre su ficha.
+  // pos: número del ranking (null = sin número); monto: false para no mostrar el total;
+  // barra: 0 a 1, cuánto gastó al lado del primero; chip: cartelito (nuevo, hace N días).
+  function filaCliente(c, pos, detalle, {monto = true, extra = false, barra = null, chip = '', apagado = false} = {}) {
+    return `<button type="button" class="cmp-cli${extra ? ' is-extra' : ''}${apagado ? ' is-apagado' : ''}" data-cliente="${esc(c.nombre)}">`
+      + (pos == null ? '' : `<span class="cmp-cli-pos">${pos}</span>`) + avatarHtml(c.nombre)
+      + `<span class="cmp-cli-info"><span class="cmp-cli-nom"><span class="cmp-cli-txt">${esc(c.nombre)}</span>${chip}</span><span class="cmp-cli-det">${detalle}</span>`
+      + (barra == null ? '' : `<span class="cmp-cli-barra"><i style="width:${Math.max(3, barra * 100).toFixed(1)}%;--h:${tonoDe(c.nombre)}"></i></span>`) + '</span>'
+      + (monto ? `<b class="cmp-cli-monto">${pesos(c.total)}</b>` : '') + '<span class="cmp-cli-ir" aria-hidden="true">›</span></button>';
+  }
+  const detalleRanking = c => [plural(c.visitas, 'día', 'días'), plural(c.cobros, 'compra', 'compras'), `ticket ${pesos(c.ticket)}`, c.visitas >= 2 ? franjaCorta(c.franja) : ''].filter(Boolean).join(' · ');
+  const MEDALLAS = ['🥇', '🥈', '🥉'];
+  function podioHtml(top) {
+    return '<div class="cmp-podio">' + [1, 0, 2].filter(i => top[i]).map(i => {
+      const c = top[i];
+      return `<button type="button" class="cmp-podio-lugar is-${i + 1}" data-cliente="${esc(c.nombre)}">`
+        + `<span class="cmp-podio-medalla" aria-hidden="true">${MEDALLAS[i]}</span>${avatarHtml(c.nombre, 'is-grande')}`
+        + `<span class="cmp-podio-nom">${esc(c.nombre)}</span><b class="cmp-podio-monto">${pesos(c.total)}</b>`
+        + `<span class="cmp-podio-det">${plural(c.visitas, 'día', 'días')} · ${plural(c.cobros, 'compra', 'compras')}</span>`
+        + `<span class="cmp-podio-base"><span>${i + 1}º</span></span></button>`;
+    }).join('') + '</div>';
+  }
+  const GRUPOS = {
+    habituales: {nombre: 'Habituales', detalle: `${HABITUAL_DIAS} días o más`, color: '#8b7bff'},
+    aveces: {nombre: 'De vez en cuando', detalle: '2 o 3 días', color: '#34d399'},
+    unavez: {nombre: 'Una sola vez', detalle: '1 día', color: '#fbbf24'},
+  };
+  const VISIBLES = 10, MAS = 30;
+  function kpisHtml(items) {
+    return `<div class="cmp-kpis${items.length === 4 ? ' cmp-kpis-4' : ''}">` + items.map(([valor, texto, color]) =>
+      `<div style="--c:${color}"><b>${valor}</b><span>${texto}</span></div>`).join('') + '</div>';
+  }
+  function analisisHtml(a, mesAnterior) {
+    const pct = x => a.total ? Math.round(x / a.total * 100) : 0, top = a.ranking[0] ? a.ranking[0].total : 1;
+    const hab = a.grupos[0];
+    const grupos = a.grupos.map(g => `<div class="cmp-ley" style="--c:${GRUPOS[g.id].color}"><span class="cmp-ley-punto"></span>`
+      + `<span class="cmp-ley-txt"><b>${GRUPOS[g.id].nombre}</b><small>${GRUPOS[g.id].detalle} · ${plural(g.clientes, 'cliente', 'clientes')}</small></span>`
+      + `<span class="cmp-ley-val"><b>${pct(g.total)}%</b><small>${pesos(g.total)}</small></span></div>`).join('');
+    const resto = a.ranking.slice(3, MAS).map((c, i) => filaCliente(c, i + 4, detalleRanking(c), {extra: i + 3 >= VISIBLES, barra: c.total / top})).join('');
+    const hoy = hoyAR();
+    const dejaron = a.dejaron.length
+      ? a.dejaron.slice(0, 8).map(c => filaCliente(c, null, `venía ${plural(c.visitasVentana, 'día', 'días')} · última vez el ${fechaCorta(c.ultima)}`,
+          {monto: false, apagado: true, chip: `<span class="cmp-chip is-alerta">hace ${diasEntre(c.ultima, hoy)} días</span>`})).join('')
+        + (a.dejaron.length > 8 ? `<div class="met-sub">Y ${$(a.dejaron.length - 8)} más.</div>` : '')
+      : '<div class="cmp-vacio">🎉 Ninguno: todos los habituales vinieron en los últimos días.</div>';
+    const nuevos = a.nuevos == null
+      ? `<div class="cmp-vacio">Para saber quiénes son nuevos hace falta también el reporte de ${mesAnterior}.</div>`
+      : a.nuevos.length
+        ? `<div class="cmp-nuevos"><b>${$(a.nuevos.length)}</b> ${a.nuevos.length === 1 ? 'cliente compró' : 'clientes compraron'} por primera vez y ${a.nuevos.length === 1 ? 'dejó' : 'dejaron'} <b>${pesos(a.nuevos.reduce((s, c) => s + c.total, 0))}</b>.</div>`
+          + a.nuevos.slice(0, 5).map(c => filaCliente(c, null, detalleRanking(c), {chip: '<span class="cmp-chip is-nuevo">nuevo</span>'})).join('')
+        : '<div class="cmp-vacio">Este mes no hubo clientes nuevos.</div>';
+    return kpisHtml([[$(a.clientes), 'clientes', '#8b7bff'], [$(a.cobros), 'compras', '#34d399'], [pesos(a.cobros ? a.total / a.cobros : 0), 'ticket promedio', '#38bdf8'], [pesos(a.total), 'cobrado con nombre', '#fbbf24']])
+      + `<div class="cmp-sec">🏆 Los que más compraron</div>${podioHtml(a.ranking.slice(0, 3))}<div class="cmp-lista" id="cmpRanking">${resto}</div>`
+      + (a.ranking.length > VISIBLES ? `<button type="button" class="cmp-mas" id="cmpVerMas" aria-expanded="false">Ver los ${Math.min(MAS, a.ranking.length)}</button>` : '')
+      + `<div class="cmp-sec">💸 De dónde sale lo cobrado</div><div class="cmp-grupos">`
+      + donaSvg(a.grupos.map(g => ({valor: g.total, color: GRUPOS[g.id].color})), `${pct(hab.total)}%`, 'habituales')
+      + `<div class="cmp-leyenda">${grupos}</div></div>`
+      + `<div class="cmp-sec">🔥 Cuándo compran</div><div class="met-sub cmp-expl">Compras con nombre de cada día y turno. Cuanto más encendido, más movimiento.</div>${mapaHtml(a.mapa, ['compra', 'compras'])}`
+      + `<div class="cmp-sec">👋 Habituales que dejaron de venir</div>`
+      + `<div class="met-sub cmp-expl">Vinieron ${HABITUAL_DIAS} días o más en los últimos 2 meses y no aparecen desde hace ${SIN_VENIR_DIAS} días o más.</div><div class="cmp-lista">${dejaron}</div>`
+      + `<div class="cmp-sec">✨ Clientes nuevos</div><div class="cmp-lista">${nuevos}</div>`
+      + '<div class="met-cap">Una visita es un día: si alguien pagó tres veces el mismo día, cuenta como una. Solo entra lo cobrado por Mercado Pago que trae el nombre de quién pagó; tarjetas y efectivo no traen nombre. Tocá un cliente para ver su ficha.</div>';
+  }
+  const hoyAR = () => fechaHoraAR(new Date().toISOString()).fecha;
+  function tipoCliente(f) {
+    const v = f.meses[0] ? f.meses[0].visitas : 0;
+    return v >= HABITUAL_DIAS ? ['Habitual', GRUPOS.habituales.color] : v >= 2 ? ['De vez en cuando', GRUPOS.aveces.color] : ['Vino una vez', GRUPOS.unavez.color];
+  }
+  function fichaHtml(f) {
+    const hace = f.ultima ? diasEntre(f.ultima, hoyAR()) : null;
+    const cuando = hace == null ? '' : hace <= 0 ? 'hoy' : hace === 1 ? 'ayer' : `hace ${hace} días`;
+    const habito = [];
+    if (f.visitas >= 2 && f.franja != null) habito.push(franjaLarga(f.franja));
+    if (f.dias.length) habito.push(`sobre todo los ${f.dias.map(d => DIAS_PLURAL[d]).join(' y ')}`);
+    const [tipo, colorTipo] = tipoCliente(f);
+    const mesNombre = m => { const t = new Date(Number(m.slice(0, 4)), Number(m.slice(5, 7)) - 1, 1).toLocaleDateString('es-AR', {month: 'long', year: 'numeric'}); return t.charAt(0).toUpperCase() + t.slice(1); };
+    const compras = f.compras.slice(0, 15).map(c => `<div class="cmp-compra${c.devuelto ? ' is-devuelta' : ''}"><span>${DIAS_CORTOS[diaSemana(c.fecha)]} ${fechaCorta(c.fecha)}</span>`
+      + `<span class="cmp-compra-hora">${esc(c.hora || '')}</span><b>${pesos(c.monto)}</b>${c.devuelto ? '<em>devuelto</em>' : ''}</div>`).join('');
+    const maxMes = Math.max(1, ...f.meses.map(m => m.total));
+    return `<div class="cmp-ficha-top" style="--h:${tonoDe(f.nombre)}">${avatarHtml(f.nombre, 'is-ficha')}<div class="cmp-ficha-quien"><div class="cmp-ficha-nom">${esc(f.nombre)}</div>`
+      + `<span class="cmp-chip" style="--c:${colorTipo}">${tipo}</span>`
+      + (f.primera ? `<div class="met-sub">Primera compra el ${fechaCorta(f.primera)} · última el ${fechaCorta(f.ultima)} (${cuando})</div>` : '')
+      + `</div><button type="button" class="cmp-ficha-cerrar" aria-label="Cerrar la ficha">×</button></div>`
+      + kpisHtml([[pesos(f.total), 'gastó', '#fbbf24'], [$(f.visitas), f.visitas === 1 ? 'día' : 'días', '#34d399'], [$(f.cobros), f.cobros === 1 ? 'compra' : 'compras', '#8b7bff'], [pesos(f.ticket), 'ticket promedio', '#38bdf8']])
+      + (habito.length ? `<div class="cmp-habito"><span aria-hidden="true">🕐</span> Suele venir ${habito.join(', ')}.</div>` : '')
+      + (f.visitasDetalle.length ? `<div class="cmp-sec">📈 Lo que gastó cada día que vino</div>${barrasSvg(f.visitasDetalle)}` : '')
+      + (f.visitas >= 2 ? `<div class="cmp-sec">🔥 Cuándo viene</div>${mapaHtml(f.mapa, ['compra', 'compras'])}` : '')
+      + (f.meses.length > 1 ? '<div class="cmp-sec">📅 Por mes</div>' + f.meses.map(m => `<div class="cmp-mes"><span class="cmp-mes-nom">${mesNombre(m.mes)}</span>`
+          + `<span class="cmp-mes-barra"><i style="width:${Math.max(3, m.total / maxMes * 100).toFixed(1)}%"></i></span><span class="cmp-mes-val"><b>${pesos(m.total)}</b><small>${plural(m.visitas, 'día', 'días')}</small></span></div>`).join('') : '')
+      + `<div class="cmp-sec">🧾 Últimas compras</div><div class="cmp-compras">${compras}</div>`
+      + (f.compras.length > 15 ? `<div class="met-sub">Y ${$(f.compras.length - 15)} compras más.</div>` : '');
+  }
+  function cerrarFicha() {
+    const el = root.document && root.document.getElementById('cmpFicha');
+    if (el) { el.hidden = true; el.innerHTML = ''; }
+  }
+  let pedidoFicha = 0;
+  async function abrirFicha(nombre, desdeLista) {
+    const doc = root.document, el = doc.getElementById('cmpFicha'), resultados = doc.getElementById('cmpResultados');
+    if (!el) return;
+    const id = ++pedidoFicha, k = clave(nombre);
+    if (resultados && desdeLista === 'busqueda') resultados.hidden = true;
+    el.hidden = false;
+    el.innerHTML = '<div class="cmp-nada">Cargando la ficha…</div>';
+    if (desdeLista !== 'busqueda' && el.scrollIntoView) el.scrollIntoView({behavior: 'smooth', block: 'start'});
+    try {
+      const filas = (await root.histSbSelectAll(`${TABLA}?select=${CAMPOS}&nombre=ilike.${encodeURIComponent(patronNombre(k))}&order=pago_id.asc`)).filter(f => clave(f.nombre) === k);
+      if (id !== pedidoFicha) return;
+      el.innerHTML = filas.length ? fichaHtml(fichaCliente(filas)) : '<div class="cmp-nada">No encontré compras de ese cliente.</div>';
+    } catch (e) {
+      if (id === pedidoFicha) el.innerHTML = '<div class="cmp-nada">No pude abrir la ficha. Revisá la conexión.</div>';
+    }
+  }
   function estado(html, tipo = '') {
     const el = root.document && root.document.getElementById('cmpEstado');
     if (!el) return;
     el.className = 'cmp-estado' + (tipo ? ' is-' + tipo : '');
     el.innerHTML = html;
   }
-  async function mostrarCobertura(mes) {
-    const r = rangoMes(mes);
+  let pedidoAnalisis = 0;
+  async function mostrarCobertura(mes, conEstado = true) {
+    const r = rangoMes(mes), id = ++pedidoAnalisis;
     try {
-      const filas = await root.histSbSelectAll(`${TABLA}?select=pago_id&fecha=gte.${r.desde}&fecha=lte.${r.hasta}`);
-      estado(filas.length ? `En ${r.nombre} hay <b>${$(filas.length)}</b> cobros con el nombre de quién pagó.` : `Todavía no cargaste el reporte de ${r.nombre}.`);
+      const filas = await root.histSbSelectAll(`${TABLA}?select=${CAMPOS}&fecha=gte.${sumarDias(r.desde, -VENTANA_DIAS)}&fecha=lte.${r.hasta}&order=pago_id.asc`);
+      if (id !== pedidoAnalisis) return;
+      const delMes = filas.filter(f => f.fecha >= r.desde).length;
+      if (conEstado) estado(delMes ? `En ${r.nombre} hay <b>${$(delMes)}</b> cobros con el nombre de quién pagó.` : `Todavía no cargaste el reporte de ${r.nombre}.`);
+      const a = delMes ? analizarClientes(filas, r.desde, r.hasta) : null, el = root.document.getElementById('cmpAnalisis');
+      if (!el) return;
+      const anterior = new Date(mes.getFullYear(), mes.getMonth() - 1, 1).toLocaleDateString('es-AR', {month: 'long'});
+      el.innerHTML = a ? analisisHtml(a, anterior) : '';
+      const mas = root.document.getElementById('cmpVerMas');
+      if (mas) mas.addEventListener('click', () => {
+        const abierto = root.document.getElementById('cmpRanking').classList.toggle('is-abierto');
+        mas.setAttribute('aria-expanded', String(abierto));
+        mas.textContent = abierto ? 'Ver menos' : `Ver los ${Math.min(MAS, a.ranking.length)}`;
+      });
     } catch (e) {
+      if (id !== pedidoAnalisis || !conEstado) return;
       estado(tablaFaltante(e) ? 'Falta un paso: crear la tabla <b>mp_pagadores</b> en Supabase.' : 'No pude consultar los clientes. Revisá la conexión.', 'error');
     }
   }
+  // metMes es el mes que se está mirando en Métricas (variable global de index.html).
+  // eslint-disable-next-line no-undef
+  const mesVisto = () => typeof metMes !== 'undefined' && metMes instanceof Date ? new Date(metMes) : new Date();
   async function subir(archivo) {
     const input = root.document.getElementById('cmpArchivo');
     if (input) input.disabled = true;
@@ -228,10 +549,11 @@
       await guardar(resumen.filas, root.cmSbWrite);
       let enApp = null;
       try { enApp = await coincidencias(resumen, root.histSbSelectAll); } catch (e) {}
-      const clientes = new Set(resumen.filas.map(f => f.nombre.toUpperCase())).size;
+      const clientes = new Set(resumen.filas.map(f => clave(f.nombre))).size;
       estado(`Listo: <b>${$(resumen.filas.length)}</b> cobros con nombre del ${fechaCorta(resumen.desde)} al ${fechaCorta(resumen.hasta)}, de <b>${$(clientes)}</b> clientes distintos.`
         + `<small>${resumen.sinNombre === 1 ? '1 cobro viene' : `${$(resumen.sinNombre)} cobros vienen`} sin nombre en el reporte (casi siempre pagos con tarjeta).`
         + (enApp != null ? ` ${$(enApp)} de ${$(resumen.filas.length)} coinciden con los cobros que tiene la app.` : '') + '</small>', 'ok');
+      await mostrarCobertura(mesVisto(), false);
     } catch (e) {
       estado(tablaFaltante(e) ? 'Falta un paso: crear la tabla <b>mp_pagadores</b> en Supabase.' : esc(e && e.message || 'No se pudo cargar el reporte.'), 'error');
     } finally {
@@ -242,18 +564,42 @@
     const doc = root.document, body = doc && doc.getElementById('metricasBody');
     if (!body || doc.getElementById('metClientes')) return;
     body.insertAdjacentHTML('beforeend', tarjetaHtml());
+    const card = doc.getElementById('metClientes');
     doc.getElementById('cmpArchivo').addEventListener('change', e => { const f = e.target.files && e.target.files[0]; if (f) subir(f); });
     let espera = null;
     doc.getElementById('cmpBuscar').addEventListener('input', e => { clearTimeout(espera); const v = e.target.value; espera = setTimeout(() => buscar(v), 300); });
-    // metMes es el mes que se está mirando en Métricas (variable global de index.html).
-    // eslint-disable-next-line no-undef
-    const mes = typeof metMes !== 'undefined' && metMes instanceof Date ? new Date(metMes) : new Date();
-    mostrarCobertura(mes);
+    card.addEventListener('click', e => {
+      if (e.target.closest('.cmp-ficha-cerrar')) {
+        cerrarFicha();
+        const res = doc.getElementById('cmpResultados');
+        if (res) res.hidden = false;
+        return;
+      }
+      const cli = e.target.closest('[data-cliente]');
+      if (cli) abrirFicha(cli.dataset.cliente, cli.closest('#cmpResultados') ? 'busqueda' : 'lista');
+    });
+    mostrarCobertura(mesVisto());
+  }
+  // Atajo al lado del título de Métricas: la tarjeta queda al fondo y así se llega de un toque.
+  // El cartel "Nueva sección" se va solo a fin de octubre.
+  const NUEVA_HASTA = '2026-10-31';
+  function ponerAtajo() {
+    const doc = root.document, titulo = doc && doc.querySelector('#metricasOverlay .historial-title');
+    if (!titulo || doc.getElementById('cmpAtajo')) return;
+    const nueva = hoyAR() <= NUEVA_HASTA;
+    titulo.insertAdjacentHTML('afterend', `<button type="button" class="cmp-atajo" id="cmpAtajo" title="Ir a Clientes de Mercado Pago">`
+      + `<span class="cmp-atajo-ico" aria-hidden="true"></span>Clientes${nueva ? '<span class="cmp-atajo-nueva">Nueva sección</span>' : ''}</button>`);
+    doc.getElementById('cmpAtajo').addEventListener('click', () => {
+      const card = doc.getElementById('metClientes');
+      if (card) card.scrollIntoView({behavior: 'smooth', block: 'start'});
+    });
   }
   // Se engancha a Métricas sin tocar su código: después de cada dibujo, agrega la tarjeta.
   if (root.document && typeof root.metRender === 'function') {
     const dibujar = root.metRender;
-    root.metRender = function() { const r = dibujar.apply(this, arguments); pintarTarjeta(); return r; };
+    root.metRender = function() { const r = dibujar.apply(this, arguments); ponerAtajo(); pintarTarjeta(); return r; };
+    ponerAtajo();
   }
-  return {parsearReporte, guardar, coincidencias, montoDe, fechaHoraAR, tablaFaltante, tarjetaHtml, nombreVisible, consultaBusqueda, filtrarPorNombre};
+  return {parsearReporte, guardar, coincidencias, montoDe, fechaHoraAR, tablaFaltante, tarjetaHtml, nombreVisible, consultaBusqueda,
+    filtrarPorNombre, agruparClientes, analizarClientes, fichaCliente, franjaDe, sumarDias, patronNombre, clave};
 });

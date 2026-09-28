@@ -112,3 +112,75 @@ test('the name search ignores accents, case and word order', () => {
   assert.deepEqual(C.filtrarPorNombre(filas, ['fer', 'lucia']).map(f => f.nombre), ['LUCÍA FERNÁNDEZ', 'ANA FERNANDEZ LUCIANI']);
   assert.deepEqual(C.filtrarPorNombre(filas, ['ferro']).map(f => f.nombre), ['LUCAS FERRO']);
 });
+
+// Cobros inventados para las cuentas de clientes.
+const cobro = (id, nombre, fecha, hora, monto, devuelto = false) => ({pago_id: String(id), nombre, fecha, hora, monto, devuelto});
+const MES = [
+  // Lucía: 5 días a la mañana a principios de mes y después no vino más -> habitual que dejó de venir.
+  cobro(1, 'LUCÍA FERNÁNDEZ', '2026-09-01', '10:00', 1000), cobro(2, 'LUCIA FERNANDEZ', '2026-09-03', '10:30', 1500),
+  cobro(3, 'LUCÍA FERNÁNDEZ', '2026-09-05', '11:00', 2000), cobro(4, 'LUCÍA FERNÁNDEZ', '2026-09-08', '09:15', 1000),
+  cobro(5, 'LUCÍA FERNÁNDEZ', '2026-09-10', '09:40', 1200),
+  // Juan: 2 días, 3 compras de noche (dos el mismo día = una visita).
+  cobro(6, 'JUAN PEREZ', '2026-09-27', '18:00', 4500), cobro(7, 'JUAN PEREZ', '2026-09-28', '19:10', 3000), cobro(8, 'JUAN PEREZ', '2026-09-28', '20:00', 500),
+  // Ana: una sola vez; y una compra devuelta que no cuenta.
+  cobro(9, 'ANA GOMEZ', '2026-09-28', '13:00', 900), cobro(10, 'ANA GOMEZ', '2026-09-20', '13:00', 7000, true),
+];
+
+test('the month: ranking by money, visits are distinct days, habitual vs one-time, who stopped coming', () => {
+  const a = C.analizarClientes(MES, '2026-09-01', '2026-09-30');
+  assert.equal(a.clientes, 3);
+  assert.equal(a.cobros, 9);
+  assert.equal(a.total, 15600);
+  assert.deepEqual(a.ranking.map(c => [c.nombre, c.total, c.visitas, c.cobros, c.ticket, c.franja]), [
+    ['Juan Perez', 8000, 2, 3, 2667, 2], ['Lucía Fernández', 6700, 5, 5, 1340, 0], ['Ana Gomez', 900, 1, 1, 900, 1]]);
+  assert.deepEqual(a.grupos.map(g => [g.id, g.clientes, g.total]), [['habituales', 1, 6700], ['aveces', 1, 8000], ['unavez', 1, 900]]);
+  assert.deepEqual(a.dejaron.map(c => [c.nombre, c.visitasVentana, c.ultima]), [['Lucía Fernández', 5, '2026-09-10']]);
+  // Sin reportes de meses anteriores no se sabe quién es nuevo.
+  assert.equal(a.nuevos, null);
+  assert.equal(C.analizarClientes(MES, '2026-10-01', '2026-10-31'), null);
+});
+
+test('new clients need an earlier report; a habitual from last month who did not come is listed', () => {
+  const agosto = [5, 8, 12, 19].map((d, i) => cobro(100 + i, 'PEDRO SOSA', `2026-08-${String(d).padStart(2, '0')}`, '12:30', 2000))
+    .concat([cobro(200, 'JUAN PEREZ', '2026-08-30', '18:00', 1000)]);
+  const a = C.analizarClientes(agosto.concat(MES), '2026-09-01', '2026-09-30');
+  assert.deepEqual(a.nuevos.map(c => c.nombre), ['Lucía Fernández', 'Ana Gomez']);
+  assert.deepEqual(a.dejaron.map(c => c.nombre), ['Lucía Fernández', 'Pedro Sosa']);
+  assert.equal(a.clientes, 3);
+});
+
+test('shifts: morning up to 12, afternoon up to 17, night after (early morning counts as night)', () => {
+  assert.deepEqual(['07:00', '12:00', '12:01', '17:00', '17:01', '23:30', '01:15', ''].map(C.franjaDe), [0, 0, 1, 1, 2, 2, 2, null]);
+});
+
+test('search results are grouped by client', () => {
+  const r = C.agruparClientes(MES);
+  assert.deepEqual(r.map(c => [c.nombre, c.cobros, c.visitas, c.total, c.ultima]), [
+    ['Lucía Fernández', 5, 5, 6700, '2026-09-10'], ['Juan Perez', 3, 2, 8000, '2026-09-28'], ['Ana Gomez', 1, 1, 900, '2026-09-28']]);
+});
+
+test('client card: totals, usual shift and weekday, months and latest purchases first', () => {
+  const lucia = MES.filter(f => C.clave(f.nombre) === 'lucia fernandez');
+  const extra = [cobro(11, 'LUCÍA FERNÁNDEZ', '2026-08-18', '10:00', 800), cobro(12, 'LUCÍA FERNÁNDEZ', '2026-09-12', '10:00', 500, true)];
+  const f = C.fichaCliente(lucia.concat(extra));
+  assert.equal(f.nombre, 'Lucía Fernández');
+  assert.equal(f.total, 7500);
+  assert.equal(f.visitas, 6);
+  assert.equal(f.cobros, 6);
+  assert.equal(f.ticket, 1250);
+  assert.equal(f.franja, 0);
+  // 1/9, 8/9 y 18/8 fueron martes: 3 de 6 días.
+  assert.deepEqual(f.dias, [2]);
+  assert.equal(f.primera, '2026-08-18');
+  assert.equal(f.ultima, '2026-09-10');
+  assert.deepEqual(f.meses, [{mes: '2026-09', total: 6700, visitas: 5}, {mes: '2026-08', total: 800, visitas: 1}]);
+  assert.deepEqual(f.compras.map(c => c.pago_id).slice(0, 3), ['12', '5', '4']);
+  // Con pocos días no se inventa un día preferido.
+  assert.deepEqual(C.fichaCliente(MES.filter(x => x.nombre === 'JUAN PEREZ')).dias, []);
+  // Empate entre dos días: se nombran los dos.
+  assert.deepEqual(C.fichaCliente(MES.filter(x => C.clave(x.nombre) === 'lucia fernandez')).dias, [2, 4]);
+});
+
+test('the card asks the database for a name that may carry accents or ñ', () => {
+  assert.equal(C.patronNombre(C.clave('  LUCÍA   NUÑEZ ')), 'l_c__ ____z');
+});
