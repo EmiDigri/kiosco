@@ -292,6 +292,7 @@
             : `${plural(c.visitas, 'día', 'días')} · última vez el ${fechaCorta(c.ultima)}`, {monto: consulta.tipo === 'nombre'})).join('')
           + (clientes.length > MAX_RESULTADOS ? `<div class="cmp-nada">Hay ${$(clientes.length)}: escribí algo más para achicar la lista.</div>` : '')
         : `<div class="cmp-nada">No encontré clientes ${consulta.tipo === 'monto' ? 'que hayan pagado ese monto' : 'con ese nombre'}.</div>`;
+      ponerAvatares(el);
     } catch (e) {
       if (id === busquedaActual) el.innerHTML = `<div class="cmp-nada">${tablaFaltante(e) ? 'Falta crear la tabla mp_pagadores en Supabase.' : 'No pude buscar. Revisá la conexión.'}</div>`;
     }
@@ -348,7 +349,7 @@
     const p = nombreLimpio(nombre).split(' ').filter(w => w && !PARTICULAS.has(w.toLowerCase()));
     return ((p[0] || '').charAt(0) + (p[1] || '').charAt(0)).toLocaleUpperCase('es-AR');
   }
-  const avatarHtml = (nombre, clase = '') => `<span class="cmp-av${clase ? ' ' + clase : ''}" style="--h:${tonoDe(nombre)}" aria-hidden="true">${esc(iniciales(nombre))}</span>`;
+  const avatarHtml = (nombre, clase = '') => `<span class="cmp-av${clase ? ' ' + clase : ''}" style="--h:${tonoDe(nombre)}" data-av="${esc(clave(nombre))}" aria-hidden="true">${esc(iniciales(nombre))}</span>`;
   const ORDEN_SEMANA = [1, 2, 3, 4, 5, 6, 0];
   const SEMANA_CORTA = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
   const SEMANA_LARGA = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
@@ -362,7 +363,7 @@
     const cab = FRANJAS.map((f, i) => `<span class="cmp-mapa-fr">${f}${turnoDe(i) ? `<small>${esc(turnoDe(i))}</small>` : ''}</span>`).join('');
     const filas = ORDEN_SEMANA.map(d => `<span class="cmp-mapa-dia">${SEMANA_CORTA[d]}</span>` + mapa[d].map((v, fr) => {
       const t = v / max;
-      return `<span class="cmp-mapa-celda${t > 0.4 ? ' is-fuerte' : ''}" style="${v ? `background:${colorCalor(t)}` : ''}" title="${SEMANA_LARGA[d]} a la ${FRANJAS[fr]}: ${plural(v, unidad[0], unidad[1])}">${v || ''}</span>`;
+      return `<span class="cmp-mapa-celda${t > 0.4 ? ' is-fuerte' : ''}" data-t="${t.toFixed(3)}" style="${v ? `background:${colorCalor(t)}` : ''}" title="${SEMANA_LARGA[d]} a la ${FRANJAS[fr]}: ${plural(v, unidad[0], unidad[1])}">${v ? `<b>${v}</b>` : ''}</span>`;
     }).join('')).join('');
     return `<div class="cmp-mapa"><span></span>${cab}${filas}</div>`;
   }
@@ -371,11 +372,11 @@
     const conValor = partes.filter(p => p.valor > 0), hueco = conValor.length > 1 ? 2.5 : 0;
     let acum = 0;
     const arcos = conValor.map(p => {
-      const largo = p.valor / total * C, arco = `<circle cx="70" cy="70" r="${R}" fill="none" stroke="${p.color}" stroke-width="20" stroke-dasharray="${Math.max(0, largo - hueco).toFixed(2)} ${C.toFixed(2)}" stroke-dashoffset="${(-acum).toFixed(2)}" transform="rotate(-90 70 70)"/>`;
+      const largo = p.valor / total * C, arco = `<circle class="cmp-dona-arco" cx="70" cy="70" r="${R}" fill="none" stroke="${p.color}" stroke-width="20" stroke-dasharray="${Math.max(0, largo - hueco).toFixed(2)} ${C.toFixed(2)}" stroke-dashoffset="${(-acum).toFixed(2)}" transform="rotate(-90 70 70)"/>`;
       acum += largo;
       return arco;
     }).join('');
-    return `<svg class="cmp-dona" viewBox="0 0 140 140" role="img" aria-label="${esc(sub)}: ${esc(centro)}"><circle cx="70" cy="70" r="${R}" fill="none" class="cmp-dona-fondo" stroke-width="20"/>${arcos}`
+    return `<svg class="cmp-dona" viewBox="0 0 140 140" data-partes="${esc(JSON.stringify(partes))}" role="img" aria-label="${esc(sub)}: ${esc(centro)}"><circle cx="70" cy="70" r="${R}" fill="none" class="cmp-dona-fondo" stroke-width="20"/>${arcos}`
       + `<text x="70" y="70" text-anchor="middle" class="cmp-dona-n">${esc(centro)}</text><text x="70" y="89" text-anchor="middle" class="cmp-dona-s">${esc(sub)}</text></svg>`;
   }
   // "$80 mil", "$4,5 mil", "$1,2 M": montos cortos para que entren arriba de cada barra.
@@ -401,6 +402,137 @@
     return `<div class="cmp-vis${pocas ? '' : ' is-muchas'}" role="img" aria-label="Lo que gastó cada día que vino; el máximo fue ${pesos(max)}">${cols}</div>`
       + (visitas.length > MAX_BARRAS ? `<div class="met-sub">Últimas ${MAX_BARRAS} visitas de ${$(visitas.length)}.</div>` : '');
   }
+
+  // ── Avatares y dibujos a mano ────────────────────────────────────────────────────────
+  // Dos librerías que se bajan del CDN solo cuando se abre la tarjeta. Si no cargan (sin
+  // internet, CDN caído), queda todo como antes: iniciales y gráficos lisos.
+  // · DiceBear arma el avatar EN EL NAVEGADOR a partir del nombre: el nombre del cliente no
+  //   viaja a ningún servidor (no se usa su servicio por link, solo la librería).
+  // · Rough.js redibuja los gráficos como hechos a mano, tipo cuaderno.
+  const AVATAR_ESTILO = 'notionists';
+  const LIBS = {
+    dicebear: p => `https://cdn.jsdelivr.net/npm/@dicebear/${p}/+esm`,
+    rough: 'https://cdn.jsdelivr.net/npm/roughjs@4.6.6/bundled/rough.js',
+    fuente: 'https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap',
+  };
+  const FONDOS_AVATAR = ['b6e3f4', 'c0aede', 'd1d4f9', 'ffd5dc', 'ffdfbf', 'c7f2d8'];
+  let avataresProm = null, roughProm = null;
+  const avataresHechos = new Map();
+  function cargarAvatares() {
+    if (!avataresProm) avataresProm = Promise.all([import(LIBS.dicebear('core@9.4.3')), import(LIBS.dicebear(`${AVATAR_ESTILO}@9.4.2`))])
+      .catch(e => { avataresProm = null; throw e; });
+    return avataresProm;
+  }
+  function ponerAvatares(cont) {
+    const els = cont ? [...cont.querySelectorAll('.cmp-av[data-av]:not(.con-dibujo)')] : [];
+    if (!els.length) return Promise.resolve();
+    return cargarAvatares().then(([core, estilo]) => {
+      els.forEach(el => {
+        const k = el.dataset.av;
+        if (!avataresHechos.has(k)) avataresHechos.set(k, core.createAvatar(estilo, {seed: k, size: 96, radius: 50, backgroundColor: FONDOS_AVATAR}).toDataUri());
+        el.innerHTML = `<img src="${avataresHechos.get(k)}" alt="">`;
+        el.classList.add('con-dibujo');
+      });
+    }).catch(() => {});
+  }
+  function cargarRough() {
+    if (root.rough) return Promise.resolve(root.rough);
+    if (!roughProm) roughProm = new Promise((ok, mal) => {
+      const s = root.document.createElement('script');
+      s.src = LIBS.rough; s.async = true;
+      s.onload = () => root.rough ? ok(root.rough) : mal(new Error('rough'));
+      s.onerror = mal;
+      root.document.head.appendChild(s);
+    }).catch(e => { roughProm = null; throw e; });
+    return roughProm;
+  }
+  function ponerFuente() {
+    const doc = root.document;
+    if (!doc || doc.getElementById('cmpFuenteMano')) return;
+    doc.head.insertAdjacentHTML('beforeend', `<link rel="stylesheet" id="cmpFuenteMano" href="${LIBS.fuente}">`);
+  }
+  // Semilla fija por elemento: el garabato sale igual cada vez que se dibuja.
+  const semilla = s => { let h = 7; for (const ch of String(s)) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return (h % 2147483646) + 1; };
+  // Un SVG que cubre el elemento, detrás de su texto.
+  function lienzo(el) {
+    el.querySelectorAll(':scope > svg.cmp-rough').forEach(s => s.remove());
+    const w = el.clientWidth, h = el.clientHeight;
+    if (!w || !h) return null;
+    const svg = root.document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('class', 'cmp-rough'); svg.setAttribute('width', w); svg.setAttribute('height', h); svg.setAttribute('aria-hidden', 'true');
+    el.prepend(svg);
+    return {svg, w, h};
+  }
+  // Porción de anillo (ángulos en radianes, desde arriba y en sentido horario).
+  function porcionAnillo(cx, cy, r1, r2, a0, a1) {
+    a1 = Math.min(a1, a0 + Math.PI * 2 - 0.001);
+    const p = (r, a) => `${(cx + r * Math.sin(a)).toFixed(2)} ${(cy - r * Math.cos(a)).toFixed(2)}`, g = a1 - a0 > Math.PI ? 1 : 0;
+    return `M${p(r2, a0)}A${r2} ${r2} 0 ${g} 1 ${p(r2, a1)}L${p(r1, a1)}A${r1} ${r1} 0 ${g} 0 ${p(r1, a0)}Z`;
+  }
+  function dibujarAMano(cont) {
+    if (!cont || !root.document) return Promise.resolve();
+    return cargarRough().then(rough => {
+      const claro = root.document.body.classList.contains('light');
+      const tenue = claro ? 'rgba(15,23,42,.2)' : 'rgba(255,255,255,.16)';
+      const rect = (el, clave, color, extra = {}) => {
+        const l = lienzo(el);
+        if (!l) return;
+        l.svg.appendChild(rough.svg(l.svg).rectangle(1.5, 1.5, l.w - 3, l.h - 3, Object.assign({seed: semilla(clave), roughness: 1.3, bowing: 1.1,
+          stroke: color, strokeWidth: 1.4, fill: color, fillStyle: 'hachure', hachureGap: 4, fillWeight: 1.2}, extra)));
+      };
+      // Barras de la ficha: la compra más grande, cuadriculada en rosa.
+      cont.querySelectorAll('.cmp-vis-barra').forEach((el, i) => {
+        const max = el.closest('.cmp-vis-col').classList.contains('is-max');
+        rect(el, 'vis' + i, max ? '#ff6b9a' : '#a78bfa', max ? {fillStyle: 'cross-hatch', hachureGap: 3.5} : {});
+      });
+      // Mapa de calor: cuanto más movimiento, más apretado el rayado.
+      cont.querySelectorAll('.cmp-mapa-celda').forEach((el, i) => {
+        const t = Number(el.dataset.t || 0);
+        if (!t) return rect(el, 'mapa' + i, tenue, {fill: undefined, strokeWidth: 1, roughness: 1.6});
+        rect(el, 'mapa' + i, colorCalor(t), {hachureGap: 7 - 3.5 * t, fillWeight: 1 + t});
+      });
+      // Podio: bloques rayados en oro, plata y bronce.
+      cont.querySelectorAll('.cmp-podio-base').forEach((el, i) => {
+        rect(el, 'podio' + i, getComputedStyle(el).getPropertyValue('--m').trim() || '#fbbf24', {hachureGap: 5, roughness: 1.6});
+      });
+      // Por mes (ficha).
+      cont.querySelectorAll('.cmp-mes-barra i').forEach((el, i) => rect(el, 'mes' + i, '#c77dff', {hachureGap: 3.5, strokeWidth: 1}));
+      // Ranking: una pasada de resaltador.
+      cont.querySelectorAll('.cmp-cli-barra i').forEach((el, i) => {
+        const l = lienzo(el);
+        if (!l) return;
+        const color = getComputedStyle(el).getPropertyValue('--h').trim();
+        l.svg.appendChild(rough.svg(l.svg).line(2, l.h / 2, Math.max(3, l.w - 2), l.h / 2, {seed: semilla('rk' + i), roughness: 1.8, bowing: 2,
+          stroke: `hsl(${color || 250} 85% 64%)`, strokeWidth: 4}));
+      });
+      // Anillo: porciones rayadas.
+      cont.querySelectorAll('svg.cmp-dona[data-partes]').forEach(svg => {
+        svg.querySelectorAll('.cmp-dona-mano').forEach(g => g.remove());
+        const partes = JSON.parse(svg.dataset.partes), total = partes.reduce((s, p) => s + p.valor, 0) || 1;
+        const hueco = partes.filter(p => p.valor > 0).length > 1 ? 0.05 : 0, rs = rough.svg(svg);
+        const grupo = root.document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        grupo.setAttribute('class', 'cmp-dona-mano');
+        let a = 0;
+        partes.forEach((p, i) => {
+          if (!(p.valor > 0)) return;
+          const b = a + p.valor / total * Math.PI * 2;
+          grupo.appendChild(rs.path(porcionAnillo(70, 70, 40, 61, a + hueco / 2, b - hueco / 2), {seed: semilla('dona' + i), roughness: 1.2,
+            stroke: p.color, strokeWidth: 1.5, fill: p.color, fillStyle: i === 0 ? 'cross-hatch' : 'hachure', hachureGap: 3.2, fillWeight: 1.3}));
+          a = b;
+        });
+        svg.insertBefore(grupo, svg.querySelector('text'));
+      });
+      cont.classList.add('a-mano');
+    }).catch(() => {});
+  }
+  // Avatares + dibujos de lo que se acaba de pintar.
+  function decorar(cont) { ponerFuente(); return Promise.all([ponerAvatares(cont), dibujarAMano(cont)]); }
+  // Si cambia el ancho (girar el celular, achicar la ventana) se redibuja con la medida nueva.
+  let esperaRedibujo = null;
+  if (root.addEventListener && root.document) root.addEventListener('resize', () => {
+    clearTimeout(esperaRedibujo);
+    esperaRedibujo = setTimeout(() => { const card = root.document.getElementById('metClientes'); if (card && card.querySelector('.a-mano')) dibujarAMano(card); }, 250);
+  });
 
   // ── Tarjeta: clientes y rankings ─────────────────────────────────────────────────────
   // Cada cliente es un botón: al tocarlo se abre su ficha.
@@ -512,6 +644,7 @@
       const filas = (await root.histSbSelectAll(`${TABLA}?select=${CAMPOS}&nombre=ilike.${encodeURIComponent(patronNombre(k))}&order=pago_id.asc`)).filter(f => clave(f.nombre) === k);
       if (id !== pedidoFicha) return;
       el.innerHTML = filas.length ? fichaHtml(fichaCliente(filas)) : '<div class="cmp-nada">No encontré compras de ese cliente.</div>';
+      decorar(el);
     } catch (e) {
       if (id === pedidoFicha) el.innerHTML = '<div class="cmp-nada">No pude abrir la ficha. Revisá la conexión.</div>';
     }
@@ -534,10 +667,12 @@
       if (!el) return;
       const anterior = new Date(mes.getFullYear(), mes.getMonth() - 1, 1).toLocaleDateString('es-AR', {month: 'long'});
       el.innerHTML = a ? analisisHtml(a, anterior) : '';
+      if (a) decorar(el);
       const mas = root.document.getElementById('cmpVerMas');
       if (mas) mas.addEventListener('click', () => {
         const abierto = root.document.getElementById('cmpRanking').classList.toggle('is-abierto');
         mas.setAttribute('aria-expanded', String(abierto));
+        if (abierto) decorar(root.document.getElementById('cmpRanking'));
         mas.textContent = abierto ? 'Ver menos' : `Ver los ${Math.min(MAS, a.ranking.length)}`;
       });
     } catch (e) {

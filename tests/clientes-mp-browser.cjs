@@ -83,6 +83,8 @@ const textos = loc => loc.allTextContents().then(t => t.map(s => s.replace(/\s+/
     browser = await chromium.launch({channel: 'msedge', headless: true});
     for (const width of [1280, 390]) {
       const page = await browser.newPage({viewport: {width, height: 900}});
+      // Sin internet para las librerías (avatares, dibujo a mano, letra): todo tiene que andar igual.
+      await page.route(/cdn\.jsdelivr\.net|fonts\.(googleapis|gstatic)\.com/, r => r.abort());
       const errores = []; page.on('pageerror', e => errores.push(e.message));
       await page.goto(origin);
       // La tarjeta aparece al final de Métricas y dice que falta el reporte del mes.
@@ -205,7 +207,41 @@ const textos = loc => loc.allTextContents().then(t => t.map(s => s.replace(/\s+/
       assert.deepEqual(errores, []);
       await page.close();
     }
-    console.log('Clientes MP: carga, clientes del mes, buscador, ficha, atajo e Historial OK en 1280/390. ' + dir);
+    // Con las librerías reales del CDN: avatares dibujados y gráficos a mano. Si no hay
+    // internet se avisa y se saltea (lo de arriba ya probó que la tarjeta anda sin ellas).
+    let conLibs = 'salteado (sin internet)';
+    for (const width of [390, 1280]) {
+      const page = await browser.newPage({viewport: {width, height: 900}});
+      const errores = []; page.on('pageerror', e => errores.push(e.message));
+      await page.goto(origin);
+      await page.locator('#cmpEstado').filter({hasText: 'Todavía no cargaste'}).waitFor();
+      await page.locator('#cmpArchivo').setInputFiles(archivo);
+      await page.locator('.cmp-podio').waitFor();
+      try {
+        await page.locator('#cmpAnalisis.a-mano').waitFor({timeout: 20000});
+        await page.locator('#cmpAnalisis .cmp-av.con-dibujo img').first().waitFor({timeout: 20000});
+      } catch (e) { await page.close(); break; }
+      // Cada cliente con su dibujo, y siempre el mismo para la misma persona.
+      const avatares = await page.locator('#cmpAnalisis .cmp-podio .cmp-av img').evaluateAll(imgs => imgs.map(i => i.src.slice(0, 40)));
+      assert.equal(avatares.length, 3);
+      assert(avatares.every(s => s.startsWith('data:image/svg+xml')), avatares.join());
+      assert(await page.locator('#cmpAnalisis .cmp-mapa-celda svg.cmp-rough').count() >= 21);
+      assert.equal(await page.locator('#cmpAnalisis .cmp-podio-base svg.cmp-rough').count(), 3);
+      assert.equal(await page.locator('#cmpAnalisis .cmp-dona .cmp-dona-mano path').count() > 0, true);
+      assert.equal(await page.locator('#cmpAnalisis .cmp-dona-arco').first().isVisible(), false);
+      await page.evaluate(() => document.fonts.ready);
+      await page.locator('#metClientes').screenshot({path: path.join(dir, `a-mano-mes-${width}.png`)});
+      await page.locator('.cmp-podio-lugar.is-1').click();
+      await page.locator('#cmpFicha.a-mano .cmp-vis-barra svg.cmp-rough').first().waitFor({timeout: 20000});
+      assert.equal(await page.locator('#cmpFicha .cmp-vis-barra svg.cmp-rough').count(), 10);
+      await page.locator('#cmpFicha .cmp-av.con-dibujo img').waitFor({timeout: 20000});
+      assert(!(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)), 'sin scroll horizontal');
+      await page.locator('#cmpFicha').screenshot({path: path.join(dir, `a-mano-ficha-${width}.png`)});
+      assert.deepEqual(errores, []);
+      conLibs = 'OK';
+      await page.close();
+    }
+    console.log(`Clientes MP: carga, clientes del mes, buscador, ficha, atajo e Historial OK en 1280/390; con librerías: ${conLibs}. ` + dir);
   } finally {
     if (browser) await browser.close();
     await new Promise(r => server.close(r));
