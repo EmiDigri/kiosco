@@ -378,19 +378,28 @@
     return `<svg class="cmp-dona" viewBox="0 0 140 140" role="img" aria-label="${esc(sub)}: ${esc(centro)}"><circle cx="70" cy="70" r="${R}" fill="none" class="cmp-dona-fondo" stroke-width="20"/>${arcos}`
       + `<text x="70" y="70" text-anchor="middle" class="cmp-dona-n">${esc(centro)}</text><text x="70" y="89" text-anchor="middle" class="cmp-dona-s">${esc(sub)}</text></svg>`;
   }
-  // Barras de lo que gastó cada día que vino (las últimas 40 visitas).
-  function barrasSvg(visitas) {
-    const ult = visitas.slice(-40), n = ult.length, max = Math.max(1, ...ult.map(v => v.total));
-    const W = 320, H = 118, arriba = 16, abajo = 18, alto = H - arriba - abajo, paso = W / Math.max(n, 6), ancho = Math.max(3, Math.min(22, paso * 0.68));
-    const barras = ult.map((v, i) => {
-      const h = Math.max(3, v.total / max * alto), x = i * paso + (paso - ancho) / 2;
-      return `<rect x="${x.toFixed(1)}" y="${(arriba + alto - h).toFixed(1)}" width="${ancho.toFixed(1)}" height="${h.toFixed(1)}" rx="${Math.min(4, ancho / 2).toFixed(1)}" fill="url(#cmpGradBarras)"><title>${SEMANA_CORTA[diaSemana(v.fecha)]} ${fechaCorta(v.fecha)}: ${pesos(v.total)}</title></rect>`;
+  // "$80 mil", "$4,5 mil", "$1,2 M": montos cortos para que entren arriba de cada barra.
+  function pesosCorto(n) {
+    const v = Math.round(Number(n) || 0), f = (x, d) => x.toLocaleString('es-AR', {maximumFractionDigits: d});
+    if (v >= 1e6) return `$${f(v / 1e6, 1)} M`;
+    if (v >= 1000) return `$${f(v / 1000, v < 10000 ? 1 : 0)} mil`;
+    return `$${v}`;
+  }
+  // Barras de lo que gastó cada día que vino (las últimas 30 visitas), del más viejo al más
+  // nuevo. Tamaño fijo: no se estira en pantallas grandes. Con pocas visitas cada barra
+  // lleva su monto arriba y su fecha abajo; con muchas, solo algunas fechas de referencia.
+  const MAX_BARRAS = 30;
+  function barrasHtml(visitas) {
+    const ult = visitas.slice(-MAX_BARRAS), n = ult.length, max = Math.max(1, ...ult.map(v => v.total));
+    const pocas = n <= 7, cada = Math.ceil(n / 6), iMax = ult.findIndex(v => v.total === max);
+    const cols = ult.map((v, i) => {
+      const alto = Math.max(4, v.total / max * 100).toFixed(1), fecha = pocas || i === n - 1 || (i % cada === 0 && n - 1 - i >= cada);
+      return `<div class="cmp-vis-col${i === iMax ? ' is-max' : ''}" title="${SEMANA_CORTA[diaSemana(v.fecha)]} ${fechaCorta(v.fecha)}: ${pesos(v.total)}">`
+        + `<div class="cmp-vis-pista"><span class="cmp-vis-barra" style="height:${alto}%">${pocas || i === iMax ? `<b class="cmp-vis-monto">${pesosCorto(v.total)}</b>` : ''}</span></div>`
+        + `<span class="cmp-vis-fecha">${fecha ? `${pocas ? `<small>${DIAS_CORTOS[diaSemana(v.fecha)]}</small>` : ''}${fechaCorta(v.fecha)}` : ''}</span></div>`;
     }).join('');
-    return `<svg class="cmp-barras" viewBox="0 0 ${W} ${H}" role="img" aria-label="Lo que gastó cada día que vino"><defs><linearGradient id="cmpGradBarras" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#7c90ff"/><stop offset=".65" stop-color="#c77dff"/><stop offset="1" stop-color="#ff6b9a"/></linearGradient></defs>`
-      + `<line x1="0" x2="${W}" y1="${arriba + alto + .5}" y2="${arriba + alto + .5}" class="cmp-barras-eje"/>${barras}`
-      + `<text x="0" y="10" class="cmp-barras-txt">máx. ${pesos(max)}</text>`
-      + `<text x="0" y="${H - 3}" class="cmp-barras-txt">${fechaCorta(ult[0].fecha)}</text>`
-      + (n > 1 ? `<text x="${W}" y="${H - 3}" text-anchor="end" class="cmp-barras-txt">${fechaCorta(ult[n - 1].fecha)}</text>` : '') + '</svg>';
+    return `<div class="cmp-vis${pocas ? '' : ' is-muchas'}" role="img" aria-label="Lo que gastó cada día que vino; el máximo fue ${pesos(max)}">${cols}</div>`
+      + (visitas.length > MAX_BARRAS ? `<div class="met-sub">Últimas ${MAX_BARRAS} visitas de ${$(visitas.length)}.</div>` : '');
   }
 
   // ── Tarjeta: clientes y rankings ─────────────────────────────────────────────────────
@@ -479,7 +488,7 @@
       + `</div><button type="button" class="cmp-ficha-cerrar" aria-label="Cerrar la ficha">×</button></div>`
       + kpisHtml([[pesos(f.total), 'gastó', '#fbbf24'], [$(f.visitas), f.visitas === 1 ? 'día' : 'días', '#34d399'], [$(f.cobros), f.cobros === 1 ? 'compra' : 'compras', '#8b7bff'], [pesos(f.ticket), 'ticket promedio', '#38bdf8']])
       + (habito.length ? `<div class="cmp-habito"><span aria-hidden="true">🕐</span> Suele venir ${habito.join(', ')}.</div>` : '')
-      + (f.visitasDetalle.length ? `<div class="cmp-sec">📈 Lo que gastó cada día que vino</div>${barrasSvg(f.visitasDetalle)}` : '')
+      + (f.visitasDetalle.length ? `<div class="cmp-sec">📈 Lo que gastó cada día que vino</div>${barrasHtml(f.visitasDetalle)}` : '')
       + (f.visitas >= 2 ? `<div class="cmp-sec">🔥 Cuándo viene</div>${mapaHtml(f.mapa, ['compra', 'compras'])}` : '')
       + (f.meses.length > 1 ? '<div class="cmp-sec">📅 Por mes</div>' + f.meses.map(m => `<div class="cmp-mes"><span class="cmp-mes-nom">${mesNombre(m.mes)}</span>`
           + `<span class="cmp-mes-barra"><i style="width:${Math.max(3, m.total / maxMes * 100).toFixed(1)}%"></i></span><span class="cmp-mes-val"><b>${pesos(m.total)}</b><small>${plural(m.visitas, 'día', 'días')}</small></span></div>`).join('') : '')

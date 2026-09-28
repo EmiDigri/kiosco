@@ -158,7 +158,15 @@ const textos = loc => loc.allTextContents().then(t => t.map(s => s.replace(/\s+/
       assert.deepEqual(await textos(page.locator('#cmpFicha .cmp-kpis b')), ['$6.700', '5', '5', '$1.340']);
       assert((await page.locator('#cmpFicha .cmp-habito').innerText()).includes('Suele venir en el turno de Vale (mañana)'));
       assert.equal(await page.locator('#cmpFicha .cmp-chip').innerText(), 'Habitual');
-      assert.equal(await page.locator('#cmpFicha .cmp-barras rect').count(), 5);
+      // Gráfico de visitas: una barra por día, monto arriba y día + fecha abajo; la más alta resaltada.
+      assert.equal(await page.locator('#cmpFicha .cmp-vis-col').count(), 5);
+      assert.deepEqual(await textos(page.locator('#cmpFicha .cmp-vis-monto')), ['$1 mil', '$1,5 mil', '$2 mil', '$1 mil', '$1,2 mil']);
+      assert.deepEqual(await textos(page.locator('#cmpFicha .cmp-vis-fecha')), ['mar01/09', 'jue03/09', 'sáb05/09', 'mar08/09', 'jue10/09']);
+      assert.equal(await page.locator('#cmpFicha .cmp-vis-col').nth(2).getAttribute('class'), 'cmp-vis-col is-max');
+      // Altura fija y ancho acotado: no se estira en pantallas grandes.
+      const caja = await page.locator('#cmpFicha .cmp-vis').boundingBox();
+      assert(caja.width <= 561 && caja.height === 170, JSON.stringify(caja));
+      await page.locator('#cmpFicha').screenshot({path: path.join(dir, `clientes-ficha-pocas-${width}.png`)});
       assert.equal(await page.locator('#cmpFicha .cmp-compra').count(), 5);
       assert.deepEqual(await textos(page.locator('#cmpFicha .cmp-compra').first().locator('span, b')), ['jue 10/09', '09:40', '$1.200']);
       // Cerrar vuelve a la lista de resultados.
@@ -172,6 +180,9 @@ const textos = loc => loc.allTextContents().then(t => t.map(s => s.replace(/\s+/
       assert.deepEqual(await textos(page.locator('#cmpFicha .cmp-kpis b')), ['$25.000', '10', '10', '$2.500']);
       assert((await page.locator('#cmpFicha .cmp-habito').innerText()).includes('turno de Vale (mañana), sobre todo los miércoles y domingos'));
       assert.equal(await page.locator('#cmpFicha .cmp-mes').count(), 2);
+      // Con muchas visitas no se amontonan los montos: solo el de la compra más grande.
+      assert.equal(await page.locator('#cmpFicha .cmp-vis-col').count(), 10);
+      assert.equal(await page.locator('#cmpFicha .cmp-vis-monto').count(), 1);
       assert.equal(await page.locator('#cmpFicha .cmp-mapa-celda').count(), 21);
       assert(!(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)), 'sin scroll horizontal');
       await page.locator('#cmpFicha').screenshot({path: path.join(dir, `clientes-ficha-${width}.png`)});

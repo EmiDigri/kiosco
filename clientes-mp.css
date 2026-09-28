@@ -120,11 +120,22 @@
 .cmp-ficha-cerrar{flex:0 0 30px;width:30px;height:30px;border-radius:9px;border:1px solid var(--glass-border);background:rgba(255,255,255,.04);color:var(--text-mid);font-size:18px;line-height:1;cursor:pointer}
 .cmp-ficha .cmp-sec{margin-top:18px}
 .cmp-habito{margin-top:12px;padding:10px 12px;border-radius:12px;font-size:13px;line-height:1.5;color:var(--text);background:linear-gradient(90deg,rgba(139,123,255,.16),rgba(255,107,154,.08));border-left:3px solid #c77dff}
-.cmp-barras{display:block;width:100%;height:auto}
-.cmp-barras-eje{stroke:rgba(255,255,255,.12)}
-.cmp-barras-txt{font:600 9.5px 'Inter',sans-serif;fill:var(--text-soft)}
-.cmp-barras rect{transition:opacity .15s}
-.cmp-barras rect:hover{opacity:.75}
+/* Lo que gastó cada día que vino: altura fija, no se estira con la pantalla */
+.cmp-vis{position:relative;display:flex;justify-content:center;gap:10px;height:170px;max-width:560px}
+.cmp-vis.is-muchas{gap:3px}
+.cmp-vis::after{content:'';position:absolute;left:0;right:0;bottom:32px;height:1px;background:rgba(255,255,255,.12)}
+.cmp-vis-col{flex:1 1 0;max-width:46px;min-width:0;display:flex;flex-direction:column}
+.cmp-vis-pista{position:relative;flex:1 1 auto;margin-top:20px}
+.cmp-vis-barra{position:absolute;left:0;right:0;bottom:0;border-radius:7px 7px 2px 2px;background:linear-gradient(0deg,#7c90ff,#c77dff 60%,#ff6b9a);opacity:.72;transition:opacity .15s}
+.cmp-vis.is-muchas .cmp-vis-barra{border-radius:4px 4px 1px 1px}
+.cmp-vis-col:hover .cmp-vis-barra,.cmp-vis-col.is-max .cmp-vis-barra{opacity:1}
+.cmp-vis-col.is-max .cmp-vis-barra{box-shadow:0 0 18px rgba(255,107,154,.45)}
+.cmp-vis-monto{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);margin-bottom:4px;font-size:10.5px;font-weight:800;color:var(--text-mid);white-space:nowrap;font-variant-numeric:tabular-nums}
+.cmp-vis-col.is-max .cmp-vis-monto{color:#ff8fb1}
+.cmp-vis-fecha{flex:0 0 32px;display:flex;flex-direction:column;align-items:center;padding-top:5px;font-size:10.5px;font-weight:600;color:var(--text-mid);white-space:nowrap;font-variant-numeric:tabular-nums;line-height:1.25}
+.cmp-vis-fecha small{font-size:9.5px;font-weight:600;color:var(--text-soft)}
+.cmp-vis.is-muchas .cmp-vis-fecha{font-size:10px;color:var(--text-soft)}
+body.light .cmp-vis-col.is-max .cmp-vis-monto{color:#d63d74}
 .cmp-mes{display:grid;grid-template-columns:minmax(0,38%) 1fr auto;align-items:center;gap:10px;padding:5px 0}
 .cmp-mes-nom{font-size:12.5px;color:var(--text-mid);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cmp-mes-barra{height:8px;border-radius:9px;background:rgba(255,255,255,.05);overflow:hidden}
@@ -173,6 +184,6 @@ body.light .cmp-atajo{background:rgba(37,76,232,.08);border-color:rgba(37,76,232
 body.light .cmp-compra em{color:#a95a00}
 body.light .cmp-cli-barra,body.light .cmp-mes-barra,body.light .cmp-mapa-celda{background:rgba(15,23,42,.06)}
 body.light .cmp-dona-fondo{stroke:rgba(15,23,42,.07)}
-body.light .cmp-barras-eje{stroke:rgba(15,23,42,.15)}
+body.light .cmp-vis::after{background:rgba(15,23,42,.15)}
 body.light .cmp-vacio{background:rgba(15,23,42,.03)}
 body.light .cmp-kpis b{color:#111827}
