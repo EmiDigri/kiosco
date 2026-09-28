@@ -10,7 +10,7 @@ const root = path.resolve(__dirname, '..');
 const source = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const styles = source.match(/<style>[\s\S]*?<\/style>/)[0];
 const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">${styles}
-<link rel="stylesheet" href="/clientes-mp.css"></head><body><div id="metricasBody" style="padding:16px;display:grid;gap:12px"></div>
+<link rel="stylesheet" href="/clientes-mp.css"></head><body><div id="metricasBody" style="padding:16px;display:grid;gap:12px"></div><div id="histTurnosDetalle"></div>
 <script>
 let metMes=new Date(2026,8,1);
 let tablaExiste=true,guardado=[],consultas=[];
@@ -18,6 +18,16 @@ function metRender(){document.getElementById('metricasBody').innerHTML='<div cla
 async function histSbSelectAll(q){consultas.push(q);if(!tablaExiste)throw new Error('{"code":"42P01","message":"relation \\\\"public.mp_pagadores\\\\" does not exist"}');
   if(q.startsWith('pagos'))return [{pago_id:1001},{pago_id:1002}];return guardado.map(f=>({pago_id:f.pago_id}));}
 async function cmSbWrite(p,m,body){if(!tablaExiste)throw new Error('relation "public.mp_pagadores" does not exist');guardado=guardado.concat(body);}
+async function histSbSelect(q){consultas.push(q);
+  if(q.includes('pago_id=in.')){const ids=q.split('in.(')[1].split(')')[0].split(',');return guardado.filter(f=>ids.includes(f.pago_id)).map(f=>({pago_id:f.pago_id,nombre:f.nombre}));}
+  if(q.includes('monto=eq.')){const m=Number(q.split('monto=eq.')[1].split('&')[0]);return guardado.filter(f=>f.monto===m);}
+  return guardado.slice();}
+// Detalle del día como lo dibuja index.html: transferencia, transferencia fuera de horario,
+// Point (sin botón ↩) y una transferencia que no está en el reporte.
+async function mostrarDetalleDia(dia){await new Promise(r=>setTimeout(r,20));
+  const fila=(id,nombre,extra='')=>'<div class="t-row"><span class="t-hora">10:00</span><span class="t-nombre"><span class="t-n"'+extra+'>'+nombre+'</span></span><span class="t-monto">$1</span>'+(id?'<button class="hist-dev-btn" data-devolver="'+id+'">↩</button>':'')+'</div>';
+  document.getElementById('histTurnosDetalle').innerHTML=fila('1001','Transferencia recibida')+fila('1002','Transferencia fuera de horario',' style="color:#a78bfa"')+fila('','Venta con tarjeta')+fila('5555','Transferencia recibida');
+  return dia;}
 </script><script src="/clientes-mp.js"></script><script>metRender();</script></body></html>`;
 const csv = ['TRANSACTION_DATE;SOURCE_ID;TRANSACTION_TYPE;TRANSACTION_AMOUNT;SETTLEMENT_NET_AMOUNT;REAL_AMOUNT;ISSUER_NAME;PAYER_NAME',
   '2026-09-28T17:28:42.000-03:00;1001;SETTLEMENT;1200.00;1200.00;1200.00;;LUCIA FERNANDEZ',
@@ -61,8 +71,27 @@ const server = http.createServer((req, res) => {
       assert(texto.includes('2 de 2 coinciden con los cobros que tiene la app'), texto);
       assert.equal(await page.evaluate(() => guardado.length), 2);
       assert.equal(await page.locator('#cmpArchivo').isDisabled(), false);
+      // Buscador: por monto, por nombre (sin tildes, en cualquier orden) y sin resultados.
+      await page.locator('#cmpBuscar').fill('$ 4.500');
+      await page.locator('.cmp-res').filter({hasText: 'Juan Perez'}).waitFor();
+      assert.equal(await page.locator('.cmp-res').count(), 1);
+      assert((await page.locator('.cmp-res').innerText()).replace(/\s+/g, ' ').includes('27/09 · 10:00'));
+      await page.locator('#cmpBuscar').fill('fernández LUCÍA');
+      await page.locator('.cmp-res').filter({hasText: 'Lucia Fernandez'}).waitFor();
+      assert.equal(await page.locator('.cmp-res').count(), 1);
+      assert((await page.locator('.cmp-res').innerText()).includes('$1.200'));
+      await page.locator('#cmpBuscar').fill('zzzz');
+      await page.locator('.cmp-nada').filter({hasText: 'No encontré cobros con ese nombre'}).waitFor();
+      await page.locator('#cmpBuscar').fill('fer');
+      await page.locator('.cmp-res').first().waitFor();
       assert(!(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)), 'sin scroll horizontal');
-      await page.screenshot({path: path.join(dir, `clientes-${width}.png`)});
+      await page.screenshot({path: path.join(dir, `clientes-${width}.png`), fullPage: true});
+      // Historial: cada transferencia del día muestra quién pagó; lo demás queda igual.
+      await page.evaluate(() => mostrarDetalleDia('2026-09-28'));
+      const nombres = await page.locator('#histTurnosDetalle .t-n').allInnerTexts();
+      assert.deepEqual(nombres, ['Lucia Fernandez', 'Juan Perez', 'Venta con tarjeta', 'Transferencia recibida']);
+      assert(await page.evaluate(() => consultas.includes('mp_pagadores?select=pago_id,nombre&pago_id=in.(1001,1002,5555)')));
+      assert.equal(await page.locator('#histTurnosDetalle .t-n').nth(1).getAttribute('style'), 'color:#a78bfa');
       // Sin la tabla: explica el paso pendiente en Supabase.
       await page.evaluate(() => { tablaExiste = false; document.getElementById('metClientes').remove(); metRender(); });
       await page.locator('#cmpEstado.is-error').waitFor();

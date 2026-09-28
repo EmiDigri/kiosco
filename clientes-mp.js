@@ -118,7 +118,90 @@
       <div class="cmp-intro">A fin de mes subí el reporte <b>Todas las transacciones</b> de Mercado Pago y la app sabe quién pagó cada transferencia.</div>
       <div class="cmp-acciones"><label class="cmp-subir"><input type="file" accept=".csv,text/csv" id="cmpArchivo"><span>Cargar reporte de Mercado Pago</span></label></div>
       <div class="cmp-estado" id="cmpEstado" role="status" aria-live="polite"></div>
+      <div class="cmp-buscar">
+        <label class="cmp-buscar-lbl" for="cmpBuscar">Buscar un cobro</label>
+        <input type="search" id="cmpBuscar" placeholder="Nombre o monto, ej. lucia o 4500" autocomplete="off" inputmode="search">
+        <div class="cmp-resultados" id="cmpResultados" aria-live="polite"></div>
+      </div>
     </div>`;
+  }
+
+  // ── Nombres ──────────────────────────────────────────────────────────────────────────
+  // "LUCIA DE LA FUENTE" -> "Lucia de la Fuente". El reporte viene en mayúsculas.
+  const PARTICULAS = new Set(['de', 'del', 'la', 'las', 'los', 'y', 'e']);
+  function nombreVisible(nombre) {
+    return nombreLimpio(nombre).toLocaleLowerCase('es-AR').split(' ')
+      .map((p, i) => (i && PARTICULAS.has(p)) ? p : p.charAt(0).toLocaleUpperCase('es-AR') + p.slice(1)).join(' ');
+  }
+  const sinTildes = s => String(s || '').normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
+
+  // ── Buscador ─────────────────────────────────────────────────────────────────────────
+  // Un número busca por monto exacto; un texto, por nombre (sin importar tildes ni mayúsculas).
+  function consultaBusqueda(texto) {
+    const q = String(texto || '').trim();
+    const soloNumero = q.replace(/[$\s]/g, '');
+    if (/^\d{1,3}(\.\d{3})+(,\d{1,2})?$|^\d+([.,]\d{1,2})?$/.test(soloNumero)) {
+      const monto = montoDe(/^\d{1,3}(\.\d{3})+$/.test(soloNumero) ? soloNumero.replace(/\./g, '') : soloNumero);
+      return {tipo: 'monto', monto, path: `${TABLA}?select=pago_id,nombre,fecha,hora,monto,devuelto&monto=eq.${monto}&order=fecha.desc,hora.desc&limit=40`};
+    }
+    const palabras = sinTildes(q).replace(/[^a-zñ ]/g, ' ').split(/\s+/).filter(p => p.length >= 2);
+    if (!palabras.length) return null;
+    // A la base se le pide la palabra más larga (así "fer lucia" también encuentra a
+    // "Lucia Fernandez"). Puede haber tildes: cada vocal va como "cualquier letra" y después
+    // se filtra bien acá, con todas las palabras y sin tildes.
+    const patron = palabras.slice().sort((a, b) => b.length - a.length)[0].replace(/[aeiou]/g, '_');
+    return {tipo: 'nombre', palabras, path: `${TABLA}?select=pago_id,nombre,fecha,hora,monto,devuelto&nombre=ilike.*${encodeURIComponent(patron)}*&order=fecha.desc,hora.desc&limit=200`};
+  }
+  function filtrarPorNombre(filas, palabras) {
+    return filas.filter(f => { const n = sinTildes(f.nombre); return palabras.every(p => n.includes(p)); });
+  }
+  let busquedaActual = 0;
+  async function buscar(texto) {
+    const el = root.document.getElementById('cmpResultados');
+    if (!el) return;
+    const consulta = consultaBusqueda(texto), id = ++busquedaActual;
+    if (!consulta) { el.innerHTML = ''; return; }
+    el.innerHTML = '<div class="cmp-nada">Buscando…</div>';
+    try {
+      let filas = await root.histSbSelect(consulta.path);
+      if (id !== busquedaActual) return;
+      if (consulta.tipo === 'nombre') filas = filtrarPorNombre(filas, consulta.palabras);
+      filas = filas.slice(0, 40);
+      el.innerHTML = filas.length ? filas.map(f => `<div class="cmp-res"><span class="cmp-res-nom">${esc(nombreVisible(f.nombre))}${f.devuelto ? '<em>devuelto</em>' : ''}</span>`
+        + `<span class="cmp-res-cuando">${fechaCorta(f.fecha)} · ${esc(f.hora || '')}</span><b class="cmp-res-monto">$${$(f.monto)}</b></div>`).join('')
+        + (filas.length === 40 ? '<div class="cmp-nada">Se muestran los 40 más recientes.</div>' : '')
+        : `<div class="cmp-nada">No encontré cobros ${consulta.tipo === 'monto' ? 'de ese monto' : 'con ese nombre'}.</div>`;
+    } catch (e) {
+      if (id === busquedaActual) el.innerHTML = `<div class="cmp-nada">${tablaFaltante(e) ? 'Falta crear la tabla mp_pagadores en Supabase.' : 'No pude buscar. Revisá la conexión.'}</div>`;
+    }
+  }
+
+  // ── Historial: el nombre en cada transferencia del día ───────────────────────────────
+  // Cada transferencia del detalle del día trae su número de operación en el botón ↩
+  // (data-devolver). Con eso se busca quién pagó y se reemplaza "Transferencia recibida".
+  async function nombresDelDia() {
+    const doc = root.document, cont = doc && doc.getElementById('histTurnosDetalle');
+    if (!cont) return;
+    const filas = [...cont.querySelectorAll('.t-row')].map(row => ({row, id: row.querySelector('[data-devolver]')?.dataset.devolver})).filter(f => /^\d+$/.test(f.id || ''));
+    if (!filas.length) return;
+    let nombres;
+    try {
+      const ids = [...new Set(filas.map(f => f.id))];
+      nombres = [];
+      for (let i = 0; i < ids.length; i += 150) nombres = nombres.concat(await root.histSbSelect(`${TABLA}?select=pago_id,nombre&pago_id=in.(${ids.slice(i, i + 150).join(',')})`));
+    } catch (e) { return; }
+    const porId = new Map(nombres.map(n => [String(n.pago_id), n.nombre]));
+    filas.forEach(({row, id}) => {
+      const nombre = porId.get(id), el = row.querySelector('.t-n');
+      if (!nombre || !el || !row.isConnected) return;
+      el.textContent = nombreVisible(nombre);
+      el.classList.add('cmp-pagador');
+      el.title = `Transferencia de ${nombreVisible(nombre)}`;
+    });
+  }
+  if (root.document && typeof root.mostrarDetalleDia === 'function') {
+    const detalle = root.mostrarDetalleDia;
+    root.mostrarDetalleDia = async function() { const r = await detalle.apply(this, arguments); await nombresDelDia(); return r; };
   }
   function estado(html, tipo = '') {
     const el = root.document && root.document.getElementById('cmpEstado');
@@ -160,6 +243,8 @@
     if (!body || doc.getElementById('metClientes')) return;
     body.insertAdjacentHTML('beforeend', tarjetaHtml());
     doc.getElementById('cmpArchivo').addEventListener('change', e => { const f = e.target.files && e.target.files[0]; if (f) subir(f); });
+    let espera = null;
+    doc.getElementById('cmpBuscar').addEventListener('input', e => { clearTimeout(espera); const v = e.target.value; espera = setTimeout(() => buscar(v), 300); });
     // metMes es el mes que se está mirando en Métricas (variable global de index.html).
     // eslint-disable-next-line no-undef
     const mes = typeof metMes !== 'undefined' && metMes instanceof Date ? new Date(metMes) : new Date();
@@ -170,5 +255,5 @@
     const dibujar = root.metRender;
     root.metRender = function() { const r = dibujar.apply(this, arguments); pintarTarjeta(); return r; };
   }
-  return {parsearReporte, guardar, coincidencias, montoDe, fechaHoraAR, tablaFaltante, tarjetaHtml};
+  return {parsearReporte, guardar, coincidencias, montoDe, fechaHoraAR, tablaFaltante, tarjetaHtml, nombreVisible, consultaBusqueda, filtrarPorNombre};
 });

@@ -83,3 +83,32 @@ test('a missing table is recognized to explain the one-time Supabase step', () =
   assert.equal(C.tablaFaltante(new Error('{"code":"PGRST205","message":"Could not find the table"}')), true);
   assert.equal(C.tablaFaltante(new Error('Failed to fetch')), false);
 });
+
+test('names are shown in normal case, keeping particles lowercase', () => {
+  assert.equal(C.nombreVisible('  LUCIA   DE LA FUENTE '), 'Lucia de la Fuente');
+  assert.equal(C.nombreVisible('JOSÉ ÑANDÚ'), 'José Ñandú');
+  assert.equal(C.nombreVisible('DE LOS SANTOS ANA'), 'De los Santos Ana');
+});
+
+test('the search tells amounts from names', () => {
+  for (const [texto, monto] of [['4500', 4500], ['$ 4.500', 4500], ['4500,50', 4500.5], ['12.000', 12000]]) {
+    const q = C.consultaBusqueda(texto);
+    assert.equal(q.tipo, 'monto', texto);
+    assert.equal(q.monto, monto, texto);
+    assert(q.path.includes(`monto=eq.${monto}&`), q.path);
+  }
+  const q = C.consultaBusqueda('fer Lucía');
+  assert.equal(q.tipo, 'nombre');
+  assert.deepEqual(q.palabras, ['fer', 'lucia']);
+  // Pide la palabra más larga con las vocales libres (tildes), ordenado del más reciente.
+  assert(q.path.includes('nombre=ilike.*l_c__*'), q.path);
+  assert(q.path.includes('order=fecha.desc,hora.desc'), q.path);
+  assert.equal(C.consultaBusqueda('  '), null);
+  assert.equal(C.consultaBusqueda('a'), null);
+});
+
+test('the name search ignores accents, case and word order', () => {
+  const filas = [{nombre: 'LUCÍA FERNÁNDEZ'}, {nombre: 'LUCAS FERRO'}, {nombre: 'ANA FERNANDEZ LUCIANI'}];
+  assert.deepEqual(C.filtrarPorNombre(filas, ['fer', 'lucia']).map(f => f.nombre), ['LUCÍA FERNÁNDEZ', 'ANA FERNANDEZ LUCIANI']);
+  assert.deepEqual(C.filtrarPorNombre(filas, ['ferro']).map(f => f.nombre), ['LUCAS FERRO']);
+});
