@@ -94,6 +94,50 @@ export default async function handler(req, res) {
   if (!(await usuarioValido(req))) return res.status(401).json({ error: 'Necesitás iniciar sesión' });
   if (!MP_TOKEN) return res.status(503).json({ error: 'Mercado Pago no está configurado' });
 
+  // TEMPORAL (Claude, pedido de digra 3/10/2026): ¿MP dice a quién se le transfirió?
+  // Solo lectura, con login, solo salidas de un día. Vence solo. BORRAR después de usar.
+  if (req.query.salidas !== undefined) {
+    res.setHeader('Cache-Control', 'no-store');
+    if (Date.now() >= Date.parse('2026-10-05T03:00:00Z')) return res.status(410).json({ error: 'Prueba finalizada' });
+    const fecha = String(req.query.salidas || '');
+    const ventana = validDate(fecha) ? dayWindow(fecha) : null;
+    if (!ventana) return res.status(400).json({ error: 'Fecha inválida' });
+    try {
+      const encontrados = await Promise.allSettled([searchPayments(ventana), searchPayments(ventana, { operation_type: 'money_transfer_send' })]);
+      const salidas = new Map();
+      encontrados.filter(r => r.status === 'fulfilled').flatMap(r => r.value).forEach(p => {
+        const t = new Date(p.date_approved || p.date_created).getTime();
+        if (p.status === 'approved' && paymentIsOutgoing(p) && t >= ventana.begin.getTime() && t <= ventana.end.getTime()) salidas.set(String(p.id), p);
+      });
+      // Todas las hojas de texto de la operación completa (y los números de cuentas/ids),
+      // para ver dónde viene el destinatario. Sin datos de tarjeta ni comisiones.
+      const hojas = (obj, ruta, out, prof) => {
+        if (out.length >= 220 || prof > 8 || obj == null) return out;
+        if (/^(card|fee_details|charges_details|refunds|payer\.identification)/.test(ruta)) return out;
+        if (Array.isArray(obj)) { obj.slice(0, 10).forEach((v, i) => hojas(v, `${ruta}[${i}]`, out, prof + 1)); return out; }
+        if (typeof obj === 'object') { Object.entries(obj).forEach(([k, v]) => hojas(v, ruta ? `${ruta}.${k}` : k, out, prof + 1)); return out; }
+        if ((typeof obj === 'string' && obj.trim()) || (typeof obj === 'number' && /collector|payer_id|account|bank/i.test(ruta))) out.push([ruta, String(obj).slice(0, 160)]);
+        return out;
+      };
+      const detalle = await Promise.all([...salidas.values()].slice(0, 30).map(async p => {
+        let completo = p;
+        try {
+          const r = await fetch(`https://api.mercadopago.com/v1/payments/${p.id}`, { headers: { Authorization: `Bearer ${MP_TOKEN}`, accept: 'application/json' }, signal: AbortSignal.timeout(12000) });
+          if (r.ok) completo = await r.json();
+        } catch { /* queda lo de la búsqueda */ }
+        const d = new Date(new Date(completo.date_approved || completo.date_created).getTime() - 3 * 3600 * 1000);
+        return {
+          id: completo.id, hora: d.toISOString().slice(11, 16), monto: Math.abs(Number(completo.transaction_amount) || 0),
+          operation_type: completo.operation_type || '', description: completo.description || '', campos: hojas(completo, '', [], 0),
+        };
+      }));
+      detalle.sort((a, b) => a.hora < b.hora ? -1 : 1);
+      return res.status(200).json({ fecha, salidas: detalle });
+    } catch (error) {
+      return res.status(502).json({ error: error.message || 'No se pudo consultar Mercado Pago' });
+    }
+  }
+
   const date = String(req.query.date || '');
   const window = validDate(date) ? dayWindow(date) : null;
   if (!window) return res.status(400).json({ error: 'Fecha inválida' });
