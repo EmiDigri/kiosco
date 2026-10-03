@@ -154,7 +154,10 @@ async function buscarPagosMP(extraParams) {
 // Se reconcilia TODO el día (no las "últimas 2 horas") para que, aunque el cron
 // no haya corrido de madrugada, la primera corrida del día repesque lo de la
 // noche y la madrugada. Ver bug: transferencias fuera de horario no aparecían.
-async function fetchYGuardar(esDomingo, fecha, limpiar = true) {
+// soloSalidas (?solo=salidas): repasa SOLO las transferencias enviadas del día (ej. para
+// ponerles el nombre del destinatario a días viejos) sin tocar cobros, Point ni la limpieza.
+async function fetchYGuardar(esDomingo, fecha, limpiar = true, soloSalidas = false) {
+  if (soloSalidas) limpiar = false;
   const now = new Date();
   const begin = inicioDiaAR(fecha);
   const end = new Date(Math.min(begin.getTime() + 24 * 60 * 60 * 1000 - 1, now.getTime()));
@@ -205,6 +208,7 @@ async function fetchYGuardar(esDomingo, fecha, limpiar = true) {
       salidasGuardadas.add(String(pago.id));
       continue;
     }
+    if (soloSalidas) continue;
 
     const esValido = ['money_transfer', 'pos_payment', 'account_fund'].includes(pago.operation_type);
     if (!esValido) {
@@ -217,7 +221,7 @@ async function fetchYGuardar(esDomingo, fecha, limpiar = true) {
   }
 
   // Ventas Point específicas (a veces no aparecen en el search general)
-  const pagosPoint = await buscarPagosMP({ ...win, operation_type: 'pos_payment' });
+  const pagosPoint = soloSalidas ? [] : await buscarPagosMP({ ...win, operation_type: 'pos_payment' });
   console.log(`Ventas Point específicas: ${pagosPoint.length}`);
   for (const pago of pagosPoint) {
     const time = new Date(pago.date_approved || pago.date_created).getTime();
@@ -271,7 +275,7 @@ export default async function handler(req, res) {
     // los movimientos fuera de horario no aparecían).
     // ?noclean=1 (backfill): repasa el día sin la limpieza de salidas fantasma.
     faltanColumnas = false;
-    const resultado = await fetchYGuardar(esDomingoPedido, pedido, req.query.noclean !== '1');
+    const resultado = await fetchYGuardar(esDomingoPedido, pedido, req.query.noclean !== '1', req.query.solo === 'salidas');
 
     console.log(`Cron ejecutado: ${resultado.procesados} pagos procesados, ${resultado.salidas} salidas`);
     return res.status(200).json({ ok: true, ...resultado, fecha: pedido, hora: hh, faltanColumnas });
