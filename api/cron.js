@@ -1,3 +1,4 @@
+import { nombreSalida } from './_destinatario.js';
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://pilfeptwylgufhbmmday.supabase.co';
 const SUPABASE_KEY = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const MP_TOKEN = process.env.MP_ACCESS_TOKEN || '';
@@ -177,7 +178,7 @@ async function fetchYGuardar(esDomingo, fecha, limpiar = true) {
   const pagos = [...pagosUnicos.values()];
   console.log(`MP devolvió ${pagos.length} operaciones (${pagosEnviados.length} salidas explícitas)`);
 
-  const guardados = new Set(), salidasGuardadas = new Set();
+  const guardados = new Set(), salidasGuardadas = new Set(), destinatarios = new Map();
   for (const pago of pagos) {
     const esEnviada = pagoEsEnviado(pago);
 
@@ -188,12 +189,11 @@ async function fetchYGuardar(esDomingo, fecha, limpiar = true) {
       const hora = `${String(dAR.getUTCHours()).padStart(2,'0')}:${String(dAR.getUTCMinutes()).padStart(2,'0')}`;
       const hNum = parseInt(hora.split(':')[0]);
       // Los pagos de servicio (regular_payment: Edenor, etc.) muestran su description
-      // como nombre ("Pago Edenor") para que se entienda qué salida fue.
-      const nombreSalida = pago.operation_type === 'regular_payment' && pago.description
-        ? `Pago ${pago.description}` : 'Transferencia enviada';
+      // como nombre ("Pago Edenor"); las transferencias, a quién fueron (ver _destinatario.js).
+      const nombre = await nombreSalida(pago, { token: MP_TOKEN, ownerId: MP_USER_ID, cache: destinatarios });
       await guardarEnSupabase({
         pago_id: pago.id, fecha: pagoFecha, hora,
-        nombre: nombreSalida,
+        nombre,
         tipo: 'Transferencia enviada',
         monto: Math.abs(pago.transaction_amount),
         turno: turnoDeHora(hNum, dAR.getUTCMinutes(), esDomingo),

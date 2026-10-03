@@ -1,3 +1,4 @@
+import { nombreSalida } from './_destinatario.js';
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://pilfeptwylgufhbmmday.supabase.co';
 const SUPABASE_KEY = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const MP_TOKEN = process.env.MP_ACCESS_TOKEN || '';
@@ -75,9 +76,9 @@ async function procesarPago(pagoId) {
 
   let nombre = '';
   if (esEnviada) {
-    // Pagos de servicio (Edenor, etc.) muestran su description como nombre.
-    nombre = pago.operation_type === 'regular_payment' && pago.description
-      ? `Pago ${pago.description}` : 'Transferencia enviada';
+    // Pagos de servicio (Edenor, etc.) muestran su description como nombre; las
+    // transferencias, a quién fueron (ver _destinatario.js).
+    nombre = await nombreSalida(pago, { token: MP_TOKEN, ownerId: await mpUserId() });
   } else if (pago.operation_type === 'pos_payment') {
     const cardholder = pago.card?.cardholder?.name || '';
     const tarjeta = pago.payment_method?.id || '';
