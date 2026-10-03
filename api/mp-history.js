@@ -126,9 +126,22 @@ export default async function handler(req, res) {
           if (r.ok) completo = await r.json();
         } catch { /* queda lo de la búsqueda */ }
         const d = new Date(new Date(completo.date_approved || completo.date_created).getTime() - 3 * 3600 * 1000);
+        // ¿MP dice el nombre de la cuenta que recibió si se le pregunta por su número?
+        const destino = completo.collector?.id || completo.collector_id;
+        const extra = [];
+        if (destino) {
+          try {
+            const u = await fetch(`https://api.mercadopago.com/users/${encodeURIComponent(destino)}`, { headers: { Authorization: `Bearer ${MP_TOKEN}`, accept: 'application/json' }, signal: AbortSignal.timeout(8000) });
+            const body = await u.json().catch(() => null);
+            extra.push(['destinatario_consulta.http', String(u.status)]);
+            if (u.ok && body) ['nickname', 'first_name', 'last_name', 'company.brand_name', 'company.corporate_name', 'user_type', 'site_id']
+              .forEach(k => { const v = k.split('.').reduce((o, x) => o && o[x], body); if (v) extra.push([`destinatario_consulta.${k}`, String(v).slice(0, 120)]); });
+            else if (body && body.message) extra.push(['destinatario_consulta.mensaje', String(body.message).slice(0, 120)]);
+          } catch { extra.push(['destinatario_consulta.http', 'sin respuesta']); }
+        }
         return {
           id: completo.id, hora: d.toISOString().slice(11, 16), monto: Math.abs(Number(completo.transaction_amount) || 0),
-          operation_type: completo.operation_type || '', description: completo.description || '', campos: hojas(completo, '', [], 0),
+          operation_type: completo.operation_type || '', description: completo.description || '', campos: extra.concat(hojas(completo, '', [], 0)),
         };
       }));
       detalle.sort((a, b) => a.hora < b.hora ? -1 : 1);

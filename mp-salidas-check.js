@@ -5,7 +5,7 @@
   if (new URLSearchParams(location.search).get('mp_salidas_check') !== '1') return;
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
   const hoy = new Intl.DateTimeFormat('en-CA', {timeZone: 'America/Argentina/Buenos_Aires'}).format(new Date());
-  const pista = /name|holder|nickname|bank|description|title|alias|cvu|cbu|collector|account|statement|reason|concept/i;
+  const pista = /destinatario|name|holder|nickname|bank|description|title|alias|cvu|cbu|collector|account|statement|reason|concept/i;
   const dialog = document.createElement('dialog');
   dialog.setAttribute('aria-label', 'Consulta temporal de transferencias enviadas');
   dialog.style.cssText = 'width:min(960px,94vw);max-height:88vh;overflow:auto;padding:22px;background:#242426;color:#eee;border:1px solid #555;border-radius:10px;font:14px/1.45 Inter,sans-serif';
