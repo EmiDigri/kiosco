@@ -88,6 +88,46 @@ test('empty days and local-only totals have explicit states', () => {
   assert.equal(local.local,true);
 });
 
+test('monthly ambiguity flags every affected day without changing stored movements', () => {
+  const gastos = ['2026-10-03','2026-10-01'].flatMap(fecha => [
+    {uid:fecha+'a',fecha,nombre:'Proveedor Uno',monto:100},
+    {uid:fecha+'b',fecha,nombre:'Proveedor Uno',monto:100}
+  ]);
+  const pagos = ['2026-10-01','2026-10-03'].map(fecha => outgoing(fecha,100,{fecha,nombre:'Proveedor Uno'}));
+  const before = JSON.stringify({gastos,pagos});
+  const mes = C.conciliarMes(gastos.concat(gastos[0]),pagos.concat(pagos[0]));
+  assert.equal(mes.porRevisar,true);
+  assert.deepEqual(mes.diasPorRevisar,['2026-10-01','2026-10-03']);
+  assert.equal(mes.efectivo.length,2);
+  assert.equal(mes.salidas.length,2);
+  assert.equal(JSON.stringify({gastos,pagos}),before);
+  for (const dia of mes.diasPorRevisar) {
+    assert(C.resumenGastosDia(gastos.filter(g=>g.fecha===dia),pagos.filter(p=>p.fecha===dia)).porRevisar);
+  }
+});
+
+test('monthly review warning clears after an unambiguous match, never crosses days', () => {
+  const gastos = [
+    {uid:'a',fecha:'2026-10-01',nombre:'Proveedor Uno',monto:100},
+    {uid:'b',fecha:'2026-10-01',nombre:'Proveedor Uno',monto:100},
+    {uid:'c',fecha:'2026-10-02',nombre:'Proveedor Uno',monto:100}
+  ];
+  const pagos = [outgoing('a',100,{fecha:'2026-10-01',nombre:'Proveedor Uno'})];
+  assert.equal(C.conciliarMes(gastos,pagos).porRevisar,true);
+  const mes = C.conciliarMes(gastos,pagos.concat(outgoing('b',100,{fecha:'2026-10-01',nombre:'Proveedor Uno'})));
+  assert.equal(mes.porRevisar,false);
+  assert.deepEqual(mes.diasPorRevisar,[]);
+  assert.deepEqual(mes.efectivo.map(g=>g.uid),['c']);
+  assert.equal(C.conciliarMes([],[]).porRevisar,false);
+});
+
+test('monthly ambiguity without a date still warns, but never generates invalid day links', () => {
+  const mes = C.conciliarMes([{nombre:'Proveedor Uno',monto:100},{nombre:'Proveedor Uno',monto:100}],
+    [outgoing('a',100,{nombre:'Proveedor Uno'})]);
+  assert.equal(mes.porRevisar,true);
+  assert.deepEqual(mes.diasPorRevisar,[]);
+});
+
 // Casos reales de septiembre 2026 (cuaderno vs salidas de MP).
 test('MP cents do not create a second expense (Coca 381.846 written, 381.845,15 paid)', () => {
   const result = C.resumenGastosDia([{uid:'c',fecha:'2026-09-04',nombre:'Coca',monto:381846}],

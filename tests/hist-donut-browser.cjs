@@ -10,13 +10,17 @@ const start=source.indexOf('let histGastosFuenteRemota=');
 const end=source.indexOf('function histTotalDia(',start);
 if(start<0||end<0)throw Error('No pude extraer el render mensual de egresos');
 const renderSource=source.slice(start,end);
+const reviewSource=source.slice(source.indexOf('function histAvisoRevisionMes('),source.indexOf('function metRender('));
 const html=`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">${styles}</head><body><div id="histGastosMes"></div><script src="/cierre-cuentas.js"></script><script>
 const histMoney=n=>'$'+Number(n||0).toLocaleString('es-AR');
 const histMoneyCompact=n=>n>=1e6?'$'+(n/1e6).toLocaleString('es-AR',{maximumFractionDigits:1})+'M':'$'+Math.round(n/1000)+'k';
 const cmEsc=s=>String(s||'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 const provLogoHtml=()=>''; // los logos no son parte de esta prueba
+let opened=null;
+const histAbrirDia=dia=>{opened=dia};
 let histRowsGastosMes=[{fecha:'2026-09-18',nombre:'Pago Arcor',monto:125000},{fecha:'2026-09-16',nombre:'Telecentro',monto:32342}];
 let histRowsPagosMes=[['Coca-Cola FEMSA',553976],['Edenor',481408],['Transferencia enviada',272327],['Producto',63460],['MAPFRE Aconcagua',54589],['Barracas Logistica',34875],['Lector',39539],['Norbieta',30000],['Santos',27000],['Todo Dulce',24000],['Limpieza',21000],['Internet',18000],['Reparaciones',15000],['Impuestos',12000],['Flete',9000]].map((x,i)=>({fecha:'2026-09-'+String(Math.max(1,18-i)).padStart(2,'0'),nombre:x[0],monto:x[1],es_enviada:true,status:'approved'}));
+${reviewSource}
 ${renderSource}
 histRenderGastosMes();
 </script></body></html>`;
@@ -26,11 +30,12 @@ const server=http.createServer((req,res)=>{
 });
 
 (async()=>{
-  await new Promise(resolve=>server.listen(4198,'127.0.0.1',resolve));
+  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
   const browser=await chromium.launch({channel:'msedge',headless:true});
   try{
     const page=await browser.newPage({viewport:{width:1100,height:900}});
-    await page.goto('http://127.0.0.1:4198');
+    const errors=[];page.on('pageerror',e=>errors.push(e.message));
+    await page.goto('http://127.0.0.1:'+server.address().port);
     await page.waitForTimeout(900);
     const check=(condition,label)=>{if(!condition)throw Error(label);console.log('OK '+label);};
     check(await page.locator('.hist-egresos-cols').count()===1,'conserva las columnas originales');
@@ -64,5 +69,23 @@ const server=http.createServer((req,res)=>{
     await page.setViewportSize({width:390,height:1000});
     await page.evaluate(()=>scrollTo(0,0));
     await page.screenshot({path:path.join(process.env.TEMP||root,'hist-egresos-donut-mobile.png'),fullPage:true});
+    await page.evaluate(()=>{
+      histRowsGastosMes=[{uid:'a',fecha:'2026-09-18',nombre:'Proveedor Uno',monto:1255000},{uid:'b',fecha:'2026-09-18',nombre:'Proveedor Uno',monto:1255000}];
+      histRowsPagosMes=[{pago_id:'a',fecha:'2026-09-18',nombre:'Proveedor Uno',monto:1255000,es_enviada:true,status:'approved'}];
+      histRenderGastosMes();
+    });
+    check((await page.locator('.hist-revision-mes').innerText()).includes('provisorios'),'las dudas del dia se avisan en el mes');
+    await page.locator('[data-revisar-dia]').click();
+    check(await page.evaluate(()=>opened)==='2026-09-18','abre el dia exacto para revisar');
+    await page.screenshot({path:path.join(process.env.TEMP||root,'hist-egresos-revisar-mobile.png'),fullPage:true});
+    await page.locator('.hist-egresos-head').click();
+    check(await page.locator('.hist-revision-badge').isVisible(),'Por revisar sigue visible con egresos plegados');
+    for(const width of [1100,390,320]){
+      await page.setViewportSize({width,height:1000});
+      check(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'aviso mensual sin desborde a '+width+'px');
+    }
+    await page.evaluate(()=>{histRowsGastosMes.pop();histRenderGastosMes();});
+    check(await page.locator('.hist-revision-mes,.hist-revision-badge').count()===0,'el aviso desaparece cuando la coincidencia deja de ser dudosa');
+    check(errors.length===0,'sin errores de navegador');
   }finally{await browser.close();server.close();}
 })().catch(error=>{console.error(error);server.close();process.exitCode=1;});

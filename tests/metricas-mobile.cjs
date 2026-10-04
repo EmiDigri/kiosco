@@ -29,6 +29,8 @@ let revenue=24568000;
 // Real reconciliation (conciliarMes); only the monthly revenue and shifts are synthetic.
 const CierreCuentas={...window.CierreCuentas,resumenMes:()=>({total:revenue}),turnos:()=>[]};
 const lockBody=()=>{},unlockBody=()=>{},histCargarMes=async()=>{};
+let opened=null;
+const histAbrirDia=dia=>{opened=dia};
 ${source.slice(start, end)}
 window.renderFixture=(sales,variable,fixed,investment=0)=>{
   revenue=sales;
@@ -112,10 +114,33 @@ const server = http.createServer((req, res) => {
     await page.waitForTimeout(250);
     assert(await page.locator('.met-waterfall').isVisible());
     assert.equal(await page.evaluate(()=>_metCasc),null,'dispose desktop chart on mobile');
+    await page.evaluate(()=>{
+      histRowsGastosMes=[{uid:'a',fecha:'2026-09-18',nombre:'Proveedor Uno',monto:100},{uid:'b',fecha:'2026-09-18',nombre:'Proveedor Uno',monto:100}];
+      histRowsPagosMes=[{pago_id:'a',fecha:'2026-09-18',nombre:'Proveedor Uno',monto:100,es_enviada:true,status:'approved'}];
+      metRender();document.getElementById('metricasOverlay').scrollTop=0;
+    });
+    assert((await page.locator('.met-row.hero').innerText()).includes('Utilidad provisoria'));
+    assert((await page.locator('.hist-revision-mes').innerText()).includes('provisorios'));
+    for(const width of [1280,390,320]){
+      await page.setViewportSize({width,height:900});
+      assert(await page.locator('.hist-revision-mes').isVisible());
+      assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+    }
+    await page.screenshot({path:path.join(output,'mobile-review.png')});
+    await page.locator('[data-revisar-dia]').tap();
+    assert.equal(await page.evaluate(()=>opened),'2026-09-18');
+    assert(!(await page.locator('#metricasOverlay').evaluate(el=>el.classList.contains('open'))));
+    await page.evaluate(()=>{
+      document.getElementById('metricasOverlay').classList.add('open');
+      histRowsGastosMes.pop();metRender();
+    });
+    assert.equal(await page.locator('.hist-revision-mes').count(),0);
+    assert((await page.locator('.met-row.hero').innerText()).includes('Utilidad neta'));
+    await page.evaluate(()=>histRowsPagosMes=[]);
     await page.evaluate(()=>renderFixture(0,0,0));
     assert(await page.locator('.met-empty').isVisible());
     assert.deepEqual(errors,[]);
-    console.log('PASS: mobile widths, exact values, loss, zero revenue, touch help, themes, reduced motion and desktop resize. Screenshots: '+output);
+    console.log('PASS: mobile widths, exact values, loss, zero revenue, touch help, themes, reduced motion, desktop resize and monthly review. Screenshots: '+output);
   } finally {
     if(browser)await browser.close();
     await new Promise(resolve=>server.close(resolve));

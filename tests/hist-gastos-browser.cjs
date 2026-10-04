@@ -73,6 +73,17 @@ const server = http.createServer((req,res)=>{
       assert((await page.locator('#histGastosDiaDetalle').innerText()).includes('Sin gastos registrados'));
     }
     await page.evaluate(async()=>{
+      fixture={gastos:[],cierres:[],remoto:true,pagos:[{pago_id:'only-mp',nombre:'Proveedor Uno',monto:100,es_enviada:true}]};
+      await mostrarDetalleDia('2026-09-22');
+      for(const el of document.querySelectorAll('details[data-hist-section]'))el.open=false;
+      await mostrarDetalleDia('2026-09-23');
+      await mostrarDetalleDia('2026-09-22');
+    });
+    assert.equal(await page.locator('#histGastosDiaDetalle').count(),1);
+    for(const key of ['resumen','foto','gastos']){
+      assert.equal(await page.locator(`[data-hist-section="${key}"]`).evaluate(el=>el.open),false,'preserves '+key+' even with only MP expenses');
+    }
+    await page.evaluate(async()=>{
       fixture.gastos=[{nombre:'Arcor',monto:100},{nombre:'Arcor',monto:100}];
       fixture.pagos=[{pago_id:'one',nombre:'Arcor',monto:100,es_enviada:true}];
       await mostrarDetalleDia('2026-09-15');

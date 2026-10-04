@@ -16,6 +16,8 @@ const between = (start, end) => {
 };
 const quick = between('function histAyerIso(){', 'function histMoney(');
 const radiography = between('function histRadAnimarMonto(', 'async function mostrarDetalleDia(');
+const dayRender = between('async function mostrarDetalleDia(', '// ─── API / FETCH');
+const dayMarkup = source.match(/<div id="histVistaDetalle"[\s\S]*?<div id="histTurnosDetalle"><\/div>\s*<\/div>/)[0].replace('display:none','display:block');
 const output = fs.mkdtempSync(path.join(os.tmpdir(), 'kiosco-hist-rad-'));
 const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">${styles}</head><body>
 <button class="home-yesterday-access" id="homeYesterdayAccess" type="button">
@@ -23,7 +25,7 @@ const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewp
   <span class="home-yesterday-copy"><strong>Radiografía de ayer</strong><small id="homeYesterdayDate"></small></span>
   <span class="home-yesterday-arrow" aria-hidden="true">›</span>
 </button>
-<div id="historialOverlay"></div><div id="histRadiografiaDia"></div>
+<div id="historialOverlay"></div><div id="histVistaLista"></div><div id="histTitleText"></div>${dayMarkup}
 <script src="/cierre-cuentas.js"></script><script>
 const TURNOS_SEMANA=[
   {nombre:'Vale',label:'mañana',color:'#3D5AFE'},
@@ -38,9 +40,19 @@ const formatFecha=dia=>new Date(dia+'T12:00:00-03:00').toLocaleDateString('es-AR
 const formatFechaCorta=dia=>new Date(dia+'T12:00:00-03:00').toLocaleDateString('es-AR',{weekday:'short',day:'numeric',month:'short'});
 let histMesActual=new Date(),histResumenMes={stale:true},histRowsPagosMes=[1],histRowsCierresMes=[1],histRowsGastosMes=[1],opened=null;
 const lockBody=()=>{};
-const mostrarDetalleDia=dia=>{opened=dia};
+let fixture={pagos:[],cierres:[],gastos:[],remoto:true},edited=null;
+const histFetchDia=async dia=>{opened=dia;return structuredClone(fixture)};
+const histCargarFotoDia=()=>{const el=document.getElementById('histFotoDia');el.hidden=false;el.textContent='Foto de prueba';};
+const fechaHoy=()=> '2026-09-11';
+const esTransferenciaFueraHorario=()=>false;
+const cardLogoHtml=()=>'';
+const cmAbrir=(dia,turno)=>{edited={dia,turno}};
+const motivoExclusionTexto=()=> 'Excluido';
+const marcarDevuelta=async (id,valor)=>{fixture.pagos.find(p=>p.pago_id===id).excluido=valor;return true};
+${between('function histTotalDesdePagos(', 'async function histCargarMes(')}
 ${quick}
 ${radiography}
+${dayRender}
 </script></body></html>`;
 
 const server = http.createServer((req, res) => {
@@ -94,6 +106,44 @@ const server = http.createServer((req, res) => {
     assert((await page.locator('.hist-rad-status').innerText()).includes('CIERRE PARCIAL'));
     await page.evaluate(d=>histRenderRadiografiaDia('2026-09-06',d.cierres.slice(0,2).map((c,i)=>({...c,turno:'Turno '+(i+1)})),[],[],743800),data);
     assert.equal(await page.locator('.hist-rad-row').count(),2);
+    await page.evaluate(async d=>{
+      fixture={...d,remoto:true,pagos:d.pagos.map((p,i)=>({...p,pago_id:String(i),tipo:'Transferencia recibida',nombre:'Cliente',hora:'10:00'}))};
+      await mostrarDetalleDia('2026-09-09');
+    },data);
+    const section=key=>page.locator(`[data-hist-section="${key}"]`);
+    assert.equal(await page.locator('[data-hist-section]').count(),6);
+    await section('resumen').locator('summary').click();
+    await section('foto').locator('summary').click();
+    await section('gastos').locator('summary').focus();
+    await page.keyboard.press('Enter');
+    assert.equal(await section('gastos').evaluate(el=>el.open),false);
+    await section('hist-dia-Vale').locator('summary').click();
+    assert.equal(await section('hist-dia-Vale').evaluate(el=>el.open),true);
+    assert.equal(await section('hist-dia-Ani').evaluate(el=>el.open),false);
+    assert.equal(await section('hist-dia-Vale').locator('[data-devolver]').isVisible(),true);
+    await section('hist-dia-Vale').locator('.hist-btn-cierre-manual').click();
+    assert.deepEqual(await page.evaluate(()=>edited),{dia:'2026-09-09',turno:'Vale'});
+    await page.evaluate(()=>mostrarDetalleDia('2026-09-08'));
+    assert.equal(await section('resumen').evaluate(el=>el.open),true);
+    await page.evaluate(()=>mostrarDetalleDia('2026-09-09'));
+    for(const key of ['resumen','foto','gastos'])assert.equal(await section(key).evaluate(el=>el.open),false);
+    assert.equal(await section('hist-dia-Vale').evaluate(el=>el.open),true);
+    page.once('dialog',dialog=>dialog.accept());
+    await section('hist-dia-Vale').locator('[data-devolver]').click();
+    await page.waitForFunction(()=>document.querySelector('#hist-dia-Vale [data-devolver]')===null);
+    assert.equal(await section('hist-dia-Vale').evaluate(el=>el.open),true,'refresh must preserve the chosen sections');
+    await section('hist-dia-Vale').locator('summary').click();
+    await page.screenshot({path:path.join(output,'historial-collapsed-mobile.png')});
+    await page.evaluate(async()=>{fixture.cierres=[];await mostrarDetalleDia('2026-09-10');});
+    await section('hist-dia-Ani').locator('summary .hist-btn-cierre-manual').click();
+    assert.deepEqual(await page.evaluate(()=>edited),{dia:'2026-09-10',turno:'Ani'});
+    assert.equal(await section('hist-dia-Ani').evaluate(el=>el.open),false,'loading a closing must not toggle its summary');
+    await page.evaluate(async()=>{
+      fixture.cierres=[{turno:'Turno 1',total_turno:300},{turno:'Turno 2',total_turno:500}];
+      fixture.pagos=[];
+      await mostrarDetalleDia('2026-09-06');
+    });
+    assert.equal(await page.locator('details.hist-turno-card').count(),2);
     const expectedYesterday=await page.evaluate(()=>histAyerIso());
     await page.locator('#homeYesterdayAccess').click();
     assert.equal(await page.evaluate(()=>opened),expectedYesterday);

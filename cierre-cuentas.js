@@ -154,14 +154,22 @@
   function conciliarMes(gastos, pagos) {
     const registrados = unicos(gastos, g => g.uid ?? g.id).filter(g => Number(g.monto) > 0);
     const salidas = unicos((pagos || []).filter(salida), p => p.pago_id ?? p.id).filter(p => Math.abs(Number(p.monto)) > 0);
-    const cubre = new Map(), efectivo = [];
+    const cubre = new Map(), efectivo = [], diasPorRevisar = new Set();
+    let porRevisar = false;
     emparejarGastos(registrados, salidas).forEach((par, i) => {
+      if (par.ambiguo) {
+        porRevisar = true;
+        const dia = String(registrados[i].fecha || '').slice(0, 10);
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dia)) diasPorRevisar.add(dia);
+      }
       if (par.pago) cubre.set(par.pago, registrados[i]);
       else efectivo.push(registrados[i]);
     });
     return {
       efectivo,
       salidas: salidas.map(p => ({...p, monto:Math.abs(Number(p.monto)), gasto:cubre.get(p) || null})),
+      porRevisar,
+      diasPorRevisar: [...diasPorRevisar].sort(),
     };
   }
   function resumenGastosDia(gastos, pagos, disponible = true) {
