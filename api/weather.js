@@ -24,9 +24,10 @@ function symbolToWmoCode(symbol) {
   if (s.includes('showers')) return 80;
   if (s.includes('rain') || s.includes('drizzle')) return 61;
   if (s.includes('fog')) return 45;
+  if (s === 'clearsky') return 0;
   if (s === 'cloudy') return 3;
   if (s === 'partlycloudy') return 2;
-  return 1; // clearsky, fair
+  return 1; // fair
 }
 
 function isDayFromSymbol(symbol, hourLocal) {
@@ -80,8 +81,11 @@ function metarWeatherCode(row, fallback) {
   if (/\b(?:FG|BR)/.test(raw)) return 45;
   const covers = [row?.cover, ...(row?.clouds || []).map(cloud => cloud?.cover)].filter(Boolean);
   if (covers.some(cover => /OVC|BKN/.test(cover))) return 3;
-  if (covers.some(cover => /SCT|FEW/.test(cover))) return 2;
-  if (/CAVOK|\b(?:CLR|SKC|NSC)\b/.test(raw)) return 1;
+  if (covers.some(cover => /SCT/.test(cover))) return 2;
+  if (covers.some(cover => /FEW/.test(cover))) return 1;
+  if (covers.some(cover => /^(?:CLR|SKC)$/.test(cover)) || /\b(?:CLR|SKC)\b/.test(raw)) return 0;
+  // CAVOK/NSC no descartan nubes altas: solo mostramos despejado si el modelo tambien lo indica.
+  if (/\b(?:CAVOK|NSC)\b/.test(raw)) return fallback === 0 ? 0 : 1;
   return fallback;
 }
 
