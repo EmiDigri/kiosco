@@ -9202,6 +9202,28 @@ const IW_BEAUFORT=[
 ];
 // Sensación térmica máxima para llamar "frío" al viento (por encima es fresco o agradable).
 const IW_VIENTO_FRIO_MAX=14;
+// De dónde viene el viento, en palabras (8 rumbos; la dirección es desde donde sopla). En
+// Buenos Aires dice mucho: el norte es cálido y pesado, el sur/sudoeste (pampero) frío y
+// seco y el sudeste (sudestada) trae lluvia y crecida del río.
+const IW_RUMBOS=['norte','noreste','este','sudeste','sur','sudoeste','oeste','noroeste'];
+function iwRumbo(grados){
+  if(grados==null||grados==='')return null;
+  const g=Number(grados);
+  return Number.isFinite(g)?IW_RUMBOS[Math.round((((g%360)+360)%360)/45)%8]:null;
+}
+// Sudestada: viento del sudeste (100° a 170°) de 20 km/h o más.
+function iwEsSudestada(grados,wind){
+  if(grados==null||grados==='')return false;
+  const g=Number(grados);
+  return Number.isFinite(g)&&g>=100&&g<=170&&wind>=20;
+}
+// Ráfagas: solo cuando pegan bastante más fuerte que el viento promedio (30 km/h o más y
+// 15 por encima), que es cuando se sienten y vuelan cosas. En días tranquilos no se muestran.
+function iwRafaga(gust,wind){
+  if(gust==null||gust==='')return null;
+  const r=Number(gust);
+  return Number.isFinite(r)&&r>=30&&r-wind>=15?Math.round(r):null;
+}
 function iwBeaufort(wind){
   const speed=Math.max(0,Number(wind)||0);
   return IW_BEAUFORT.find(level=>speed<=level.max)||IW_BEAUFORT[IW_BEAUFORT.length-1];
@@ -9216,9 +9238,18 @@ function iwWindHtml(speed,direction,gust,temp,sens){
   // "Viento frío" solo si el viento enfría (sensación 2° por debajo) Y la sensación es fría de
   // verdad. Con 20° y sensación de 17° (4/10/2026, viento norte) decía "Viento frío" en un día lindo.
   const cold=!strong&&wind>=10&&temp!=null&&sens!=null&&Number.isFinite(temperature)&&Number.isFinite(feels)&&feels<=temperature-2&&feels<=IW_VIENTO_FRIO_MAX;
-  const label=cold?'Viento frío':level.label;
-  const cls=(strong?' is-strong':'')+(cold?' is-cold':'');
-  return`<span class="iw-wind${cls}" data-beaufort="${level.force}"><img class="iw-wind-icon" src="${mcUrl(`wind-beaufort-${level.force}`)}" alt="" aria-hidden="true"><span>${label}</span><span>·</span><span class="iw-v">${Math.round(wind)} km/h</span></span>`;
+  // Con calma (menos de 2 km/h) la dirección no significa nada y no se muestra.
+  const rumbo=wind>=2?iwRumbo(direction):null;
+  // Si es sudestada se dice eso (aunque también enfríe): es lo que más informa.
+  const sudestada=iwEsSudestada(direction,wind);
+  const frio=cold&&!sudestada;
+  const label=sudestada?'Sudestada':(frio?'Viento frío':level.label)+(rumbo&&level.force>0?` del ${rumbo}`:'');
+  const rafaga=iwRafaga(gust,wind);
+  const titulo=`Viento${rumbo?` del ${rumbo}`:''} · ${Math.round(wind)} km/h${rafaga?` · ráfagas de ${rafaga} km/h`:''}`;
+  const cls=(strong?' is-strong':'')+(frio?' is-cold':'')+(sudestada?' is-sudestada':'');
+  // Las ráfagas van en su propio renglón (solo cuando pegan fuerte): en el mismo no entra en el celular.
+  return`<span class="iw-wind${cls}" data-beaufort="${level.force}" title="${titulo}"><img class="iw-wind-icon" src="${mcUrl(`wind-beaufort-${level.force}`)}" alt="" aria-hidden="true"><span>${label}</span><span>·</span><span class="iw-v">${Math.round(wind)} km/h</span></span>`
+    +(rafaga?`<span class="iw-wind iw-rafagas" title="${titulo}"><img class="iw-wind-icon" src="${mcUrl('windsock')}" alt="" aria-hidden="true"><span>Ráfagas</span><span>·</span><span class="iw-v">${rafaga} km/h</span></span>`:'');
 }
 function iwHumidityHtml(humidity){
   const h=Number(humidity);
