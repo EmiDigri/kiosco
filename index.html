@@ -9200,6 +9200,8 @@ const IW_BEAUFORT=[
   {max:117,force:11,label:'Tormenta violenta'},
   {max:Infinity,force:12,label:'Huracanado'}
 ];
+// Sensación térmica máxima para llamar "frío" al viento (por encima es fresco o agradable).
+const IW_VIENTO_FRIO_MAX=14;
 function iwBeaufort(wind){
   const speed=Math.max(0,Number(wind)||0);
   return IW_BEAUFORT.find(level=>speed<=level.max)||IW_BEAUFORT[IW_BEAUFORT.length-1];
@@ -9211,7 +9213,9 @@ function iwWindHtml(speed,direction,gust,temp,sens){
   const level=iwBeaufort(wind);
   const temperature=Number(temp),feels=Number(sens);
   const strong=level.force>=6;
-  const cold=!strong&&wind>=10&&temp!=null&&sens!=null&&Number.isFinite(temperature)&&Number.isFinite(feels)&&feels<=temperature-2;
+  // "Viento frío" solo si el viento enfría (sensación 2° por debajo) Y la sensación es fría de
+  // verdad. Con 20° y sensación de 17° (4/10/2026, viento norte) decía "Viento frío" en un día lindo.
+  const cold=!strong&&wind>=10&&temp!=null&&sens!=null&&Number.isFinite(temperature)&&Number.isFinite(feels)&&feels<=temperature-2&&feels<=IW_VIENTO_FRIO_MAX;
   const label=cold?'Viento frío':level.label;
   const cls=(strong?' is-strong':'')+(cold?' is-cold':'');
   return`<span class="iw-wind${cls}" data-beaufort="${level.force}"><img class="iw-wind-icon" src="${mcUrl(`wind-beaufort-${level.force}`)}" alt="" aria-hidden="true"><span>${label}</span><span>·</span><span class="iw-v">${Math.round(wind)} km/h</span></span>`;
