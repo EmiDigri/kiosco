@@ -2178,6 +2178,8 @@ body{
 .hist-day-emoji{display:inline-block;font-size:13px;margin-left:3px;vertical-align:middle;line-height:1}
 .hist-day-marker{display:inline-block;position:relative;margin-left:3px;vertical-align:middle;line-height:1;cursor:help;outline:none}
 .hist-day-marker .hist-day-emoji{margin-left:0}
+.emoji-anim{display:inline-block;line-height:0;vertical-align:middle}
+.emoji-anim img{display:block;width:1.3em;height:1.3em}
 .hist-day-marker::after{
   content:attr(data-tooltip);
   position:absolute;
@@ -6517,7 +6519,7 @@ function renderCalendarioMes(){
     if(dia===today)cls.push('today');
     if(data.cierres.length)cls.push('has-cierre');
     if(dia===topDia&&topVal>0)cls.push('best-day');
-    const emoji=(dia===topDia&&topVal>0?'<span class="hist-day-marker" tabindex="0" role="img" aria-label="Mayor recaudación del mes" data-tooltip="Mayor recaudación del mes"><span class="hist-day-emoji hist-day-flame" aria-hidden="true">🔥</span></span>':dia===botDia&&botVal<Infinity?'<span class="hist-day-marker" tabindex="0" role="img" aria-label="Menor recaudación del mes" data-tooltip="Menor recaudación del mes"><span class="hist-day-emoji hist-day-skull" aria-hidden="true">💀</span></span>':'')+(data.fueraHorario?'<span class="hist-day-marker" tabindex="0" role="img" aria-label="Transferencias fuera de horario: antes de las 7 o después de las 22:30" data-tooltip="Transferencias fuera de horario · antes de las 7 o después de las 22:30"><span class="hist-day-emoji hist-day-moon" aria-hidden="true">🌙</span></span>':'');
+    const emoji=(dia===topDia&&topVal>0?'<span class="hist-day-marker" tabindex="0" role="img" aria-label="Mayor recaudación del mes" data-tooltip="Mayor recaudación del mes"><span class="hist-day-emoji hist-day-flame" aria-hidden="true">'+emojiAnim('fuego')+'</span></span>':dia===botDia&&botVal<Infinity?'<span class="hist-day-marker" tabindex="0" role="img" aria-label="Menor recaudación del mes" data-tooltip="Menor recaudación del mes"><span class="hist-day-emoji hist-day-skull" aria-hidden="true">'+emojiAnim('calavera')+'</span></span>':'')+(data.fueraHorario?'<span class="hist-day-marker" tabindex="0" role="img" aria-label="Transferencias fuera de horario: antes de las 7 o después de las 22:30" data-tooltip="Transferencias fuera de horario · antes de las 7 o después de las 22:30"><span class="hist-day-emoji hist-day-moon" aria-hidden="true">'+emojiAnim('luna')+'</span></span>':'');
     const compact=histMoneyCompact(principal);
     html+=`<div class="${cls.join(' ')}" data-dia="${dia}">
       <div><div class="hist-day-num">${d}${emoji}</div>${badges.length?`<div class="hist-day-badges">${badges.map(b=>`<span class="hist-day-badge badge-${b.toLowerCase()}">${b}</span>`).join('')}</div>`:''}</div>
@@ -6608,8 +6610,8 @@ function histRenderNegocio(y,m,last){
     <div class="hist-neg-card">
       <div class="hist-neg-card-title">Mejor y peor día del mes</div>
       <div class="hist-neg-days">
-        <div class="hist-neg-daytile best${soloUnDia?' solo':''}"><span class="hist-neg-daytile-emoji">🔥</span><span class="hist-neg-daytile-tag">Mejor día</span><span class="hist-neg-daytile-val">${histMoney(mejor.t)}</span><span class="hist-neg-daytile-day">${cap(fmtDiaCorta(mejor.dia))}</span></div>
-        ${soloUnDia?'':`<div class="hist-neg-daytile worst"><span class="hist-neg-daytile-emoji">📉</span><span class="hist-neg-daytile-tag">Peor día</span><span class="hist-neg-daytile-val">${histMoney(peor.t)}</span><span class="hist-neg-daytile-day">${cap(fmtDiaCorta(peor.dia))}</span></div>`}
+        <div class="hist-neg-daytile best${soloUnDia?' solo':''}"><span class="hist-neg-daytile-emoji">${emojiAnim('fuego')}</span><span class="hist-neg-daytile-tag">Mejor día</span><span class="hist-neg-daytile-val">${histMoney(mejor.t)}</span><span class="hist-neg-daytile-day">${cap(fmtDiaCorta(mejor.dia))}</span></div>
+        ${soloUnDia?'':`<div class="hist-neg-daytile worst"><span class="hist-neg-daytile-emoji">${emojiAnim('bajada')}</span><span class="hist-neg-daytile-tag">Peor día</span><span class="hist-neg-daytile-val">${histMoney(peor.t)}</span><span class="hist-neg-daytile-day">${cap(fmtDiaCorta(peor.dia))}</span></div>`}
       </div>
     </div></div></details>`;
 }
@@ -6625,25 +6627,13 @@ function histAplicarColapsoMes(){
   });
 }
 let _histEmojiRaf=null;
+// Emojis animados de Google (Noto Emoji Animation, CC BY 4.0, ver assets/emoji/LEEME.md),
+// achicados a 48 px. Se mueven solos; si el aparato pide menos movimiento se muestra el
+// primer cuadro, quieto.
+function emojiAnim(nombre){return `<picture class="emoji-anim"><source srcset="./assets/emoji/${nombre}-quieto.webp" media="(prefers-reduced-motion: reduce)"><img src="./assets/emoji/${nombre}.webp" alt="" width="48" height="48" decoding="async"></picture>`;}
+// Antes movía el fuego y la calavera a mano; ahora solo corta un bucle viejo si quedó andando.
 function histAnimarEmojis(){
   if(_histEmojiRaf){cancelAnimationFrame(_histEmojiRaf);_histEmojiRaf=null;}
-  function step(ts){
-    const t=ts/1000;
-    document.querySelectorAll('.hist-day-flame').forEach(el=>{
-      const rot=Math.sin(t*7.5)*6;
-      const sc=1+Math.sin(t*10)*0.13;
-      el.style.transform=`rotate(${rot.toFixed(1)}deg) scale(${sc.toFixed(3)})`;
-      el.style.display='inline-block';
-    });
-    document.querySelectorAll('.hist-day-skull').forEach(el=>{
-      const phase=t%2.8;
-      const rot=phase>2.3?Math.sin((phase-2.3)/0.5*Math.PI*5)*16*(1-(phase-2.3)/0.5):0;
-      el.style.transform=`rotate(${rot.toFixed(1)}deg)`;
-      el.style.display='inline-block';
-    });
-    _histEmojiRaf=requestAnimationFrame(step);
-  }
-  _histEmojiRaf=requestAnimationFrame(step);
 }
 // La lista "Días del mes" se saco (no sumaba: el calendario ya deja abrir cada dia
 // y no aportaba metricas). Queda solo la nota de fuente de datos, que va arriba del
@@ -6939,7 +6929,7 @@ async function mostrarDetalleDia(dia){
   if(cell){
     const principal=totalDia;const mainEl=cell.querySelector('.hist-day-main');if(mainEl)mainEl.textContent=principal?histMoney(principal):'—';const subEl=cell.querySelector('.hist-day-sub');if(subEl)subEl.textContent=totalMovs?`${totalMovs} movs · MP ${histMoney(totalMP)}`:'sin movimientos';const compactEl=cell.querySelector('.hist-day-compact');if(compactEl)compactEl.textContent=histMoneyCompact(principal);
     const numEl=cell.querySelector('.hist-day-num');
-    if(numEl&&tieneFueraHorario&&!numEl.querySelector('.hist-day-moon'))numEl.insertAdjacentHTML('beforeend','<span class="hist-day-marker" tabindex="0" role="img" aria-label="Transferencias fuera de horario: antes de las 7 o después de las 22:30" data-tooltip="Transferencias fuera de horario · antes de las 7 o después de las 22:30"><span class="hist-day-emoji hist-day-moon" aria-hidden="true">🌙</span></span>');
+    if(numEl&&tieneFueraHorario&&!numEl.querySelector('.hist-day-moon'))numEl.insertAdjacentHTML('beforeend','<span class="hist-day-marker" tabindex="0" role="img" aria-label="Transferencias fuera de horario: antes de las 7 o después de las 22:30" data-tooltip="Transferencias fuera de horario · antes de las 7 o después de las 22:30"><span class="hist-day-emoji hist-day-moon" aria-hidden="true">'+emojiAnim('luna')+'</span></span>');
   }
   histRenderRadiografiaDia(dia,cierres,gastos,pagosValidos,totalDia);
   const esPasado=dia<fechaHoy();
@@ -6964,7 +6954,7 @@ async function mostrarDetalleDia(dia){
     const totalTurno=cierre?(Number(cierre.total_turno)||0):mpTot;
     const fueraMovs=movs.filter(m=>esTransferenciaFueraHorario(m,turnosDelDia(dia)));
     const fueraTotal=fueraMovs.reduce((a,m)=>a+(Number(m.monto)||0),0);
-    const fueraBadge=fueraMovs.length?`<span class="hist-day-marker" tabindex="0" role="img" aria-label="${fueraMovs.length} transferencia${fueraMovs.length===1?'':'s'} fuera de horario por ${histMoney(fueraTotal)}" data-tooltip="${fueraMovs.length} fuera de horario · ${histMoney(fueraTotal)}"><span class="hist-day-emoji hist-day-moon" aria-hidden="true">🌙</span></span>`:'';
+    const fueraBadge=fueraMovs.length?`<span class="hist-day-marker" tabindex="0" role="img" aria-label="${fueraMovs.length} transferencia${fueraMovs.length===1?'':'s'} fuera de horario por ${histMoney(fueraTotal)}" data-tooltip="${fueraMovs.length} fuera de horario · ${histMoney(fueraTotal)}"><span class="hist-day-emoji hist-day-moon" aria-hidden="true">${emojiAnim('luna')}</span></span>`:'';
     const cardId='hist-dia-'+t.nombre.replace(/\s/g,'');
     let cierreHTML='';
     const btnEditarCierre=`<button class="hist-btn-cierre-manual" data-dia="${dia}" data-turno="${t.nombre}" style="margin-top:10px;padding:7px 12px;background:rgba(240,184,96,.13);color:#F0B860;border:1px solid rgba(240,184,96,.28);border-radius:8px;font-weight:600;font-size:11.5px;cursor:pointer">Editar cierre manual</button>`;
