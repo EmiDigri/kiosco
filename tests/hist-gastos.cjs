@@ -3,6 +3,50 @@ const assert = require('node:assert/strict');
 const C = require('../cierre-cuentas.js');
 const outgoing = (id, monto, extra = {}) => ({pago_id:id, monto, es_enviada:true, status:'approved', ...extra});
 
+test('confirmed supplier names also apply to old expenses, with exact normalized matching', () => {
+  for (const name of ['Pago Producto de Barracas Logistica', 'Pago de BARRACAS LOGÍSTICA', 'Levite']) {
+    assert.equal(C.conceptoGasto(name), 'Levité');
+  }
+  assert.equal(C.conceptoGasto('TODOIMPRESORAS 10'), 'Fotocopiadora');
+  assert.equal(C.conceptoGasto('pablo casas'), 'Todo Dulce');
+  assert.equal(C.proveedorGasto('Barracas Logistica Nueva'), 'Barracas Logistica Nueva');
+  assert.equal(C.proveedorGasto('Pago Producto de Proveedor Inventado'), 'Pago Producto de Proveedor Inventado');
+});
+
+test('supplier aliases reconcile one to one on the same day and preserve stored names', () => {
+  const gastos = [
+    {uid:'a', fecha:'2026-10-01', nombre:'Levite', monto:10000},
+    {uid:'b', fecha:'2026-10-02', nombre:'Levite', monto:10000},
+  ];
+  const pagos = [outgoing('mp', 10500, {fecha:'2026-10-01', nombre:'Pago Producto de Barracas Logistica'})];
+  const before = JSON.stringify({gastos, pagos});
+  const result = C.conciliarMes(gastos, pagos);
+  assert.equal(result.salidas[0].gasto.uid, 'a');
+  assert.deepEqual(result.efectivo.map(g=>g.uid), ['b']);
+  assert.equal(result.salidas[0].monto, 10500);
+  assert.equal(JSON.stringify({gastos, pagos}), before);
+});
+
+test('monthly labels unify aliases and photocopy supplies count as variable costs', () => {
+  const fs = require('node:fs'), path = require('node:path'), vm = require('node:vm');
+  const html = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8');
+  const start = html.indexOf('const MET_FIJOS='), end = html.indexOf('// ECharts se carga', start);
+  assert(start >= 0 && end > start);
+  const ctx = {CierreCuentas:C};
+  vm.runInNewContext(html.slice(start, end) + ';this.api={metTipoGasto,metTipoSalidaMp,metLabelSalida,metLabel,provLogoHtml};', ctx);
+  const api = ctx.api;
+  assert.equal(api.metTipoGasto('Fotocopiadora'), 'variable');
+  assert.equal(api.metTipoGasto('Todoimpresoras 10'), 'variable');
+  assert.equal(api.metTipoSalidaMp('TODOIMPRESORAS 10'), 'variable');
+  assert.equal(api.metLabelSalida('Todoimpresoras 10'), 'Insumos fotocopiadora');
+  assert.equal(api.metLabelSalida('Pago Producto de Barracas Logistica'), api.metLabel('Levite'));
+  assert.equal(api.metLabelSalida('Pablo Casas'), api.metLabel('Todo Dulce'));
+  assert.equal(api.metTipoSalidaMp('Pago Edenor'), 'fijo');
+  assert.equal(api.metTipoSalidaMp('Pago Lector De Codigo'), 'inversion');
+  assert(api.provLogoHtml(api.metLabelSalida('Pablo Casas')).includes('tododulce.png'));
+  assert(api.provLogoHtml(api.metLabelSalida('Pago Producto de Barracas Logistica')).includes('levite.png'));
+});
+
 test('daily expenses combine cash and MP and count a notebook/MP match only once', () => {
   const payment = outgoing('arcor', 254403, {nombre:'Arcor SA'});
   const result = C.resumenGastosDia([

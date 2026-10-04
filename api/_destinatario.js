@@ -1,3 +1,5 @@
+import CierreCuentas from '../cierre-cuentas.js';
+
 // A quién se le transfirió. Mercado Pago no manda el nombre del que recibe una transferencia
 // enviada (money_transfer / PSP_TRANSFER): solo su número de cuenta (collector.id). Pero si se
 // le pregunta por ese número con la clave del kiosco (GET /users/{id}), devuelve el apodo de
@@ -37,6 +39,8 @@ export async function nombreDestinatario(pago, { token, ownerId, cache = new Map
 // Nombre con el que se guarda una salida: los pagos de servicio/producto muestran su
 // descripción ("Pago Edenor"); las transferencias, a quién fueron; si no se sabe, lo de siempre.
 export async function nombreSalida(pago, opciones) {
-  if (pago?.operation_type === 'regular_payment' && pago.description) return `Pago ${pago.description}`;
-  return (await nombreDestinatario(pago, opciones)) || 'Transferencia enviada';
+  const nombre = pago?.operation_type === 'regular_payment' && pago.description
+    ? `Pago ${pago.description}`
+    : (await nombreDestinatario(pago, opciones)) || 'Transferencia enviada';
+  return CierreCuentas.proveedorGasto(nombre);
 }

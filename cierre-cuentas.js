@@ -52,8 +52,21 @@
     return turnos(dia).every(t => (data?.cierres || []).some(c => c.turno === t && monto(c.total_turno) !== null));
   }
   const nombre = text => String(text || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
-  function conceptoGasto(value) {
+  const PROVEEDORES_MP = new Map([
+    ['barracas logistica', 'Levité'],
+    ['levite', 'Levité'],
+    ['todoimpresoras 10', 'Fotocopiadora'],
+    ['fotocopiadora', 'Fotocopiadora'],
+    ['pablo casas', 'Todo Dulce'],
+    ['todo dulce', 'Todo Dulce'],
+  ]);
+  function proveedorGasto(value) {
     const text = String(value || '').trim();
+    const concepto = text.replace(/^pago\s+(?:producto\s+de\s+|de\s+)?/i, '');
+    return PROVEEDORES_MP.get(nombre(concepto)) || text;
+  }
+  function conceptoGasto(value) {
+    const text = proveedorGasto(value);
     if (/^pago\s+(?:de|producto\s+de)$/i.test(text) || /^pago\s+f[a\u00e1]cil(?:\s|$)/i.test(text)) return text;
     return text.replace(/^pago\s+(?:producto\s+de\s+|de\s+)?/i, '') || text;
   }
@@ -74,7 +87,7 @@
   // Palabras que no identifican a un proveedor ("Pago Producto de Coca-Cola FEMSA de
   // Buenos Aires S.A." tiene que coincidir con "Coca" por "coca", no por "pago").
   const RELLENO = new Set(['pago', 'producto', 'del', 'las', 'los', 'con', 'transferencia', 'enviada', 'sac', 'srl', 'buenos', 'aires', 'varios']);
-  const tokensProveedor = text => nombre(text).split(' ').filter(t => t.length >= 3 && !RELLENO.has(t));
+  const tokensProveedor = text => nombre(proveedorGasto(text)).split(' ').filter(t => t.length >= 3 && !RELLENO.has(t));
   // Empareja 1 a 1 los gastos del cuaderno con las salidas de MP. Un gasto y una salida
   // son el mismo pago si son del MISMO día (en septiembre 2026 los 12 pares reales lo
   // fueron; un día de diferencia no alcanza para asumir que es el mismo pago) y además:
@@ -233,5 +246,5 @@
     }
     return {total, mp, efectivo, once, gastos, resultado:total - gastos, cerrados, esperados, completos, totalCompletos};
   }
-  return {monto, fecha, ingreso, salida, totalCierre, totalDia, completo, turnos, nombre, conceptoGasto, idGastoFoto, emparejarGastos, conciliarGastos, conciliarMes, resumenGastosDia, validarFoto, resumenMes};
+  return {monto, fecha, ingreso, salida, totalCierre, totalDia, completo, turnos, nombre, proveedorGasto, conceptoGasto, idGastoFoto, emparejarGastos, conciliarGastos, conciliarMes, resumenGastosDia, validarFoto, resumenMes};
 });

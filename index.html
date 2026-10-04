@@ -4379,7 +4379,7 @@ body.light .tg-lock{background:rgba(255,255,255,.96)}
 <div class="toast" id="toast"></div>
 
 <script src="./assets/desafios-es.js"></script>
-<script src="./cierre-cuentas.js?v=20260927-conciliacion"></script>
+<script src="./cierre-cuentas.js?v=20261003-proveedores"></script>
 <script defer src="./assets/palabras-validas.js"></script>
 <script>
 const TURNOS_DOMINGO = [
@@ -5433,10 +5433,10 @@ let histRowsGastosMes=[];
 // ── Métricas del negocio (vista propia; abre desde el botón "📊 Métricas") ──────
 // Clasificación proveedor→tipo (armada con digra, sep 2026). Default: mercadería.
 // Cuando entre un proveedor nuevo con nombre raro, cae en "variable" hasta clasificarlo.
-const MET_FIJOS=new Set(['Alquiler','Monotributo','Edenor','Contadora','Telecentro','AYSA','Fumigacion','Fumigación','Fotocopiadora','Mercado Pago']);
+const MET_FIJOS=new Set(['Alquiler','Monotributo','Edenor','Contadora','Telecentro','AYSA','Fumigacion','Fumigación','Mercado Pago']);
 const MET_INVERSION=new Set(['Toldo']);
 const MET_PENDIENTE=new Set(['M.A']);
-function metTipoGasto(nombre){const n=(nombre||'').trim();if(MET_INVERSION.has(n))return'inversion';if(MET_FIJOS.has(n))return'fijo';if(MET_PENDIENTE.has(n))return'pendiente';return'variable';}
+function metTipoGasto(nombre){const n=CierreCuentas.proveedorGasto(nombre);if(MET_INVERSION.has(n))return'inversion';if(MET_FIJOS.has(n))return'fijo';if(MET_PENDIENTE.has(n))return'pendiente';return'variable';}
 // Nombre lindo para cada concepto (el usuario ve "Luz", no "Edenor"); el proveedor real
 // se aclara en el tooltip del gráfico. Sólo para los que no se explican solos.
 const MET_LABEL={Edenor:'Luz',AYSA:'Agua',Telecentro:'Internet',Fotocopiadora:'Insumos fotocopiadora','Mercado Pago':'Comisión MP',Toldo:'Toldo (mejora del local)','M.A':'M.A (sin identificar)'};
@@ -5476,14 +5476,16 @@ function provLogoHtml(nombre){
   return `<span class="prov-logo prov-logo-ini" style="--h:${h}" aria-hidden="true">${ini}</span>`;
 }
 const MET_PROVEEDOR={Edenor:'Edenor',AYSA:'AYSA',Telecentro:'Telecentro'};
-function metLabel(n){n=(n||'').trim();return MET_LABEL[n]||n;}
+function metLabel(n){n=CierreCuentas.proveedorGasto(n);return MET_LABEL[n]||n;}
 // Conciliación con MercadoPago: clasificar/etiquetar una salida de MP por su nombre.
 const metNorm=s=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
-function metTipoSalidaMp(nombre){const n=metNorm(nombre);
+function metTipoSalidaMp(nombre){const proveedor=CierreCuentas.proveedorGasto(nombre);if(MET_FIJOS.has(proveedor))return 'fijo';const n=metNorm(proveedor);
   if(/\b(edenor|telecentro|aysa|arca|afip|agip|rentas|mapfre|seguro|monotributo|impuest|luz|metrogas|gas natural|internet|alquiler)\b/.test(n))return 'fijo';
   if(/\b(lector|toldo|heladera|mostrador|freezer|estanteria|cartel)\b/.test(n))return 'inversion';
   return 'variable';}
 function metLabelSalida(nombre){const n=metNorm(nombre);
+  const proveedor=CierreCuentas.proveedorGasto(nombre);
+  if(proveedor!==String(nombre||'').trim())return metLabel(proveedor);
   if(/edenor/.test(n))return 'Luz (Edenor)';
   if(/telecentro/.test(n))return 'Internet (Telecentro)';
   if(/aysa/.test(n))return 'Agua (AYSA)';
@@ -6282,7 +6284,7 @@ const HIST_EGRESOS_COLORS=['#ba7517','#378add','#1d9e75','#d4537e','#7f77dd','#d
 function histAgruparPorNombre(rows){
   const m=new Map();
   for(const r of rows||[]){
-    const k=(String(r.nombre||'').trim())||'Otro';
+    const k=CierreCuentas.proveedorGasto(r.nombre)||'Otro';
     if(!m.has(k))m.set(k,{nombre:k,total:0,items:[]});
     const g=m.get(k);g.total+=Number(r.monto)||0;g.items.push(r);
   }

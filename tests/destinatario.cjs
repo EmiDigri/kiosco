@@ -58,3 +58,13 @@ test('the same account is asked only once per run', async () => {
   for (let i = 0; i < 3; i++) assert.equal(await nombreSalida(transferencia(77), {token: 't', ownerId: DUENO, cache, pedir: mp.pedir}), 'Persona Inventada');
   assert.equal(mp.pedidos.length, 1);
 });
+
+test('confirmed supplier aliases apply to new transfers and regular payments', async () => {
+  const {nombreSalida} = await cargar();
+  const mp = mpFalso({77: {nickname: 'TODOIMPRESORAS 10'}, 78: {nickname: 'PABLO CASAS'}});
+  const opciones = {token: 't', ownerId: DUENO, pedir: mp.pedir};
+  assert.equal(await nombreSalida(transferencia(77), opciones), 'Fotocopiadora');
+  assert.equal(await nombreSalida(transferencia(78), opciones), 'Todo Dulce');
+  assert.equal(await nombreSalida({operation_type: 'regular_payment', description: 'Producto de Barracas Logistica'}, opciones), 'Levité');
+  assert.equal(mp.pedidos.length, 2);
+});
