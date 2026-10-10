@@ -233,6 +233,18 @@ body.light .iw-tooltip{background:#fff;color:#172033;border-color:#c7d2e0;box-sh
 .iw-calendar-day.is-long-weekend{background:rgba(79,204,190,.13);color:var(--text)}
 .iw-calendar-day.is-holiday{background:var(--accent);color:#fff;box-shadow:0 5px 14px rgba(61,90,254,.24);cursor:help;outline:none}
 .iw-calendar-day.is-holiday:focus-visible{box-shadow:0 0 0 2px var(--text),0 5px 14px rgba(61,90,254,.24)}
+/* Feriados que no son nacionales: violeta si rigen en CABA (en el kiosco es feriado); solo
+   borde ámbar si rigen en otra jurisdicción (en el kiosco es un día normal). */
+.iw-calendar-day.is-holiday.is-local{background:#7c4dff;box-shadow:0 5px 14px rgba(124,77,255,.3)}
+.iw-calendar-day.is-holiday.is-local:focus-visible{box-shadow:0 0 0 2px var(--text),0 5px 14px rgba(124,77,255,.3)}
+.iw-calendar-day.is-holiday-ajeno{color:var(--text);box-shadow:inset 0 0 0 1.5px rgba(246,184,74,.85);cursor:help;outline:none}
+.iw-calendar-day.is-holiday-ajeno small{color:var(--amber)}
+.iw-calendar-day.is-holiday-ajeno:focus-visible{box-shadow:0 0 0 2px var(--text),inset 0 0 0 1.5px rgba(246,184,74,.85)}
+.iw-calendar-summary .iw-calendar-summary-item.is-local,.iw-calendar-summary .iw-calendar-summary-item.is-ajeno{grid-column:1/-1}
+.iw-calendar-summary .iw-calendar-summary-item.is-local .iw-calendar-summary-line{background:#7c4dff}
+.iw-calendar-summary .iw-calendar-summary-item.is-ajeno .iw-calendar-summary-line{background:transparent;box-shadow:inset 0 0 0 1px var(--amber)}
+.iw-calendar-summary-item.is-ajeno .iw-calendar-summary-copy strong{color:var(--text-mid)}
+.iw-calendar-summary-copy strong{overflow:hidden;text-overflow:ellipsis}
 .iw-calendar-day.is-today{z-index:2;isolation:isolate;opacity:1;color:#fff;font-weight:900;background:rgba(124,144,255,.2);box-shadow:inset 0 0 0 1px rgba(181,226,255,.42),0 0 12px rgba(96,165,250,.24)}
 .iw-calendar-day.is-today::before{content:'';position:absolute;inset:-2px;z-index:-1;border:1px solid rgba(165,243,252,.95);border-radius:7px;pointer-events:none;animation:iw-calendar-today-pulse 1.7s cubic-bezier(.22,1,.36,1) infinite}
 .iw-calendar-day.is-today::after{content:'';position:absolute;right:2px;top:2px;width:4px;height:4px;border-radius:50%;background:#fff;box-shadow:0 0 4px 1px #7dd3fc,0 0 9px 3px rgba(167,139,250,.65);pointer-events:none;animation:iw-calendar-today-spark 1.7s ease-in-out infinite}
@@ -8856,6 +8868,31 @@ function iwBuildLongWeekends(holidays){
   flush();
   return ranges;
 }
+// Feriado listo para mostrar. Los "locales" rigen solo en algunas jurisdicciones (ej. visita
+// del Papa: 10/11/2026 en Córdoba y CABA, 11/11 en Provincia): `aplica` dice si rige en CABA,
+// donde está el kiosco. Saca HTML por las dudas (el archivo oficial trae links en el nombre).
+function iwFeriadoNormal(item){
+  const sinHtml=t=>String(t??'').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').replace(/\(\s+/g,'(').replace(/\s+\)/g,')').trim();
+  const local=item?.tipo==='local';
+  return{fecha:item.fecha,tipo:item.tipo||'',nombre:sinHtml(item.nombre)||'Feriado',local,donde:local?sinHtml(item.donde):'',aplica:!local||item.caba===true};
+}
+// "Córdoba y Ciudad Autónoma de Buenos Aires" -> "Córdoba y CABA".
+function iwFeriadoDonde(donde){
+  return String(donde||'').replace(/Ciudad Aut[oó]noma de Buenos Aires/i,'CABA').replace(/Provincia de Buenos Aires/i,'Provincia de Bs. As.')||'algunas jurisdicciones';
+}
+// Cartelito del día en el calendario: FERIADO (nacional), CABA (rige acá) o dónde rige si acá no.
+function iwFeriadoEtiqueta(h){
+  if(!h.local)return'FERIADO';
+  if(h.aplica)return'CABA';
+  return/provincia de buenos aires/i.test(h.donde)?'PROVINCIA':'OTRA ZONA';
+}
+// Ayuda al pasar el mouse o tocar el día: qué es y dónde rige.
+function iwFeriadoAyuda(h){
+  if(!h.local)return`${h.nombre}. Feriado nacional.`;
+  return h.aplica
+    ?`${h.nombre}. Feriado solo en ${iwFeriadoDonde(h.donde)}: en el kiosco es feriado.`
+    :`${h.nombre}. Feriado solo en ${iwFeriadoDonde(h.donde)}: en CABA es un día normal.`;
+}
 async function fetchFeriadosInfo(){
   const hoyStr=fechaHoy();
   const hoy=new Date();
@@ -8875,13 +8912,16 @@ async function fetchFeriadosInfo(){
   }));
   const loaded=yearResults.filter(Boolean);
   let todosFeriados=loaded.flatMap(result=>result.data),loadedYears=loaded.map(result=>result.year);
-  todosFeriados=[...new Map(todosFeriados.map(item=>[item.fecha,item])).values()].sort((a,b)=>a.fecha.localeCompare(b.fecha));
-  const longWeekends=iwBuildLongWeekends(todosFeriados);
-  const futuros=todosFeriados.filter(f=>f.fecha>hoyStr);
+  todosFeriados=[...new Map(todosFeriados.filter(item=>item?.fecha).map(item=>[item.fecha,iwFeriadoNormal(item)])).values()].sort((a,b)=>a.fecha.localeCompare(b.fecha));
+  // "Próximo feriado" y findes largos: solo los que rigen en CABA (nacionales + locales de la
+  // Ciudad). Los de otra jurisdicción se ven en el calendario, marcados aparte.
+  const propios=todosFeriados.filter(f=>f.aplica);
+  const longWeekends=iwBuildLongWeekends(propios);
+  const futuros=propios.filter(f=>f.fecha>hoyStr);
   let feriado=null,feriadoData=null;
   if(futuros.length){
     const f=futuros[0],d=iwDateFromKey(f.fecha);
-    feriado=`${f.nombre} — ${fmtFecha(d)} (en ${diasFalta(d)} día${diasFalta(d)!==1?'s':''})`;
+    feriado=`${iwEscapeHtml(f.nombre)}${f.local?` (solo en ${iwEscapeHtml(iwFeriadoDonde(f.donde))})`:''} — ${fmtFecha(d)} (en ${diasFalta(d)} día${diasFalta(d)!==1?'s':''})`;
     feriadoData={fecha:f.fecha,nombre:f.nombre,tipo:f.tipo||''};
   }
   let fsl=null,fslData=null;
@@ -8932,18 +8972,23 @@ function iwCalendarioMesHtml(year,month,data=iwCalendarData){
     const holiday=outside?null:holidayMap.get(key);
     const longWeekend=outside?null:longWeekends.find(range=>key>=range.startKey&&key<=range.endKey);
     const display=dayNumber<1?previousMonthDays+dayNumber:dayNumber>daysInMonth?dayNumber-daysInMonth:dayNumber;
-    const classes=['iw-calendar-day',outside?'is-outside':'',longWeekend?'is-long-weekend':'',holiday?'is-holiday':'',today?'is-today':''].filter(Boolean).join(' ');
-    const small=holiday?'<small>FERIADO</small>':today?'<small class="is-today-label">HOY</small>':longWeekend&&key===longWeekend.startKey?'<small>INICIO</small>':'';
-    const tooltip=holiday?` tabindex="0" aria-label="${iwEscapeHtml(holiday.nombre)}, ${display} de ${monthName}" data-iw-tooltip="${iwEscapeHtml(holiday.nombre)}"`:'';
+    // Nacional: lleno azul. Local que rige en CABA: lleno violeta. De otra jurisdicción: solo borde.
+    const ajeno=holiday&&!holiday.aplica;
+    const classes=['iw-calendar-day',outside?'is-outside':'',longWeekend?'is-long-weekend':'',holiday?(ajeno?'is-holiday-ajeno':'is-holiday'):'',holiday?.local&&!ajeno?'is-local':'',today?'is-today':''].filter(Boolean).join(' ');
+    const small=holiday?`<small>${iwFeriadoEtiqueta(holiday)}</small>`:today?'<small class="is-today-label">HOY</small>':longWeekend&&key===longWeekend.startKey?'<small>INICIO</small>':'';
+    const ayuda=holiday?iwEscapeHtml(iwFeriadoAyuda(holiday)):'';
+    const tooltip=holiday?` tabindex="0" aria-label="${display} de ${monthName}: ${ayuda}" data-iw-tooltip="${ayuda}"`:'';
     cells.push(`<span class="${classes}"${today?' aria-current="date"':''}${tooltip}>${display}${small}</span>`);
   }
   const summary=[
     ...longWeekends.map(range=>`<div class="iw-calendar-summary-item"><span class="iw-calendar-summary-line"></span><span class="iw-calendar-summary-copy"><strong>${iwCalendarRangeLabel(range)}</strong><span>Finde largo</span></span></div>`),
-    ...holidays.map(item=>`<div class="iw-calendar-summary-item is-holiday"><span class="iw-calendar-summary-line"></span><span class="iw-calendar-summary-copy"><strong>${Number(item.fecha.slice(-2))}</strong><span title="${iwEscapeHtml(item.nombre)}">${iwEscapeHtml(iwFeriadoNombreCorto(item.nombre))}</span></span></div>`)
+    ...holidays.map(item=>`<div class="iw-calendar-summary-item is-holiday${item.local?(item.aplica?' is-local':' is-ajeno'):''}"><span class="iw-calendar-summary-line"></span><span class="iw-calendar-summary-copy"><strong>${Number(item.fecha.slice(-2))}${item.local?` · ${item.aplica?'solo':'no en CABA: solo'} ${iwEscapeHtml(iwFeriadoDonde(item.donde))}`:''}</strong><span title="${iwEscapeHtml(iwFeriadoAyuda(item))}">${iwEscapeHtml(iwFeriadoNombreCorto(item.nombre))}</span></span></div>`)
   ];
-  const eventText=holidays.length?`${holidays.length} feriado${holidays.length===1?'':'s'}`:'Sin feriados';
+  // El contador y el "próximo feriado" miran solo los que rigen en CABA.
+  const propiosMes=holidays.filter(item=>item.aplica!==false).length;
+  const eventText=propiosMes?`${propiosMes} feriado${propiosMes===1?'':'s'}`:'Sin feriados';
   const viewingToday=year===todayYear&&month===todayMonth;
-  const nextHoliday=data.holidays.find(item=>item.fecha>=todayKey);
+  const nextHoliday=data.holidays.find(item=>item.aplica!==false&&item.fecha>=todayKey);
   const nextHolidayParts=nextHoliday?.fecha.split('-').map(Number)||[];
   const nextHolidayOutside=nextHoliday&&!(year===nextHolidayParts[0]&&month===nextHolidayParts[1]);
   const jump=viewingToday&&nextHolidayOutside
@@ -8957,7 +9002,7 @@ function iwCalendarioMesHtml(year,month,data=iwCalendarData){
         <div class="iw-calendar-nav-title"><div class="iw-calendar-month">${iwEscapeHtml(monthName)}</div><div class="iw-calendar-year">${year}</div></div>
         <button class="iw-calendar-nav-btn" type="button" data-calendar-step="1" aria-label="Mes siguiente" title="Mes siguiente"${atMax?' disabled':''}>›</button>
       </div>
-      <div class="iw-calendar-head-actions"><div class="iw-calendar-status${holidays.length?'':' is-empty'}">${eventText}</div>${jump?`<button class="iw-calendar-jump" type="button" data-calendar-target-year="${jump.year}" data-calendar-target-month="${jump.month}" title="${iwEscapeHtml(jump.title)}" aria-label="${iwEscapeHtml(jump.title)}">${jump.label}</button>`:''}</div>
+      <div class="iw-calendar-head-actions"><div class="iw-calendar-status${propiosMes?'':' is-empty'}">${eventText}</div>${jump?`<button class="iw-calendar-jump" type="button" data-calendar-target-year="${jump.year}" data-calendar-target-month="${jump.month}" title="${iwEscapeHtml(jump.title)}" aria-label="${iwEscapeHtml(jump.title)}">${jump.label}</button>`:''}</div>
     </div>
     <div class="iw-calendar-weekdays" aria-hidden="true"><span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
     <div class="iw-calendar-grid" role="grid" aria-label="Calendario de ${iwEscapeHtml(monthName)} de ${year}; ${eventText}">${cells.join('')}</div>

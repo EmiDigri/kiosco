@@ -4,7 +4,8 @@
 // Solo nacionales: nada provincial, municipal ni religioso opcional (pedido de digra).
 // El guion bajo del nombre hace que Vercel no lo publique como endpoint.
 export default [
-  // Visita del papa León XIV (8 al 11/11/2026): el Gobierno anunció el 22-23/9/2026 que el
-  // lunes 9 es feriado nacional. (El 10 y el 11 son solo CABA, Provincia y Córdoba: no van.)
-  { fecha: '2026-11-09', tipo: 'inamovible', nombre: 'Visita del papa León XIV' },
+  // (vacío) La visita del papa León XIV (9/11/2026) estuvo acá hasta que la publicaron
+  // ArgentinaDatos y el archivo oficial. El 10 y el 11/11 no son nacionales: llegan del
+  // archivo oficial como feriados "locales" (CABA y Córdoba / Provincia de Buenos Aires).
+  // Formato: { fecha: 'AAAA-MM-DD', tipo: 'inamovible', nombre: '...' },
 ];

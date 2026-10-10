@@ -14,6 +14,11 @@ const OFICIAL = {mainEntity:{itemListElement:[
   item('2026-10-12', 'Día de la  Raza', 'trasladable'),
   item('2026-12-24', 'Feriado de prueba de dos días', 'inamovible', '2026-12-25'),
   item('2027-01-01', 'Año nuevo', 'inamovible'),
+  // Visita del Papa, tal cual lo publica el Gobierno: el 9 nacional y el 10 y 11 "especial",
+  // con un link HTML metido en el nombre.
+  item('2026-11-09', 'Visita de Su Santidad el Papa León XIV', 'inamovible'),
+  item('2026-11-10', 'Visita de Su Santidad el Papa León XIV (<a href="/normativa/nacional/norma-430580/texto">feriado en Córdoba y Ciudad Autónoma de Buenos Aires</a>)', 'especial'),
+  item('2026-11-11', 'Visita de Su Santidad el Papa León XIV (<a href="/normativa/nacional/norma-430580/texto">feriado en Provincia de Buenos Aires</a>)', 'especial'),
 ]}};
 const AD = [
   {fecha:'2026-01-01', tipo:'inamovible', nombre:'Año nuevo'},
@@ -54,13 +59,23 @@ async function llamar(year, {ad = AD, oficial = OFICIAL} = {}) {
   return res;
 }
 
-test('endpoint adds the announced national holiday (Pope visit, 9/11/2026) and nothing regional', async () => {
+test('names come clean: no HTML from the official file', async () => {
+  const {limpiarNombre, jurisdiccion} = await cargar();
+  const sucio = 'Visita de Su Santidad el Papa León XIV (<a href="/normativa/nacional/norma-430580/texto">feriado en Provincia de Buenos Aires</a>)';
+  assert.equal(limpiarNombre(sucio), 'Visita de Su Santidad el Papa León XIV (feriado en Provincia de Buenos Aires)');
+  assert.deepEqual(jurisdiccion(limpiarNombre(sucio)), {nombre: 'Visita de Su Santidad el Papa León XIV', donde: 'Provincia de Buenos Aires'});
+  assert.deepEqual(jurisdiccion('Año Nuevo'), {nombre: 'Año Nuevo', donde: ''});
+});
+
+test('Pope visit: the 9th is national; the 10th and 11th are local and say where they apply', async () => {
   const res = await llamar(2026);
   assert.equal(res.code, 200);
-  const fechas = res.body.map(f => f.fecha);
-  assert(fechas.includes('2026-11-09'));
-  assert.equal(res.body.find(f => f.fecha === '2026-11-09').nombre, 'Visita del papa León XIV');
-  assert(!fechas.includes('2026-11-10') && !fechas.includes('2026-11-11'), '10 y 11 son solo CABA/PBA');
+  const fechas = res.body.map(f => f.fecha), dia = f => res.body.find(x => x.fecha === f);
+  assert.deepEqual(dia('2026-11-09'), {fecha: '2026-11-09', tipo: 'inamovible', nombre: 'Visita de Su Santidad el Papa León XIV'});
+  // El 10 rige en CABA (donde está el kiosco); el 11 solo en Provincia.
+  assert.deepEqual(dia('2026-11-10'), {fecha: '2026-11-10', tipo: 'local', nombre: 'Visita de Su Santidad el Papa León XIV', donde: 'Córdoba y Ciudad Autónoma de Buenos Aires', caba: true});
+  assert.deepEqual(dia('2026-11-11'), {fecha: '2026-11-11', tipo: 'local', nombre: 'Visita de Su Santidad el Papa León XIV', donde: 'Provincia de Buenos Aires', caba: false});
+  assert(res.body.every(f => !/[<>]/.test(f.nombre + (f.donde || ''))), 'ningún nombre trae HTML');
   assert(!fechas.includes('2027-01-01'), 'solo el año pedido');
   assert(!fechas.includes('2026-09-12'), 'sin religiosos opcionales');
   assert.match(res.headers['Cache-Control'], /s-maxage=21600/);
