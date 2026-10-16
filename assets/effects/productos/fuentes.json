@@ -1,0 +1,602 @@
+[
+  {
+    "nombre": "Chocolate Tofi Dulce de Leche 28g",
+    "archivo": "chocolate-tofi-dulce-de-leche-28g.webp",
+    "fuente": "https://dulcesur.com/",
+    "imagen": "https://res.cloudinary.com/dss3lnovd/image/upload/v1791294021/dulcesur/etin5fpefxw88qc12xyx.png",
+    "fecha": "2026-10-10",
+    "ancho": 256,
+    "alto": 82,
+    "bytes": 8466
+  },
+  {
+    "nombre": "Galletitas Opera 55g",
+    "archivo": "galletitas-opera-55g.webp",
+    "fuente": "https://dulcesur.com/",
+    "imagen": "https://res.cloudinary.com/dss3lnovd/image/upload/v1775475940/dulcesur/galletitas-opera-55g_webp.webp",
+    "fecha": "2026-10-10",
+    "ancho": 256,
+    "alto": 166,
+    "bytes": 11814
+  },
+  {
+    "nombre": "Galletitas Pitusas Black Chocolate 160g",
+    "archivo": "galletitas-pitusas-black-chocolate-160g.webp",
+    "fuente": "https://dulcesur.com/",
+    "imagen": "https://oepqhdjuujfdlpjjktbs.supabase.co/storage/v1/object/public/productos/2d417dec-2867-41c1-8bb0-8b83ebf3cb79.webp?v=1775564362690",
+    "fecha": "2026-10-10",
+    "ancho": 228,
+    "alto": 256,
+    "bytes": 21352
+  },
+  {
+    "nombre": "Galletitas Merengadas 88g",
+    "archivo": "galletitas-merengadas-88g.webp",
+    "fuente": "https://dulcesur.com/",
+    "imagen": "https://res.cloudinary.com/dss3lnovd/image/upload/v1775475016/dulcesur/galletitas-merengadas-88g_webp.webp",
+    "fecha": "2026-10-10",
+    "ancho": 256,
+    "alto": 81,
+    "bytes": 9434
+  },
+  {
+    "nombre": "Oblea Smack",
+    "archivo": "oblea-smack.webp",
+    "fuente": "https://dulcesur.com/",
+    "imagen": "https://oepqhdjuujfdlpjjktbs.supabase.co/storage/v1/object/public/productos/28d9ea7c-4807-42c4-b933-8ff467864820.webp?v=1776516580866",
+    "fecha": "2026-10-10",
+    "ancho": 256,
+    "alto": 64,
+    "bytes": 9112
+  },
+  {
+    "nombre": "Galletitas Oblea Oblita Frutilla 50g",
+    "archivo": "galletitas-oblea-oblita-frutilla-50g.webp",
+    "fuente": "https://dulcesur.com/",
+    "imagen": "https://oepqhdjuujfdlpjjktbs.supabase.co/storage/v1/object/public/productos/1e738a35-f6ae-436d-beab-eca17bbf7daa.webp?v=1774483200000",
+    "fecha": "2026-10-10",
+    "ancho": 256,
+    "alto": 150,
+    "bytes": 16026
+  },
+  {
+    "nombre": "Galletitas Coronitas Frambuesa 140g",
+    "archivo": "galletitas-coronitas-frambuesa-140g.webp",
+    "fuente": "https://dulcesur.com/",
+    "imagen": "https://oepqhdjuujfdlpjjktbs.supabase.co/storage/v1/object/public/productos/dc2963a8-3c95-4e33-a155-a5ff87e3c692.webp?v=1776049853886",
+    "fecha": "2026-10-10",
+    "ancho": 235,
+    "alto": 256,
+    "bytes": 23368
+  },
+  {
+    "nombre": "Coca-Cola 500 ml",
+    "archivo": "cola-bottle.webp",
+    "fuente": "https://dulcesur.com/",
+    "imagen": "https://res.cloudinary.com/dss3lnovd/image/upload/v1791294024/dulcesur/cpxpxtdmno1j1dhrx5ro.png",
+    "fecha": "2026-10-10",
+    "ancho": 70,
+    "alto": 256,
+    "bytes": 7568
+  },
+  {
+    "nombre": "Oblea Rhodesia 22g",
+    "archivo": "oblea-rhodesia-22g.webp",
+    "fuente": "https://dulcesur.com/",
+    "imagen": "https://res.cloudinary.com/dss3lnovd/image/upload/v1791294076/dulcesur/sajk89bghpecev8ep3pa.png",
+    "fecha": "2026-10-10",
+    "ancho": 256,
+    "alto": 117,
+    "bytes": 11170
+  },
+  {
+    "nombre": "Galletita Tita 19g",
+    "archivo": "galletita-tita-19g.webp",
+    "fuente": "https://dulcesur.com/",
+    "imagen": "https://res.cloudinary.com/dss3lnovd/image/upload/v1777999527/dulcesur/afa6elqx3viydowjy1vn.webp",
+    "fecha": "2026-10-10",
+    "ancho": 256,
+    "alto": 134,
+    "bytes": 8916
+  },
+  {
+    "nombre": "Galletitas Parnor Mini Mantecadas 170g",
+    "archivo": "galletitas-parnor-mini-mantecadas-170g.webp",
+    "fuente": "https://dulcesur.com/",
+    "imagen": "https://oepqhdjuujfdlpjjktbs.supabase.co/storage/v1/object/public/productos/35c06019-fec8-43a0-bd00-bc756d2a5f43.webp?v=1775100785818",
+    "fecha": "2026-10-10",
+    "ancho": 252,
+    "alto": 256,
+    "bytes": 18604
+  },
+  {
+    "nombre": "Galletitas Surtido Bagley 398g",
+    "archivo": "galletitas-surtido-bagley-398g.webp",
+    "fuente": "https://dulcesur.com/",
+    "imagen": "https://oepqhdjuujfdlpjjktbs.supabase.co/storage/v1/object/public/productos/fa3f7eb9-dde0-49b1-8833-d2e89d2265e9.webp?v=1777477128158",
+    "fecha": "2026-10-10",
+    "ancho": 200,
+    "alto": 256,
+    "bytes": 20692
+  },
+  {
+    "nombre": "Galletitas Galleguitas 200g",
+    "archivo": "galletitas-galleguitas-200g.webp",
+    "fuente": "https://dulcesur.com/",
+    "imagen": "https://oepqhdjuujfdlpjjktbs.supabase.co/storage/v1/object/public/productos/011f608a-7851-4b2b-8693-f6abfc9d51bf.webp?v=1777465262758",
+    "fecha": "2026-10-10",
+    "ancho": 200,
+    "alto": 256,
+    "bytes": 16168
+  },
+  {
+    "nombre": "Barra Rocklets 44g",
+    "archivo": "barra-rocklets-44g.webp",
+    "fuente": "https://dulcesur.com/",
+    "imagen": "https://res.cloudinary.com/dss3lnovd/image/upload/v1775582600/dulcesur/yz0ghu0kv2txr5aqsoma.webp",
+    "fecha": "2026-10-10",
+    "ancho": 256,
+    "alto": 68,
+    "bytes": 8990
+  },
+  {
+    "nombre": "Galletitas Kesitas Sobre 75g",
+    "archivo": "galletitas-kesitas-sobre-75g.webp",
+    "fuente": "https://dulcesur.com/",
+    "imagen": "https://res.cloudinary.com/dss3lnovd/image/upload/v1775475887/dulcesur/galletitas-kesitas-sobre-75g_webp.webp",
+    "fecha": "2026-10-10",
+    "ancho": 156,
+    "alto": 182,
+    "bytes": 9626
+  },
+  {
+    "nombre": "Galletitas Pitusas Frutilla 160g",
+    "archivo": "galletitas-pitusas-frutilla-160g.webp",
+    "fuente": "https://dulcesur.com/",
+    "imagen": "https://oepqhdjuujfdlpjjktbs.supabase.co/storage/v1/object/public/productos/f5fd102d-8229-473a-b7f6-661cb2af6caf.webp?v=1775100791006",
+    "fecha": "2026-10-10",
+    "ancho": 252,
+    "alto": 256,
+    "bytes": 22118
+  },
+  {
+    "nombre": "Chocolate Milka Aireado Negro 50g",
+    "archivo": "chocolate-milka-aireado-negro-50g.webp",
+    "fuente": "https://dulcesur.com/",
+    "imagen": "https://res.cloudinary.com/dss3lnovd/image/upload/v1777120858/dulcesur/g7fdfyzrijpnpjuuvx7x.webp",
+    "fecha": "2026-10-10",
+    "ancho": 256,
+    "alto": 95,
+    "bytes": 6852
+  },
+  {
+    "nombre": "Galletitas Sonrisas 108g",
+    "archivo": "galletitas-sonrisas-108g.webp",
+    "fuente": "https://dulcesur.com/",
+    "imagen": "https://res.cloudinary.com/dss3lnovd/image/upload/v1775474834/dulcesur/galletitas-sonrisas-108g_webp.webp",
+    "fecha": "2026-10-10",
+    "ancho": 256,
+    "alto": 99,
+    "bytes": 14184
+  },
+  {
+    "nombre": "Alfajor Aguila Minitorta Clasico Triple",
+    "archivo": "alfajor-aguila-minitorta-clasico-triple.webp",
+    "fuente": "https://dulcesur.com/",
+    "imagen": "https://res.cloudinary.com/dss3lnovd/image/upload/v1775475488/dulcesur/alfajor-aguila-minitorta-clasico-triple_webp.webp",
+    "fecha": "2026-10-10",
+    "ancho": 214,
+    "alto": 256,
+    "bytes": 22640
+  },
+  {
+    "nombre": "Galletitas Mini Alfajor Solitas 160g",
+    "archivo": "galletitas-mini-alfajor-solitas-160g.webp",
+    "fuente": "https://dulcesur.com/",
+    "imagen": "https://oepqhdjuujfdlpjjktbs.supabase.co/storage/v1/object/public/productos/fe0a4828-ede3-47bc-87d2-b5f9741fd50d.webp?v=1777464984210",
+    "fecha": "2026-10-10",
+    "ancho": 194,
+    "alto": 256,
+    "bytes": 18570
+  },
+  {
+    "nombre": "Chocolate Cofler Block 38g",
+    "archivo": "chocolate-cofler-block-38g.webp",
+    "fuente": "https://dulcesur.com/",
+    "imagen": "https://oepqhdjuujfdlpjjktbs.supabase.co/storage/v1/object/public/productos/72af17c5-b216-4a4c-95ae-be3da01ea5eb.webp?v=1775305408655",
+    "fecha": "2026-10-10",
+    "ancho": 256,
+    "alto": 146,
+    "bytes": 11264
+  },
+  {
+    "nombre": "Chocolate Daqui 70g",
+    "archivo": "chocolate-daqui-70g.webp",
+    "fuente": "https://dulcesur.com/",
+    "imagen": "https://oepqhdjuujfdlpjjktbs.supabase.co/storage/v1/object/public/productos/c42d7f94-9318-400f-9995-b89da7bf5631.webp?v=1776779192264",
+    "fecha": "2026-10-10",
+    "ancho": 114,
+    "alto": 256,
+    "bytes": 11032
+  },
+  {
+    "nombre": "Alfajor Chocotorta Triple",
+    "archivo": "alfajor-chocotorta-triple.webp",
+    "fuente": "https://dulcesur.com/",
+    "imagen": "https://oepqhdjuujfdlpjjktbs.supabase.co/storage/v1/object/public/productos/2ad1668a-45f9-4833-b2a9-50d61f2430fb.webp?v=1777472390766",
+    "fecha": "2026-10-10",
+    "ancho": 204,
+    "alto": 256,
+    "bytes": 20948
+  },
+  {
+    "nombre": "Galletitas Pepitos 118g",
+    "archivo": "galletitas-pepitos-118g.webp",
+    "fuente": "https://dulcesur.com/",
+    "imagen": "https://oepqhdjuujfdlpjjktbs.supabase.co/storage/v1/object/public/productos/542471eb-be53-44ef-bfe8-cc5c79865e69.webp?v=1774379341475",
+    "fecha": "2026-10-10",
+    "ancho": 256,
+    "alto": 104,
+    "bytes": 12158
+  },
+  {
+    "nombre": "Alfajor Rasta Negro 70g",
+    "archivo": "alfajor-rasta-negro-70g.webp",
+    "fuente": "https://dulcesur.com/",
+    "imagen": "https://oepqhdjuujfdlpjjktbs.supabase.co/storage/v1/object/public/productos/9976615c-eab3-4f77-8430-1b06f4296347.webp?v=1775520000000",
+    "fecha": "2026-10-10",
+    "ancho": 256,
+    "alto": 191,
+    "bytes": 16362
+  },
+  {
+    "nombre": "Galletitas Cofler Block 124g",
+    "archivo": "galletitas-cofler-block-124g.webp",
+    "fuente": "https://dulcesur.com/",
+    "imagen": "https://oepqhdjuujfdlpjjktbs.supabase.co/storage/v1/object/public/productos/011e1e9a-e0a6-4faa-9344-2be324782176.webp?v=1777476429248",
+    "fecha": "2026-10-10",
+    "ancho": 256,
+    "alto": 107,
+    "bytes": 10728
+  },
+  {
+    "nombre": "Galletitas Mini Oreo 50g",
+    "archivo": "galletitas-mini-oreo-50g.webp",
+    "fuente": "https://dulcesur.com/",
+    "imagen": "https://oepqhdjuujfdlpjjktbs.supabase.co/storage/v1/object/public/productos/29520d8b-4a92-460b-9ca1-336ce6e84ee5.webp?v=1774828800000",
+    "fecha": "2026-10-10",
+    "ancho": 194,
+    "alto": 256,
+    "bytes": 17824
+  },
+  {
+    "nombre": "Alfajor Bon o Bon Simple Chocolate 40g",
+    "archivo": "alfajor-bon-o-bon-simple-chocolate-40g.webp",
+    "fuente": "https://dulcesur.com/",
+    "imagen": "https://oepqhdjuujfdlpjjktbs.supabase.co/storage/v1/object/public/productos/eb11c557-4823-47b2-b7ad-be507ef55485.webp?v=1777472423907",
+    "fecha": "2026-10-10",
+    "ancho": 209,
+    "alto": 256,
+    "bytes": 14596
+  },
+  {
+    "nombre": "Galletitas Oreo 118g",
+    "archivo": "galletitas-oreo-118g.webp",
+    "fuente": "https://dulcesur.com/",
+    "imagen": "https://oepqhdjuujfdlpjjktbs.supabase.co/storage/v1/object/public/productos/b77a8d1a-00f4-468b-835c-0c14053915a7.webp?v=1774872809137",
+    "fecha": "2026-10-10",
+    "ancho": 256,
+    "alto": 79,
+    "bytes": 8518
+  },
+  {
+    "nombre": "Galletitas Amor 108g",
+    "archivo": "galletitas-amor-108g.webp",
+    "fuente": "https://dulcesur.com/",
+    "imagen": "https://res.cloudinary.com/dss3lnovd/image/upload/v1791633676/dulcesur/a6uxvqirmohdta9nzwwv.jpg",
+    "fecha": "2026-10-10",
+    "ancho": 256,
+    "alto": 119,
+    "bytes": 9282
+  },
+  {
+    "nombre": "Galletitas Rumba 108g",
+    "archivo": "galletitas-rumba-108g.webp",
+    "fuente": "https://dulcesur.com/",
+    "imagen": "https://res.cloudinary.com/dss3lnovd/image/upload/v1775475058/dulcesur/galletitas-rumba-108g_webp.webp",
+    "fecha": "2026-10-10",
+    "ancho": 256,
+    "alto": 128,
+    "bytes": 10204
+  },
+  {
+    "nombre": "Galletitas Don Satur Salado 200g",
+    "archivo": "galletitas-don-satur-salado-200g.webp",
+    "fuente": "https://dulcesur.com/",
+    "imagen": "https://oepqhdjuujfdlpjjktbs.supabase.co/storage/v1/object/public/productos/830f5b6a-cb29-4a0b-bac8-1090e4d4e10d.webp?v=1777560215982",
+    "fecha": "2026-10-10",
+    "ancho": 256,
+    "alto": 235,
+    "bytes": 22596
+  },
+  {
+    "nombre": "Alfajor Bon o Bon Triple",
+    "archivo": "alfajor-bon-o-bon-triple.webp",
+    "fuente": "https://dulcesur.com/",
+    "imagen": "https://oepqhdjuujfdlpjjktbs.supabase.co/storage/v1/object/public/productos/82708e62-900a-4cb0-b4b4-a813b91ad586.webp?v=1777472389961",
+    "fecha": "2026-10-10",
+    "ancho": 213,
+    "alto": 256,
+    "bytes": 15740
+  },
+  {
+    "nombre": "Alfajor Cofler Block Triple",
+    "archivo": "alfajor-cofler-block-triple.webp",
+    "fuente": "https://dulcesur.com/",
+    "imagen": "https://oepqhdjuujfdlpjjktbs.supabase.co/storage/v1/object/public/productos/4ee8f9db-85a2-4708-8ccc-8a7933ef8bf1.webp?v=1777472391547",
+    "fecha": "2026-10-10",
+    "ancho": 213,
+    "alto": 256,
+    "bytes": 17126
+  },
+  {
+    "nombre": "Galletitas Rex Sobre 75g",
+    "archivo": "galletitas-rex-sobre-75g.webp",
+    "fuente": "https://dulcesur.com/",
+    "imagen": "https://oepqhdjuujfdlpjjktbs.supabase.co/storage/v1/object/public/productos/b9cfd68c-2b24-4b90-acb6-07a700d305fa.webp?v=1777476923758",
+    "fecha": "2026-10-10",
+    "ancho": 188,
+    "alto": 256,
+    "bytes": 16264
+  },
+  {
+    "nombre": "Alfajor Jorgelin Triple Negro",
+    "archivo": "alfajor-jorgelin-triple-negro.webp",
+    "fuente": "https://dulcesur.com/",
+    "imagen": "https://res.cloudinary.com/dss3lnovd/image/upload/v1775475080/dulcesur/alfajor-jorgelin-triple-negro_webp.webp",
+    "fecha": "2026-10-10",
+    "ancho": 208,
+    "alto": 256,
+    "bytes": 22106
+  },
+  {
+    "nombre": "Galletitas Chocolinas 170g",
+    "archivo": "galletitas-chocolinas-170g.webp",
+    "fuente": "https://dulcesur.com/",
+    "imagen": "https://res.cloudinary.com/dss3lnovd/image/upload/v1775474947/dulcesur/galletitas-chocolinas-170g_webp.webp",
+    "fecha": "2026-10-10",
+    "ancho": 256,
+    "alto": 86,
+    "bytes": 9566
+  },
+  {
+    "nombre": "Chocolate Misky Negro 50g",
+    "archivo": "chocolate-misky-negro-50g.webp",
+    "fuente": "https://dulcesur.com/",
+    "imagen": "https://oepqhdjuujfdlpjjktbs.supabase.co/storage/v1/object/public/productos/006b0a74-f6ff-4308-9f1a-621c9dd036e0.webp?v=1777476003717",
+    "fecha": "2026-10-10",
+    "ancho": 256,
+    "alto": 93,
+    "bytes": 12180
+  },
+  {
+    "nombre": "Oblea Bon o Bon Leche",
+    "archivo": "oblea-bon-o-bon-leche.webp",
+    "fuente": "https://arcorencasa.com/producto/oblea-bon-o-bon-leche-4/",
+    "imagen": "https://arcorencasa.com/wp-content/uploads/2024/10/20241008-3465-300x300.webp",
+    "fecha": "2026-10-10",
+    "ancho": 57,
+    "alto": 256,
+    "bytes": 5600
+  },
+  {
+    "nombre": "Oblea Bon o Bon Blanco",
+    "archivo": "oblea-bon-o-bon-blanco.webp",
+    "fuente": "https://arcorencasa.com/producto/oblea-bon-o-bon-blanco-4/",
+    "imagen": "https://arcorencasa.com/wp-content/uploads/2024/10/20241008-3466-300x300.webp",
+    "fecha": "2026-10-10",
+    "ancho": 57,
+    "alto": 256,
+    "bytes": 5560
+  },
+  {
+    "nombre": "Bon o Bon Supreme sabor a Avellanas",
+    "archivo": "bon-o-bon-supreme-sabor-a-avellanas.webp",
+    "fuente": "https://arcorencasa.com/producto/bon-o-bon-supreme-sabor-a-avellanas-2/",
+    "imagen": "https://arcorencasa.com/wp-content/uploads/2026/04/20260406-15393-300x300.webp",
+    "fecha": "2026-10-10",
+    "ancho": 256,
+    "alto": 108,
+    "bytes": 10554
+  },
+  {
+    "nombre": "Galletitas Formis sabor Frutilla",
+    "archivo": "galletitas-formis-sabor-frutilla.webp",
+    "fuente": "https://arcorencasa.com/producto/galletitas-formis-sabor-frutilla-6/",
+    "imagen": "https://arcorencasa.com/wp-content/uploads/2026/07/20260708-15343-300x300.webp",
+    "fecha": "2026-10-10",
+    "ancho": 256,
+    "alto": 55,
+    "bytes": 5092
+  },
+  {
+    "nombre": "Galletitas Cofler Tortitas Black",
+    "archivo": "galletitas-cofler-tortitas-black.webp",
+    "fuente": "https://arcorencasa.com/producto/galletitas-cofler-tortitas-black/",
+    "imagen": "https://arcorencasa.com/wp-content/uploads/2026/06/galletitas-cofler-tortitas-black-300x300.webp",
+    "fecha": "2026-10-10",
+    "ancho": 256,
+    "alto": 61,
+    "bytes": 6398
+  },
+  {
+    "nombre": "Galletitas Formis Black",
+    "archivo": "galletitas-formis-black.webp",
+    "fuente": "https://arcorencasa.com/producto/galletitas-formis-black/",
+    "imagen": "https://arcorencasa.com/wp-content/uploads/2026/06/galletitas-formis-black-300x300.webp",
+    "fecha": "2026-10-10",
+    "ancho": 256,
+    "alto": 55,
+    "bytes": 5136
+  },
+  {
+    "nombre": "Flynn Paff Tutti Frutti",
+    "archivo": "caramelo-flynn-paff-tutti-frutti.webp",
+    "fuente": "https://www.masonline.com.ar/caramelo-flynn-paff-sabor-tutti-frutti-8-g/p",
+    "imagen": "https://masonlineprod.vtexassets.com/arquivos/ids/334789-800-auto?aspect=true&height=auto&v=638627241750870000&width=800",
+    "fecha": "2026-10-10",
+    "ancho": 256,
+    "alto": 134,
+    "bytes": 13026
+  },
+  {
+    "nombre": "Flynn Paff Frutilla",
+    "archivo": "caramelo-flynn-paff-frutilla.webp",
+    "fuente": "https://www.angelitagolosinas.com.ar/grupo/mes-de-la-madre-georgalos/Caramelo_Flynn_Paff_Frutilla_X70U_Cod_518_-518.shtml",
+    "imagen": "https://www.angelitagolosinas.com.ar/grupo/mes-de-la-madre-georgalos/Articulo_Foto_Multi/838_0.jpeg",
+    "fecha": "2026-10-10",
+    "ancho": 256,
+    "alto": 134,
+    "bytes": 12070
+  },
+  {
+    "nombre": "Flynn Paff Uva",
+    "archivo": "caramelo-flynn-paff-uva.webp",
+    "fuente": "https://www.mirax.cl/detalles.php?codigo=273663",
+    "imagen": "https://www.mirax.cl/productos/n270001a280000/n273001a274000/n273601a273700/g273663.jpg",
+    "fecha": "2026-10-10",
+    "ancho": 256,
+    "alto": 133,
+    "bytes": 12484
+  },
+  {
+    "nombre": "Palitos de la Selva",
+    "archivo": "caramelo-palitos-de-la-selva.webp",
+    "fuente": "https://www.pampadrugstore.net/es/golosinas/palitos-de-la-selva.html",
+    "imagen": "https://www.pampadrugstore.net/2887/palitos-de-la-selva.jpg",
+    "fecha": "2026-10-10",
+    "ancho": 256,
+    "alto": 181,
+    "bytes": 9820
+  },
+  {
+    "nombre": "Butter Toffees Leche",
+    "archivo": "caramelo-butter-toffees-leche.webp",
+    "fuente": "https://www.chucheriascubanas.com/product-page/butter-toffees-leche",
+    "imagen": "https://static.wixstatic.com/media/abc63f_5c2875f4d852475e80b633f039fd2f1d~mv2.png",
+    "fecha": "2026-10-10",
+    "ancho": 256,
+    "alto": 244,
+    "bytes": 10824
+  },
+  {
+    "nombre": "Butter Toffees Chocolate",
+    "archivo": "caramelo-butter-toffees-chocolate.webp",
+    "fuente": "https://www.milium.com.br/bala-butter-toffee-chocolate-arcor-90g-1055178-7891118027170/p",
+    "imagen": "https://milium.vtexassets.com/arquivos/ids/327013/Bala-Butter-Toffee-Chocolate-Arcor-90g-165449.jpg?v=638997857660900000",
+    "fecha": "2026-10-10",
+    "ancho": 256,
+    "alto": 108,
+    "bytes": 13118
+  },
+  {
+    "nombre": "Flynn Paff Banana",
+    "archivo": "caramelo-flynn-paff-banana.webp",
+    "fuente": "https://angelitagolosinas.com.ar/Caramelo_Lfynn_Paff_Banana_X70u_cod_519_-519.shtml",
+    "imagen": "https://angelitagolosinas.com.ar/Articulo_Foto_Multi/837_0.jpeg",
+    "fecha": "2026-10-10",
+    "ancho": 256,
+    "alto": 132,
+    "bytes": 11918
+  },
+  {
+    "nombre": "Media Hora",
+    "archivo": "caramelo-media-hora.webp",
+    "fuente": "https://www.kako.com.ar/productos/caramelos-duros-media-hora-x-800grs/",
+    "imagen": "https://acdn-us.mitiendanube.com/stores/001/132/452/products/sem-titulo-2020-05-14t133215-2121-f4510c57e28985e99f15894767522872-640-0.webp",
+    "fecha": "2026-10-10",
+    "ancho": 256,
+    "alto": 139,
+    "bytes": 10728
+  },
+  {
+    "nombre": "Bon o Bon Blanco",
+    "archivo": "bonobon-blanco.webp",
+    "fuente": "https://www.arcor.com/ar/alimentacion-productos-porcion-justa",
+    "imagen": "https://www.arcor.com/ar/uploads/product_images/e8166b82e824724c6f3bcfc9b4286a9e.jpg",
+    "fecha": "2026-10-10",
+    "ancho": 256,
+    "alto": 111,
+    "bytes": 9552
+  },
+  {
+    "nombre": "Bon o Bon Chocolate",
+    "archivo": "bonobon-chocolate.webp",
+    "fuente": "https://www.arcor.com/ar/alimentacion-productos-porcion-justa",
+    "imagen": "https://www.arcor.com/ar/uploads/product_images/a6dfa5c8c67a5636d18ba5bc22df4b03.jpg",
+    "fecha": "2026-10-10",
+    "ancho": 256,
+    "alto": 111,
+    "bytes": 11552
+  },
+  {
+    "nombre": "Bon o Bon Aguila",
+    "archivo": "bonobon-aguila.webp",
+    "fuente": "https://www.arcor.com/ar/alimentacion-productos-porcion-justa",
+    "imagen": "https://www.arcor.com/ar/uploads/product_images/f481d6867d3198e3531b269e62db070f.jpg",
+    "fecha": "2026-10-10",
+    "ancho": 256,
+    "alto": 113,
+    "bytes": 10424
+  },
+  {
+    "nombre": "Bon o Bon clasico",
+    "archivo": "bonobon-clasico.webp",
+    "fuente": "https://www.arcor.com/ar/alimentacion-productos-porcion-justa",
+    "imagen": "https://www.arcor.com/ar/uploads/product_images/b973278e4b5429e2babdd24869b3fd14.jpg",
+    "fecha": "2026-10-10",
+    "ancho": 256,
+    "alto": 159,
+    "bytes": 9632
+  },
+  {
+    "nombre": "Kinder Huevo",
+    "archivo": "kinder-huevo.webp",
+    "fuente": "https://www.kinder.com/ar/es/productos/kinder-sorpresa",
+    "imagen": "https://www.kinder.com/ar/sites/kinder_ar/files/2023-05/kinder-huevo-ar_home.png",
+    "fecha": "2026-10-10",
+    "ancho": 190,
+    "alto": 256,
+    "bytes": 15752
+  },
+  {
+    "nombre": "Chupetin Pico Dulce 14g",
+    "archivo": "lollipop-pico-dulce.webp",
+    "fuente": "https://www.masonline.com.ar/chupetin-pico-dulce-14-g/p",
+    "imagen": "https://masonlineprod.vtexassets.com/arquivos/ids/347332-800-auto?aspect=true&height=auto&v=638750788553530000&width=800",
+    "fecha": "2026-10-10",
+    "ancho": 211,
+    "alto": 256,
+    "bytes": 10786
+  },
+  {
+    "nombre": "Jorgito Negro",
+    "archivo": "jorgito-negro.webp",
+    "fuente": "https://www.alfajores-jorgito.com/producto/jorgito-choco-negro",
+    "imagen": "https://www.alfajores-jorgito.com/media/e297dc0305f4c4960931ae170b5fdbcb.webp",
+    "fecha": "2026-10-10",
+    "ancho": 256,
+    "alto": 174,
+    "bytes": 20178
+  },
+  {
+    "nombre": "Jorgito Blanco",
+    "archivo": "jorgito-blanco.webp",
+    "fuente": "https://www.alfajores-jorgito.com/producto/jorgito-blanco",
+    "imagen": "https://www.alfajores-jorgito.com/media/66b9e2b7b9e93bb057e53d49c145f6fb.webp",
+    "fecha": "2026-10-10",
+    "ancho": 256,
+    "alto": 193,
+    "bytes": 34012
+  }
+]
