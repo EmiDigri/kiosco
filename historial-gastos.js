@@ -222,7 +222,8 @@
         ${note || local ? `<p class="hist-gastos-nota">${cmEsc([note, local].filter(Boolean).join(' '))}</p>` : ''}
         ${data.filas.length ? data.filas.map(g => {
           const anotado = g.anotado != null ? ` · anotado ${histMoney(g.anotado)}` : '';
-          const medio = g.medio === 'revisar' ? 'Medio de pago por revisar' : g.medio === 'mp' ? 'MP' + anotado : data.local ? 'Medio de pago sin verificar' : 'Efectivo';
+          const medio = g.medio === 'revisar' ? 'Medio de pago por revisar' : g.medio === 'mp' ? 'MP' + anotado
+            : g.medio === 'mixto' ? `MP ${histMoney(g.mp)} + efectivo ${histMoney(g.resto)}` : data.local ? 'Medio de pago sin verificar' : 'Efectivo';
           const nombreGasto = CierreCuentas.conceptoGasto(g.nombre || 'Transferencia enviada');
           const logo = typeof provLogoHtml === 'function' ? provLogoHtml(nombreGasto) : '';
           const concepto = `<span>${logo}${cmEsc(nombreGasto)}${g.caja ? ' · ' + cmEsc(g.caja) : ''}<small class="hist-gasto-meta">${medio}</small></span>`;

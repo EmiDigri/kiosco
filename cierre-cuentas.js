@@ -87,7 +87,14 @@
   // Palabras que no identifican a un proveedor ("Pago Producto de Coca-Cola FEMSA de
   // Buenos Aires S.A." tiene que coincidir con "Coca" por "coca", no por "pago").
   const RELLENO = new Set(['pago', 'producto', 'del', 'las', 'los', 'con', 'transferencia', 'enviada', 'sac', 'srl', 'buenos', 'aires', 'varios']);
-  const tokensProveedor = text => nombre(proveedorGasto(text)).split(' ').filter(t => t.length >= 3 && !RELLENO.has(t));
+  // Nombres que son el mismo pago SOLO para emparejar (no cambian cómo se muestran): el
+  // cuaderno anota "Monotributo(s)" y por MP sale "ARCA" (17/10/2026: anotado 159.104 = los
+  // dos monotributos, uno pagado por MP a ARCA 79.552,18). "Arca Vep" y otros pagos a ARCA
+  // no entran: no son necesariamente el monotributo.
+  const MISMO_PAGO = new Map([['arca', 'monotributo'], ['monotributos', 'monotributo']]);
+  // Sin el "Pago"/"Pago de" del principio: MP guarda "Pago ARCA" y el día lo muestra "ARCA".
+  const claveProveedor = text => { const n = nombre(conceptoGasto(text)); return MISMO_PAGO.get(n) || n; };
+  const tokensProveedor = text => claveProveedor(text).split(' ').filter(t => t.length >= 3 && !RELLENO.has(t));
   // Empareja 1 a 1 los gastos del cuaderno con las salidas de MP. Un gasto y una salida
   // son el mismo pago si son del MISMO día (en septiembre 2026 los 12 pares reales lo
   // fueron; un día de diferencia no alcanza para asumir que es el mismo pago) y además:
@@ -127,8 +134,25 @@
       const empate = par.puntos === ganador.puntos && par.dif === ganador.dif;
       if (empate) { ambiguos.add(par.gi); ambiguos.add(ganador.gi); }
     });
+    // Pago en partes: el cuaderno anota el total en un renglón y una parte salió por MP
+    // (monotributo 17/10: anotado 159.104, por MP 79.552,18). Una salida que quedó sin pareja
+    // cubre parte de un gasto sin pareja del MISMO día y del MISMO proveedor (nombre exacto o
+    // equivalente, nunca una palabra suelta) si no supera lo que le falta cubrir (con $1 de
+    // margen por los centavos: los dos monotributos por MP suman 159.104,36); el resto queda
+    // en efectivo. Así lo anotado se cuenta una sola vez.
+    const parciales = new Map();
+    const resto = gi => Math.abs(Number(gastos[gi].monto)) - (parciales.get(gi) || []).reduce((s, p) => s + Math.abs(Number(p.monto)), 0);
+    salidas.forEach((p, si) => {
+      if (deSalida.has(si)) return;
+      const b = Math.abs(Number(p.monto)), dp = String(p.fecha || '').slice(0, 10), kp = claveProveedor(p.nombre);
+      if (!(b > 0) || !kp) return;
+      const gi = gastos.findIndex((g, i) => !deGasto.has(i) && !ambiguos.has(i) && Math.abs(Number(g.monto)) > 0
+        && (!dp || String(g.fecha || '').slice(0, 10) === dp) && claveProveedor(g.nombre) === kp && b <= resto(i) + 1);
+      if (gi >= 0) parciales.set(gi, (parciales.get(gi) || []).concat(p));
+    });
     return gastos.map((g, gi) => {
-      const par = deGasto.get(gi);
+      const par = deGasto.get(gi), partes = parciales.get(gi);
+      if (partes) return {pago:null, ambiguo:false, parciales:partes, resto:Math.round(resto(gi) * 100) / 100};
       return par ? {pago:salidas[par.si], ambiguo:ambiguos.has(gi)} : {pago:null, ambiguo:ambiguos.has(gi)};
     });
   }
@@ -143,6 +167,7 @@
     const salidas = unicos((pagos || []).filter(salida), p => p.pago_id ?? p.id);
     return emparejarGastos(gastos, salidas).map(par => {
       if (par.ambiguo) return {medio:'revisar', texto:'MP'};
+      if (par.parciales) return {medio:'mixto', texto:'MP + efectivo', pagos:par.parciales, resto:par.resto};
       if (!par.pago) return {medio:'efectivo', texto:'Efectivo'};
       return {medio:'mp', texto:'MP', pago:par.pago};
     });
@@ -162,7 +187,12 @@
         const dia = String(registrados[i].fecha || '').slice(0, 10);
         if (/^\d{4}-\d{2}-\d{2}$/.test(dia)) diasPorRevisar.add(dia);
       }
-      if (par.pago) cubre.set(par.pago, registrados[i]);
+      if (par.parciales) {
+        // Pago en partes: cada salida de MP lleva el nombre del cuaderno y lo que falta
+        // queda como efectivo (lo anotado se cuenta una sola vez).
+        par.parciales.forEach(p => cubre.set(p, registrados[i]));
+        if (par.resto >= 1) efectivo.push({...registrados[i], monto:par.resto, parcial:true});
+      } else if (par.pago) cubre.set(par.pago, registrados[i]);
       else efectivo.push(registrados[i]);
     });
     return {
@@ -183,6 +213,12 @@
       const medio = medios[i];
       if (medio.medio === 'revisar' || (medio.pago && usados.has(medio.pago))) porRevisar = true;
       if (medio.pago) usados.add(medio.pago);
+      if (medio.pagos) {
+        // Pago en partes: se cuenta lo anotado (MP + efectivo), y esas salidas no se suman aparte.
+        medio.pagos.forEach(p => usados.add(p));
+        const mp = medio.pagos.reduce((s, p) => s + Math.round(Math.abs(Number(p.monto)) * 100), 0) / 100;
+        return {...g, monto:monto(g.monto), medio:'mixto', origen:'cuaderno', mp, resto:medio.resto};
+      }
       const fila = {...g, monto:monto(g.monto), medio:medio.medio, origen:'cuaderno'};
       // Si por MP salió otro importe (error al anotar: Edenor 418.409 anotado, 481.408,07
       // pagado) cuenta lo que salió de verdad, igual que Métricas, y se guarda lo anotado

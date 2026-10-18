@@ -190,3 +190,71 @@ test('month total counts each paid expense once (cash not covered + every MP pay
   assert.equal(Math.round(total*100)/100,1046035.18);
   assert.equal(mes.salidas.find(s=>s.pago_id==='t').gasto.nombre,'Pepsico');
 });
+
+// Sábado 17/10/2026, datos reales del día: el cuaderno anota los dos monotributos juntos
+// (159.104) y uno de ellos salió por MP a ARCA (79.552,18).
+const DIA_17 = '2026-10-17';
+const gastos17 = [
+  {uid:'m', fecha:DIA_17, nombre:'Monotributo', monto:159104},
+  {uid:'td', fecha:DIA_17, nombre:'Todo dulce', monto:124000},
+  {uid:'b1', fecha:DIA_17, nombre:'Bebidas', monto:13200},
+  {uid:'b2', fecha:DIA_17, nombre:'Bebidas', monto:83700},
+  {uid:'o', fecha:DIA_17, nombre:'Once', monto:47000},
+  {uid:'k', fecha:DIA_17, nombre:'Kiosco varios', monto:80000},
+];
+const salidas17 = [
+  outgoing('lev', 26641.18, {fecha:DIA_17, nombre:'Levité'}),
+  outgoing('arca', 79552.18, {fecha:DIA_17, nombre:'Pago ARCA'}),   // así se guarda; el día muestra ARCA
+  outgoing('tel', 123376.5, {fecha:DIA_17, nombre:'Telecentro'}),
+];
+
+test('monotributo paid partly by MP (ARCA) counts once: the written total, not written + MP', () => {
+  const dia = C.resumenGastosDia(gastos17, salidas17);
+  assert.equal(dia.total, 657021.68);   // antes 736.573,86: contaba 79.552,18 de más
+  assert.equal(dia.porRevisar, false);
+  const mono = dia.filas.find(f => f.uid === 'm');
+  assert.deepEqual([mono.medio, mono.monto, mono.mp, mono.resto], ['mixto', 159104, 79552.18, 79551.82]);
+  assert(!dia.filas.some(f => f.origen === 'mp' && f.pago_id === 'arca'), 'ARCA no se suma aparte');
+  assert.deepEqual(dia.filas.filter(f => f.origen === 'mp').map(f => f.pago_id), ['lev', 'tel']);
+  // Métricas / Egresos del mes: misma cuenta, y la salida de ARCA toma el nombre del cuaderno.
+  const mes = C.conciliarMes(gastos17, salidas17);
+  const total = [...mes.efectivo, ...mes.salidas].reduce((s, x) => s + Math.round(x.monto * 100), 0) / 100;
+  assert.equal(total, 657021.68);
+  assert.equal(mes.salidas.find(s => s.pago_id === 'arca').gasto.uid, 'm');
+  assert.deepEqual(mes.efectivo.filter(g => g.uid === 'm').map(g => [g.monto, g.parcial]), [[79551.82, true]]);
+  assert.equal(C.conciliarGastos(gastos17, salidas17)[0].texto, 'MP + efectivo');
+  // Lo guardado no se toca.
+  assert.equal(gastos17[0].monto, 159104);
+});
+
+test('both monotributos by MP cover the whole line despite cents', () => {
+  const pagos = [outgoing('a1', 79552.18, {fecha:DIA_17, nombre:'Pago ARCA'}), outgoing('a2', 79552.18, {fecha:DIA_17, nombre:'ARCA'})];
+  const dia = C.resumenGastosDia([{uid:'m', fecha:DIA_17, nombre:'Monotributos', monto:159104}], pagos);
+  assert.equal(dia.total, 159104);
+  assert.equal(dia.filas.length, 1);
+  assert.equal(dia.filas[0].mp, 159104.36);
+});
+
+test('19/9 already split by hand keeps working (no partial, one MP match)', () => {
+  const gastos = [
+    {uid:'foto', fecha:'2026-09-19', nombre:'Monotributo', monto:79552},
+    {uid:'ajuste', fecha:'2026-09-19', nombre:'Monotributo', monto:79552.18},
+  ];
+  const dia = C.resumenGastosDia(gastos, [outgoing('arca', 79552.18, {fecha:'2026-09-19', nombre:'Pago ARCA'})]);
+  assert.equal(dia.total, 159104.18);
+  assert.deepEqual(dia.filas.map(f => [f.uid, f.medio]), [['foto', 'efectivo'], ['ajuste', 'mp']]);
+});
+
+test('a partial payment needs the same day and the same supplier, never a shared word', () => {
+  const gasto = (nombre, monto, fecha = DIA_17) => ({uid:nombre, fecha, nombre, monto});
+  const casos = [
+    [[gasto('Monotributo', 159104)], [outgoing('v', 79552.18, {fecha:DIA_17, nombre:'Arca Vep'})]],      // otro pago a ARCA
+    [[gasto('Monotributo', 159104, '2026-10-16')], [outgoing('a', 79552.18, {fecha:DIA_17, nombre:'ARCA'})]], // otro día
+    [[gasto('Hub USB', 7000)], [outgoing('u', 3000, {fecha:DIA_17, nombre:'Lector USB'})]],              // palabra suelta
+    [[gasto('Monotributo', 50000)], [outgoing('g', 79552.18, {fecha:DIA_17, nombre:'ARCA'})]],           // MP pagó más de lo anotado
+  ];
+  for (const [gastos, pagos] of casos) {
+    const dia = C.resumenGastosDia(gastos, pagos);
+    assert(!dia.filas.some(f => f.medio === 'mixto'), JSON.stringify(gastos) + ' / ' + JSON.stringify(pagos));
+  }
+});
