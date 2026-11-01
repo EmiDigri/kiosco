@@ -112,13 +112,25 @@ function ultimoReporte(rows, icaoId) {
 
 // ¿Llueve ahora cerca del kiosco? La primera estación (por cercanía) con lluvia o tormenta
 // en su último reporte reciente. Tormenta "en las cercanías" (VCTS) no cuenta: no llueve ahí.
+// El Palomar queda más lejos (11 km) y para el otro lado. Si Aeroparque, la más cercana, tiene un
+// reporte reciente de cielo limpio (CAVOK/NSC/SKC/CLR/NCD), lo de El Palomar es un chaparrón suelto
+// que no llega al kiosco. Caso real 1/11/2026: "-SHRA" en El Palomar y Aeroparque CAVOK decía
+// "Lloviendo ahora" sin una gota en Villa Pueyrredón.
+const reporteReciente = row => {
+  const edad = Date.now() - Date.parse(row?.reportTime || '');
+  return !!row && Number.isFinite(edad) && edad >= -30 * 60 * 1000 && edad <= MAX_LLUVIA_AGE_MS;
+};
+const cieloLimpio = row => /\b(?:CAVOK|NSC|SKC|CLR|NCD)\b/.test(String(row?.rawOb || '').toUpperCase().split(/\s(?:TEMPO|BECMG|NOSIG|RMK)\b/)[0]);
 function lluviaObservada(rows) {
+  const aeroparque = ultimoReporte(rows, 'SABE');
+  const aeroparqueLimpio = reporteReciente(aeroparque) && cieloLimpio(aeroparque);
   for (const estacion of ESTACIONES_LLUVIA) {
     const row = ultimoReporte(rows, estacion.id);
-    const edad = Date.now() - Date.parse(row?.reportTime || '');
-    if (!row || !Number.isFinite(edad) || edad < -30 * 60 * 1000 || edad > MAX_LLUVIA_AGE_MS) continue;
+    if (!reporteReciente(row)) continue;
     const code = metarWeatherCode(row, null);
-    if (code === 95 || code === 61) return { code, station: estacion.nombre, observed_at: String(row.reportTime) };
+    if (code !== 95 && code !== 61) continue;
+    if (estacion.id !== 'SABE' && aeroparqueLimpio) continue;
+    return { code, station: estacion.nombre, observed_at: String(row.reportTime) };
   }
   return null;
 }

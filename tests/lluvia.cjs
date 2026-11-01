@@ -144,6 +144,12 @@ test('raining now: nearest stations to the kiosk (Aeroparque, then El Palomar)',
   assert.equal(aeroparque.code, 95);
   // Tormenta solo "en las cercanías" en las dos: no llueve en ninguna.
   assert.equal(await lluviaAhora([fila('SABE', 'SPECI SABE 271343Z 12015KT 9999 VCTS FEW048CB 15/10 Q1016'), fila('SADP', 'METAR SADP 271400Z 01007KT 9999 VCSH SCT045 15/10 Q1018')]), null);
+  // 1/11/2026: chaparrón en El Palomar con Aeroparque despejado: no llueve en el kiosco.
+  assert.equal(await lluviaAhora([fila('SABE', 'METAR SABE 011500Z 02006KT 310V060 CAVOK 23/18 Q1011 NOSIG', 57), fila('SADP', 'SPECI SADP 011540Z 32005KT 5000 -SHRA NSC 21/19 Q1011 RMK', 17)]), null);
+  // Si el reporte despejado de Aeroparque ya es viejo, El Palomar vuelve a contar.
+  assert.equal((await lluviaAhora([fila('SABE', 'METAR SABE 011300Z 02006KT CAVOK 23/18 Q1011', 120), fila('SADP', 'SPECI SADP 011540Z 32005KT 5000 -SHRA NSC 21/19 Q1011', 17)])).station, 'El Palomar');
+  // Aeroparque solo nublado (sin CAVOK): El Palomar cuenta.
+  assert.equal((await lluviaAhora([fila('SABE', 'METAR SABE 011500Z 02006KT 9999 BKN030 23/18 Q1011', 30), fila('SADP', 'SPECI SADP 011540Z 32005KT 5000 -SHRA BKN030 21/19 Q1011', 17)])).station, 'El Palomar');
   // Reporte de lluvia de hace 2 horas: ya no sirve.
   assert.equal(await lluviaAhora([fila('SABE', 'METAR SABE 271200Z 12015KT 9999 SCT030 15/10 Q1016'), fila('SADP', 'METAR SADP 271200Z 01007KT 7000 -RA OVC045 15/10 Q1018', 120)]), null);
 });
