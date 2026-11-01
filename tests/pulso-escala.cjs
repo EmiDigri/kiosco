@@ -22,6 +22,7 @@ const TURNOS=[{nombre:'Vale',desdeH:7,desdeM:0,hastaH:12,hastaM:0},{nombre:'Ani'
 const visFin=t=>t.hastaH*60+t.hastaM;
 const HIST_MES_LEARN='fixture';
 const cmEsc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+${source.slice(source.indexOf('const GRACIA_FUERA_HORARIO_MIN='), source.indexOf('function esTransferenciaFueraHorario('))}
 ${source.slice(start, end)}
 const fixture=[['07:10',100000],['08:20',50000],['10:05',30000],['10:15',70000],['10:45',1000],['11:10',20000],['11:20',400]].map(([hora,monto],i)=>({fecha:'2026-09-27',hora,monto,nombre:'Prueba '+i}));
 function renderFixture(mode='today',rows=fixture){pulseMode=mode;pulseModeInitialized=true;pulseModeUserChosen=true;pulseRender(rows);}
