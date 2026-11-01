@@ -258,3 +258,18 @@ test('a partial payment needs the same day and the same supplier, never a shared
     assert(!dia.filas.some(f => f.medio === 'mixto'), JSON.stringify(gastos) + ' / ' + JSON.stringify(pagos));
   }
 });
+
+test('the same supplier written with other capitals or accents is shown and grouped as one', () => {
+  C.unificarNombres(['Proveedor Inventado Uno', 'proveedor inventado uno', 'Proveedor inventado uno', 'Proveedor Inventado Uno',
+    'Golosinas Inventadas', 'Golosinas Inventadas', 'Golosínas inventadas', '  ']);
+  for (const variante of ['proveedor inventado uno', 'Proveedor inventado uno', 'PROVEEDOR INVENTADO UNO']) {
+    assert.equal(C.proveedorGasto(variante), 'Proveedor Inventado Uno');
+  }
+  assert.equal(C.proveedorGasto('Golosinas Inventadas'), 'Golosínas inventadas'); // la forma con tilde gana
+  assert.equal(C.conceptoGasto('levite'), 'Levité');                              // los alias confirmados siguen primero
+  assert.equal(C.proveedorGasto('Otro Sin Registrar'), 'Otro Sin Registrar');
+  // Emparejar no cambia: mismo proveedor aunque cambie la mayúscula.
+  const r = C.conciliarMes([{uid:'x', fecha:'2026-10-05', nombre:'proveedor inventado uno', monto:1000}],
+    [outgoing('m', 1000, {fecha:'2026-10-05', nombre:'Proveedor Inventado Uno'})]);
+  assert.equal(r.salidas[0].gasto.uid, 'x');
+});

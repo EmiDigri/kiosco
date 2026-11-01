@@ -4418,7 +4418,7 @@ body.light .tg-lock{background:rgba(255,255,255,.96)}
 <div class="toast" id="toast"></div>
 
 <script src="./assets/desafios-es.js"></script>
-<script src="./cierre-cuentas.js?v=20261018-monotributo"></script>
+<script src="./cierre-cuentas.js?v=20261101-nombres"></script>
 <script defer src="./assets/palabras-validas.js"></script>
 <script>
 const TURNOS_DOMINGO = [
@@ -5479,7 +5479,9 @@ let histRowsGastosMes=[];
 const MET_FIJOS=new Set(['Alquiler','Monotributo','Edenor','Contadora','Telecentro','AYSA','Fumigacion','Fumigación','Mercado Pago']);
 const MET_INVERSION=new Set(['Toldo']);
 const MET_PENDIENTE=new Set(['M.A']);
-function metTipoGasto(nombre){const n=CierreCuentas.proveedorGasto(nombre);if(MET_INVERSION.has(n))return'inversion';if(MET_FIJOS.has(n))return'fijo';if(MET_PENDIENTE.has(n))return'pendiente';return'variable';}
+// Fijos, inversión y etiquetas se buscan sin mirar mayúsculas ni tildes ("aysa" = "AYSA").
+const metEn=(set,n)=>{const k=CierreCuentas.nombre(n);for(const x of set)if(CierreCuentas.nombre(x)===k)return true;return false;};
+function metTipoGasto(nombre){const n=CierreCuentas.proveedorGasto(nombre);if(metEn(MET_INVERSION,n))return'inversion';if(metEn(MET_FIJOS,n))return'fijo';if(metEn(MET_PENDIENTE,n))return'pendiente';return'variable';}
 // Nombre lindo para cada concepto (el usuario ve "Luz", no "Edenor"); el proveedor real
 // se aclara en el tooltip del gráfico. Sólo para los que no se explican solos.
 const MET_LABEL={Edenor:'Luz',AYSA:'Agua',Telecentro:'Internet',Fotocopiadora:'Insumos fotocopiadora','Mercado Pago':'Comisión MP',Toldo:'Toldo (mejora del local)','M.A':'M.A (sin identificar)'};
@@ -5519,16 +5521,16 @@ function provLogoHtml(nombre){
   return `<span class="prov-logo prov-logo-ini" style="--h:${h}" aria-hidden="true">${ini}</span>`;
 }
 const MET_PROVEEDOR={Edenor:'Edenor',AYSA:'AYSA',Telecentro:'Telecentro'};
-function metLabel(n){n=CierreCuentas.proveedorGasto(n);return MET_LABEL[n]||n;}
+function metLabel(n){n=CierreCuentas.proveedorGasto(n);const k=CierreCuentas.nombre(n),e=Object.keys(MET_LABEL).find(x=>CierreCuentas.nombre(x)===k);return e?MET_LABEL[e]:n;}
 // Conciliación con MercadoPago: clasificar/etiquetar una salida de MP por su nombre.
 const metNorm=s=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
-function metTipoSalidaMp(nombre){const proveedor=CierreCuentas.proveedorGasto(nombre);if(MET_FIJOS.has(proveedor))return 'fijo';const n=metNorm(proveedor);
+function metTipoSalidaMp(nombre){const proveedor=CierreCuentas.proveedorGasto(nombre);if(metEn(MET_FIJOS,proveedor))return 'fijo';const n=metNorm(proveedor);
   if(/\b(edenor|telecentro|aysa|arca|afip|agip|rentas|mapfre|seguro|monotributo|impuest|luz|metrogas|gas natural|internet|alquiler)\b/.test(n))return 'fijo';
   if(/\b(lector|toldo|heladera|mostrador|freezer|estanteria|cartel)\b/.test(n))return 'inversion';
   return 'variable';}
 function metLabelSalida(nombre){const n=metNorm(nombre);
   const proveedor=CierreCuentas.proveedorGasto(nombre);
-  if(proveedor!==String(nombre||'').trim())return metLabel(proveedor);
+  if(CierreCuentas.nombre(proveedor)!==CierreCuentas.nombre(nombre))return metLabel(proveedor);
   if(/edenor/.test(n))return 'Luz (Edenor)';
   if(/telecentro/.test(n))return 'Internet (Telecentro)';
   if(/aysa/.test(n))return 'Agua (AYSA)';
@@ -6471,6 +6473,8 @@ async function histCargarMes(){
   // lo derivamos del status real para no sumar rechazados/cancelados al mes.
   pagos.forEach(p=>{if(p.excluido===undefined)p.excluido=!p.es_enviada&&!!p.status&&p.status!=='approved';if(p.devuelta===true||p.devuelta==='true')p.excluido=true;});
   histRowsPagosMes=pagos;histRowsCierresMes=cierres;histRowsGastosMes=gastos;
+  // "Raz cigarrillos" y "Raz Cigarrillos" son el mismo proveedor: un solo nombre en todo el mes.
+  CierreCuentas.unificarNombres?.([...gastos,...pagos.filter(p=>p.es_enviada)].map(x=>x.nombre));
   histGastosFuenteRemota=fuente==='Supabase';
   histResumenMes=histAgruparPorDia(pagos,cierres,gastos);
   renderCalendarioMes();
@@ -6488,6 +6492,7 @@ async function histCargarMes(){
       histRowsPagosMes=histRowsPagosMes.filter(p=>p.fecha!==hoyStr).concat(p2);
       histRowsCierresMes=histRowsCierresMes.filter(c=>c.fecha!==hoyStr).concat(c2);
       histRowsGastosMes=histRowsGastosMes.filter(g=>g.fecha!==hoyStr).concat(g2);
+      CierreCuentas.unificarNombres?.([...g2,...p2.filter(p=>p.es_enviada)].map(x=>x.nombre));
       renderCalendarioMes();
       const cell=document.querySelector(`.hist-day-cell[data-dia="${hoyStr}"]`);
       if(cell){
