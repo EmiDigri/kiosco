@@ -268,6 +268,11 @@ test('the same supplier written with other capitals or accents is shown and grou
   assert.equal(C.proveedorGasto('Golosinas Inventadas'), 'Golosínas inventadas'); // la forma con tilde gana
   assert.equal(C.conceptoGasto('levite'), 'Levité');                              // los alias confirmados siguen primero
   assert.equal(C.proveedorGasto('Otro Sin Registrar'), 'Otro Sin Registrar');
+  // "vs" = "varios" y la marca de caja del final no cambian el proveedor; gana la forma limpia.
+  C.unificarNombres(['Deposito vs', 'Deposito vs', 'Deposito Varios', 'Libreria Inventada c/n', 'Libreria Inventada c/n', 'Libreria Inventada', 'Mayorista Inventado CN']);
+  assert.equal(C.proveedorGasto('Deposito vs'), 'Deposito Varios');
+  assert.equal(C.proveedorGasto('Libreria Inventada c/n'), 'Libreria Inventada');
+  assert.equal(C.proveedorGasto('Mayorista Inventado CN'), 'Mayorista Inventado CN'); // sin la forma limpia, queda como está
   // Emparejar no cambia: mismo proveedor aunque cambie la mayúscula.
   const r = C.conciliarMes([{uid:'x', fecha:'2026-10-05', nombre:'proveedor inventado uno', monto:1000}],
     [outgoing('m', 1000, {fecha:'2026-10-05', nombre:'Proveedor Inventado Uno'})]);

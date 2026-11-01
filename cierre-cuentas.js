@@ -64,16 +64,20 @@
   // "Nestle" y "Nestlé") tiene que salir UNA sola vez. `unificarNombres` recibe los nombres del
   // mes y elige para cada uno la forma más prolija: empieza con mayúscula, tiene tildes, es la más
   // usada. Solo cambia cómo se muestra y se agrupa; los registros guardados no se tocan.
+  // La clave tampoco mira la marca de caja del final ("c/n", "CT": de qué caja salió la plata)
+  // y toma "vs" como "varios", que es como se abrevia en el cuaderno.
+  const claveNombre = text => nombre(text).replace(/\s+c\s?[mtn]$/, '').replace(/\bvs\b/g, 'varios');
   const formasVistas = new Map(), preferidos = new Map();
   function unificarNombres(lista) {
     (lista || []).forEach(valor => {
-      const texto = String(valor || '').trim().replace(/\s+/g, ' '), clave = nombre(texto);
+      const texto = String(valor || '').trim().replace(/\s+/g, ' '), clave = claveNombre(texto);
       if (!clave) return;
       if (!formasVistas.has(clave)) formasVistas.set(clave, new Map());
       const formas = formasVistas.get(clave);
       formas.set(texto, (formas.get(texto) || 0) + 1);
     });
-    const puntaje = (texto, veces) => [/^[A-ZÁÉÍÓÚÑ]/.test(texto) ? 1 : 0, (texto.match(/[^\x00-\x7f]/g) || []).length, veces,
+    const puntaje = (texto, veces) => [nombre(texto) === claveNombre(texto) ? 1 : 0, /^[A-ZÁÉÍÓÚÑ]/.test(texto) ? 1 : 0,
+      (texto.match(/[^\x00-\x7f]/g) || []).length, veces,
       (texto.match(/(?:^|\s)[A-ZÁÉÍÓÚÑ]/g) || []).length];
     const comparar = (a, b) => { const i = a.findIndex((v, j) => v !== b[j]); return i < 0 ? 0 : a[i] - b[i]; };
     formasVistas.forEach((formas, clave) => {
@@ -88,7 +92,7 @@
   function proveedorGasto(value) {
     const text = String(value || '').trim();
     const concepto = text.replace(/^pago\s+(?:producto\s+de\s+|de\s+)?/i, '');
-    return PROVEEDORES_MP.get(nombre(concepto)) || preferidos.get(nombre(text)) || text;
+    return PROVEEDORES_MP.get(nombre(concepto)) || preferidos.get(claveNombre(text)) || text;
   }
   function conceptoGasto(value) {
     const text = proveedorGasto(value);
