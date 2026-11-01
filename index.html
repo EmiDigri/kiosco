@@ -7380,7 +7380,9 @@ function pulseAprender(byDate,todayIso){
       if(fecha>=todayIso)return; // hoy todavía no cerró
       const rows=byDate.get(fecha);if(!rows)return;
       const e=rec.log[fecha],real=pulseVentanaTotal(rows,e.s,e.e);
-      if(real>0&&e.proj>0){
+      // Una nota absurda (cerró 3 veces más o menos de lo proyectado) viene de una proyección
+      // hecha sin datos suficientes: no se aprende de ella (había un turno anotado x12).
+      if(real>0&&e.proj>0&&real/e.proj<=3&&real/e.proj>=1/3){
         rec.errs=(rec.errs||[]).concat(Math.abs(real-e.proj)/real).slice(-40);
         rec.bias=(rec.bias||[]).concat(real/e.proj).slice(-40);
       }
@@ -7409,6 +7411,45 @@ function pulseProyeccion(byDate,todayIso,dow,startM,endExclM,cutoffM,parcialHoy,
   const ajuste=biasReal?Math.round((Math.max(.8,Math.min(1.25,biasReal))-1)*100):0;
   return{value,low:Math.max(parcialHoy,value*(1-err)),high:value*(1+err),err,n:ratios.length,nCierres:(learn.errs||[]).length,ajuste};
 }
+// Proyección del TURNO a partir de la del día. Con los datos de jun–oct 2026, multiplicar los
+// pocos cobros del arranque del turno erraba 42–58% (y hasta x100); así erra 19–32%: lo
+// cobrado en el turno + lo que falta del día × la parte de ese resto que, en los mismos días
+// de semana anteriores, cayó dentro de lo que queda del turno.
+function pulseParteRestoEnTurno(rows,cutoffM,endExclM){const resto=pulseVentanaTotal(rows,cutoffM+1,1440);return resto>0?pulseVentanaTotal(rows,cutoffM+1,endExclM)/resto:null;}
+// Error típico del método probándolo con cada día anterior igual (dejándolo afuera).
+function pulseBacktestTurno(byDate,todayIso,dow,startM,endExclM,cutoffM){
+  const pEnd=Math.min(cutoffM+1,1440),info=[];
+  byDate.forEach((rows,fecha)=>{if(fecha>=todayIso||pulseDate(fecha).getDay()!==dow)return;
+    info.push({pDia:pulseVentanaTotal(rows,0,pEnd),fullDia:pulseVentanaTotal(rows,0,1440),pTurno:pulseVentanaTotal(rows,startM,pEnd),fullTurno:pulseVentanaTotal(rows,startM,endExclM),parte:pulseParteRestoEnTurno(rows,cutoffM,endExclM)});});
+  if(info.length<4)return null;
+  const errs=[];
+  info.forEach((x,i)=>{
+    if(!(x.fullTurno>0)||!(x.pDia>0))return;
+    const otros=info.filter((_,j)=>j!==i);
+    const ratios=otros.filter(o=>o.pDia>0&&o.fullDia>0).map(o=>o.fullDia/o.pDia),partes=otros.map(o=>o.parte).filter(p=>p!=null);
+    if(ratios.length<3||partes.length<3)return;
+    const v=x.pTurno+Math.max(0,x.pDia*pulseMediana(ratios)-x.pDia)*pulseMediana(partes);
+    if(v>0)errs.push(Math.abs(x.fullTurno-v)/x.fullTurno);
+  });
+  return errs.length>=3?pulseMediana(errs):null;
+}
+function pulseProyeccionTurno(byDate,todayIso,dow,startM,endExclM,cutoffM,parcialTurno,parcialDia,dia,key){
+  if(!dia||!dia.value)return{n:dia?dia.n:null};
+  const partes=[];
+  byDate.forEach((rows,fecha)=>{if(fecha>=todayIso||pulseDate(fecha).getDay()!==dow)return;const p=pulseParteRestoEnTurno(rows,cutoffM,endExclM);if(p!=null)partes.push(p);});
+  if(partes.length<3)return{n:partes.length};
+  const learn=pulseLearnRead()[key]||{errs:[],bias:[]};
+  const biasReal=(learn.bias&&learn.bias.length>=4)?pulseMediana(learn.bias):null;
+  const ajusteF=biasReal?Math.max(.8,Math.min(1.25,biasReal)):1;
+  const value=Math.max(parcialTurno,(parcialTurno+Math.max(0,dia.value-parcialDia)*pulseMediana(partes))*ajusteF);
+  // Margen: el error real cuando ya hay 4 notas; antes, el de probar el método con los días anteriores.
+  const errReal=(learn.errs&&learn.errs.length>=4)?pulseMediana(learn.errs):null;
+  const err=errReal!=null?errReal:(pulseBacktestTurno(byDate,todayIso,dow,startM,endExclM,cutoffM)??.25);
+  return{value,low:Math.max(parcialTurno,value*(1-err)),high:value*(1+err),err,n:partes.length,nCierres:(learn.errs||[]).length,ajuste:biasReal?Math.round((ajusteF-1)*100):0};
+}
+// En la primera hora del turno de la mañana (Vale, o Turno 1 el domingo) ningún método acierta:
+// hay muy pocos cobros. Ahí no se muestra la proyección del turno.
+function pulseTurnoTemprano(indiceTurno,nowMins,inicioTurno){return indiceTurno===0&&nowMins-inicioTurno<60;}
 function pulseRender(rows){
   const content=document.getElementById('pulseContent');if(!content)return;
   document.querySelector('.pulse-tooltip.show')?.classList.remove('show');
@@ -7477,9 +7518,12 @@ function pulseRender(rows){
     if(tAct){
       const tS=tAct.desdeH*60+tAct.desdeM,tEnd=visFin(tAct)+1;
       const tParcial=pulseVentanaTotal(todayRows,tS,tEnd);
-      turnoProj=pulseProyeccion(byDate,today,todayDow,tS,tEnd,nowMins,tParcial,'turno:'+tAct.nombre);
+      // Notas nuevas ('turnoV2'): las del método anterior traían sesgos absurdos (x12).
+      turnoProj=pulseTurnoTemprano(TURNOS.indexOf(tAct),nowMins,tS)
+        ?{temprano:true,desde:tS+60}
+        :pulseProyeccionTurno(byDate,today,todayDow,tS,tEnd,nowMins,tParcial,todayTotal,dayProj,'turnoV2:'+tAct.nombre);
       turnoProjNombre=tAct.nombre;
-      if(turnoProj&&turnoProj.value){const f=tParcial/turnoProj.value;if(f>=.25&&f<=.9)pulseRegistrar('turno:'+tAct.nombre,today,tS,tEnd,turnoProj.value);}
+      if(turnoProj&&turnoProj.value){const f=tParcial/turnoProj.value;if(f>=.25&&f<=.9)pulseRegistrar('turnoV2:'+tAct.nombre,today,tS,tEnd,turnoProj.value);}
     }
   }
   const hourTotals=Array.from({length:24},()=>0);
@@ -7541,6 +7585,7 @@ function pulseRender(rows){
   let tercerTileHtml;
   if(isToday){
     const projCell=(p,label,tipLabel)=>{
+      if(p&&p.temprano){const hh=`${Math.floor(p.desde/60)}:${String(p.desde%60).padStart(2,'0')}`;return`<div class="pulse-pace-item" title="${cmEsc?cmEsc(tipLabel+': en la primera hora todavía hay muy pocos cobros para estimarlo'):''}"><div class="pulse-metric-value pace-mini">—</div><div class="pulse-metric-note">${label} · desde las ${hh}</div></div>`;}
       if(!p||!p.value){const falta=p&&p.n!=null?`faltan ${Math.max(1,3-p.n)} ${p.n>=2?'día':'días'}`:'sin datos';return`<div class="pulse-pace-item" title="${cmEsc?cmEsc(tipLabel+': todavía no hay suficientes días del mismo día de semana'):''}"><div class="pulse-metric-value pace-mini">—</div><div class="pulse-metric-note">${label} · ${falta}</div></div>`;}
       const errPct=Math.round((p.err||0)*100);
       const aprende=p.nCierres>=4?`aprendió de ${p.nCierres} cierres${p.ajuste?` · afinó ${p.ajuste>0?'+':''}${p.ajuste}%`:''}`:'todavía aprendiendo';
