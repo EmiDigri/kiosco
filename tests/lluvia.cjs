@@ -98,6 +98,17 @@ test('raining now at Aeroparque always shows, even without forecast data', () =>
   assert.equal(iwLluviaTexto(resumen(conFranja, '2026-09-28T10:00:00-03:00'), 'Lloviendo ahora').cuando, 'hasta las 13 h');
 });
 
+test('after closing, a storm observed now still shows (1/11/2026 23:30)', () => {
+  const seco = ensemble(10, () => 0);
+  const r = resumen(seco, '2026-09-28T23:30:00-03:00');
+  assert.equal(r.manana, true);
+  const tx = iwLluviaTexto(r, 'Tormenta ahora');
+  assert.equal(`${tx.etiqueta}|${tx.pct}|${tx.cuando}`, 'Tormenta ahora||');
+  const html = iwLluviaHtml(r, 'Tormenta ahora', 'Aeroparque');
+  assert(html.includes('Tormenta ahora') && html.includes('Observado ahora en Aeroparque'));
+  assert(iwLluviaHtml(null, 'Lloviendo ahora', 'El Palomar').includes('Observado ahora en El Palomar'));
+});
+
 test('missing values and separate models are handled', () => {
   const a = ensemble(5, (m, d, h) => (h === 15 ? 2 : 0)), b = ensemble(5, () => null);
   const r = iwLluviaResumen([a, b], new Date('2026-09-28T09:00:00-03:00'), turnosDe);

@@ -9527,14 +9527,16 @@ function iwLluviaResumen(modelos,ahora,turnosDe){
 function iwLluviaTexto(r,estadoAhora){
   if(!r)return estadoAhora?{etiqueta:estadoAhora,pct:'',cuando:''}:null;
   const enCurso=f=>!r.manana&&f.desde<=r.ahora&&r.ahora<f.hasta;
-  if(estadoAhora&&!r.manana){const sigue=r.franjas.find(enCurso);return{etiqueta:estadoAhora,pct:'',cuando:sigue?`hasta las ${sigue.hasta} h`:''};}
+  // Lo observado ahora se muestra siempre, también después del cierre (1/11 23:30: tormenta en
+  // Aeroparque y el renglón vacío porque ya miraba el pronóstico de mañana).
+  if(estadoAhora){const sigue=!r.manana&&r.franjas.find(enCurso);return{etiqueta:estadoAhora,pct:'',cuando:sigue?`hasta las ${sigue.hasta} h`:''};}
   if(r.total<IW_LLUVIA_MIN)return null;
   const f=r.franjas.slice().sort((a,b)=>b.max-a.max)[0];
   return{etiqueta:r.manana?'Lluvia mañana':'Lluvia',pct:`${r.total}%`,cuando:!f?'':enCurso(f)?`hasta las ${f.hasta} h`:`de ${f.desde} a ${f.hasta} h`};
 }
-function iwLluviaHtml(r,estadoAhora){
+function iwLluviaHtml(r,estadoAhora,estacion){
   const tx=iwLluviaTexto(r,estadoAhora);if(!tx)return'';
-  const titulo=!r?'Observado ahora en el Aeroparque':`Chance de que llueva al menos 1 mm ${r.manana?'mañana, en el horario del kiosco':'desde ahora hasta el cierre'}, según ${r.simulaciones} simulaciones de 3 modelos del clima (europeo, estadounidense y alemán). Chance hora por hora: ${r.porHora.map(x=>`${x.h} h ${x.p}%`).join(' · ')}`;
+  const titulo=estadoAhora&&(!r||r.manana)?`Observado ahora en ${estacion||'Aeroparque'}`:`Chance de que llueva al menos 1 mm ${r.manana?'mañana, en el horario del kiosco':'desde ahora hasta el cierre'}, según ${r.simulaciones} simulaciones de 3 modelos del clima (europeo, estadounidense y alemán). Chance hora por hora: ${r.porHora.map(x=>`${x.h} h ${x.p}%`).join(' · ')}`;
   const partes=[[tx.etiqueta,''],[tx.pct,' class="iw-v"'],[tx.cuando,'']].filter(p=>p[0]).map(([t,c])=>`<span${c}>${t}</span>`).join('<span>·</span>');
   return`<span class="iw-rain" title="${titulo}"><img class="iw-rain-icon" src="${mcUrl('umbrella')}" alt="" aria-hidden="true">${partes}</span>`;
 }
@@ -9629,7 +9631,7 @@ async function fetchInfoWidget(){
   // Lluvia observada ahora en Aeroparque o El Palomar, las estaciones más cercanas al kiosco (api/weather.js).
   const lluviaAhora=wxRainNow?(wxRainNow.code===95?'Tormenta ahora':'Lloviendo ahora'):null;
   lluviaPromise.then(modelos=>{
-    const lluviaHtml=iwLluviaHtml(modelos?iwLluviaResumen(modelos,new Date(),turnosDelDia):null,lluviaAhora);
+    const lluviaHtml=iwLluviaHtml(modelos?iwLluviaResumen(modelos,new Date(),turnosDelDia):null,lluviaAhora,wxRainNow?.station);
     document.querySelectorAll('.iw-rain-slot').forEach(slot=>{slot.innerHTML=lluviaHtml;});
   }).catch(()=>{});
 }
